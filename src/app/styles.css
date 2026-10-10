@@ -226,6 +226,8 @@ button.link {
   text-decoration: underline;
   text-underline-offset: .2em;
   cursor: pointer;
+  /* 文字連結也要有手指點得到的高度(所有工具共用的 28×28 下限) */
+  min-height: 28px;
 }
 
 button.link:hover { color: var(--gold); }
@@ -335,6 +337,7 @@ button.link:hover { color: var(--gold); }
 }
 
 .countdown {
+  white-space: nowrap;
   position: absolute;
   top: 14px;
   right: 16px;
@@ -464,7 +467,12 @@ footer {
 
 .spacer { flex: 1; }
 
-.contact a { color: var(--muted); text-decoration: none; border-bottom: 1px solid var(--line); }
+.contact a {
+  color: var(--muted); text-decoration: underline; text-decoration-color: var(--line);
+  text-underline-offset: .25em;
+  /* 點擊區域至少 28px 高;用底線而不是 border-bottom,底線才不會跟著撐高的框掉到下面 */
+  display: inline-flex; align-items: center; min-height: 28px;
+}
 .contact a:hover, .contact a:focus-visible { color: var(--gold); }
 
 .badge {
@@ -509,6 +517,14 @@ footer {
   pointer-events: none;
   z-index: 1;
 }
+/* 頁面需要捲動時改放回頁面最底端(app.js 的 dockHistoryBadge),不再浮在樂譜上 */
+.history-badge.docked {
+  position: static;
+  display: inline-block;
+  margin-top: 12px;
+}
+/* body 的底部留白(40px)要比這個徽章高(bottom 6px + 約 22px),
+   捲到底時頁尾最後一列(窄手機上「推估值」徽章會換到左邊)才不會被它蓋住 */
 
 /*
  * The full-label controls need about 604px to lay out on one line; below
@@ -535,7 +551,7 @@ footer {
 }
 
 @media (max-width: 600px) {
-  body { --body-px: 12px; padding: 0 var(--body-px) 28px; }
+  body { --body-px: 12px; padding: 0 var(--body-px) 40px; }
   /*
    * Measured directly against a ScrollScore screenshot taken at the same
    * device scale (iPhone, 3x): SightDrill's title cap-height came out to
@@ -569,7 +585,7 @@ footer {
 }
 
 @media (min-width: 600px) and (max-width: 900px) {
-  body { --body-px: 20px; padding: 0 var(--body-px) 36px; }
+  body { --body-px: 20px; padding: 0 var(--body-px) 40px; }
 
   /*
    * A tablet is normally read from further away than a phone held in the
@@ -698,4 +714,55 @@ footer {
 @media (min-width: 600px) and (max-width: 900px) {
   .btn { font-size: clamp(12px, 1.55vw, 16px); padding: 0 clamp(8px, 1.3vw, 14px); }
   .grade-select { font-size: clamp(12px, 1.55vw, 16px); padding: 8px clamp(6px, 1vw, 10px); }
+}
+
+/* ══ 360px 以下(SE 320、折疊機 280):五顆按鈕 + 品牌名要擠進一列 ══════════
+   44px 的觸控按鈕五顆就佔掉 240px,280px 寬的折疊機只剩不到 20px 給品牌名,
+   被截成「Sig…」。縮到 34px(仍高於共用規則的 28px 下限)、間距收窄、品牌名字距收小。 */
+@media (max-width: 360px) {
+  .topbar { gap: 8px; }
+  .controls { gap: 4px; }
+  h1 { font-size: clamp(13px, 4.3vw, 15px); letter-spacing: .02em; }
+  .btn.icon-only { width: 34px; }
+  .btn { height: 34px; min-width: 34px; }
+}
+@media (pointer: coarse) and (max-width: 360px) {
+  .btn { height: 34px; min-width: 34px; }
+  .btn.icon-only { width: 34px; }
+}
+
+/* ══ 寬螢幕:級數/調性、資訊列、倒數、訊息、頁尾跟樂譜對齊同一組左右邊界 ══════════
+   樂譜和頂欄本來就撐滿整個畫面寬,但中間的資訊列和下面的頁尾還停在 64rem 的置中欄裡,
+   1080p 上級數選單從 x=468 開始、樂譜卻從 x=45 開始,看起來沒對齊。
+   改成同樣的滿版 + 內距,整頁只剩一條左邊界、一條右邊界。 */
+@media (min-width: 900px) {
+  .meta-row, .message, .checklist, footer {
+    margin-left: calc(50% - 50vw);
+    margin-right: calc(50% - 50vw);
+    padding-left: var(--body-px);
+    padding-right: var(--body-px);
+  }
+  .meta-row { padding-left: calc(var(--body-px) + 4px); padding-right: calc(var(--body-px) + 4px); }
+  .checklist { padding-left: calc(var(--body-px) + 1.4em); }
+  .history-badge.docked { margin-left: calc(50% - 50vw + var(--body-px)); }
+}
+
+/* ══ 手機橫放(高 ≤420px):資訊列用手機的字級和欄寬 ══════════
+   橫放的手機有 600~900px 寬,會吃到平板那一段放大的字級和欄寬;可是級數/調性和倒數
+   也擠在同一列,資訊列只剩約 350px,最後的速度被擠到第二行,行尾留下一個孤零零的「丨」。
+   它終究是手機,看的距離也是手機的距離,用回手機的尺寸。 */
+@media (orientation: landscape) and (max-height: 420px) and (min-width: 600px) {
+  .meta span { font-size: var(--fs-sm); }
+  .meta-sep { padding: 0 6px; }
+  .meta-key { width: 58px; }
+  .meta-time { width: 36px; }
+  .meta-bars { width: 58px; }
+  .meta-row { gap: 14px; }
+  .meta-row .countdown { font-size: 32px; }
+}
+/* 折疊機 280:四個值放得進一列,不讓速度掉到第二行 */
+@media (max-width: 360px) {
+  .meta-sep { padding: 0 4px; }
+  .meta-key { width: 54px; }
+  .meta-bars { width: 54px; }
 }

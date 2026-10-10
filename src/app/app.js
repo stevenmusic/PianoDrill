@@ -1,10 +1,10 @@
-import { generateTest, keyOptionsFor } from '../generator/generate.js?v=55';
-import { toMusicXml } from '../generator/musicxml.js?v=55';
-import { createHistory, generateUnique } from '../generator/fingerprint.js?v=55';
-import { createKey, pitchAt } from '../generator/theory.js?v=55';
-import { createPlayer } from './playback.js?v=55';
-import { createStage, barTimings } from './stage.js?v=55';
-import { initLanguage, applyLanguage, getLanguage, t, onLanguageChange } from './i18n.js?v=55';
+import { generateTest, keyOptionsFor } from '../generator/generate.js?v=58';
+import { toMusicXml } from '../generator/musicxml.js?v=58';
+import { createHistory, generateUnique } from '../generator/fingerprint.js?v=58';
+import { createKey, pitchAt } from '../generator/theory.js?v=58';
+import { createPlayer } from './playback.js?v=58';
+import { createStage, barTimings } from './stage.js?v=58';
+import { initLanguage, applyLanguage, getLanguage, t, onLanguageChange } from './i18n.js?v=58';
 
 // As early as possible, before any other DOM work below, so the page never
 // paints in the wrong language for a returning en visitor.
@@ -199,13 +199,17 @@ const MIN_CLEARANCE_UNITS = 2;
 /*
  * Where the treble clef sits, measured from the top of the engraving in staff
  * units (one unit is one line gap, so this scales with the staff size rather
- * than being a pixel guess). Chosen above the most headroom OSMD ever asks
- * for on its own — measured 10.0 to 13.1 units across grades — so `pinScoreTop`
- * only ever pushes the score *down* into the space it reserves. Padding
- * downward can never crowd anything; pulling upward could clip a high ledger
- * line or the tempo word, so the target is deliberately generous.
+ * than being a pixel guess). OSMD reserves 10.0 to 13.1 units above the clef,
+ * but what is actually *drawn* there — the tempo word once lifted, a high
+ * ledger line, a slur, a beam — reaches at most 7.7 units above it (96 tests,
+ * every grade, phone and 1080p). The old target of 15 sat above OSMD's
+ * reservation so the score was only ever pushed down, and left 5+ units of
+ * nothing between the meta line and the music. `pinScoreTop` now also pulls
+ * the engraving *up* into OSMD's own empty margin when the target is below
+ * it; 10 keeps a 2-unit clearance over the tallest ink measured, so nothing
+ * drawn can come near the frame's top.
  */
-const SCORE_TOP_UNITS = 15;
+const SCORE_TOP_UNITS = 10;
 /** Breathing room under the last system, so it never sits on the screen edge. */
 const SCORE_BOTTOM_GAP = 16;
 /*
@@ -337,13 +341,16 @@ function pinScoreTop() {
   const svg = elements.score.querySelector('svg');
   if (!svg) return;
   elements.score.style.paddingTop = '0px';
+  elements.score.style.marginTop = '0px';
   const clef = svg.querySelector('g.vf-clef');
   if (!clef) return;
   const natural = clef.getBoundingClientRect().top - svg.getBoundingClientRect().top;
   // One OSMD unit is ten pixels before zoom, so the target tracks staff size.
   const target = SCORE_TOP_UNITS * 10 * osmd.zoom;
   const shift = target - natural;
-  elements.score.style.paddingTop = `${shift > 0 ? shift : 0}px`;
+  // Down: pad. Up: pull into OSMD's own blank top margin (see SCORE_TOP_UNITS).
+  elements.score.style.paddingTop = `${Math.max(shift, 0)}px`;
+  elements.score.style.marginTop = `${Math.min(shift, 0)}px`;
 }
 
 /**
@@ -642,6 +649,21 @@ async function init() {
     clearTimeout(resizeTimer);
     resizeTimer = setTimeout(() => { fitScore(); }, 200);
   });
+
+  // 「已紀錄 N 題」平常釘在畫面左下角;頁面長到要捲動時,釘住的徽章會在捲動途中
+  // 壓在樂譜上(所有工具共用的規則:固定的東西不能蓋住內容),這時改放回頁面最底端。
+  // 判斷時扣掉它自己放回頁面後多出的高度,免得在臨界高度來回切換。
+  const dockHistoryBadge = () => {
+    const badge = elements.historyInfo;
+    const docked = badge.classList.contains('docked');
+    const own = docked ? badge.offsetHeight + 12 : 0;
+    const shouldDock = document.documentElement.scrollHeight - own > window.innerHeight + 1;
+    if (shouldDock !== docked) badge.classList.toggle('docked', shouldDock);
+  };
+  // 下一格畫面才改:在 ResizeObserver 回呼裡直接改版面會觸發瀏覽器的
+  // 「ResizeObserver loop」錯誤,而這個 app 的全域錯誤處理會把它當成真的失敗。
+  new ResizeObserver(() => requestAnimationFrame(dockHistoryBadge)).observe(document.body);
+  window.addEventListener('resize', dockHistoryBadge);
 
   updateHistoryInfo();
 }

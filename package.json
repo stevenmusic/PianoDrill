@@ -14,7 +14,8 @@
     "loudness": "node scripts/loudness.js",
     "staff": "node scripts/staff-metrics.js",
     "engraving": "node scripts/engraving-check.js",
-    "highlight": "node scripts/highlight-check.js"
+    "highlight": "node scripts/highlight-check.js",
+    "layout": "node scripts/layout.js"
   },
   "dependencies": {
     "opensheetmusicdisplay": "^2.1.0"

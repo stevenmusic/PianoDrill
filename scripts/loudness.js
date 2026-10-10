@@ -1,7 +1,7 @@
 /**
  * Measures the actual integrated loudness (ITU-R BS.1770 LUFS, the same
  * measure YouTube/Spotify normalize uploads to — YouTube's target is -14
- * LUFS integrated) of SightScore's real playback engine, and reports how
+ * LUFS integrated) of SightDrill's real playback engine, and reports how
  * far the current gain staging (`master.gain.value`/`PEAK_GAIN` in
  * playback.js) sits from a target.
  *

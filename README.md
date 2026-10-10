@@ -1,4 +1,4 @@
-# SightScore
+# SightDrill
 
 視奏（sight-reading）隨機題目生成器。樂譜不掃描、不打譜，而是用規則庫即時生成：
 依 Grade 規則隨機組出合法的音符與節奏序列 → 直接輸出 MusicXML 字串 → 交給 OSMD 渲染。

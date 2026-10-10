@@ -22,7 +22,7 @@ const STORAGE_KEY = 'sm_lang';
 
 export const I18N = {
   zh: {
-    pageTitle: 'SightScore — 視奏隨機題目生成器',
+    pageTitle: 'SightDrill — 視奏隨機題目生成器',
     homeAria: '回首頁',
     homeText: '首頁',
     contactLabel: '問題回報：',
@@ -80,7 +80,7 @@ export const I18N = {
     prepStep6: '用最難的那一小節決定速度，然後心裡數一小節',
   },
   en: {
-    pageTitle: 'SightScore — Sight-Reading Test Generator',
+    pageTitle: 'SightDrill — Sight-Reading Test Generator',
     homeAria: 'Back to home',
     homeText: 'Home',
     contactLabel: 'Feedback: ',

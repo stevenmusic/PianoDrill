@@ -1,6 +1,6 @@
 # ABRSM 視奏（Sight-Reading）內容分析
 
-本文件是 SightScore 視奏隨機生成器的規則來源分析。目標：把 ABRSM 鋼琴 Grade 1–8 視奏測驗的**可程式化參數**（調性、音域、小節數、節奏、articulation 等）整理成一份可直接轉成 JSON 規則表的規格。
+本文件是 SightDrill 視奏隨機生成器的規則來源分析。目標：把 ABRSM 鋼琴 Grade 1–8 視奏測驗的**可程式化參數**（調性、音域、小節數、節奏、articulation 等）整理成一份可直接轉成 JSON 規則表的規格。
 
 對應的機器可讀規則表：[`src/rules/abrsm-piano-grades.json`](../src/rules/abrsm-piano-grades.json)
 

@@ -1,5 +1,5 @@
 /*
- * SightScore — styled to match ScrollScore.
+ * SightDrill — styled to match ScrollScore.
  *
  * Same type pairing (Noto Serif TC for the brand, Noto Sans TC for the rest),
  * the same light-theme palette, the same three-step radius/shadow/type scales,
@@ -538,7 +538,7 @@ footer {
   body { --body-px: 12px; padding: 0 var(--body-px) 28px; }
   /*
    * Measured directly against a ScrollScore screenshot taken at the same
-   * device scale (iPhone, 3x): SightScore's title cap-height came out to
+   * device scale (iPhone, 3x): SightDrill's title cap-height came out to
    * 45 physical px at the old 19px size against ScrollScore's 36px — a
    * ~0.8x ratio applied here gives 15px.
    */

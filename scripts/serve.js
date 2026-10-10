@@ -40,5 +40,5 @@ createServer((request, response) => {
   });
   createReadStream(path).pipe(response);
 }).listen(port, () => {
-  console.log(`SightScore dev server: http://localhost:${port}`);
+  console.log(`SightDrill dev server: http://localhost:${port}`);
 });

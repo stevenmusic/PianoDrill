@@ -10,7 +10,7 @@
  *   - a tie needs <tie> (sound) *and* <notations><tied> (looks)
  */
 
-import { keyAlterations, LETTERS } from './theory.js?v=54';
+import { keyAlterations, LETTERS } from './theory.js?v=55';
 
 const ACCIDENTAL_NAMES = {
   '-2': 'flat-flat', '-1': 'flat', 0: 'natural', 1: 'sharp', 2: 'double-sharp',
@@ -45,7 +45,7 @@ export function toMusicXml(score, options = {}) {
   lines.push('<score-partwise version="4.0">');
   lines.push(`  <work><work-title>${escapeXml(title)}</work-title></work>`);
   lines.push('  <identification>');
-  lines.push('    <encoding><software>SightScore</software></encoding>');
+  lines.push('    <encoding><software>SightDrill</software></encoding>');
   lines.push('  </identification>');
   lines.push('  <part-list>');
   lines.push('    <score-part id="P1"><part-name>Piano</part-name></score-part>');

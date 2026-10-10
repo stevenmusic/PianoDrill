@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project overview
 
-Rule-based ABRSM piano sight-reading test generator. It does not scan or hand-engrave scores — it procedurally generates a legal note/rhythm sequence from a per-grade rules table, serializes it straight to a MusicXML string, and renders that with OpenSheetMusicDisplay (OSMD) in the browser. Plain static site: `index.html` + `src/`, deployed as-is to GitHub Pages — no build step, no framework, no bundler.
+SightDrill (renamed from SightScore; repo and Pages URL `stevenmusic.github.io/SightDrill/`). Rule-based ABRSM piano sight-reading test generator. It does not scan or hand-engrave scores — it procedurally generates a legal note/rhythm sequence from a per-grade rules table, serializes it straight to a MusicXML string, and renders that with OpenSheetMusicDisplay (OSMD) in the browser. Plain static site: `index.html` + `src/`, deployed as-is to GitHub Pages — no build step, no framework, no bundler.
 
 The UI (`index.html`, user-facing strings in `src/app/app.js`) is in Traditional Chinese; code, comments and identifiers are English. `README.md` (also Chinese) has the architecture rundown this file summarizes for Claude.
 

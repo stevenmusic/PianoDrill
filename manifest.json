@@ -1,6 +1,6 @@
 {
-  "name": "SightScore — 視奏隨機題目生成器",
-  "short_name": "SightScore",
+  "name": "SightDrill — 視奏隨機題目生成器",
+  "short_name": "SightDrill",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",

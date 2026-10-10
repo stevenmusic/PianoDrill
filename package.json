@@ -1,5 +1,5 @@
 {
-  "name": "sightscore",
+  "name": "sightdrill",
   "version": "0.1.0",
   "description": "Rule-based ABRSM sight-reading test generator (MusicXML out, OSMD in the browser)",
   "type": "module",

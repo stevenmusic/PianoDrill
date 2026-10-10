@@ -1,15 +1,17 @@
-import { generateTest, keyOptionsFor } from '../generator/generate.js?v=54';
-import { toMusicXml } from '../generator/musicxml.js?v=54';
-import { createHistory, generateUnique } from '../generator/fingerprint.js?v=54';
-import { createKey, pitchAt } from '../generator/theory.js?v=54';
-import { createPlayer } from './playback.js?v=54';
-import { createStage, barTimings } from './stage.js?v=54';
-import { initLanguage, applyLanguage, getLanguage, t, onLanguageChange } from './i18n.js?v=54';
+import { generateTest, keyOptionsFor } from '../generator/generate.js?v=55';
+import { toMusicXml } from '../generator/musicxml.js?v=55';
+import { createHistory, generateUnique } from '../generator/fingerprint.js?v=55';
+import { createKey, pitchAt } from '../generator/theory.js?v=55';
+import { createPlayer } from './playback.js?v=55';
+import { createStage, barTimings } from './stage.js?v=55';
+import { initLanguage, applyLanguage, getLanguage, t, onLanguageChange } from './i18n.js?v=55';
 
 // As early as possible, before any other DOM work below, so the page never
 // paints in the wrong language for a returning en visitor.
 initLanguage();
 
+// Keys keep the old 'sightscore' prefix on purpose: the app was renamed
+// SightScore → SightDrill, and renaming them would wipe saved history/layout.
 const STORAGE_KEY = 'sightscore.history.v1';
 const LAYOUT_STORAGE_KEY = 'sightscore.layout.v1';
 

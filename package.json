@@ -15,7 +15,8 @@
     "staff": "node scripts/staff-metrics.js",
     "engraving": "node scripts/engraving-check.js",
     "highlight": "node scripts/highlight-check.js",
-    "layout": "node scripts/layout.js"
+    "layout": "node scripts/layout.js",
+    "human": "node scripts/human.js"
   },
   "dependencies": {
     "opensheetmusicdisplay": "^2.1.0"

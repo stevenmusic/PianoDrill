@@ -1,10 +1,10 @@
-import { generateTest, keyOptionsFor } from '../generator/generate.js?v=58';
-import { toMusicXml } from '../generator/musicxml.js?v=58';
-import { createHistory, generateUnique } from '../generator/fingerprint.js?v=58';
-import { createKey, pitchAt } from '../generator/theory.js?v=58';
-import { createPlayer } from './playback.js?v=58';
-import { createStage, barTimings } from './stage.js?v=58';
-import { initLanguage, applyLanguage, getLanguage, t, onLanguageChange } from './i18n.js?v=58';
+import { generateTest, keyOptionsFor } from '../generator/generate.js?v=60';
+import { toMusicXml } from '../generator/musicxml.js?v=60';
+import { createHistory, generateUnique } from '../generator/fingerprint.js?v=60';
+import { createKey, pitchAt } from '../generator/theory.js?v=60';
+import { createPlayer } from './playback.js?v=60';
+import { createStage, barTimings } from './stage.js?v=60';
+import { initLanguage, applyLanguage, getLanguage, t, onLanguageChange } from './i18n.js?v=60';
 
 // As early as possible, before any other DOM work below, so the page never
 // paints in the wrong language for a returning en visitor.
@@ -607,6 +607,19 @@ async function init() {
   });
   elements.key.addEventListener('change', () => {
     if (current) newTest();
+  });
+  // 深色/淺色主題(預設深色,跟 FingerDrill 一樣)。樂譜紙張兩種主題都是白紙,不用重畫。
+  const themeToggle = document.getElementById('theme-toggle');
+  const applyTheme = (light) => {
+    document.documentElement.classList.toggle('light', light);
+    themeToggle.setAttribute('aria-pressed', String(light));
+    document.querySelector('meta[name="theme-color"]').content = light ? '#FBF7EE' : '#0C0A07';
+  };
+  applyTheme(document.documentElement.classList.contains('light'));
+  themeToggle.addEventListener('click', () => {
+    const light = !document.documentElement.classList.contains('light');
+    applyTheme(light);
+    try { localStorage.setItem('sightdrill.theme', light ? 'light' : 'dark'); } catch { /* 私密模式:只是不記住 */ }
   });
   elements.langToggle.addEventListener('click', () => {
     applyLanguage(getLanguage() === 'en' ? 'zh' : 'en');

@@ -8,15 +8,30 @@
  */
 
 :root {
-  --bg: #FBF7EE;
-  --panel: #F4EEE0;
-  --panel-2: #EDE6D4;
-  --gold: #856418;
-  --gold-bright: #6B5115;
-  --ivory: #241E12;  /*名稱沿用 ScrollScore，淺色版實際是主文字色 */
-  --muted: #6F6450;
-  --muted-bright: #544B3B;
-  --line: #D8CDB2;
+  /* 深色(預設):黑金系列,值照抄 FingerDrill / HarmonyMap,同一家族的工具放在一起看是同一個產品 */
+  --bg: #0C0A07;
+  --panel: #161209;
+  --panel-2: #201A0F;
+  --gold: #F2B94B;
+  --gold-bright: #EFD48A;
+  --brand-gold: #C9A24B;
+  --ivory: #F4ECDA;  /* 主文字色(名稱沿用 ScrollScore) */
+  --muted: #8A7D5F;
+  --muted-bright: #B6A576;
+  --line: #2A2415;
+  --surface-inset: rgba(22, 18, 9, .55);
+  --card-tint: rgba(242, 185, 75, .06);
+  --on-fill: #16110A;   /* 金色實心按鈕上的字 */
+  --error: #F08A72;
+  --error-bg: rgba(240, 138, 114, .08);
+  --error-line: rgba(240, 138, 114, .35);
+
+  /* 樂譜紙張:深色/淺色主題都一樣是白紙黑字,所以紙上的播放高亮/播放軸
+     用固定的深金色,不跟著主題換(深色主題的亮金色在白紙上看不清楚) */
+  --paper: #FFFDF6;
+  --paper-gold: #856418;
+  --paper-gold-bright: #6B5115;
+  --paper-glow: rgba(133, 100, 24, .45);
 
   /* No shadow scale, no larger radius steps — the app deliberately has no
      drop shadows or big-radius cards anywhere (see .topbar/.score-frame),
@@ -42,6 +57,27 @@
      duplicating each breakpoint's number. */
   --body-px: 16px;
 
+  color-scheme: dark;
+}
+
+/* 淺色主題:同一組語意變數換一套值(就是改版前的米白配色) */
+:root.light {
+  --bg: #FBF7EE;
+  --panel: #F4EEE0;
+  --panel-2: #EDE6D4;
+  --gold: #856418;
+  --gold-bright: #6B5115;
+  --brand-gold: #856418;
+  --ivory: #241E12;
+  --muted: #6F6450;
+  --muted-bright: #544B3B;
+  --line: #D8CDB2;
+  --surface-inset: rgba(255, 255, 255, .7);
+  --card-tint: rgba(133, 100, 24, .05);
+  --on-fill: #FBF7EE;
+  --error: #8f2f1d;
+  --error-bg: rgba(143, 47, 29, .07);
+  --error-line: rgba(143, 47, 29, .28);
   color-scheme: light;
 }
 
@@ -126,7 +162,7 @@ h1 {
   font-size: var(--fs-2xl);
   font-weight: 700;
   letter-spacing: .06em;
-  color: var(--gold);
+  color: var(--brand-gold);
   line-height: 1.2;
   /* Noto Serif TC's descenders (the tail on "g") sit lower than a 1.2
      line-height box allows for — with overflow:hidden that clipped the
@@ -190,8 +226,8 @@ h1 span { color: var(--ivory); font-weight: 600; }
 }
 
 .btn svg { flex: none; }
-.btn:active { background: var(--gold); color: var(--bg); }
-.btn.primary { background: var(--gold); color: var(--bg); font-weight: 700; }
+.btn:active { background: var(--gold); color: var(--on-fill); }
+.btn.primary { background: var(--gold); color: var(--on-fill); font-weight: 700; }
 .btn:disabled { opacity: .35; cursor: not-allowed; }
 .btn:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
 
@@ -201,13 +237,13 @@ h1 span { color: var(--ivory); font-weight: 600; }
    a flex item with min-width in play, so width is set explicitly to match
    height at each breakpoint below instead). */
 .btn.icon-only { width: 38px; padding: 0; flex-shrink: 0; }
-.btn.icon-only.is-active { background: var(--gold); color: var(--bg); }
+.btn.icon-only.is-active { background: var(--gold); color: var(--on-fill); }
 
 select {
   font-family: inherit;
   font-size: var(--fs-sm);
   color: var(--ivory);
-  background: rgba(255, 255, 255, .7);
+  background: var(--surface-inset);
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
   padding: 7px 8px;
@@ -374,13 +410,19 @@ button.link:hover { color: var(--gold); }
  * The whole test renders here in normal page flow. The highlight block and
  * playhead are absolutely positioned within it, over the notes.
  */
-.stage { position: relative; }
+.stage {
+  position: relative;
+  /* 白色譜紙,深色/淺色主題都一樣(跟 FingerDrill 的 .paper 同一個做法) */
+  background: var(--paper);
+  border-radius: var(--radius-sm);
+  padding: 4px 6px 6px;
+}
 
 /* The bar being played, tinted behind the notes rather than over them. */
 .measure-highlight {
   position: absolute;
   display: none;
-  background: var(--gold);
+  background: var(--paper-gold);
   opacity: .16;
   border-radius: 3px;
   pointer-events: none;
@@ -394,8 +436,8 @@ button.link:hover { color: var(--gold); }
   left: 0;
   width: 2px;
   display: none;
-  background: linear-gradient(to bottom, transparent, var(--gold-bright) 12%, var(--gold-bright) 88%, transparent);
-  box-shadow: 0 0 14px 2px rgba(133, 100, 24, .45);
+  background: linear-gradient(to bottom, transparent, var(--paper-gold-bright) 12%, var(--paper-gold-bright) 88%, transparent);
+  box-shadow: 0 0 14px 2px var(--paper-glow);
   pointer-events: none;
   z-index: 5;
   transition: transform .12s linear;
@@ -444,9 +486,9 @@ button.link:hover { color: var(--gold); }
 
 /* Failures must be visible on the page: a phone has no dev console. */
 .message.error {
-  color: #8f2f1d;
-  background: rgba(143, 47, 29, .07);
-  border: 1px solid rgba(143, 47, 29, .28);
+  color: var(--error);
+  background: var(--error-bg);
+  border: 1px solid var(--error-line);
   border-radius: var(--radius-sm);
   padding: 10px 12px;
 }
@@ -480,7 +522,7 @@ footer {
   border-radius: var(--radius-pill);
   padding: 3px 10px;
   color: var(--gold);
-  background: rgba(133, 100, 24, .05);
+  background: var(--card-tint);
   font-size: var(--fs-2xs);
   white-space: nowrap;
 }
@@ -606,6 +648,8 @@ footer {
   .meta-time { width: 54px; }
   .meta-bars { width: 84px; }
   .countdown { font-size: 52px; }
+  /* 52px 的倒數數字比 56px 的預留高度還高,會壓到白色譜紙的上緣 */
+  .score-frame { padding-top: 72px; }
 }
 
 /*
@@ -716,19 +760,33 @@ footer {
   .grade-select { font-size: clamp(12px, 1.55vw, 16px); padding: 8px clamp(6px, 1vw, 10px); }
 }
 
-/* ══ 360px 以下(SE 320、折疊機 280):五顆按鈕 + 品牌名要擠進一列 ══════════
-   44px 的觸控按鈕五顆就佔掉 240px,280px 寬的折疊機只剩不到 20px 給品牌名,
-   被截成「Sig…」。縮到 34px(仍高於共用規則的 28px 下限)、間距收窄、品牌名字距收小。 */
+/* ══ 360px 以下(SE 320、折疊機 280):六顆按鈕 + 品牌名要擠進一列 ══════════
+   44px 的觸控按鈕六顆就佔掉 260px 以上,375/390 的手機品牌名就被截掉一截、折疊機上只剩「Si…」。
+   按鈕跟著寬度縮(最小 28px,所有工具共用的點擊下限),間距、字距一起收。
+   用 .topbar .btn 提高權重,蓋過 (pointer: coarse) 的 44px。 */
+@media (max-width: 420px) {
+  .controls { gap: 5px; }
+  .topbar .btn, .topbar .btn.icon-only { height: 36px; min-width: 36px; }
+  .topbar .btn.icon-only { width: 36px; }
+}
 @media (max-width: 360px) {
   .topbar { gap: 8px; }
   .controls { gap: 4px; }
-  h1 { font-size: clamp(13px, 4.3vw, 15px); letter-spacing: .02em; }
-  .btn.icon-only { width: 34px; }
-  .btn { height: 34px; min-width: 34px; }
+  h1 { font-size: clamp(12px, 4.3vw, 15px); letter-spacing: .02em; }
+  .topbar .btn, .topbar .btn.icon-only { height: 32px; min-width: 32px; }
+  .topbar .btn.icon-only { width: 32px; }
 }
-@media (pointer: coarse) and (max-width: 360px) {
-  .btn { height: 34px; min-width: 34px; }
-  .btn.icon-only { width: 34px; }
+@media (max-width: 330px) {
+  .topbar { padding-left: 10px; padding-right: 10px; }
+  .controls { gap: 3px; }
+  .topbar .btn, .topbar .btn.icon-only { height: 30px; min-width: 30px; }
+  .topbar .btn.icon-only { width: 30px; }
+}
+@media (max-width: 300px) {
+  .topbar { padding-left: 8px; padding-right: 8px; gap: 6px; }
+  h1 { font-size: 12px; letter-spacing: 0; }
+  .topbar .btn, .topbar .btn.icon-only { height: 28px; min-width: 28px; }
+  .topbar .btn.icon-only { width: 28px; }
 }
 
 /* ══ 寬螢幕:級數/調性、資訊列、倒數、訊息、頁尾跟樂譜對齊同一組左右邊界 ══════════

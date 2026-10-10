@@ -126,6 +126,8 @@ async function audit(page) {
     const ctl = document.querySelector('.topbar .controls').getBoundingClientRect();
     if (h1.right > ctl.left + 1 && h1.bottom > ctl.top && h1.top < ctl.bottom) out.push(`頂欄重疊:品牌名到 ${Math.round(h1.right)},按鈕從 ${Math.round(ctl.left)}`);
     if (ctl.top > h1.bottom) out.push('頂欄按鈕被擠到第二列');
+    const h1el = document.querySelector('.topbar h1');
+    if (h1el.scrollWidth > h1el.clientWidth + 1) out.push(`品牌名被截斷(${h1el.scrollWidth}>${h1el.clientWidth})`);
     // 樂譜紙張與樂譜
     const frame = document.getElementById('score-frame');
     const svg = document.querySelector('#score svg');
@@ -148,6 +150,17 @@ async function audit(page) {
     // 資訊列(調性丨拍號丨小節丨速度)一定要一行,不然行尾會剩一個「丨」
     const metaSpans = [...document.querySelectorAll('#meta span')].filter(vis);
     if (new Set(metaSpans.map((e) => Math.round(e.getBoundingClientRect().top / 5))).size > 1) out.push('資訊列換成兩行');
+    // 角落的級數/調性、倒數不能壓到白色譜紙
+    const paper = document.getElementById('stage');
+    if (vis(paper)) {
+      const pr = paper.getBoundingClientRect();
+      for (const id of ['grade-controls', 'countdown']) {
+        const el = document.getElementById(id);
+        if (!vis(el)) continue;
+        const r = el.getBoundingClientRect();
+        if (r.bottom > pr.top + 1 && r.top < pr.bottom && r.right > pr.left && r.left < pr.right) out.push(`${id} 壓到譜紙(${Math.round(r.bottom)} > ${Math.round(pr.top)})`);
+      }
+    }
     // 控制項彼此重疊(級數、調性、倒數)
     const boxes = ['grade', 'key', 'countdown'].map((id) => document.getElementById(id)).filter(vis).map((e) => [e.id, e.getBoundingClientRect()]);
     for (let i = 0; i < boxes.length; i++) for (let j = i + 1; j < boxes.length; j++) {
@@ -206,6 +219,10 @@ if (isMain) {
     await page.waitForFunction(() => document.getElementById('countdown').classList.contains('running'), null, { timeout: 15000 }).catch(() => {});
     report('30 秒準備', await audit(page)); await shot('prepare');
     await page.click('#stop').catch(() => {});
+
+    await page.click('#theme-toggle');
+    await page.waitForTimeout(200);
+    report('淺色主題', await audit(page)); await shot('light');
 
     await page.click('#lang-toggle');
     await page.waitForTimeout(300);

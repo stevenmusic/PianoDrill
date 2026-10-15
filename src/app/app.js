@@ -1,10 +1,10 @@
-import { generateTest, keyOptionsFor } from '../generator/generate.js?v=c15b3ece';
-import { toMusicXml } from '../generator/musicxml.js?v=c15b3ece';
-import { createHistory, generateUnique } from '../generator/fingerprint.js?v=c15b3ece';
-import { createKey, pitchAt } from '../generator/theory.js?v=c15b3ece';
-import { createPlayer } from './playback.js?v=c15b3ece';
-import { createStage, barTimings } from './stage.js?v=c15b3ece';
-import { initLanguage, applyLanguage, getLanguage, t, onLanguageChange } from './i18n.js?v=c15b3ece';
+import { generateTest, keyOptionsFor } from '../generator/generate.js?v=6955a4c5';
+import { toMusicXml } from '../generator/musicxml.js?v=6955a4c5';
+import { createHistory, generateUnique } from '../generator/fingerprint.js?v=6955a4c5';
+import { createKey, pitchAt } from '../generator/theory.js?v=6955a4c5';
+import { createPlayer } from './playback.js?v=6955a4c5';
+import { createStage, barTimings } from './stage.js?v=6955a4c5';
+import { initLanguage, applyLanguage, getLanguage, t, onLanguageChange } from './i18n.js?v=6955a4c5';
 
 // As early as possible, before any other DOM work below, so the page never
 // paints in the wrong language for a returning en visitor.
@@ -781,6 +781,7 @@ let rendering = false;
 let renderAgain = false;
 // 新題才更新訊息;旋轉螢幕等只是重畫,不該蓋掉給音/倒數中的提示
 let loudRender = false;
+let renderRetried = false;
 async function renderCurrent() {
   if (rendering) { renderAgain = true; return; }
   rendering = true;
@@ -807,12 +808,28 @@ async function drawTest({ score, xml }, quiet = false) {
 
   if (!quiet) say('renderingStatus');
   try {
-    await osmd.load(xml);
-    osmd.render();
+    try {
+      await osmd.load(xml);
+      osmd.render();
+    } catch (first) {
+      // OSMD occasionally throws from inside its own layout (a slur's staff
+      // entry missing) on a score that renders fine the next time round.
+      // Reload and draw once more before giving up, so a blank score is the
+      // last resort rather than the first.
+      console.warn('OSMD render failed, retrying once:', first.message);
+      await osmd.load(xml);
+      osmd.render();
+    }
     if (!quiet) say('readyStatus');
   } catch (error) {
     fail('failRender', error.message);
     elements.score.classList.remove('entering');
+    // Still failing: the score itself is the problem, so draw a different one.
+    if (!renderRetried) {
+      renderRetried = true;
+      setTimeout(() => { renderRetried = false; }, 3000);
+      newTest();
+    }
     return;
   }
 

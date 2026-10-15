@@ -1,10 +1,10 @@
-import { generateTest, keyOptionsFor } from '../generator/generate.js?v=af769a69';
-import { toMusicXml } from '../generator/musicxml.js?v=af769a69';
-import { createHistory, generateUnique } from '../generator/fingerprint.js?v=af769a69';
-import { createKey, pitchAt } from '../generator/theory.js?v=af769a69';
-import { createPlayer } from './playback.js?v=af769a69';
-import { createStage, barTimings } from './stage.js?v=af769a69';
-import { initLanguage, applyLanguage, getLanguage, t, onLanguageChange } from './i18n.js?v=af769a69';
+import { generateTest, keyOptionsFor } from '../generator/generate.js?v=39c1f6a1';
+import { toMusicXml } from '../generator/musicxml.js?v=39c1f6a1';
+import { createHistory, generateUnique } from '../generator/fingerprint.js?v=39c1f6a1';
+import { createKey, pitchAt } from '../generator/theory.js?v=39c1f6a1';
+import { createPlayer } from './playback.js?v=39c1f6a1';
+import { createStage, barTimings } from './stage.js?v=39c1f6a1';
+import { initLanguage, applyLanguage, getLanguage, t, onLanguageChange } from './i18n.js?v=39c1f6a1';
 
 // As early as possible, before any other DOM work below, so the page never
 // paints in the wrong language for a returning en visitor.
@@ -536,7 +536,11 @@ async function init() {
 
   try {
     osmd = new opensheetmusicdisplay.OpenSheetMusicDisplay(elements.score, {
-      autoResize: true,
+      // OSMD's own resize listener re-renders on its own schedule and, on a
+      // rotation that lands during a new test's load, leaves the previous
+      // test's SVG on screen (16 bars in the sheet, 17 drawn). `init` already
+      // refits on width changes through `fitScore`, so only that one renders.
+      autoResize: false,
       drawTitle: false,
       drawPartNames: false,
       drawingParameters: 'default',

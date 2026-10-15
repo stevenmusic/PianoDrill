@@ -1,10 +1,10 @@
-import { generateTest, keyOptionsFor } from '../generator/generate.js?v=60';
-import { toMusicXml } from '../generator/musicxml.js?v=60';
-import { createHistory, generateUnique } from '../generator/fingerprint.js?v=60';
-import { createKey, pitchAt } from '../generator/theory.js?v=60';
-import { createPlayer } from './playback.js?v=60';
-import { createStage, barTimings } from './stage.js?v=60';
-import { initLanguage, applyLanguage, getLanguage, t, onLanguageChange } from './i18n.js?v=60';
+import { generateTest, keyOptionsFor } from '../generator/generate.js?v=61';
+import { toMusicXml } from '../generator/musicxml.js?v=61';
+import { createHistory, generateUnique } from '../generator/fingerprint.js?v=61';
+import { createKey, pitchAt } from '../generator/theory.js?v=61';
+import { createPlayer } from './playback.js?v=61';
+import { createStage, barTimings } from './stage.js?v=61';
+import { initLanguage, applyLanguage, getLanguage, t, onLanguageChange } from './i18n.js?v=61';
 
 // As early as possible, before any other DOM work below, so the page never
 // paints in the wrong language for a returning en visitor.
@@ -169,7 +169,7 @@ const BASE_ZOOM = 1;
  * long, dense test no longer shrinks itself to fit the window; it keeps full
  * size and the page scrolls, the same trade the phone tiers already made.
  */
-const STAFF_ZOOM = { phone: 0.46, compact: 0.66, medium: 0.78, wide: 0.78 };
+const STAFF_ZOOM = { phone: 0.9, compact: 0.95, medium: 1.0, wide: 1.0 };
 /*
  * `medium` and `wide` share a value on purpose: `body` is capped at 64rem, so
  * the score column is 1024px wide on a 1280px screen and on a 2560px one

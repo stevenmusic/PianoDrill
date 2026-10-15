@@ -7,16 +7,16 @@
  *   articulation and tempo term.
  */
 
-import { createRandom, randomSeed } from './random.js?v=60';
-import { createKey, dstepRange, degreeOf, pitchAt, chordDegrees, LETTERS } from './theory.js?v=60';
-import { buildProgression, firstChord, lastChord, halfCadenceBar } from './harmony.js?v=60';
+import { createRandom, randomSeed } from './random.js?v=61';
+import { createKey, dstepRange, degreeOf, pitchAt, chordDegrees, LETTERS } from './theory.js?v=61';
+import { buildProgression, firstChord, lastChord, halfCadenceBar } from './harmony.js?v=61';
 import {
   assignPitches, stackChordTones, soundingTimeline, harmoniseLeadingNotes, harmoniseRepeatedLeadingNotes,
   revertClashingBassDecorations,
   relaxParallels,
-} from './melody.js?v=60';
-import { DIVISIONS, cellsFor, fillBar, wholeBarRest } from './rhythm.js?v=60';
-import { meterInfo, rescaleCells } from './meter.js?v=60';
+} from './melody.js?v=61';
+import { DIVISIONS, cellsFor, fillBar, wholeBarRest } from './rhythm.js?v=61';
+import { meterInfo, rescaleCells } from './meter.js?v=61';
 
 const TEMPO_BPM = {
   Grave: 46, Largo: 52, Adagio: 60, Lento: 58, Andante: 76, Andantino: 84,
@@ -241,6 +241,8 @@ function buildStaff({ rng, rules, meter, barCount, hand, progression, key, silen
   if (!cells.length) throw new Error(`no usable rhythm cells for ${hand} at grade ${rules.grade}`);
 
   const restBudget = Math.max(1, Math.round((rules.generatorHints.restDensityPercent / 100) * meter.cellBeats));
+  // Fast (semiquaver) beats per bar: one through Grade 4, two for 5-6, free after.
+  const maxFast = rules.grade <= 4 ? 1 : rules.grade <= 6 ? 2 : 4;
   const bank = [];
   const bars = [];
 
@@ -251,7 +253,7 @@ function buildStaff({ rng, rules, meter, barCount, hand, progression, key, silen
    * and reuse it everywhere it applies, rather than leaving it to chance.
    */
   const ostinato = isAccompaniment
-    ? fillBar(rng, cells, meter.cellBeats, { restBudget, activity: activity * 0.7 }).events
+    ? fillBar(rng, cells, meter.cellBeats, { restBudget, maxFast, activity: activity * 0.7 }).events
     : null;
   let ostinatoSource = null;
   // How many bars the accompaniment figure has run without a break, and how
@@ -298,6 +300,7 @@ function buildStaff({ rng, rules, meter, barCount, hand, progression, key, silen
       const calm = cells.filter((cell) => cell.calm && !cell.rests);
       events = fillBar(rng, calm.length ? calm : cells, meter.cellBeats, {
         restBudget: 0,
+        maxFast,
         activity: activity * 0.4,
       }).events;
     } else if (isPhraseEndBar) {
@@ -308,6 +311,7 @@ function buildStaff({ rng, rules, meter, barCount, hand, progression, key, silen
       const pool = calm.length ? calm : cells;
       const draw = () => fillBar(rng, pool, meter.cellBeats, {
         restBudget: Math.max(restBudget, 1),
+        maxFast,
         activity: activity * 0.55,
       }).events;
       events = draw();
@@ -403,6 +407,7 @@ function buildStaff({ rng, rules, meter, barCount, hand, progression, key, silen
        */
       events = drawContrastingBar(rng, cells, meter.cellBeats, {
         restBudget,
+        maxFast,
         activity: isLeft ? activity * 0.7 : activity,
       }, [bars[barIndex - 1]?.events, bars[barIndex - 2]?.events, ostinato]);
     }
@@ -637,7 +642,7 @@ function applyExpression(rng, rules, score) {
   const opening = rng.pick(rules.dynamics.filter((d) => d !== 'ff' && d !== 'fff'));
   bars[0].directions.push({ kind: 'dynamics', value: opening });
 
-  if (score.barCount >= 4 && rng.chance(0.7)) {
+  if (score.barCount >= 4 && rng.chance(0.45)) {
     const wedge = rng.pick(
       rules.dynamicFeatures.filter((f) => f === 'crescendo' || f === 'diminuendo'),
     );
@@ -664,64 +669,85 @@ function applyExpression(rng, rules, score) {
   // the same mark `<strong-accent/>`, so that's the string written here.
   const canMarcato = rules.articulations.includes('marcato');
 
-  for (const staffNumber of [1, 2]) {
+  /*
+   * Articulation is a decision about the whole piece, not a coin flip per
+   * bar-pair per hand. A real test is either mostly legato (the tune slurred
+   * in phrases) or has a detached section, and the two hands agree on it: one
+   * hand carries the staccato while the other stays plain or slurred. Rolling
+   * every pair independently printed slurs, dots, tenuto and accents side by
+   * side in neighbouring bars, which no examiner writes.
+   */
+  const marksOf = (events) => events.filter((event) => !event.rest);
+  const unbrokenRun = (events) => {
+    const first = events.findIndex((event) => !event.rest);
+    if (first === -1) return false;
+    const last = events.length - 1 - [...events].reverse().findIndex((event) => !event.rest);
+    return events.slice(first, last + 1).every((event) => !event.rest);
+  };
+  // Phrase length in bars: two-bar groups in short tests, four-bar once there is room.
+  const phraseBars = score.barCount >= 8 ? 4 : 2;
+  const slurredBars = new Set();
+  const addSlurs = (staffNumber, chance) => {
     const staff = score.staves[staffNumber];
-    for (let barIndex = 0; barIndex < staff.length; barIndex += 2) {
-      const pair = [staff[barIndex], staff[barIndex + 1]].filter(Boolean);
-      const sounding = pair.flatMap((bar) => bar.events.filter((event) => !event.rest));
-      if (sounding.length < 2) continue;
-      /*
-       * A slur has to cover a continuous line, not sounding notes with a
-       * silence in between. Checking only "does each bar in the pair have
-       * *some* sounding note" (originally to keep Grade 1's alternating
-       * hands from getting slurred across a bar they sit out entirely) let
-       * a bar like [note, rest, note] through too — the rest sits inside
-       * the very span the slur curve is drawn across, which engraves (and
-       * would sound, once playback follows slur spans) as a phrase mark
-       * reaching straight through a silence. Every event between the pair's
-       * first and last *sounding* note, inclusive, now has to itself be a
-       * sounding note.
-       */
-      const pairEvents = pair.flatMap((bar) => bar.events);
-      const firstSoundingIndex = pairEvents.findIndex((event) => !event.rest);
-      const lastSoundingIndex = pairEvents.length - 1
-        - [...pairEvents].reverse().findIndex((event) => !event.rest);
-      const unbroken = firstSoundingIndex !== -1
-        && pairEvents.slice(firstSoundingIndex, lastSoundingIndex + 1).every((event) => !event.rest);
-
-      if (canSlur && unbroken && rng.chance(staffNumber === 1 ? 0.75 : 0.35)) {
-        sounding[0].slur = 'start';
-        sounding[sounding.length - 1].slur = 'stop';
-        // Concurrent slurs in one part must not share a number, or the
-        // renderer pairs a right-hand start with a left-hand stop and draws
-        // a curve straight across the grand staff.
-        sounding[0].slurNumber = staffNumber;
-        sounding[sounding.length - 1].slurNumber = staffNumber;
-      } else if (canStaccato && rng.chance(0.4)) {
-        for (const event of sounding) {
-          if (event.type === 'quarter' || event.type === 'eighth') {
-            event.articulations = [...(event.articulations ?? []), 'staccato'];
-          }
+    for (let barIndex = 0; barIndex < staff.length; barIndex += phraseBars) {
+      const span = staff.slice(barIndex, barIndex + phraseBars);
+      const events = span.flatMap((bar) => bar.events);
+      const sounding = marksOf(events);
+      if (sounding.length < 3 || !unbrokenRun(events) || !rng.chance(chance)) continue;
+      sounding[0].slur = 'start';
+      sounding[sounding.length - 1].slur = 'stop';
+      // Concurrent slurs in one part must not share a number, or the renderer
+      // pairs a right-hand start with a left-hand stop.
+      sounding[0].slurNumber = staffNumber;
+      sounding[sounding.length - 1].slurNumber = staffNumber;
+      for (let i = 0; i < span.length; i++) slurredBars.add(`${staffNumber}:${barIndex + i}`);
+    }
+  };
+  const addRun = (staffNumber, mark, firstBar, lastBar, types) => {
+    for (let barIndex = firstBar; barIndex <= lastBar; barIndex++) {
+      if (slurredBars.has(`${staffNumber}:${barIndex}`)) continue;
+      for (const event of marksOf(score.staves[staffNumber][barIndex]?.events ?? [])) {
+        if (types.includes(event.type) && !event.slur) {
+          event.articulations = [...(event.articulations ?? []), mark];
         }
-      } else if (canTenuto && rng.chance(0.25)) {
-        // Tenuto marks a held-full-value run the same way staccato marks a
-        // detached one — declared from Grade 4 but, until now, never
-        // actually written, so it never reached the score at all.
-        for (const event of sounding) {
-          if (event.type === 'quarter' || event.type === 'eighth') {
-            event.articulations = [...(event.articulations ?? []), 'tenuto'];
-          }
-        }
-      } else if (canAccent && rng.chance(0.3)) {
-        // Real specimens accent single strong-beat notes (often the phrase's
-        // opening note), not a whole run the way staccato marks one.
-        sounding[0].articulations = [...(sounding[0].articulations ?? []), 'accent'];
-      } else if (canStaccatissimo && rng.chance(0.2)) {
-        sounding[0].articulations = [...(sounding[0].articulations ?? []), 'staccatissimo'];
-      } else if (canMarcato && rng.chance(0.2)) {
-        sounding[0].articulations = [...(sounding[0].articulations ?? []), 'strong-accent'];
       }
     }
+  };
+
+  const style = rng.weighted([
+    { value: 'legato', weight: canSlur ? 5 : 0 },
+    { value: 'detached', weight: canStaccato ? 2 : 0 },
+    { value: 'mixed', weight: canSlur && canStaccato ? 3 : 0 },
+    { value: 'plain', weight: 1.5 },
+  ]).value;
+
+  const lastBar = score.barCount - 1;
+  const lastPhraseStart = Math.max(0, Math.floor(score.barCount / phraseBars) - 1) * phraseBars;
+  const detachedHand = rng.chance(0.55) ? 1 : 2;
+  if (style === 'legato') {
+    addSlurs(1, 0.85);
+    addSlurs(2, 0.3);
+  } else if (style === 'detached') {
+    // The detached hand is dotted for a whole phrase; the other stays plain.
+    const from = rng.chance(0.5) ? 0 : lastPhraseStart;
+    addRun(detachedHand, 'staccato', from, Math.min(lastBar - 1, from + phraseBars - 1), ['quarter', 'eighth']);
+  } else if (style === 'mixed') {
+    // Tune slurred, accompaniment detached (or the reverse) — the classic
+    // piano texture, with both hands marked consistently across the piece.
+    addSlurs(detachedHand === 1 ? 2 : 1, 0.85);
+    addRun(detachedHand, 'staccato', 0, lastBar - 1, ['quarter', 'eighth']);
+  }
+
+  // Single marks: at most one of each per piece, on a phrase's opening note.
+  const lone = [];
+  if (canTenuto && style !== 'detached' && rng.chance(0.2)) lone.push('tenuto');
+  if (canAccent && rng.chance(0.25)) lone.push('accent');
+  if (canStaccatissimo && rng.chance(0.15)) lone.push('staccatissimo');
+  if (canMarcato && rng.chance(0.15)) lone.push('strong-accent');
+  for (const mark of lone.slice(0, 1)) {
+    const barIndex = rng.chance(0.5) ? 0 : Math.min(lastPhraseStart, lastBar - 1);
+    const target = marksOf(score.staves[1][barIndex]?.events ?? [])[0];
+    if (target && !target.slur && !(target.articulations ?? []).length) target.articulations = [mark];
   }
 
   if (rules.otherFeatures.some((feature) => feature.includes('rall'))) {

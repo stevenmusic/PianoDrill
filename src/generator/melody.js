@@ -12,8 +12,8 @@
  *     nearest chord tone afterwards.
  */
 
-import { chordDegrees, degreeOf, pitchAt } from './theory.js?v=60';
-import { chordAt } from './harmony.js?v=60';
+import { chordDegrees, degreeOf, pitchAt } from './theory.js?v=61';
+import { chordAt } from './harmony.js?v=61';
 
 /**
  * Interval classes that read as dissonant against the bass. A second, tritone
@@ -485,7 +485,37 @@ function shapeCadence({ bars, key, window, against, barDuration, soundingEvents 
     penultimate.dstep = candidate;
     penultimate.raiseSeventh = raiseSeventh;
     penultimate.pitch = pitch;
-    return;
+    break;
+  }
+  keepCadenceClose({ bars, key, window, against, barDuration, before, penultimate, final });
+}
+
+/**
+ * The cadence is pinned to the tonic's octave after the walk is done, so a line
+ * that finished high can be followed by a final step that sits an octave and
+ * more below it (G5 then D#4-E4). Real endings do not drop two octaves in one
+ * breath: when the closing pair is far from the note before it, move the pair
+ * (approach and tonic together, keeping their step) an octave toward it.
+ */
+function keepCadenceClose({ bars, key, window, against, barDuration, before, penultimate, final }) {
+  if (!before?.pitch || final.chord || penultimate.chord) return;
+  const gap = penultimate.pitch.midi - before.pitch.midi;
+  if (Math.abs(gap) <= 9) return;
+  const shift = gap > 0 ? -7 : 7;
+  const moved = [penultimate, final].map((event) => {
+    const dstep = event.dstep + shift;
+    return { event, dstep, pitch: pitchAt(dstep, key, { raiseSeventh: event.raiseSeventh }) };
+  });
+  for (const { dstep, pitch, event } of moved) {
+    if (dstep < window.low || dstep > window.high) return;
+    const sounding = soundingAtEvent(bars, against, barDuration, event);
+    if (clashesWith(pitch.midi, sounding)) return;
+    if (sounding.length && pitch.midi < Math.max(...sounding)) return;
+  }
+  if (Math.abs(moved[0].pitch.midi - before.pitch.midi) >= Math.abs(gap)) return;
+  for (const { dstep, pitch, event } of moved) {
+    event.dstep = dstep;
+    event.pitch = pitch;
   }
 }
 

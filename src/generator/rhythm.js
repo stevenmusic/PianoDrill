@@ -42,9 +42,9 @@ const SIMPLE_CELLS = [
   // that narrowness — not the ostinato mechanic — was what made its rhythm
   // repeat: with so few ways to fill a bar, independent draws kept coinciding.
   { id: 'ee', beats: 1, weight: 4, calm: true, requires: ['eighth'], events: [note('eighth', E), note('eighth', E)] },
-  { id: 'ssss', beats: 1, weight: 0.9, requires: ['sixteenth'], events: [note('16th', S), note('16th', S), note('16th', S), note('16th', S)] },
+  { id: 'ssss', beats: 1, weight: 0.5, requires: ['sixteenth'], events: [note('16th', S), note('16th', S), note('16th', S), note('16th', S)] },
   { id: 'ess', beats: 1, weight: 2, requires: ['sixteenth'], events: [note('eighth', E), note('16th', S), note('16th', S)] },
-  { id: 'sse', beats: 1, weight: 1.5, requires: ['sixteenth'], events: [note('16th', S), note('16th', S), note('eighth', E)] },
+  { id: 'sse', beats: 1, weight: 1.0, requires: ['sixteenth'], events: [note('16th', S), note('16th', S), note('eighth', E)] },
   { id: 'de_s', beats: 1, weight: 1.5, requires: ['dottedEighth'], events: [dotted('eighth', E + S), note('16th', S)] },
   { id: 'trip', beats: 1, weight: 0.45, requires: ['triplet'], events: [triplet(), triplet(), triplet()] },
   { id: 'qr', beats: 1, weight: 0.9, calm: true, rests: 1, requires: [], events: [rest('quarter', Q)] },
@@ -122,12 +122,19 @@ export function fillBar(rng, cells, beatsPerBar, options = {}) {
   const events = [];
   let remaining = beatsPerBar;
   let restsUsed = 0;
+  // Real tests keep semiquaver figures to a beat or two a bar at the lower
+  // grades and never start one straight out of a rest: a reader gets one fast
+  // beat to deal with, not a rest followed by a scramble.
+  const maxFast = options.maxFast ?? Infinity;
+  let fastUsed = 0;
+  let lastWasRest = false;
 
   while (remaining > 0) {
     const position = beatsPerBar - remaining;
     const candidates = cells.filter(
       (cell) => cell.beats <= remaining
         && (!cell.rests || restsUsed + cell.rests <= restBudget)
+        && !(isFast(cell) && (fastUsed >= maxFast || lastWasRest))
         && !crossesMidBar(cell, position, beatsPerBar),
     );
     if (!candidates.length) {
@@ -141,11 +148,15 @@ export function fillBar(rng, cells, beatsPerBar, options = {}) {
     cellIds.push(cell.id);
     for (const event of cell.events) events.push({ ...event });
     restsUsed += cell.rests ?? 0;
+    if (isFast(cell)) fastUsed += 1;
+    lastWasRest = Boolean(cell.rests);
     remaining -= cell.beats;
   }
 
   return { cellIds, events };
 }
+
+const isFast = (cell) => cell.events.some((event) => event.type === '16th');
 
 /**
  * Notation has to show the metre's primary division. In a bar that splits

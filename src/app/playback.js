@@ -171,7 +171,15 @@ export function createPlayer({ onStatus } = {}) {
     return pending;
   };
 
+  // The keynote chord's promise: resolves true when it rings out, false when
+  // cut off by stop() — otherwise whoever awaits it (the prep countdown) waits forever.
+  let chordResolve = null;
   const stop = () => {
+    if (chordResolve) {
+      const resolve = chordResolve;
+      chordResolve = null;
+      resolve(false);
+    }
     for (const voice of voices) {
       try {
         voice.stop();
@@ -219,7 +227,7 @@ export function createPlayer({ onStatus } = {}) {
      * untouched: a chord announcement isn't the timeline `startFollowing()`
      * tracks, so `elapsed` should keep reporting null through it.
      * @param {number[]} midis
-     * @returns {Promise<void>} resolves once the chord has decayed
+     * @returns {Promise<boolean>} true once the chord has decayed, false if it was cut off
      */
     async playChord(midis, { duration = 1.3 } = {}) {
       stop();
@@ -237,9 +245,11 @@ export function createPlayer({ onStatus } = {}) {
       }
 
       return new Promise((resolve) => {
+        chordResolve = resolve;
         stopTimer = setTimeout(() => {
           voices = [];
-          resolve();
+          chordResolve = null;
+          resolve(true);
         }, (end - context.currentTime + TAIL + 0.3) * 1000);
       });
     },

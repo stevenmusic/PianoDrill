@@ -1,10 +1,10 @@
-import { generateTest, keyOptionsFor } from '../generator/generate.js?v=52edc918';
-import { toMusicXml } from '../generator/musicxml.js?v=52edc918';
-import { createHistory, generateUnique } from '../generator/fingerprint.js?v=52edc918';
-import { createKey, pitchAt } from '../generator/theory.js?v=52edc918';
-import { createPlayer } from './playback.js?v=52edc918';
-import { createStage, barTimings } from './stage.js?v=52edc918';
-import { initLanguage, applyLanguage, getLanguage, t, onLanguageChange } from './i18n.js?v=52edc918';
+import { generateTest, keyOptionsFor } from '../generator/generate.js?v=abda9313';
+import { toMusicXml } from '../generator/musicxml.js?v=abda9313';
+import { createHistory, generateUnique } from '../generator/fingerprint.js?v=abda9313';
+import { createKey, pitchAt } from '../generator/theory.js?v=abda9313';
+import { createPlayer } from './playback.js?v=abda9313';
+import { createStage, barTimings } from './stage.js?v=abda9313';
+import { initLanguage, applyLanguage, getLanguage, t, onLanguageChange } from './i18n.js?v=abda9313';
 
 // As early as possible, before any other DOM work below, so the page never
 // paints in the wrong language for a returning en visitor.
@@ -747,6 +747,7 @@ function populateKeyOptions() {
 }
 
 async function newTest() {
+  prepToken += 1;
   stopCountdown();
   player.stop();
   alongStart = null;
@@ -889,6 +890,7 @@ function tonicTriadMidis(scoreKey) {
  * countdown from a *previous* test is still in flight, only before the very
  * first test exists.
  */
+let prepToken = 0;
 async function startCountdown() {
   if (!current) return;
   stopCountdown();
@@ -899,7 +901,14 @@ async function startCountdown() {
   elements.checklist.hidden = true;
   say('givingPitch');
 
-  await player.playChord(tonicTriadMidis(current.score.key)).catch(() => {});
+  const token = ++prepToken;
+  const finished = await player.playChord(tonicTriadMidis(current.score.key)).catch(() => false);
+  // 給音被打斷(按了播放、停止、產生新題):不要再開始倒數
+  if (token !== prepToken) return;
+  if (!finished) {
+    say('readyStatus');
+    return;
+  }
 
   runPreparationCountdown();
 }

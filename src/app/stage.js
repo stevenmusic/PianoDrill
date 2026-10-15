@@ -38,7 +38,9 @@ export function createStage(elements) {
     const contentLefts = new Map();
     for (const element of svg.querySelectorAll('g.vf-measure')) {
       const number = Number(element.id);
-      if (!Number.isFinite(number)) continue;
+      // OSMD draws a mid-piece key change (Grade 8 modulation) as an extra
+      // measure box with id -1; it is not a bar and must not be counted as one.
+      if (!Number.isFinite(number) || number < 1) continue;
       const box = element.getBBox();
       const existing = boxes.get(number);
       boxes.set(number, existing ? union(existing, box) : toRect(box));

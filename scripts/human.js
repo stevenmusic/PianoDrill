@@ -95,6 +95,17 @@ async function run(name, vp, server) {
         return p && a !== p.playing && !document.getElementById('play').disabled && !giving;
       });
       const real = st.filter((m) => !m.startsWith('播放按鈕') || again);
+      if (real.some((m) => m.includes('小節'))) {
+        await page.waitForTimeout(3000);
+        const info = await page.evaluate(() => ({
+          bars: window.__stage.measure().bars.size,
+          osmd: window.__osmd.Sheet?.SourceMeasures?.length,
+          meta: document.getElementById('meta').textContent.replace(/\s+/g, ' ').slice(0, 40),
+          busy: document.getElementById('score').hasAttribute('aria-busy'),
+          w: window.innerWidth,
+        }));
+        real.push(`3 秒後 ${JSON.stringify(info)}`);
+      }
       if (real.length) { fail(`${name} 第 ${i + 1} 步(${log.slice(-4).join(' → ')}):${real.join(';')}`); if (bad > 30) break; }
     }
   }

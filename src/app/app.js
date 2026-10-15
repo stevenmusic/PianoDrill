@@ -1,10 +1,10 @@
-import { generateTest, keyOptionsFor } from '../generator/generate.js?v=a6ddf23e';
-import { toMusicXml } from '../generator/musicxml.js?v=a6ddf23e';
-import { createHistory, generateUnique } from '../generator/fingerprint.js?v=a6ddf23e';
-import { createKey, pitchAt } from '../generator/theory.js?v=a6ddf23e';
-import { createPlayer } from './playback.js?v=a6ddf23e';
-import { createStage, barTimings } from './stage.js?v=a6ddf23e';
-import { initLanguage, applyLanguage, getLanguage, t, onLanguageChange } from './i18n.js?v=a6ddf23e';
+import { generateTest, keyOptionsFor } from '../generator/generate.js?v=90d178e6';
+import { toMusicXml } from '../generator/musicxml.js?v=90d178e6';
+import { createHistory, generateUnique } from '../generator/fingerprint.js?v=90d178e6';
+import { createKey, pitchAt } from '../generator/theory.js?v=90d178e6';
+import { createPlayer } from './playback.js?v=90d178e6';
+import { createStage, barTimings } from './stage.js?v=90d178e6';
+import { initLanguage, applyLanguage, getLanguage, t, onLanguageChange } from './i18n.js?v=90d178e6';
 
 // As early as possible, before any other DOM work below, so the page never
 // paints in the wrong language for a returning en visitor.
@@ -34,6 +34,8 @@ const elements = {
   highlight: document.getElementById('measure-highlight'),
   message: document.getElementById('message'),
   checklist: document.getElementById('checklist'),
+  along: document.getElementById('along'),
+  playAlong: document.getElementById('play-along'),
   historyInfo: document.getElementById('history-info'),
   clearHistory: document.getElementById('clear-history'),
   confidence: document.getElementById('confidence'),
@@ -590,8 +592,12 @@ async function init() {
   elements.generate.addEventListener('click', newTest);
   elements.prepare.addEventListener('click', startCountdown);
   elements.play.addEventListener('click', togglePlayback);
+  elements.playAlong.addEventListener('click', togglePlayAlong);
+  setAlongLabel();
   elements.stop.addEventListener('click', () => {
     player.stop();
+    alongStart = null;
+    setAlongLabel();
     stopFollowing();
     setPlayState(false);
   });
@@ -699,6 +705,7 @@ function refreshDynamicText() {
   if (rules) populateKeyOptions();
   if (current) showMeta(current.score);
   setPlayState(player.playing);
+  setAlongLabel();
   updateHistoryInfo();
   if (!elements.checklist.hidden) {
     elements.checklist.innerHTML = PREPARATION_STEP_KEYS
@@ -737,6 +744,9 @@ function populateKeyOptions() {
 async function newTest() {
   stopCountdown();
   player.stop();
+  alongStart = null;
+  setAlongLabel();
+  elements.along.hidden = true;
   stopFollowing();
   setPlayState(false);
 
@@ -752,6 +762,30 @@ async function newTest() {
   const { score } = generateUnique(() => generateTest(rules, { grade, tonic, mode }), history);
   current = { score, xml: toMusicXml(score) };
 
+  await renderCurrent();
+}
+
+/*
+ * 渲染一次只跑一個:連點「產生新題」時,後一次的 osmd.load 會跟前一次交錯,
+ * 結果樂譜是一題、資訊列是另一題(實測過:樂譜 17 小節、資訊列寫 16)。
+ * 忙碌中收到新題就記下「還要再畫一次」,畫完這張再畫最新的那題。
+ */
+let rendering = false;
+let renderAgain = false;
+async function renderCurrent() {
+  if (rendering) { renderAgain = true; return; }
+  rendering = true;
+  try {
+    do {
+      renderAgain = false;
+      await drawTest(current);
+    } while (renderAgain);
+  } finally {
+    rendering = false;
+  }
+}
+
+async function drawTest({ score, xml }) {
   // Held at opacity 0 through the whole render + fitScore search (which
   // calls osmd.render() many times while measuring candidate layouts) and
   // only released once a final layout is settled — see the .entering rule.
@@ -759,7 +793,7 @@ async function newTest() {
 
   say('renderingStatus');
   try {
-    await osmd.load(current.xml);
+    await osmd.load(xml);
     osmd.render();
     say('readyStatus');
   } catch (error) {
@@ -851,6 +885,9 @@ async function startCountdown() {
   if (!current) return;
   stopCountdown();
   player.stop();
+  alongStart = null;
+  elements.along.hidden = true;
+  setAlongLabel();
   elements.checklist.hidden = true;
   say('givingPitch');
 
@@ -897,6 +934,7 @@ function runPreparationCountdown() {
       // a second mistake.
       say('prepDone');
       recordPractice();
+      elements.along.hidden = false;
     }
   }, 1000);
 }
@@ -1105,15 +1143,19 @@ async function fitScore() {
   saveLayoutCache();
 }
 
-function startFollowing() {
+function startFollowing(clock = () => player.elapsed, onFinish = null) {
   if (!current || !stage.begin()) return;
   const { secondsPerBar } = barTimings(current.score);
   const totalBars = current.score.barCount;
 
   const step = () => {
-    const elapsed = player.elapsed;
+    const elapsed = clock();
     if (elapsed === null) {
       stopFollowing();
+      return;
+    }
+    if (onFinish && elapsed >= secondsPerBar * totalBars + 0.4) {
+      onFinish();
       return;
     }
     if (elapsed >= 0) {
@@ -1139,6 +1181,55 @@ function startFollowing() {
   followFrame = requestAnimationFrame(step);
 }
 
+/*
+ * 跟著彈:不出聲的播放軸。備考結束後,彈的人自己彈(用自己的琴),播放軸照題目速度走、
+ * 到行尾自動換行(預看式捲動),手不用離開琴鍵點螢幕。先數一小節預備拍,
+ * 跟考試一樣不會一開始就開跑。
+ */
+let alongStart = null;
+let alongBeat = null;
+
+function setAlongLabel() {
+  elements.playAlong.textContent = t(alongStart === null ? 'playAlong' : 'playAlongStop');
+}
+
+function stopPlayAlong(message) {
+  alongStart = null;
+  alongBeat = null;
+  stopFollowing();
+  setAlongLabel();
+  if (message) say(message);
+}
+
+function togglePlayAlong() {
+  if (!current) return;
+  if (alongStart !== null) {
+    stopPlayAlong('prepDone');
+    return;
+  }
+  player.stop();
+  stopFollowing();
+  setPlayState(false);
+  const { secondsPerBar } = barTimings(current.score);
+  alongStart = performance.now() / 1000 + secondsPerBar; // 一小節預備拍
+  setAlongLabel();
+  const beats = current.score.timeSignature.beats;
+  startFollowing(() => {
+    if (alongStart === null) return null;
+    const elapsed = performance.now() / 1000 - alongStart;
+    if (elapsed < 0) {
+      const n = Math.min(beats, Math.ceil((-elapsed / secondsPerBar) * beats));
+      if (n !== alongBeat) { alongBeat = n; say('alongCountIn', { n }); }
+    } else if (alongBeat !== 0) {
+      alongBeat = 0;
+      say('alongPlaying');
+    }
+    return elapsed;
+  }, () => stopPlayAlong('alongDone'));
+  // 沒有可跟的樂譜位置(還沒畫好)時,別讓按鈕卡在「停止彈奏」
+  if (followFrame === null) stopPlayAlong();
+}
+
 function stopFollowing() {
   cancelAnimationFrame(followFrame);
   followFrame = null;
@@ -1147,6 +1238,7 @@ function stopFollowing() {
 
 function togglePlayback() {
   if (!current) return;
+  if (alongStart !== null) stopPlayAlong();
   if (player.playing) {
     player.stop();
     stopFollowing();

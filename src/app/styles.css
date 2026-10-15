@@ -837,3 +837,9 @@ footer {
   .meta-key { width: 54px; }
   .meta-bars { width: 54px; }
 }
+
+/* 開始彈奏(跟著播放軸):備考時間結束後出現在提示文字下方 */
+.along { margin: 12px 4px 0; display: flex; }
+.along[hidden] { display: none; }
+.along .btn { min-height: 44px; padding-inline: 18px; }
+@media (max-width: 600px) { .along .btn { width: 100%; justify-content: center; } }

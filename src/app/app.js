@@ -1,10 +1,10 @@
-import { generateTest, keyOptionsFor } from '../generator/generate.js?v=9b448c09';
-import { toMusicXml } from '../generator/musicxml.js?v=9b448c09';
-import { createHistory, generateUnique } from '../generator/fingerprint.js?v=9b448c09';
-import { createKey, pitchAt } from '../generator/theory.js?v=9b448c09';
-import { createPlayer } from './playback.js?v=9b448c09';
-import { createStage, barTimings } from './stage.js?v=9b448c09';
-import { initLanguage, applyLanguage, getLanguage, t, onLanguageChange } from './i18n.js?v=9b448c09';
+import { generateTest, keyOptionsFor } from '../generator/generate.js?v=a6ddf23e';
+import { toMusicXml } from '../generator/musicxml.js?v=a6ddf23e';
+import { createHistory, generateUnique } from '../generator/fingerprint.js?v=a6ddf23e';
+import { createKey, pitchAt } from '../generator/theory.js?v=a6ddf23e';
+import { createPlayer } from './playback.js?v=a6ddf23e';
+import { createStage, barTimings } from './stage.js?v=a6ddf23e';
+import { initLanguage, applyLanguage, getLanguage, t, onLanguageChange } from './i18n.js?v=a6ddf23e';
 
 // As early as possible, before any other DOM work below, so the page never
 // paints in the wrong language for a returning en visitor.
@@ -896,6 +896,7 @@ function runPreparationCountdown() {
       // Continuity outscores accuracy: going back to fix a slip is counted as
       // a second mistake.
       say('prepDone');
+      recordPractice();
     }
   }, 1000);
 }
@@ -1167,8 +1168,38 @@ function togglePlayback() {
     .catch((error) => fail('failPlayback', error.message));
 }
 
+/*
+ * 練習紀錄:每次 30 秒準備跑完算「練了一題」,按日期存在本機。徽章顯示今天幾題、
+ * 連續幾天(昨天或今天有練就不斷),跟其他練習 App 的每日目標一樣,給人回來練的理由。
+ */
+const PRACTICE_KEY = 'sightdrill.practice.v1';
+const dayKey = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+function readPractice() {
+  try { return JSON.parse(localStorage.getItem(PRACTICE_KEY) ?? '{}'); } catch { return {}; }
+}
+function recordPractice() {
+  const days = readPractice();
+  const key = dayKey(new Date());
+  days[key] = (days[key] ?? 0) + 1;
+  try { localStorage.setItem(PRACTICE_KEY, JSON.stringify(days)); } catch { /* 存不了就算了 */ }
+  updateHistoryInfo();
+}
+function practiceStats() {
+  const days = readPractice();
+  const today = days[dayKey(new Date())] ?? 0;
+  const cursor = new Date();
+  if (!today) cursor.setDate(cursor.getDate() - 1);
+  let streak = 0;
+  while (days[dayKey(cursor)]) { streak += 1; cursor.setDate(cursor.getDate() - 1); }
+  return { today, streak };
+}
+
 function updateHistoryInfo() {
-  elements.historyInfo.textContent = t('historyCount', { count: history.size });
+  const { today, streak } = practiceStats();
+  elements.historyInfo.textContent = today || streak
+    ? t('practiceStats', { today, streak })
+    : t('historyCount', { count: history.size });
+  elements.historyInfo.title = t('historyCount', { count: history.size });
 }
 
 function escapeHtml(value) {

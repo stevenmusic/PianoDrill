@@ -438,11 +438,22 @@ button.link:hover { color: var(--gold); }
   left: 0;
   width: 2px;
   display: none;
-  background: linear-gradient(to bottom, transparent, var(--paper-gold-bright) 12%, var(--paper-gold-bright) 88%, transparent);
-  box-shadow: 0 0 14px 2px var(--paper-glow);
+  /* 外觀照抄 FingerDrill / ScrollScore:半透明金線、上下漸層淡出、頂端小三角 */
+  background: linear-gradient(to bottom, transparent, #B8860B 12%, #B8860B 88%, transparent);
+  box-shadow: 0 0 14px 2px rgba(184, 134, 11, .45);
+  opacity: .5;
   pointer-events: none;
   z-index: 5;
   transition: transform .12s linear;
+}
+.playline::before {
+  content: "";
+  position: absolute;
+  top: -2px;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 7px solid transparent;
+  border-top: 10px solid #B8860B;
 }
 
 .score {

@@ -12,6 +12,9 @@
  * once per staff, so the union of both is the bar's full height.
  */
 
+/** How far down the window the line being played sits (the rest shows what comes next). */
+const LEAD_RATIO = 0.16;
+
 export function createStage(elements) {
   const { score, playline, highlight } = elements;
 
@@ -156,9 +159,17 @@ export function createStage(elements) {
 
     if (box.system !== currentSystem) {
       currentSystem = box.system;
-      // Bring the new line into view; the reader scrolls the page normally
-      // otherwise, so this only has to fire on a line change, not every frame.
-      highlight.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      /*
+       * Look-ahead scrolling. The line being played sits near the top of the
+       * window (LEAD_RATIO of the way down) instead of the middle, so the
+       * line after it is already on screen while the player is still on this
+       * one — a reader's eyes run ahead of their hands, and a line that only
+       * appears once the playhead reaches it is read too late. It fires only
+       * on a line change, so the reader can still scroll freely in between.
+       */
+      const viewport = window.innerHeight || document.documentElement.clientHeight;
+      const lineTop = highlight.getBoundingClientRect().top + window.scrollY;
+      window.scrollTo({ top: Math.max(0, lineTop - viewport * LEAD_RATIO), behavior: 'smooth' });
     }
 
     const left = origin.x + box.contentLeft * scale;

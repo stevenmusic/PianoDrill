@@ -19,7 +19,7 @@ const pickOne = (a) => a[Math.floor(rnd() * a.length)];
 let bad = 0;
 const fail = (m) => { bad++; console.log(`✗ ${m}`); };
 
-const ready = (page) => page.waitForFunction(() => !document.getElementById('generate').disabled, null, { timeout: 30000 });
+const ready = (page) => page.waitForFunction(() => !document.getElementById('generate').disabled && !document.getElementById('score').hasAttribute('aria-busy'), null, { timeout: 30000 });
 
 async function run(name, vp, server) {
   const browser = await launch();

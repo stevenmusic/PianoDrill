@@ -1,10 +1,10 @@
-import { generateTest, keyOptionsFor } from '../generator/generate.js?v=90d178e6';
-import { toMusicXml } from '../generator/musicxml.js?v=90d178e6';
-import { createHistory, generateUnique } from '../generator/fingerprint.js?v=90d178e6';
-import { createKey, pitchAt } from '../generator/theory.js?v=90d178e6';
-import { createPlayer } from './playback.js?v=90d178e6';
-import { createStage, barTimings } from './stage.js?v=90d178e6';
-import { initLanguage, applyLanguage, getLanguage, t, onLanguageChange } from './i18n.js?v=90d178e6';
+import { generateTest, keyOptionsFor } from '../generator/generate.js?v=af769a69';
+import { toMusicXml } from '../generator/musicxml.js?v=af769a69';
+import { createHistory, generateUnique } from '../generator/fingerprint.js?v=af769a69';
+import { createKey, pitchAt } from '../generator/theory.js?v=af769a69';
+import { createPlayer } from './playback.js?v=af769a69';
+import { createStage, barTimings } from './stage.js?v=af769a69';
+import { initLanguage, applyLanguage, getLanguage, t, onLanguageChange } from './i18n.js?v=af769a69';
 
 // As early as possible, before any other DOM work below, so the page never
 // paints in the wrong language for a returning en visitor.
@@ -776,12 +776,15 @@ async function renderCurrent() {
   if (rendering) { renderAgain = true; return; }
   rendering = true;
   try {
+    // 渲染中標 aria-busy:輔助工具和自動測試都靠它知道畫面還沒穩定
+    elements.score.setAttribute('aria-busy', 'true');
     do {
       renderAgain = false;
       await drawTest(current);
     } while (renderAgain);
   } finally {
     rendering = false;
+    elements.score.removeAttribute('aria-busy');
   }
 }
 

@@ -7,7 +7,7 @@
  * the dotted-quarter cell set instead.
  */
 
-import { DIVISIONS } from './rhythm.js?v=abda9313';
+import { DIVISIONS } from './rhythm.js?v=c15b3ece';
 
 const TYPE_LADDER = ['breve', 'whole', 'half', 'quarter', 'eighth', '16th', '32nd', '64th'];
 

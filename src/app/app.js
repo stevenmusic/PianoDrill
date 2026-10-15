@@ -1,10 +1,10 @@
-import { generateTest, keyOptionsFor } from '../generator/generate.js?v=abda9313';
-import { toMusicXml } from '../generator/musicxml.js?v=abda9313';
-import { createHistory, generateUnique } from '../generator/fingerprint.js?v=abda9313';
-import { createKey, pitchAt } from '../generator/theory.js?v=abda9313';
-import { createPlayer } from './playback.js?v=abda9313';
-import { createStage, barTimings } from './stage.js?v=abda9313';
-import { initLanguage, applyLanguage, getLanguage, t, onLanguageChange } from './i18n.js?v=abda9313';
+import { generateTest, keyOptionsFor } from '../generator/generate.js?v=c15b3ece';
+import { toMusicXml } from '../generator/musicxml.js?v=c15b3ece';
+import { createHistory, generateUnique } from '../generator/fingerprint.js?v=c15b3ece';
+import { createKey, pitchAt } from '../generator/theory.js?v=c15b3ece';
+import { createPlayer } from './playback.js?v=c15b3ece';
+import { createStage, barTimings } from './stage.js?v=c15b3ece';
+import { initLanguage, applyLanguage, getLanguage, t, onLanguageChange } from './i18n.js?v=c15b3ece';
 
 // As early as possible, before any other DOM work below, so the page never
 // paints in the wrong language for a returning en visitor.
@@ -768,6 +768,7 @@ async function newTest() {
   const { score } = generateUnique(() => generateTest(rules, { grade, tonic, mode }), history);
   current = { score, xml: toMusicXml(score) };
 
+  loudRender = true;
   await renderCurrent();
 }
 
@@ -778,6 +779,8 @@ async function newTest() {
  */
 let rendering = false;
 let renderAgain = false;
+// 新題才更新訊息;旋轉螢幕等只是重畫,不該蓋掉給音/倒數中的提示
+let loudRender = false;
 async function renderCurrent() {
   if (rendering) { renderAgain = true; return; }
   rendering = true;
@@ -786,7 +789,9 @@ async function renderCurrent() {
     elements.score.setAttribute('aria-busy', 'true');
     do {
       renderAgain = false;
-      await drawTest(current);
+      const quiet = !loudRender;
+      loudRender = false;
+      await drawTest(current, quiet);
     } while (renderAgain);
   } finally {
     rendering = false;
@@ -794,17 +799,17 @@ async function renderCurrent() {
   }
 }
 
-async function drawTest({ score, xml }) {
+async function drawTest({ score, xml }, quiet = false) {
   // Held at opacity 0 through the whole render + fitScore search (which
   // calls osmd.render() many times while measuring candidate layouts) and
   // only released once a final layout is settled — see the .entering rule.
   elements.score.classList.add('entering');
 
-  say('renderingStatus');
+  if (!quiet) say('renderingStatus');
   try {
     await osmd.load(xml);
     osmd.render();
-    say('readyStatus');
+    if (!quiet) say('readyStatus');
   } catch (error) {
     fail('failRender', error.message);
     elements.score.classList.remove('entering');

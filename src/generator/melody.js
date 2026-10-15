@@ -12,8 +12,8 @@
  *     nearest chord tone afterwards.
  */
 
-import { chordDegrees, degreeOf, pitchAt } from './theory.js?v=62';
-import { chordAt } from './harmony.js?v=62';
+import { chordDegrees, degreeOf, pitchAt } from './theory.js?v=9b448c09';
+import { chordAt } from './harmony.js?v=9b448c09';
 
 /**
  * Interval classes that read as dissonant against the bass. A second, tritone
@@ -43,6 +43,7 @@ export function assignPitches({ rng, key, bars, progression, window, options, ag
     // How often a chord-tone-only hand (the bass) may take an off-beat
     // passing/neighbour tone. 0 restores the old chord-tones-only bass.
     bassDecoration = 0,
+    fastLeapSemitones = 99,
     // How often the bass takes an inversion at a harmony arrival, where doing
     // so keeps the line stepwise. 0 restores root position as the only option.
     bassInversion = 0,
@@ -103,6 +104,7 @@ export function assignPitches({ rng, key, bars, progression, window, options, ag
    */
   let previousWasLeadingNote = false;
   let previousBass = null;
+  let previousDur = null;
 
   bars.forEach((bar, barIndex) => {
     const entry = progression[barIndex] ?? 'I';
@@ -278,6 +280,11 @@ export function assignPitches({ rng, key, bars, progression, window, options, ag
           centre: target,
           stepwiseBias,
           maxLeapSemitones,
+          // Moving the hand a long way between short notes is the hardest
+          // thing in sight-reading: cap how far a leap may go when either
+          // note is an eighth or shorter, by grade.
+          fastLeapLimit: event.dur <= bar.beatDuration / 2 || (previousDur !== null && previousDur <= bar.beatDuration / 2)
+            ? fastLeapSemitones : 99,
           chordToneOnly,
           bassDecoration,
           sounding,
@@ -322,6 +329,7 @@ export function assignPitches({ rng, key, bars, progression, window, options, ag
       }
       previousLeap = interval;
       previous = chosen;
+      previousDur = event.dur;
 
       event.dstep = chosen;
       // Written as harmonic minor throughout: the leading note is raised
@@ -579,7 +587,7 @@ function pickWeighted(ctx) {
     rng, key, allSteps, previous, previousLeap, repeatRun, runDirection, runLength, tones,
     arpeggioDirection, arpeggioLength, onBeat, isDownbeat, centre, stepwiseBias, maxLeapSemitones,
     chordToneOnly, sounding, previousWasChordTone, previousWasLeadingNote, previousBass, preferred = null,
-    bassDecoration = 0,
+    bassDecoration = 0, fastLeapLimit = 99,
   } = ctx;
   const bass = sounding.length ? Math.min(...sounding) : null;
 
@@ -619,6 +627,7 @@ function pickWeighted(ctx) {
     const midi = soundingMidi(dstep, key);
     const semitones = Math.abs(midi - previousMidi);
     if (semitones > maxLeapSemitones) continue;
+    if (semitones > fastLeapLimit) continue;
     /*
      * A melodic tritone — an augmented 4th or diminished 5th leapt bare — is
      * as much a part-writing error in this idiom as the augmented 2nd already
@@ -786,7 +795,11 @@ function pickWeighted(ctx) {
     if (continuesArpeggio) {
       weight *= 1 + Math.min(arpeggioLength, 3) * 0.8;
     } else if (Math.abs(previousLeap) >= 3) {
-      weight *= Math.sign(interval) === -Math.sign(previousLeap) ? 2.5 : 0.4;
+      // After a leap of a fourth or more the line turns back by step: the
+      // reversal is strongly preferred, a second leap or a continued run in
+      // the same direction is rare (it was 22% of leap pairs).
+      const reverses = Math.sign(interval) === -Math.sign(previousLeap);
+      weight *= reverses ? (distance === 1 ? 6 : 1.2) : (distance === 1 ? 0.5 : 0.08);
     }
     weight *= 1 / (1 + Math.abs(dstep - centre) * 0.12);
     // Within the leap category, a smaller leap still outweighs a bigger one.
@@ -899,7 +912,9 @@ function pickWeighted(ctx) {
   // Same reasoning for an arpeggio in progress: the within-category boost
   // above only matters if the leap category is even rolled in the first
   // place.
-  const leapBoost = arpeggioDirection !== 0 ? 1 + Math.min(arpeggioLength, 3) * 0.5 : 1;
+  const leapBoost = arpeggioDirection !== 0
+    ? 1 + Math.min(arpeggioLength, 3) * 0.5
+    : (Math.abs(previousLeap) >= 3 ? 0.25 : 1);
   const categories = [];
   if (steps.length) categories.push({ items: steps, weight: 10 * stepwiseBias * runBoost });
   if (leaps.length) categories.push({ items: leaps, weight: 10 * (1 - stepwiseBias) * leapBoost });

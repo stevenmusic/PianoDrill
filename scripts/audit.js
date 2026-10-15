@@ -907,6 +907,9 @@ function auditVoiceLeading(grade, tests) {
 
   let melodicLeaps = 0;
   let tritoneLeaps = 0;
+  let fastLeaps = 0;
+  let fastLeapsTooWide = 0;
+  const fastLimit = grade <= 4 ? 5 : grade <= 6 ? 7 : 9;
 
   for (const score of tests) {
     const key = createKey(score.key);
@@ -999,6 +1002,10 @@ function auditVoiceLeading(grade, tests) {
         if (semitones <= 2) continue;
         melodicLeaps += 1;
         if (semitones === 6) tritoneLeaps += 1;
+        if (Math.min(notes[i].dur, notes[i + 1].dur) <= 12) {
+          fastLeaps += 1;
+          if (semitones > fastLimit + 1) fastLeapsTooWide += 1;
+        }
       }
     }
 
@@ -1044,6 +1051,11 @@ function auditVoiceLeading(grade, tests) {
   lines.push(check('voiceleading', grade, 'melodic tritone leaps',
     `${fixed(pct(tritoneLeaps, melodicLeaps), 2)}%`,
     pct(tritoneLeaps, melodicLeaps) <= 1, '<=1% of leaps'));
+  // Grades 1-2 sit in one five-finger position, so a fifth between short notes
+  // needs no hand movement; the cap is about travelling, from Grade 3 up.
+  if (grade >= 3) lines.push(check('voiceleading', grade, 'leaps wider than the hand can reach between short notes',
+    `${fixed(pct(fastLeapsTooWide, fastLeaps), 2)}%`,
+    pct(fastLeapsTooWide, fastLeaps) <= 4, '<=4% (the cap is 4th/5th/6th by grade band; repairs may nudge a few)'));
   return lines;
 }
 

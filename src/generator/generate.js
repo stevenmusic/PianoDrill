@@ -7,16 +7,16 @@
  *   articulation and tempo term.
  */
 
-import { createRandom, randomSeed } from './random.js?v=62';
-import { createKey, dstepRange, degreeOf, pitchAt, chordDegrees, LETTERS } from './theory.js?v=62';
-import { buildProgression, firstChord, lastChord, halfCadenceBar } from './harmony.js?v=62';
+import { createRandom, randomSeed } from './random.js?v=9b448c09';
+import { createKey, dstepRange, degreeOf, pitchAt, chordDegrees, LETTERS } from './theory.js?v=9b448c09';
+import { buildProgression, firstChord, lastChord, halfCadenceBar } from './harmony.js?v=9b448c09';
 import {
   assignPitches, stackChordTones, soundingTimeline, harmoniseLeadingNotes, harmoniseRepeatedLeadingNotes,
   revertClashingBassDecorations,
   relaxParallels,
-} from './melody.js?v=62';
-import { DIVISIONS, cellsFor, fillBar, wholeBarRest } from './rhythm.js?v=62';
-import { meterInfo, rescaleCells } from './meter.js?v=62';
+} from './melody.js?v=9b448c09';
+import { DIVISIONS, cellsFor, fillBar, wholeBarRest } from './rhythm.js?v=9b448c09';
+import { meterInfo, rescaleCells } from './meter.js?v=9b448c09';
 
 const TEMPO_BPM = {
   Grave: 46, Largo: 52, Adagio: 60, Lento: 58, Andante: 76, Andantino: 84,
@@ -440,6 +440,9 @@ function buildStaff({ rng, rules, meter, barCount, hand, progression, key, silen
     window,
     options: {
       stepwiseBias: rules.generatorHints.stepwiseBiasPercent / 100,
+      // Largest leap between short notes (hand has no time to travel): a
+      // fourth through Grade 4, a fifth at 5-6, a sixth from 7.
+      fastLeapSemitones: rules.grade <= 4 ? 5 : rules.grade <= 6 ? 7 : 9,
       maxLeapSemitones: isLeft
         ? Math.min(rules.generatorHints.maxLeapSemitones, 12)
         : rules.generatorHints.maxLeapSemitones,

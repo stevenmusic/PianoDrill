@@ -16,7 +16,9 @@
     "engraving": "node scripts/engraving-check.js",
     "highlight": "node scripts/highlight-check.js",
     "layout": "node scripts/layout.js",
-    "human": "node scripts/human.js"
+    "human": "node scripts/human.js",
+    "stamp": "node tools/stamp.mjs",
+    "stamp:check": "node tools/stamp.mjs --check"
   },
   "dependencies": {
     "opensheetmusicdisplay": "^2.1.0"

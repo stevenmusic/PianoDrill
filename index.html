@@ -27,7 +27,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="src/app/styles.css?v=6955a4c5">
+  <link rel="stylesheet" href="src/app/styles.css?v=130f9c20">
   <!--
     Loaded from vendor/ rather than node_modules/ so the page works as a plain
     static site (GitHub Pages) with no build step and no npm install.
@@ -149,7 +149,12 @@
     <p id="message" class="message"></p>
     <ol class="checklist" id="checklist" hidden></ol>
     <!-- 備考時間結束後出現:播放軸依速度自己走、自動換行,彈的人不用碰螢幕 -->
-    <div class="along" id="along" hidden><button class="btn primary" id="play-along" type="button"></button></div>
+    <div class="along" id="along" hidden>
+      <button class="btn primary" id="play-along" type="button"></button>
+      <label class="along-opt"><input type="checkbox" id="along-mic"><span data-i18n="alongMic">用麥克風評分節奏(選用)</span></label>
+      <p class="along-note" data-i18n="alongMicNote">只看起音的時間,不判斷音高;聲音只在這台裝置上分析,不會上傳。</p>
+      <div class="along-result" id="along-result" hidden aria-live="polite"></div>
+    </div>
   </main>
 
   <footer>
@@ -161,6 +166,6 @@
 
   <span id="history-info" class="history-badge"></span>
 
-  <script type="module" src="src/app/app.js?v=6955a4c5"></script>
+  <script type="module" src="src/app/app.js?v=130f9c20"></script>
 </body>
 </html>

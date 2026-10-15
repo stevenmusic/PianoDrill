@@ -1,10 +1,12 @@
-import { generateTest, keyOptionsFor } from '../generator/generate.js?v=6955a4c5';
-import { toMusicXml } from '../generator/musicxml.js?v=6955a4c5';
-import { createHistory, generateUnique } from '../generator/fingerprint.js?v=6955a4c5';
-import { createKey, pitchAt } from '../generator/theory.js?v=6955a4c5';
-import { createPlayer } from './playback.js?v=6955a4c5';
-import { createStage, barTimings } from './stage.js?v=6955a4c5';
-import { initLanguage, applyLanguage, getLanguage, t, onLanguageChange } from './i18n.js?v=6955a4c5';
+import { generateTest, keyOptionsFor } from '../generator/generate.js?v=130f9c20';
+import { toMusicXml } from '../generator/musicxml.js?v=130f9c20';
+import { createHistory, generateUnique } from '../generator/fingerprint.js?v=130f9c20';
+import { createKey, pitchAt } from '../generator/theory.js?v=130f9c20';
+import { createPlayer } from './playback.js?v=130f9c20';
+import { createRecorder } from './mic.js?v=130f9c20';
+import { expectedOnsets, detectOnsets, scoreRhythm } from './scoring.js?v=130f9c20';
+import { createStage, barTimings } from './stage.js?v=130f9c20';
+import { initLanguage, applyLanguage, getLanguage, t, onLanguageChange } from './i18n.js?v=130f9c20';
 
 // As early as possible, before any other DOM work below, so the page never
 // paints in the wrong language for a returning en visitor.
@@ -36,6 +38,8 @@ const elements = {
   checklist: document.getElementById('checklist'),
   along: document.getElementById('along'),
   playAlong: document.getElementById('play-along'),
+  alongMic: document.getElementById('along-mic'),
+  alongResult: document.getElementById('along-result'),
   historyInfo: document.getElementById('history-info'),
   clearHistory: document.getElementById('clear-history'),
   confidence: document.getElementById('confidence'),
@@ -591,16 +595,23 @@ async function init() {
   });
   window.__stage = stage; // debugging hook, also used by scripts/devices.js
   window.__playback = player; // debugging hook, also used by scripts/loudness.js
+  // debugging hook for scripts/mic-check.js: what the current test expects from a player
+  window.__scoring = () => (current ? { onsets: expectedOnsets(current.score), secondsPerBar: barTimings(current.score).secondsPerBar } : null);
 
   elements.generate.disabled = false;
   elements.generate.addEventListener('click', newTest);
   elements.prepare.addEventListener('click', startCountdown);
   elements.play.addEventListener('click', togglePlayback);
   elements.playAlong.addEventListener('click', togglePlayAlong);
+  try { elements.alongMic.checked = localStorage.getItem('sightdrill.mic') === '1'; } catch { /* 沒有儲存空間就預設關 */ }
+  elements.alongMic.addEventListener('change', () => {
+    try { localStorage.setItem('sightdrill.mic', elements.alongMic.checked ? '1' : '0'); } catch { /* 不影響使用 */ }
+  });
   setAlongLabel();
   elements.stop.addEventListener('click', () => {
     player.stop();
     alongStart = null;
+    resetAlongResult();
     setAlongLabel();
     stopFollowing();
     setPlayState(false);
@@ -711,6 +722,7 @@ function refreshDynamicText() {
   if (current) showMeta(current.score);
   setPlayState(player.playing);
   setAlongLabel();
+  renderRhythmResult();
   updateHistoryInfo();
   if (!elements.checklist.hidden) {
     elements.checklist.innerHTML = PREPARATION_STEP_KEYS
@@ -753,6 +765,7 @@ async function newTest() {
   alongStart = null;
   setAlongLabel();
   elements.along.hidden = true;
+  resetAlongResult();
   stopFollowing();
   setPlayState(false);
 
@@ -919,6 +932,7 @@ async function startCountdown() {
   player.stop();
   alongStart = null;
   elements.along.hidden = true;
+  resetAlongResult();
   setAlongLabel();
   elements.checklist.hidden = true;
   say('givingPitch');
@@ -1233,6 +1247,7 @@ function setAlongLabel() {
 }
 
 function stopPlayAlong(message) {
+  recorder.cancel(); // 手動停止:丟掉這次錄音,不評分
   alongStart = null;
   alongBeat = null;
   stopFollowing();
@@ -1240,8 +1255,12 @@ function stopPlayAlong(message) {
   if (message) say(message);
 }
 
-function togglePlayAlong() {
-  if (!current) return;
+const recorder = createRecorder();
+let alongStarting = false;
+let lastRhythmResult = null;
+
+async function togglePlayAlong() {
+  if (!current || alongStarting) return;
   if (alongStart !== null) {
     stopPlayAlong('prepDone');
     return;
@@ -1249,6 +1268,24 @@ function togglePlayAlong() {
   player.stop();
   stopFollowing();
   setPlayState(false);
+  resetAlongResult();
+
+  // 選了麥克風評分:先要權限(第一次會跳出系統詢問),拿到才開始數預備拍
+  let scoring = false;
+  if (elements.alongMic.checked) {
+    alongStarting = true;
+    try {
+      await recorder.start();
+      scoring = true;
+    } catch {
+      // 拒絕或找不到麥克風:把原因放在結果區(狀態訊息會馬上被預備拍蓋掉),這次照樣跟著彈、只是不評分
+      lastRhythmResult = { denied: true };
+      renderRhythmResult();
+    }
+    alongStarting = false;
+    if (!current) { recorder.cancel(); return; }
+  }
+
   const { secondsPerBar } = barTimings(current.score);
   alongStart = performance.now() / 1000 + secondsPerBar; // 一小節預備拍
   setAlongLabel();
@@ -1258,15 +1295,60 @@ function togglePlayAlong() {
     const elapsed = performance.now() / 1000 - alongStart;
     if (elapsed < 0) {
       const n = Math.min(beats, Math.ceil((-elapsed / secondsPerBar) * beats));
-      if (n !== alongBeat) { alongBeat = n; say('alongCountIn', { n }); }
+      if (n !== alongBeat) { alongBeat = n; say(scoring ? 'alongListening' : 'alongCountIn', { n }); }
     } else if (alongBeat !== 0) {
       alongBeat = 0;
       say('alongPlaying');
     }
     return elapsed;
-  }, () => stopPlayAlong('alongDone'));
+  }, () => finishPlayAlong(scoring));
   // 沒有可跟的樂譜位置(還沒畫好)時,別讓按鈕卡在「停止彈奏」
   if (followFrame === null) stopPlayAlong();
+}
+
+/** 彈完:停麥克風、評分、顯示結果。 */
+function finishPlayAlong(scoring) {
+  const take = scoring ? recorder.finish() : null;
+  const { score } = current;
+  const firstNoteAt = alongStart;
+  stopPlayAlong('alongDone');
+  if (!take) return;
+  // 麥克風時間軸換算成「距離第一個音幾秒」,跟題目的預期起音同一把尺
+  const detected = detectOnsets(take.samples, take.sampleRate).map((time) => take.startedAt + time - firstNoteAt);
+  window.__lastTake = { expected: expectedOnsets(score), detected }; // debugging hook for scripts/mic-check.js
+  lastRhythmResult = {
+    silent: detected.length === 0,
+    ...scoreRhythm(expectedOnsets(score), detected, { tempoBpm: score.tempoBpm }),
+  };
+  renderRhythmResult();
+}
+
+function renderRhythmResult() {
+  const r = lastRhythmResult;
+  if (!r) return;
+  const box = elements.alongResult;
+  if (r.denied) {
+    box.innerHTML = `<p>${escapeHtml(t('alongMicDenied'))}</p>`;
+  } else if (r.silent) {
+    box.innerHTML = `<p>${escapeHtml(t('resultSilent'))}</p>`;
+  } else {
+    const advice = r.score >= 90 ? 'resultGreat' : r.score >= 70 ? 'resultOk' : 'resultLow';
+    const lag = Math.abs(r.offsetMs) >= 80
+      ? `<p>${escapeHtml(t(r.offsetMs > 0 ? 'resultLate' : 'resultEarly', { ms: Math.abs(r.offsetMs) }))}</p>`
+      : '';
+    box.innerHTML = `<div class="big">${r.score}<small>${escapeHtml(t('resultTitle'))}</small></div>`
+      + `<p>${escapeHtml(t('resultHits', { hits: r.hits, total: r.total, missed: r.missed, extra: r.extra, err: r.meanErrorMs, tol: r.toleranceMs }))}</p>`
+      + lag
+      + `<p>${escapeHtml(t(advice))}</p>`
+      + `<p class="disclaimer">${escapeHtml(t('resultDisclaimer'))}</p>`;
+  }
+  box.hidden = false;
+}
+
+function resetAlongResult() {
+  recorder.cancel();
+  lastRhythmResult = null;
+  elements.alongResult.hidden = true;
 }
 
 function stopFollowing() {

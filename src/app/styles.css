@@ -839,7 +839,17 @@ footer {
 }
 
 /* 開始彈奏(跟著播放軸):備考時間結束後出現在提示文字下方 */
-.along { margin: 12px 4px 0; display: flex; }
+.along { margin: 12px 4px 0; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
 .along[hidden] { display: none; }
 .along .btn { min-height: 44px; padding-inline: 18px; }
 @media (max-width: 600px) { .along .btn { width: 100%; justify-content: center; } }
+
+.along-opt { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; color: var(--muted-bright); font-size: var(--fs-sm); cursor: pointer; }
+.along-opt input { width: 20px; height: 20px; accent-color: var(--gold); }
+.along-note { flex-basis: 100%; margin: 0; color: var(--muted); font-size: var(--fs-xs); line-height: 1.4; }
+.along-result { flex-basis: 100%; border: 1px solid var(--border, rgba(255,255,255,.14)); border-radius: var(--radius-sm); padding: 12px 14px; line-height: 1.4; }
+.along-result[hidden] { display: none; }
+.along-result .big { font-size: 34px; font-weight: 700; color: var(--gold-bright); line-height: 1.2; }
+.along-result .big small { font-size: var(--fs-sm); font-weight: 400; color: var(--muted-bright); margin-left: 4px; }
+.along-result p { margin: 4px 0 0; color: var(--muted-bright); font-size: var(--fs-sm); }
+.along-result .disclaimer { color: var(--muted); font-size: var(--fs-xs); }

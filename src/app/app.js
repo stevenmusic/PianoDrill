@@ -1,10 +1,10 @@
-import { generateTest, keyOptionsFor } from '../generator/generate.js?v=39c1f6a1';
-import { toMusicXml } from '../generator/musicxml.js?v=39c1f6a1';
-import { createHistory, generateUnique } from '../generator/fingerprint.js?v=39c1f6a1';
-import { createKey, pitchAt } from '../generator/theory.js?v=39c1f6a1';
-import { createPlayer } from './playback.js?v=39c1f6a1';
-import { createStage, barTimings } from './stage.js?v=39c1f6a1';
-import { initLanguage, applyLanguage, getLanguage, t, onLanguageChange } from './i18n.js?v=39c1f6a1';
+import { generateTest, keyOptionsFor } from '../generator/generate.js?v=52edc918';
+import { toMusicXml } from '../generator/musicxml.js?v=52edc918';
+import { createHistory, generateUnique } from '../generator/fingerprint.js?v=52edc918';
+import { createKey, pitchAt } from '../generator/theory.js?v=52edc918';
+import { createPlayer } from './playback.js?v=52edc918';
+import { createStage, barTimings } from './stage.js?v=52edc918';
+import { initLanguage, applyLanguage, getLanguage, t, onLanguageChange } from './i18n.js?v=52edc918';
 
 // As early as possible, before any other DOM work below, so the page never
 // paints in the wrong language for a returning en visitor.
@@ -654,7 +654,7 @@ async function init() {
   // layout computed for the other arrangement.
   TOP_ROW_QUERY.addEventListener('change', () => {
     pinTopRowLayout();
-    if (current) fitScore();
+    if (current) renderCurrent();
   });
 
   // Bars per line depend on the container's actual width, so a resize (or a
@@ -670,7 +670,8 @@ async function init() {
     if (window.innerWidth === lastWidth) return;
     lastWidth = window.innerWidth;
     clearTimeout(resizeTimer);
-    resizeTimer = setTimeout(() => { fitScore(); }, 200);
+    // 走同一個排隊機制:跟新題的渲染不會同時操作 OSMD
+    resizeTimer = setTimeout(() => { renderCurrent(); }, 200);
   });
 
   // 「已紀錄 N 題」平常釘在畫面左下角;頁面長到要捲動時,釘住的徽章會在捲動途中

@@ -756,6 +756,21 @@ function holdRepeat(btn, dir){
 holdRepeat($("bpmDown"), -1);
 holdRepeat($("bpmUp"), +1);
 $("bpmRange").oninput = () => setBpm(Number($("bpmRange").value), true);
+// 點滑桿任何位置都跳到那裡、按住左右拖(手機上只能抓圓鈕太難滑到)
+{
+  const range = $("bpmRange");
+  const setFromX = (e) => {
+    const r = range.getBoundingClientRect();
+    const t = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width));
+    const min = Number(range.min), max = Number(range.max);
+    setBpm(Math.round(min + t * (max - min)), true);
+  };
+  let dragging = false;
+  range.addEventListener("pointerdown", (e) => { dragging = true; try { range.setPointerCapture(e.pointerId); } catch {} setFromX(e); });
+  range.addEventListener("pointermove", (e) => { if (dragging) setFromX(e); });
+  const end = () => { dragging = false; };
+  range.addEventListener("pointerup", end); range.addEventListener("pointercancel", end);
+}
 $("bpmReset").onclick = () => { if (cur && !cur.free) { S.tempoPct = 100; store.save(); setBpm(cur.tempo.bpm); } };
 
 /* ── 音訊 ── */

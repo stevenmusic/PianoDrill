@@ -392,7 +392,13 @@ header{z-index:60}
 #themeToggle,#langToggle{aspect-ratio:1;padding:0;min-width:34px;justify-content:center}
 @media (max-height:420px), (orientation:landscape) and (max-height:500px){ #themeToggle,#langToggle{min-width:30px} }
 /* 速度滑桿:加高點擊區域(滑軌樣式不變) */
-.metro input[type=range]{height:36px;margin:0}
+.metro input[type=range]{height:56px;margin:0;-webkit-appearance:none;appearance:none;background:transparent;touch-action:pan-y;cursor:pointer}
+/* 滑軌加粗、圓鈕加大;整條 56px 高都是點擊區(js 裡點哪都會跳到該位置) */
+.metro input[type=range]::-webkit-slider-runnable-track{height:12px;border-radius:6px;background:var(--line);background:color-mix(in srgb,var(--gold) 38%,transparent)}
+.metro input[type=range]::-moz-range-track{height:12px;border-radius:6px;background:var(--line);background:color-mix(in srgb,var(--gold) 38%,transparent)}
+.metro input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:34px;height:34px;margin-top:-11px;border-radius:50%;background:var(--gold);border:3px solid var(--bg,#111);box-shadow:0 0 0 1px var(--gold)}
+.metro input[type=range]::-moz-range-thumb{width:28px;height:28px;border-radius:50%;background:var(--gold);border:3px solid var(--bg,#111)}
+.metro input[type=range]:focus-visible{outline:2px solid var(--gold-bright);outline-offset:-2px}
 /* 收起/展開:手指點得到 */
 .quick .qhead .chip{height:32px;padding:0 14px}
 /* 極窄螢幕(折疊機 280、SE 320):設定欄位改單欄 */

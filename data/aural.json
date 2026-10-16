@@ -67,7 +67,7 @@
             "drills": [{ "type": "echo", "p": { "bars": 2, "meters": ["2", "3", "4"], "range": "oct", "minor": true, "twice": true, "part": "upper" } }] },
           { "id": "B", "zh": "看譜唱一段旋律,考官彈伴奏", "en": "Sing a melody from score with an accompaniment", "drills": [] },
           { "id": "C", "zh": "樂句結尾的終止式:完全或不完全(原位和弦,彈兩次)", "en": "Identify the cadence as perfect or imperfect (root-position chords, played twice)",
-            "drills": [{ "type": "cadence", "p": { "set": ["perfect", "imperfect"], "twice": true } }] },
+            "drills": [{ "type": "cadence", "p": { "set": ["perfect", "imperfect"], "twice": true, "rootOnly": true } }] },
           { "id": "D", "zh": "(i) 回答兩個特徵:織體或曲式,以及另一項;(ii) 拍出片段的節奏,並回答二、三或四拍子", "en": "(i) Two features — texture or structure, then another; (ii) clap an extract's rhythm and name two, three or four time",
             "drills": [{ "type": "rhythm", "p": { "bars": 2, "meters": ["2", "3", "4"], "twice": true } }, { "type": "meter", "p": { "choices": ["2", "3", "4"] } }] }
         ] },
@@ -76,7 +76,7 @@
             "drills": [{ "type": "echo", "p": { "bars": 2, "meters": ["2", "3", "4"], "range": "oct", "minor": true, "twice": true, "part": "lower" } }] },
           { "id": "B", "zh": "看譜唱兩聲部的上聲部,考官彈下聲部", "en": "Sing the upper part of a two-part phrase from score", "drills": [] },
           { "id": "C", "zh": "(i) 終止式:完全、不完全或阻礙;(ii) 這個終止式的兩個和弦(I、IV、V、V7、vi,原位);(iii) 從大調轉到屬調、下屬調或關係小調", "en": "(i) Cadence: perfect, imperfect or interrupted; (ii) its two chords (I, IV, V, V7, vi); (iii) modulation from a major key to dominant, subdominant or relative minor",
-            "drills": [{ "type": "cadence", "p": { "set": ["perfect", "imperfect", "interrupted"], "twice": true } }, { "type": "chords", "p": { "n": 2 } },
+            "drills": [{ "type": "cadence", "p": { "set": ["perfect", "imperfect", "interrupted"], "twice": true, "rootOnly": true } }, { "type": "chords", "p": { "n": 2 } },
               { "type": "modulation", "p": { "starts": ["major"], "targets": ["dominant", "subdominant", "relative"] } }] },
           { "id": "D", "zh": "(i) 回答兩個特徵(力度、奏法、速度、調性、性格、風格與時期、織體、曲式);(ii) 拍出片段的節奏,並回答二、三、四或 6/8 拍", "en": "(i) Two features; (ii) clap an extract's rhythm and name two, three, four or 6/8 time",
             "drills": [{ "type": "dyn", "p": { "set": "abrsm" } }, { "type": "artic", "p": {} }, { "type": "tempo", "p": {} }, { "type": "tonality", "p": {} },

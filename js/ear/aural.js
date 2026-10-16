@@ -6,6 +6,11 @@ import { tr } from "../shared/i18n.js";
 import { MAJOR, rnd, pick, chance, pickKey, tonicMidi, degMidi, METERS, barLen, melody, render, harmonise,
   keyChordIntro, voiceChords, chordEvents, cadencePhrase, modulation } from "./music.js";
 import { INTERVALS, pcName } from "./ear.js";
+const mod7 = d => ((d % 7) + 7) % 7;
+/* 調名用調號的寫法(B♭ 大調、F♯ 小調),不要「A♯/B♭」 */
+const MAJOR_NAME = { 0: "C", 7: "G", 2: "D", 9: "A", 4: "E", 11: "B", 6: "F♯", 1: "D♭", 8: "A♭", 3: "E♭", 10: "B♭", 5: "F" };
+const MINOR_NAME = { 9: "A", 4: "E", 11: "B", 6: "F♯", 1: "C♯", 8: "G♯", 2: "D", 7: "G", 0: "C", 5: "F", 10: "B♭", 3: "E♭" };
+const keyName = key => (key.minor ? MINOR_NAME : MAJOR_NAME)[((key.tonicPc % 12) + 12) % 12] + (key.minor ? tr(" 小調", " minor") : tr(" 大調", " major"));
 
 export const DRILL_NAME = {
   pulse: ["跟著打拍子", "Clap the pulse"], meter: ["幾拍子", "Time"], rhythm: ["拍出節奏", "Clap the rhythm"],
@@ -58,7 +63,7 @@ const GEN = {
   /* 跟著打拍子:播放中按節拍鍵,看穩不穩、速度對不對 */
   pulse(p){
     const { key, tonic, meter } = setup({ ...p, minor: true });
-    const mel = melody({ meter, bars: 8, range: [-2, 7] });
+    const mel = melody({ minor: key.minor, meter, bars: 8, range: [-2, 7] });
     const r = render(mel, key, tonic, { acc: p.acc !== false, accent: true, vel: 66 });
     return { play: { ev: r.ev, dur: r.dur }, tap: { kind: "pulse", beat: r.beat, from: 0, until: r.dur },
       reveal: tr(METER_CH[meter][0], METER_CH[meter][1]) + " · ♩ ≈ " + Math.round(60 / r.beat) };
@@ -66,7 +71,7 @@ const GEN = {
   /* 幾拍子 / 拍號 */
   meter(p){
     const { key, tonic, meter } = setup({ meters: p.choices, minor: true });
-    const mel = melody({ meter, bars: meter === "5" ? 4 : 6, range: [-3, 7] });
+    const mel = melody({ minor: key.minor, meter, bars: meter === "5" ? 4 : 6, range: [-3, 7] });
     const r = render(mel, key, tonic, { acc: p.acc !== false, accent: true, vel: 66 });
     const choices = p.choices.map(m => p.ts ? { id: m, label: TS[m] } : ch(m, ...METER_CH[m]));
     return { play: { ev: r.ev, dur: r.dur }, steps: [{ q: p.ts ? tr("拍號是?", "Time signature?") : tr("幾拍子?", "Which time?"), choices, answer: meter }] };
@@ -74,7 +79,7 @@ const GEN = {
   /* 拍出節奏:只有旋律;ABRSM 初級先數兩小節、聽完馬上接著拍(回聲);4 級以上彈兩次再拍 */
   rhythm(p){
     const { key, tonic, meter } = setup(p);
-    const mel = melody({ meter, bars: p.bars || 2, range: [-2, 5], easy: true });
+    const mel = melody({ minor: key.minor, meter, bars: p.bars || 2, range: [-2, 5], easy: true });
     const r = render(mel, key, tonic, { vel: 66 });
     let ev = r.ev, clicks = [], t = 0;
     if (p.countIn) { const c = countIn(meter, r.beat, 0); clicks = c.clicks; t = c.dur; ev = shift(ev, t); }
@@ -88,7 +93,7 @@ const GEN = {
   echo(p){
     const { key, tonic, meter } = setup(p);
     const range = rangeOf(p.range);
-    const mel = melody({ meter, bars: p.bars || 2, range, start: p.range && p.range[1] <= 2 ? [0] : [0, 2, 4], easy: (p.bars || 2) <= 2, maxLeap: p.range && p.range[1] <= 2 ? 1 : 2 });
+    const mel = melody({ minor: key.minor, meter, bars: p.bars || 2, range, start: p.range && p.range[1] <= 2 ? [0] : [0, 2, 4], easy: (p.bars || 2) <= 2, maxLeap: p.range && p.range[1] <= 2 ? 1 : 2 });
     const r = render(mel, key, tonic, { vel: 68 });
     let ev = r.ev, target = r.ev.map(e => e.midi);
     if (p.part) {   // 兩聲部 / 三聲部:另外寫下聲部(和聲的根音或三音,級進為主)
@@ -105,7 +110,7 @@ const GEN = {
     const lo = Math.min(...target) - 5, hi = Math.max(...target) + 5;
     const which = { upper: tr("上聲部", "upper part"), lower: tr("下聲部", "lower part"), lowest3: tr("最低聲部", "lowest part") }[p.part];
     return { play: { ev: all, clicks: ci.clicks, dur }, keys: { target, lo, hi, octaveOk: true },
-      tags: [pcName(key.tonicPc) + (key.minor ? tr(" 小調", " minor") : tr(" 大調", " major")), which ? tr("彈出", "Play the ") + which : tr("用鍵盤彈出來", "Play it back")],
+      tags: [keyName(key), which ? tr("彈出", "Play the ") + which : tr("用鍵盤彈出來", "Play it back")],
       reveal: target.map(m => pcName(m)).join(" ") };
   },
   /* 力度:lq 大聲/小聲;fp forte/piano;abrsm 加上突然/漸漸改變;vary(Trinity 2 級起)描述變化 */
@@ -118,7 +123,7 @@ const GEN = {
     const up = x => P + (F - P) * x, down = x => F - (F - P) * x, sUp = x => x < 0.5 ? P : F, sDown = x => x < 0.5 ? F : P;
     const g = { loud: flat(F), f: flat(F), quiet: flat(P), p: flat(P), cresc: up, dim: down, subLoud: sUp, subQuiet: sDown,
       gradual: chance(0.5) ? up : down, sudden: chance(0.5) ? sUp : sDown }[a];
-    const mel = melody({ meter, bars: 4, range: [-2, 7] });
+    const mel = melody({ minor: key.minor, meter, bars: 4, range: [-2, 7] });
     const r = render(mel, key, tonic, { acc: true, dyn: g });
     const L = { loud: ["大聲", "Loud"], quiet: ["小聲", "Quiet"], f: ["forte(強)", "Forte"], p: ["piano(弱)", "Piano"], sudden: ["突然改變", "Sudden change"], gradual: ["漸漸改變", "Gradual change"],
       cresc: ["漸強", "Crescendo"], dim: ["漸弱", "Diminuendo"], subLoud: ["突然變強", "Suddenly loud"], subQuiet: ["突然變弱", "Suddenly quiet"] };
@@ -127,7 +132,7 @@ const GEN = {
   artic(p){
     const { key, tonic, meter } = setup({ minor: true });
     const a = pick(["legato", "staccato"]);
-    const mel = melody({ meter, bars: 4, range: [-2, 7] });
+    const mel = melody({ minor: key.minor, meter, bars: 4, range: [-2, 7] });
     const r = render(mel, key, tonic, { acc: false, artic: a, vel: 66 });
     const it = p.names === "it";
     return { play: { ev: r.ev, dur: r.dur }, steps: [{ q: tr("奏法是?", "Articulation?"), choices: [ch("legato", it ? "圓滑(legato)" : "圓滑", it ? "Legato" : "Smooth"), ch("staccato", it ? "斷奏(staccato)" : "斷開", it ? "Staccato" : "Detached")], answer: a }] };
@@ -136,14 +141,22 @@ const GEN = {
     const { key, tonic, meter } = setup({ minor: true });
     const a = pick(["slower", "faster", "same"]);
     const tf = { slower: x => x < 0.45 ? 1 : 1 - 0.75 * (x - 0.45), faster: x => x < 0.45 ? 1 : 1 + 0.9 * (x - 0.45), same: () => 1 }[a];
-    const mel = melody({ meter, bars: 6, range: [-2, 7] });
+    const mel = melody({ minor: key.minor, meter, bars: 6, range: [-2, 7] });
     const r = render(mel, key, tonic, { acc: true, tempo: tf, bpm: a === "faster" ? 80 : 100 });
     return { play: { ev: r.ev, dur: r.dur }, steps: [{ q: tr("速度怎麼變?", "Tempo?"), choices: [ch("slower", "越來越慢", "Slowing down"), ch("faster", "越來越快", "Getting faster"), ch("same", "不變", "Same")], answer: a }] };
   },
   tonality(p){
     const minor = chance(0.5);
     const key = pickKey(minor, 3), tonic = tonicMidi(key.tonicPc), meter = pick(["2", "3", "4"]);
-    const mel = melody({ meter, bars: 4, range: [-3, 7], start: [0, 2, 4] });
+    // 只有旋律時,沒有第 3 級就分不出大小調(約四分之一的旋律沒有):重來到第 3 級出現,最好在長音或強拍
+    const L = barLen(meter), third = n => mod7(n.deg) === 2;
+    let mel = null;
+    for (let i = 0; i < 60; i++) {
+      const m = melody({ minor: key.minor, meter, bars: 4, range: [-3, 7], start: [0, 2, 4] });
+      if (m.notes.some(n => third(n) && (n.len >= 2 || n.at % L === 0))) { mel = m; break; }
+      if (!mel && m.notes.some(third)) mel = m;
+    }
+    mel ??= melody({ minor: key.minor, meter, bars: 4, range: [-3, 7], start: [2] });
     const r = render(mel, key, tonic, { acc: p.acc !== false, vel: 64 });
     return { play: { ev: r.ev, dur: r.dur }, steps: [{ q: tr("大調還是小調?", "Major or minor?"), choices: [ch("major", "大調", "Major"), ch("minor", "小調", "Minor")], answer: minor ? "minor" : "major" }] };
   },
@@ -151,7 +164,7 @@ const GEN = {
   tonchange(){
     const startMinor = chance(0.5);
     const k1 = pickKey(startMinor, 3), tonic = tonicMidi(k1.tonicPc), meter = pick(["2", "3", "4"]);
-    const m1 = melody({ meter, bars: 4, range: [-2, 7] }), m2 = melody({ meter, bars: 4, range: [-2, 7] });
+    const m1 = melody({ minor: startMinor, meter, bars: 4, range: [-2, 7] }), m2 = melody({ minor: !startMinor, meter, bars: 4, range: [-2, 7] });
     const r1 = render(m1, k1, tonic, { acc: true, vel: 64 }), r2 = render(m2, { minor: !startMinor }, tonic, { acc: true, vel: 64 });
     return { play: { ev: [...r1.ev, ...shift(r2.ev, r1.dur)], dur: r1.dur + r2.dur },
       steps: [{ q: tr("調性怎麼改變?", "How does the tonality change?"), choices: [ch("M2m", "大調 → 小調", "Major → minor"), ch("m2M", "小調 → 大調", "Minor → major")], answer: startMinor ? "m2M" : "M2m" }] };
@@ -169,7 +182,7 @@ const GEN = {
   /* 最後一個音比第一個音高還是低(不會一樣) */
   lastfirst(p){
     const { key, tonic, meter } = setup(p);
-    let mel; do { mel = melody({ meter, bars: p.bars, range: [-3, 7], endOnTonic: p.bars > 2 }); } while (mel.notes[0].deg === mel.notes[mel.notes.length - 1].deg);
+    let mel; do { mel = melody({ minor: key.minor, meter, bars: p.bars, range: [-3, 7], endOnTonic: p.bars > 2 }); } while (mel.notes[0].deg === mel.notes[mel.notes.length - 1].deg);
     const r = render(mel, key, tonic, { vel: 66 });
     const up = r.ev[r.ev.length - 1].midi > r.ev[0].midi;
     return { play: { ev: r.ev, dur: r.dur }, steps: [{ q: tr("最後一個音比第一個音…", "The last note is… than the first"), choices: [ch("higher", "高", "Higher"), ch("lower", "低", "Lower")], answer: up ? "higher" : "lower" }] };
@@ -177,7 +190,7 @@ const GEN = {
   /* 找出改變:同一句彈兩次,第二次改音高或節奏 */
   change(p, sys, ctx, tries = 0){
     const { key, tonic, meter } = setup(p);
-    const mel = melody({ meter, bars: p.bars, range: [-3, 7] });
+    const mel = melody({ minor: key.minor, meter, bars: p.bars, range: [-3, 7] });
     const n = p.changes || 1;
     const kinds = p.kind === "both" ? ["rhythm", "pitch"] : Array.from({ length: n }, () => p.kind === "pitch" ? "pitch" : pick(["pitch", "rhythm"]));
     const L = barLen(meter);
@@ -192,7 +205,7 @@ const GEN = {
         else {   // 節奏:同一拍內換時值(四分 ↔ 附點八分 + 十六分、兩個八分 ↔ 附點八分 + 十六分)
           const nx = notes2[i + 1];
           if (!nx || Math.floor(nx.at / L) !== bar) continue;
-          if (nt.len === 2) { nt.len = 1; notes2.splice(i + 1, 0, { deg: nt.deg + pick([1, -1]), at: nt.at + 1, len: 1 }); }
+          if (nt.len === 2) { nt.len = 1; notes2.splice(i + 1, 0, { deg: nt.deg, at: nt.at + 1, len: 1 }); }   // 只改節奏:同一個音分成兩個
           else if (nt.len === 1 && nx.len === 1) { nt.len = 1.5; nx.at += 0.5; nx.len = 0.5; }
           else continue;
         }
@@ -241,7 +254,7 @@ const GEN = {
   cadence(p){
     const type = pick(p.set);
     const key = pickKey(chance(0.4), 3), tonic = tonicMidi(key.tonicPc, 60);
-    const names = cadencePhrase(type);
+    const names = cadencePhrase(type, !!p.rootOnly);
     const vc = voiceChords(key, tonic, names);
     const intro = keyChordIntro(key, tonic, null);
     const c = chordEvents(vc, intro.dur, 0.95);
@@ -267,9 +280,11 @@ const GEN = {
     const c = chordEvents(vc, intro.dur + 0.4, 1.3);
     let ev = [...intro.ev, ...c.ev], dur = intro.dur + 0.4 + c.dur;
     if (p.n === 3) vc.forEach(v => { const e = chordEvents([v], dur + 1.0, 1.6); ev = ev.concat(e.ev); dur += 1.0 + 1.6; });   // 8 級:再一個一個彈
-    const lab = n => ({ id: n, label: n.replace(/b$/, "b").replace("V7", "V⁷") });
+    // 小調用小寫/大寫照和弦性質:i、iv、VI、ii°(和聲小調的 V 是大三和弦)
+    const MINOR_LABEL = { I: "i", Ib: "ib", Ic: "ic", IV: "iv", vi: "VI", ii: "ii°", iib: "ii°b" };
+    const lab = n => ({ id: n, label: (key.minor ? MINOR_LABEL[n] ?? n : n).replace("V7", "V⁷") });
     return { play: { ev, dur }, steps: names.map((n, i) => ({ q: tr(`第 ${i + 1} 個和弦?`, `Chord ${i + 1}?`), choices: choices.map(lab), answer: n })),
-      tags: [pcName(key.tonicPc) + (key.minor ? tr(" 小調", " minor") : tr(" 大調", " major"))] };
+      tags: [keyName(key)] };
   },
   /* 轉調:屬調、下屬調、關係調 */
   modulation(p){
@@ -282,7 +297,7 @@ const GEN = {
     const rel = key.minor ? ["關係大調", "Relative major"] : ["關係小調", "Relative minor"];
     const L = { ...MOD, relative: rel };
     return { play: { ev, dur: t }, steps: [{ q: tr("轉到哪裡?", "Modulates to?"), choices: p.targets.map(x => ch(x, ...L[x])), answer: target }],
-      tags: [tr("從 ", "From ") + pcName(key.tonicPc) + (key.minor ? tr(" 小調", " minor") : tr(" 大調", " major"))] };
+      tags: [tr("從 ", "From ") + keyName(key)] };
   }
 };
 

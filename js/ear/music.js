@@ -22,8 +22,10 @@ export function pickKey(minor, maxAcc = 3, onlyC = false){
 /* 主音放在 A3–G♯4 附近(唱得到、手機喇叭也清楚) */
 export const tonicMidi = (pc, low = 57) => low + mod(pc - low, 12);
 
-export function degMidi(key, tonic, d, dir = 1){
-  const sc = key.minor ? (dir >= 0 ? MINOR_UP : MINOR_DOWN) : MAJOR;
+/* dir 省略 = 和聲小調(伴奏、聲部、旋律都用同一個形式,不會同一個級數一下升一下不升);
+   只有明確給 dir 才用旋律小調上行 / 自然小調下行 */
+export function degMidi(key, tonic, d, dir = 0){
+  const sc = key.minor ? (dir > 0 ? MINOR_UP : dir < 0 ? MINOR_DOWN : HARM_MINOR) : MAJOR;
   return tonic + 12 * Math.floor(d / 7) + sc[mod(d, 7)];
 }
 
@@ -54,7 +56,9 @@ function lastBar(m){
 }
 
 /* 旋律:bars 小節;range = [lo, hi] 級數(0 = 主音);startDegs 可以開始的級數;結束在主音(0 或 7) */
-export function melody({ meter = "4", bars = 4, range = [-3, 7], start = [0, 2, 4], easy = false, maxLeap = 2, endOnTonic = true }){
+/* minor:小調旋律不在第 6、7 級之間級進(和聲小調是增二度),所以整句都能用和聲小調 */
+export function melody({ meter = "4", bars = 4, range = [-3, 7], start = [0, 2, 4], easy = false, maxLeap = 2, endOnTonic = true, minor = false }){
+  const aug2 = (a, b) => minor && Math.abs(a - b) === 1 && [mod(a, 7), mod(b, 7)].sort().join() === "5,6";
   const rh = [];
   for (let i = 0; i < bars; i++) rh.push(...(i === bars - 1 && endOnTonic && bars > 1 ? lastBar(meter) : barRhythm(meter, easy)));
   while (rh.length < 3) { const k = rh.findIndex(x => x >= 2); if (k < 0) break; rh.splice(k, 1, rh[k] >> 1, rh[k] - (rh[k] >> 1)); }
@@ -68,7 +72,7 @@ export function melody({ meter = "4", bars = 4, range = [-3, 7], start = [0, 2, 
     if (endOnTonic && i === n - 1) { if (n === 2) endDeg = [0, 7].filter(x => x >= lo && x <= hi).sort((a, b) => Math.abs(a - d) - Math.abs(b - d))[0] ?? 0; d = endDeg; degs.push(d); break; }
     if (endOnTonic && i === n - 2) {    // 倒數第二個音:主音的上下鄰音(或屬音)
       endDeg = [0, 7].filter(x => x >= lo && x <= hi).sort((a, b) => Math.abs(a - d) - Math.abs(b - d))[0] ?? 0;
-      const c = [endDeg + 1, endDeg - 1, endDeg === 0 ? -3 : 4].filter(x => x >= lo && x <= hi && Math.abs(x - d) <= Math.min(4, maxLeap + 1));
+      const c = [endDeg + 1, endDeg - 1, endDeg === 0 ? -3 : 4].filter(x => x >= lo && x <= hi && Math.abs(x - d) <= Math.min(4, maxLeap + 1) && !aug2(d, x));
       if (c.length) { d = pick(c); degs.push(d); continue; }
     }
     const r = Math.random();
@@ -77,6 +81,7 @@ export function melody({ meter = "4", bars = 4, range = [-3, 7], start = [0, 2, 
     let nd = d + step;
     if (nd < lo || nd > hi) nd = d - step;
     if (nd < lo || nd > hi) nd = Math.min(hi, Math.max(lo, d + (d < (lo + hi) / 2 ? 1 : -1)));
+    if (aug2(d, nd)) nd = d + 2 * Math.sign(nd - d) <= hi && d + 2 * Math.sign(nd - d) >= lo ? d + 2 * Math.sign(nd - d) : d - Math.sign(nd - d);
     d = nd; degs.push(d);
   }
   const notes = []; let t = 0;
@@ -125,11 +130,9 @@ export function render(mel, key, tonic, o = {}){
   const stacc = o.artic === "staccato";
   mel.notes.forEach((n, i) => {
     const t = timeAt(n.at), end = timeAt(n.at + n.len);
-    const next = mel.notes[i + 1];
-    const dir = next ? Math.sign(next.deg - n.deg) || 1 : -1;
     const strong = n.at % L === 0;
     const v = dyn(n.at / mel.total) + (o.accent && strong ? 10 : 0) + (Math.random() * 6 - 3);
-    ev.push({ t, midi: degMidi(key, tonic, n.deg, dir), dur: stacc ? Math.min(0.16, (end - t) * 0.4) : end - t + 0.02, vel: v, part: "mel" });
+    ev.push({ t, midi: degMidi(key, tonic, n.deg), dur: stacc ? Math.min(0.16, (end - t) * 0.4) : end - t + 0.02, vel: v, part: "mel" });
   });
   if (o.acc) {
     // 伴奏型態(八分音符位置):b = 低音、f = 低音五度、c = 和弦;強拍低音讓拍子聽得出來
@@ -163,7 +166,7 @@ export function keyChordIntro(key, tonic, startMidi, t0 = 0){
 /* ── 四部和聲(終止式、和弦辨認、轉調)──
    和弦名稱:I Ib Ic ii iib IV V Vb Vc V7 vi;低音照轉位,上三聲部選離前一個和弦最近的排法 */
 export function voiceChords(key, tonic, names){
-  let prev = null;
+  let prev = null, prevBass = null, prevName = null;
   return names.map(nm => {
     const pcs = chordPcs(key, tonic, nm);
     const inv = nm.endsWith("b") ? 1 : nm.endsWith("c") ? 2 : 0;
@@ -171,17 +174,44 @@ export function voiceChords(key, tonic, names){
     const bass = 36 + mod(bassPc - 36, 12) + (36 + mod(bassPc - 36, 12) < 41 ? 12 : 0);
     // 上三聲部:G3–F5 之間,三個不同的和弦音(七和弦省略五音)
     const tones = pcs.length === 4 ? [pcs[0], pcs[1], pcs[3]] : pcs;
+    const need = tones.map(x => mod(x, 12));
+    // 導音(V 的三音)不重複;V → vi 可以重複 vi 的三音(避免平行八度的標準做法)
+    const leading = nm.startsWith("V") ? mod(pcs[1], 12) : null;
+    const afterV = prevName && prevName.startsWith("V") && nm === "vi";
     const cands = [];
     for (let a = 55; a <= 72; a++) for (let b = a + 1; b <= a + 12; b++) for (let c = b + 1; c <= a + 12 && c <= 79; c++) {
-      const set = [a, b, c].map(x => mod(x, 12)), need = tones.map(x => mod(x, 12));
-      if (need.every(p => set.includes(p)) && set.every(p => need.includes(p)) && a > bass + 2) cands.push([a, b, c]);
+      if (a <= bass + 2) continue;
+      const set = [a, b, c].map(x => mod(x, 12)), all = [...set, mod(bass, 12)];
+      if (!set.every(p => need.includes(p)) || !need.every(p => all.includes(p))) continue;
+      if (leading !== null && all.filter(p => p === leading).length > 1) continue;
+      cands.push([a, b, c]);
     }
+    // 平行五度、八度(任兩個聲部,含低音)直接不要;低音與最高聲部反向比較好;重複音照和弦根音
+    const parallels = v => {
+      if (!prev) return 0;
+      const now = [bass, ...v], before = [prevBass, ...prev];
+      let n = 0;
+      for (let i = 0; i < 4; i++) for (let j = i + 1; j < 4; j++) {
+        const di = Math.sign(now[i] - before[i]), dj = Math.sign(now[j] - before[j]);
+        if (!di || di !== dj) continue;
+        const x = mod(now[j] - now[i], 12), y = mod(before[j] - before[i], 12);
+        if (x === y && (x === 0 || x === 7)) n++;
+      }
+      return n;
+    };
+    const doubling = v => {
+      const ps = [bass, ...v].map(x => mod(x, 12)), dup = ps.find((p, k) => ps.indexOf(p) !== k);
+      if (dup === undefined || dup === mod(pcs[0], 12)) return 0;      // 重複根音:正常
+      return afterV && dup === mod(pcs[1], 12) ? 0 : 3;                // V → vi 重複三音(主音)也正常
+    };
     let best = cands[0], bs = Infinity;
     for (const v of cands) {
-      const s = prev ? v.reduce((acc, x, i) => acc + Math.abs(x - prev[i]), 0) : Math.abs(v[2] - 72) + Math.random() * 3;
+      let s = prev ? v.reduce((acc, x, i) => acc + Math.abs(x - prev[i]), 0) : Math.abs(v[2] - 72) + Math.random() * 3;
+      s += 100 * parallels(v) + doubling(v);
+      if (prev && Math.sign(v[2] - prev[2]) !== 0 && Math.sign(v[2] - prev[2]) === Math.sign(bass - prevBass)) s += 2;
       if (s < bs) { bs = s; best = v; }
     }
-    prev = best;
+    prev = best; prevBass = bass; prevName = nm;
     return { name: nm, bass, upper: best };
   });
 }
@@ -203,8 +233,12 @@ export const CADENCES = {
   plagal: [["IV", "I"]]
 };
 const LEADS = [["I", "IV"], ["I", "vi"], ["I", "ii"], ["I", "IV", "I"], ["I", "vi", "IV"], ["I", "V", "vi"], ["I", "Ib", "IV"]];
-export function cadencePhrase(type){
-  let lead = pick(LEADS), cad = pick(CADENCES[type]);
+/* rootOnly:ABRSM 6–7 級大綱寫「原位和弦」→ 不用轉位;也不用 I–V–vi 開頭(聽起來像阻礙終止) */
+export function cadencePhrase(type, rootOnly = false){
+  const inverted = c => /[bc]$/.test(c);
+  const leads = rootOnly ? LEADS.filter(l => !l.some(inverted) && l.join() !== "I,V,vi") : LEADS;
+  const cads = rootOnly ? CADENCES[type].filter(c => !c.some(inverted)) : CADENCES[type];
+  let lead = pick(leads), cad = pick(cads);
   if (lead[lead.length - 1] === cad[0]) lead = lead.slice(0, -1);
   if (type === "plagal" && lead[lead.length - 1] === "I") lead = [...lead, "V"].slice(-3);   // IV 之前不要剛好是 I(聽起來像 I–IV–I 鄰音)
   return [...lead, ...cad];

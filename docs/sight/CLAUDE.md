@@ -155,6 +155,10 @@ The user's complaint was that the left hand felt mechanical. An independent revi
   - **Metre**: `termFitsMetre` keeps dance words in their metre (waltz/minuet 3/4 or 3/8; march 2/4, 4/4, 2/2, 6/8; gigue compound; tango 2/4, 4/4).
   - **Stutters**: `fixSixteenthStutters` moves the second of two same-pitch 16ths a step. It never moves a note on the beat and never lands on the leading note.
   - **Left-hand movement**: the bonus for the LH moving under an RH note of half a bar or more is now 1.2.
+- **Round 3**: "fast" is relative to the beat (four or more notes to it, `isFast` in rhythm.js), not the type name `16th`.
+  - Why: x/8 halves every value, so semiquaver cells became 32nds the cap never saw (47% of Grade 8 LH bars in x/8 had them).
+  - In x/8 the LH has no fast beats; the RH has one at most at Grades 7–8 and none below.
+  - Slow tempo words (♩ ≤ 66) are not paired with tests where more than a quarter of the bars are fast.
 
 ### Phrase structure, motif restatement and cadence
 

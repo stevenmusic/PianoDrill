@@ -201,7 +201,14 @@ const GEN = {
       for (let tries = 0; tries < 40; tries++) {
         const i = 1 + rnd(notes2.length - 2), nt = notes2[i], bar = Math.floor(nt.at / L);
         if (bars.includes(bar)) continue;
-        if (k === "pitch") { const nd = nt.deg + pick([1, -1, 2, -2]); if (nd === notes2[i - 1].deg || nd === notes2[i + 1].deg) continue; nt.deg = nd; }
+        if (k === "pitch") {
+          const nd = nt.deg + pick([1, -1, 2, -2]);
+          if (nd === notes2[i - 1].deg || nd === notes2[i + 1].deg || nd < -3 || nd > 7) continue;
+          // 小調不在第 6、7 級之間級進(和聲小調的增二度),跟 melody() 同一條規則
+          const aug2 = (a, b) => key.minor && Math.abs(a - b) === 1 && [mod7(a), mod7(b)].sort().join() === "5,6";
+          if (aug2(nd, notes2[i - 1].deg) || aug2(nd, notes2[i + 1].deg)) continue;
+          nt.deg = nd;
+        }
         else {   // 節奏:同一拍內換時值(四分 ↔ 附點八分 + 十六分、兩個八分 ↔ 附點八分 + 十六分)
           const nx = notes2[i + 1];
           if (!nx || Math.floor(nx.at / L) !== bar) continue;

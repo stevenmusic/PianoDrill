@@ -154,7 +154,11 @@ export function generateTest(rulesTable, options) {
 
   // A dance word implies its metre: a Waltz in 4/4 or a March in 3/4 is a
   // contradiction on the page (64 of 97 Grade 2 waltz/minuet tests were in 2/4 or 4/4).
-  const fitting = rules.tempoTerms.filter((term) => termFitsMetre(term, meter.text));
+  // A slow heading (Grave, Adagio, Largo…) over bars full of fast notes is a
+  // character mismatch: keep slow terms for tests that are mostly not fast.
+  const fastBars = [...leftHand, ...rightHand].filter((bar) => bar.events.some((e) => !e.rest && e.dur <= meter.beatDuration / 4)).length;
+  const busy = fastBars > 0.25 * 2 * barCount;
+  const fitting = rules.tempoTerms.filter((term) => termFitsMetre(term, meter.text) && !(busy && (TEMPO_BPM[term] ?? 96) <= 66));
   const tempoTerm = rng.pick(fitting.length ? fitting : rules.tempoTerms);
   const score = {
     seed,
@@ -267,7 +271,12 @@ function buildRhythm({ rng, rules, meter, barCount, hand, progression, silentBar
   // Fast (semiquaver) beats per bar: one through Grade 4, two for 5-6, free after.
   // The left hand accompanies: no semiquavers through Grade 5, one beat at most
   // after (17-28% of left-hand notes were 16ths from Grade 4 up).
-  const maxFast = isLeft ? (rules.grade <= 5 ? 0 : 1) : rules.grade <= 4 ? 1 : rules.grade <= 6 ? 2 : 4;
+  // In x/8 a "fast beat" is demisemiquavers: none in the accompaniment.
+  // x/8 halves every value, so a "fast beat" there is demisemiquavers: none in
+  // the accompaniment, one at most in the tune (Grade 7-8; none below).
+  const maxFast = meter.scale < 1
+    ? (isLeft ? 0 : rules.grade >= 7 ? 1 : 0)
+    : isLeft ? (rules.grade <= 5 ? 0 : 1) : rules.grade <= 4 ? 1 : rules.grade <= 6 ? 2 : 4;
   const bank = [];
   const bars = [];
 
@@ -610,7 +619,7 @@ function drawComplementaryBar(rng, cells, meter, options, avoid, partnerEvents, 
       else if (a.at % beat !== 0 && busyBeat(a.at)) value -= 0.8;                // off-beat chatter under a busy beat
     }
     if (splitAt !== null && !left.some((a) => a.at === splitAt)) value -= 5;     // the bass states the new chord
-    value -= 1.5 * events.filter((event) => event.type === '16th').length / 4;   // semiquavers belong to the tune
+    value -= 1.5 * events.filter((event) => !event.rest && event.dur <= beat / 4).length / 4;   // fast notes belong to the tune
     return value + rng.next() * 0.5;
   };
   let best = null, bestScore = -Infinity, fallback = null;
@@ -698,7 +707,8 @@ function fixSixteenthStutters(bars, other, key, barDuration, beatDuration) {
   const window = bars.window;
   for (let k = 1; k < flat.length; k++) {
     const a = flat[k - 1], b = flat[k], next = flat[k + 1];
-    if (a.e.type !== '16th' || b.e.type !== '16th' || a.e.pitch.midi !== b.e.pitch.midi || b.e.chord?.length) continue;
+    const fast = (e) => e.dur <= beatDuration / 4;   // 16ths in x/4, 32nds in x/8
+    if (!fast(a.e) || !fast(b.e) || a.e.pitch.midi !== b.e.pitch.midi || b.e.chord?.length) continue;
     if (b.at % beatDuration === 0) continue;   // a note on the beat keeps its chord tone
     const dirs = next ? [Math.sign(next.e.dstep - b.e.dstep) || 1, -(Math.sign(next.e.dstep - b.e.dstep) || 1)] : [1, -1];
     for (const dir of dirs) {

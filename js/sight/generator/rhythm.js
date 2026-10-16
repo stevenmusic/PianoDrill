@@ -156,7 +156,15 @@ export function fillBar(rng, cells, beatsPerBar, options = {}) {
   return { cellIds, events };
 }
 
-const isFast = (cell) => cell.events.some((event) => event.type === '16th');
+// "Fast" is relative to the beat — four or more notes to it — not a type name:
+// in 3/8, 5/8 and 7/8 every value is halved, so the semiquaver cells come out as
+// demisemiquavers and a type check never saw them (47% of Grade 8 LH bars in
+// x/8 were 32nds despite the cap), while plain quaver pairs became "16ths" and
+// were capped instead. Triplet quavers (3 to the beat) stay not-fast, as before.
+const isFast = (cell) => {
+  const beat = cell.events.reduce((sum, event) => sum + event.dur, 0) / cell.beats;
+  return cell.events.some((event) => !event.rest && event.dur <= beat / 4);
+};
 
 /**
  * Notation has to show the metre's primary division. In a bar that splits

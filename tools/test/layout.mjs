@@ -79,7 +79,9 @@ async function audit(page, vp, state){
     if (opened || sideOpen) return null;
     return q ? { top: Math.round(q.getBoundingClientRect().top + scrollY), H: innerHeight } : null;
   });
-  if (quizTop && !/對話框|設定展開|選擇器/.test(state) && quizTop.top > quizTop.H * 0.5) report(vp, state, `題目卡太下面(${quizTop.top} > 畫面一半 ${quizTop.H / 2})`);
+  // 手機橫放(高度 ≤ 500):頂欄 + 兩條收起來的設定列就佔掉一半,放寬到 60%(題目標題仍在第一個畫面;按 ▶ 會進入樂譜全螢幕的橫放播放模式)
+  const limit = quizTop && quizTop.H <= 500 ? 0.6 : 0.5;
+  if (quizTop && !/對話框|設定展開|選擇器/.test(state) && quizTop.top > quizTop.H * limit) report(vp, state, `題目卡太下面(${quizTop.top} > 畫面 ${Math.round(limit * 100)}% ${Math.round(quizTop.H * limit)})`);
 }
 
 for (const [name, w, h, mobile] of VPS) {

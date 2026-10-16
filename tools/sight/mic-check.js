@@ -41,7 +41,7 @@ async function take(mode, grade = '1') {
       return dest.stream;
     };
   }, mode);
-  await page.evaluate((g) => document.querySelector(`#s-grades .opt[data-v="${g}"]`).click(), grade);
+  await page.evaluate((g) => document.querySelector(`#subSeg button[data-v="${g}"]`).click(), grade);
   await page.click('#s-generate');
   await page.waitForFunction(() => window.__scoring() && !document.getElementById('s-score').hasAttribute('aria-busy'));
   await page.evaluate(() => { document.getElementById('s-along').hidden = false; });

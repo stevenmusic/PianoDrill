@@ -27,7 +27,7 @@ const STR = {
   examClear: ["不考試", "No exam"],
   footer: ["鋼琴音色:Accurate-Salamander Grand Piano V6.2(Salamander Grand Piano V3 by Alexander Holm,CC-BY 3.0)· 節拍器:Naked Drums(Wilkinson Audio,CC-BY 4.0)· 取樣經 ScrollScore 整理後直接讀取 · 樂譜:OpenSheetMusicDisplay(BSD-3-Clause)。音階琶音、聽力要求依 ABRSM《Piano Practical Grades 2025 & 2026》與 Trinity《Piano Syllabus from 2023》整理;視奏依 ABRSM 視奏範例整理,題目由 App 依規則產生,僅供練習;實際要求以官方大綱為準。ABRSM、Trinity 為各自的商標,本 App 與其無關。",
     "Piano: Accurate-Salamander Grand Piano V6.2 (Salamander Grand Piano V3, Alexander Holm, CC-BY 3.0) · Click: Naked Drums (Wilkinson Audio, CC-BY 4.0) · via ScrollScore · Notation: OpenSheetMusicDisplay (BSD-3-Clause). Scales and aural from ABRSM Piano Practical Grades 2025 & 2026 and Trinity Piano Syllabus from 2023; sight-reading modelled on ABRSM specimen tests. Generated for practice only — check the official syllabus. ABRSM and Trinity are trademarks of their owners; this app is not affiliated with them."],
-  obTitle: ["你在準備鋼琴檢定嗎?", "Taking a piano exam?"],
+  obTitle: ["你在準備鋼琴檢定嗎?", "Taking an exam?"],
   obSub: ["選好考試和級數,會打開「檢定」分頁:音階琶音、視奏、聽力都照這一級出題。之後隨時可以在「檢定」分頁更改。",
     "Pick a board and grade: Exams opens with scales, sight-reading and aural set to that grade. Change any time in Exams."],
   obYes: ["開始準備考試", "Start exam prep"], obNo: ["不考試,自由練習", "No exam — free practice"]

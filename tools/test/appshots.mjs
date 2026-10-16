@@ -30,7 +30,7 @@ for (const [dev, w, h, dpr] of [["iphone", 430, 932, 3], ["ipad13", 1032, 1376, 
   await page.screenshot({ path: `${OUT}${dev}-2-scale.png` });
   // 3 視奏:4 級
   await go({ view: "sight" }, async () => {
-    await page.evaluate(() => document.querySelector('#s-grades .opt[data-v="4"]').click());
+    await page.evaluate(() => document.querySelector('#subSeg button[data-v="4"]').click());
     await page.waitForTimeout(1500);
   });
   await page.screenshot({ path: `${OUT}${dev}-3-sight.png` });

@@ -25,8 +25,8 @@ const S = (() => {
       }
     } catch (e) {}
   }
-  return { view: "tech", sub: { tech: "scale", ear: "note", exam: "tech" }, exam: null, onboarded: false, theme: "dark", ...saved,
-    sub: { tech: "scale", ear: "note", exam: "tech", ...(saved.sub || {}) } };
+  return { view: "tech", sub: { tech: "scale", ear: "note", exam: "tech", sight: "1" }, exam: null, onboarded: false, theme: "dark", ...saved,
+    sub: { tech: "scale", ear: "note", exam: "tech", sight: "1", ...(saved.sub || {}) } };
 })();
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
 
@@ -75,7 +75,8 @@ document.addEventListener("click", e => {
 /* ══ 分頁 ══ */
 const SUBS = {
   tech: () => [["scale", tr("音階", "Scales")], ["arp", tr("琶音", "Arpeggios")], ["hanon", tr("哈農", "Hanon")]],
-  sight: () => [],
+  // 視奏:子項目列放級數(跟技巧的音階/琶音/哈農、聽音的單音/音程/和弦同一個位置)
+  sight: () => [1, 2, 3, 4, 5, 6, 7, 8].map(g => [String(g), String(g)]),
   ear: () => [["note", tr("單音", "Notes")], ["interval", tr("音程", "Intervals")], ["chord", tr("和弦", "Chords")]],
   exam: () => [["tech", tr("音階琶音", "Scales")], ["sight", tr("視奏", "Sight-reading")], ["ear", tr("聽力", "Aural")]]
 };
@@ -84,7 +85,8 @@ function renderSubnav(){
   const opts = SUBS[S.view]();
   $("subnav").hidden = !opts.length;
   document.body.classList.toggle("no-subnav", !opts.length);
-  $("subSeg").innerHTML = opts.map(([v, t]) => `<button data-v="${v}" aria-pressed="${S.sub[S.view] === v}">${t}</button>`).join("");
+  $("subSeg").innerHTML = opts.map(([v, t]) => `<button data-v="${v}" aria-pressed="${S.sub[S.view] === v}"${S.view === "sight" ? ` aria-label="${gradeLabel(Number(v))}"` : ""}>${t}</button>`).join("");
+  $("subSeg").setAttribute("aria-label", S.view === "sight" ? tr("級數", "Grade") : "");
 }
 $("subSeg").onclick = e => {
   const b = e.target.closest("button[data-v]"); if (!b) return;
@@ -97,7 +99,7 @@ function showView(view){
   document.querySelectorAll("#tabbar button").forEach(b => b.setAttribute("aria-selected", String(b.dataset.view === view)));
   const exam = view === "exam";
   const modName = exam ? S.sub.exam : view;
-  const tab = exam ? "exam" : modName === "sight" ? "free" : S.sub[modName];
+  const tab = exam ? "exam" : S.sub[modName];
   $("examSetup").hidden = !exam;
   if (curMod && curMod !== modName) MODS[curMod].leave();
   for (const [name, m] of Object.entries(MODS)) $("mod-" + name).hidden = name !== modName;

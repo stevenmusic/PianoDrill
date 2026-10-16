@@ -212,7 +212,7 @@ let bad = 0;
 let grazeTests = 0;
 const examples = [];
 for (const grade of GRADES) {
-  await page.evaluate((g) => document.querySelector(`#s-grades .opt[data-v=\"${g}\"]`).click(), grade);
+  await page.evaluate((g) => document.querySelector(`#subSeg button[data-v=\"${g}\"]`).click(), grade);
   for (let run = 0; run < RUNS; run++) {
     await page.click('#s-generate');
     await page.waitForFunction(() => !document.getElementById('s-score').hasAttribute('aria-busy'));

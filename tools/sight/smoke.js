@@ -84,7 +84,7 @@ const grades = only ? [Number(only)] : [1, 2, 3, 4, 5, 6, 7, 8];
 const runsPerGrade = only ? 1 : 3;
 
 for (const grade of grades) {
-  await page.evaluate((g) => document.querySelector(`#s-grades .opt[data-v=\"${g}\"]`).click(), grade);
+  await page.evaluate((g) => document.querySelector(`#subSeg button[data-v=\"${g}\"]`).click(), grade);
   for (let run = 0; run < runsPerGrade; run++) {
     await page.click('#s-generate');
     await page.waitForFunction(

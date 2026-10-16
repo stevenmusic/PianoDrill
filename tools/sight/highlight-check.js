@@ -70,7 +70,7 @@ for (const viewport of VIEWPORTS) {
   await page.waitForFunction(() => window.__osmd);
 
   for (const grade of GRADES) {
-    await page.evaluate((g) => document.querySelector(`#s-grades .opt[data-v=\"${g}\"]`).click(), grade);
+    await page.evaluate((g) => document.querySelector(`#subSeg button[data-v=\"${g}\"]`).click(), grade);
     await page.click('#s-generate');
     await page.waitForFunction(() => !document.getElementById('s-score').hasAttribute('aria-busy'));
     await page.waitForTimeout(250);

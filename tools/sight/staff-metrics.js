@@ -108,12 +108,13 @@ const readGeometry = () => page.evaluate(() => {
     headroom: round(headroom),
     systems: svg.querySelectorAll('g.staffline').length,
     zoom: window.__osmd.zoom,
+    scoreTop: round(document.getElementById('s-stage').getBoundingClientRect().top + parseFloat(getComputedStyle(document.getElementById('s-stage')).paddingTop)),
   };
 });
 
 const rows = [];
 for (const grade of [1, 2, 3, 4, 5, 6, 7, 8]) {
-  await page.evaluate((g) => document.querySelector(`#s-grades .opt[data-v=\"${g}\"]`).click(), grade);
+  await page.evaluate((g) => document.querySelector(`#subSeg button[data-v=\"${g}\"]`).click(), grade);
   for (let run = 0; run < RUNS; run++) {
     await page.click('#s-generate');
     await page.waitForFunction(() => !document.getElementById('s-score').hasAttribute('aria-busy'));
@@ -159,22 +160,30 @@ console.log('zoom            :', spread('zoom'));
  * output and risks collisions — so it is measured and printed, not enforced.
  */
 const TOLERANCE = 0.5;
-const spreadOf = (key) => {
-  const vals = rows.map((r) => r[key]).filter((v) => v !== null && v !== undefined);
+/*
+ * 合併成 PianoDrill 後(使用者要求 2026-10):譜面要像印出來的考卷,譜表大小不再固定 —
+ * 先決定每行幾小節,再縮放到放得下(app.js 的 fitScore)。所以這裡改成檢查:
+ *  - 譜線間距 = 10px × 縮放(大小只由縮放決定,沒有別的東西在改它)
+ *  - 高音譜號跟樂譜上緣的距離 = SCORE_TOP_UNITS × 10px × 縮放(pinScoreTop 照縮放固定位置)
+ * 縮放本身跟每行幾小節照題目形狀變,只列出來,不當成錯誤。
+ */
+const spreadOf = (vals) => {
+  vals = vals.filter((v) => Number.isFinite(v));
   return vals.length ? Math.max(...vals) - Math.min(...vals) : 0;
 };
-
 const problems = [];
-for (const key of ['lineGap', 'trebleClefTop']) {
-  if (spreadOf(key) > TOLERANCE) problems.push(`${key} varies by ${spreadOf(key).toFixed(2)}px`);
-}
+const unit = rows.map((r) => r.lineGap / r.zoom);
+if (spreadOf(unit) > TOLERANCE) problems.push(`staff line gap / zoom varies by ${spreadOf(unit).toFixed(2)}px`);
+const clef = rows.map((r) => (r.trebleClefTop - r.scoreTop) / r.zoom);
+if (spreadOf(clef) > TOLERANCE * 2) problems.push(`treble clef offset / zoom varies by ${spreadOf(clef).toFixed(2)}px`);
+const zooms = [...new Set(rows.map((r) => r.zoom))].sort();
+console.log(`zoom used: ${zooms.join(', ')}`);
 if (problems.length) {
   console.log(`\nFAIL: ${problems.join('; ')} — sample:`);
   for (const r of rows.slice(0, 10)) {
-    console.log(`  g${r.grade} gap ${r.lineGap} clefY ${r.trebleClefTop} zoom ${r.zoom} · ${r.meta}`);
+    console.log(`  g${r.grade} gap ${r.lineGap} clefY ${r.trebleClefTop} scoreTop ${r.scoreTop} zoom ${r.zoom} · ${r.meta}`);
   }
   process.exitCode = 1;
 } else {
-  console.log('\nstaff size and treble clef position identical across every render');
-  console.log(`(distance down to the bass stave varies by ${spreadOf('bassTop').toFixed(1)}px — reported, not enforced; see above)`);
+  console.log('\nstaff size follows the zoom exactly, and the treble clef sits at the same scaled offset in every render');
 }

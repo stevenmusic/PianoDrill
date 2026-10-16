@@ -13,8 +13,8 @@ import { pairText, unpair } from '../shared/i18n.js';
    檢定分頁:只有 ABRSM 1–8 級有出題規則(照官方視奏範例整理),其他考試/級數只說明還沒有,不自己發明 */
 // 儲存鍵:合併成 PianoDrill 後改前綴;第一次打開沿用同一個網域上 SightDrill 留下的紀錄
 const STORAGE_KEY = 'pianodrill.sight.history.v1';
-const LAYOUT_STORAGE_KEY = 'pianodrill.sight.layout.v1';
-const OLD_KEYS = { [STORAGE_KEY]: 'sightscore.history.v1', [LAYOUT_STORAGE_KEY]: 'sightscore.layout.v1', 'pianodrill.sight.practice.v1': 'sightdrill.practice.v1', 'pianodrill.sight.mic': 'sightdrill.mic' };
+const LAYOUT_STORAGE_KEY = 'pianodrill.sight.layout.v2';   // v2:排法改成「每行幾小節 + 縮放」,舊的快取不沿用
+const OLD_KEYS = { [STORAGE_KEY]: 'sightscore.history.v1', 'pianodrill.sight.practice.v1': 'sightdrill.practice.v1', 'pianodrill.sight.mic': 'sightdrill.mic' };
 function readKey(key) {
   const v = localStorage.getItem(key);
   return v ?? (OLD_KEYS[key] ? localStorage.getItem(OLD_KEYS[key]) : null);
@@ -33,13 +33,12 @@ const examSupported = () => exam.system === 'abrsm' && exam.grade >= 1 && exam.g
 
 const elements = {
   key: $('key'),
-  grades: $('grades'),
   sum: $('sum'),
   generate: $('generate'),
   prepare: $('prepare'),
   play: $('play'),
   playIcon: $('playIcon'),
-  stop: $('stop'),
+  title: $('title'),
   countdown: $('countdown'),
   countdownValue: $('countdownValue'),
   meta: $('meta'),
@@ -185,6 +184,12 @@ const BASE_ZOOM = 1;
  * long, dense test no longer shrinks itself to fit the window; it keeps full
  * size and the page scrolls, the same trade the phone tiers already made.
  */
+/* 譜表大小不再固定(使用者要求 2026-10:要像一般樂譜的譜面,不要一小節一行):
+   先決定每行幾小節,再縮放到放得下。MAX_ZOOM = 印刷樂譜的大小(OSMD 1.0 ≈ 譜線間距 10px ≈ 1.75mm);
+   MIN_ZOOM = 口袋總譜的大小,再小就看不清楚 → 改成每行少一小節或捲動 */
+const MAX_ZOOM = 1.0;
+const MIN_ZOOM = 0.55;
+const MIN_ZOOM_DENSE = 0.45;   // 只給「每行 2 小節」的最後手段用
 const STAFF_ZOOM = { phone: 0.9, compact: 0.95, medium: 1.0, wide: 1.0 };
 /*
  * `medium` and `wide` share a value on purpose: `body` is capped at 64rem, so
@@ -505,7 +510,6 @@ export async function start(c) {
   exam = { ...c.exam };
   elements.generate.disabled = true;
   applySightStatic();
-  renderGradeOpts();
 
   if (typeof opensheetmusicdisplay === 'undefined') {
     fail('loadingOSMD');
@@ -594,27 +598,9 @@ export async function start(c) {
     try { localStorage.setItem('pianodrill.sight.mic', elements.alongMic.checked ? '1' : '0'); } catch { /* 不影響使用 */ }
   });
   setAlongLabel();
-  elements.stop.addEventListener('click', () => {
-    player.stop();
-    alongStart = null;
-    resetAlongResult();
-    setAlongLabel();
-    stopFollowing();
-    setPlayState(false);
-  });
   elements.clearHistory.addEventListener('click', () => {
     history.clear();
     updateHistoryInfo();
-  });
-  elements.grades.addEventListener('click', (event) => {
-    const b = event.target.closest('.opt'); if (!b || mode === 'exam') return;
-    SS.grade = Number(b.dataset.v); saveSS();
-    renderGradeOpts();
-    renderSummary();
-    // 每一級的調不一樣:調的清單重做(原本選的調如果這一級也有就留著)
-    populateKeyOptions();
-    renderSummary();
-    if (current) newTest();
   });
   elements.key.addEventListener('change', () => {
     renderSummary();
@@ -640,9 +626,11 @@ export async function start(c) {
 let renderedWidth = 0;
 export function enter(tab) {
   active = true;
-  const was = mode;
+  const was = mode, wasGrade = currentGrade();
   mode = tab === 'exam' ? 'exam' : 'free';
-  syncMode(was !== mode);
+  // 自由練習:外框的子項目列就是級數(tab = "1"–"8")
+  if (mode === 'free' && /^[1-8]$/.test(tab)) { SS.grade = Number(tab); saveSS(); }
+  syncMode(was !== mode || wasGrade !== currentGrade());
   // 在別的分頁時寬度變了(或從沒畫過):回來時重排
   if (current && window.innerWidth !== renderedWidth) renderCurrent();
 }
@@ -658,7 +646,6 @@ export function setExam(ex) {
 export function relang() {
   applySightStatic();
   refreshDynamicText();
-  renderGradeOpts();
   renderSummary();
   if (mode === 'exam') renderUnsupported();
 }
@@ -685,8 +672,6 @@ function syncMode(changed) {
   $('unsupported').hidden = supported;
   for (const id of ['setup', 'quiz', 'scoreCard']) $(id).hidden = !supported;
   if (!supported) { stopAll(); elements.along.hidden = true; renderUnsupported(); return; }
-  $('gradeRow').hidden = mode === 'exam';
-  renderGradeOpts();
   if (rules) populateKeyOptions();
   renderSummary();
   // 換了級數(或第一次進來):重新出一題
@@ -697,10 +682,6 @@ function renderUnsupported() {
   pairText($('unsupportedText'), () => (exam.system === 'trinity'
     ? t('unsupportedTrinity')
     : ini ? t('unsupportedInitial') : t('examNotYet')));
-}
-function renderGradeOpts() {
-  // 只寫數字(列的標籤已經是「級數 / Grade」):中英文的按鈕一樣寬,換語言時不會換行
-  elements.grades.innerHTML = [1, 2, 3, 4, 5, 6, 7, 8].map((g) => `<button class="opt" data-v="${g}" aria-pressed="${g === currentGrade()}" aria-label="${escapeHtml(t('gradeN', { n: g }))}">${g}</button>`).join('');
 }
 function renderSummary() {
   const keyText = elements.key.selectedOptions[0]?.textContent ?? t('randomKey');
@@ -860,10 +841,8 @@ async function drawTest({ score, xml }, quiet = false) {
     requestAnimationFrame(() => elements.score.classList.remove('entering'));
   });
   showMeta(score);
-  elements.meta.hidden = false;
   elements.countdown.hidden = false;
   elements.play.disabled = false;
-  elements.stop.disabled = false;
   elements.prepare.disabled = false;
   elements.countdownValue.textContent = String(rules.exam.preparationSeconds);
   elements.countdown.className = 'countdown';
@@ -872,27 +851,12 @@ async function drawTest({ score, xml }, quiet = false) {
 }
 
 function showMeta(score) {
-  // `metaKeyMajor`/`metaKeyMinor` are a deliberately tighter English form
-  // ("F# min") than the key-select dropdown's own "{tonic} minor" — this
-  // field alone has a fixed CSS width (see `.meta-key`, sized for the
-  // Chinese "Gb 大調"), and the full English word routinely overflowed it.
-  const keyTemplate = score.key.mode === 'major' ? 'metaKeyMajor' : 'metaKeyMinor';
-  // No labels — just the values in a fixed order, separated by "丨". The
-  // key/time/bar-count fields have a fixed CSS width so the separators
-  // never move when a new test changes their text length; only the tempo
-  // field (last, nothing after it) is free to vary.
-  const fields = [
-    ['meta-key', t(keyTemplate, { tonic: score.key.tonic })],
-    ['meta-time', score.timeSignature.text],
-    ['meta-bars', t('barsSuffix', { count: score.barCount })],
-    // The tempo term itself already prints above bar 1 in the score
-    // (pinTempoTermPosition keeps it at a fixed spot there); showing it a
-    // second time here was redundant, so only the metronome mark remains.
-    ['meta-tempo', `♩≈${score.tempoBpm}`],
-  ];
-  elements.meta.innerHTML = fields
-    .map(([cls, value]) => `<span class="${cls}">${escapeHtml(value)}</span>`)
-    .join('<span class="meta-sep">丨</span>');
+  // 跟技巧、聽音的題目卡一樣:大標題 = 調性,標籤 = 拍號、小節數、速度(速度術語本身印在樂譜第一小節上方,不重複)
+  const keyTemplate = score.key.mode === 'major' ? 'majorKey' : 'minorKey';
+  elements.title.classList.remove('empty');
+  elements.title.textContent = t(keyTemplate, { tonic: score.key.tonic });
+  elements.meta.innerHTML = [score.timeSignature.text, t('barsSuffix', { count: score.barCount }), `♩≈${score.tempoBpm}`]
+    .map((value) => `<span class="q-tag">${escapeHtml(value)}</span>`).join('');
 
   const warningKey = CONFIDENCE_LABEL_KEY[score.confidence];
   elements.confidence.hidden = !warningKey;
@@ -1018,12 +982,6 @@ function setPlayState(playing) {
  * bar count does not fit the container, OSMD silently wraps further instead,
  * which is what `matchesRequestedLayout` exists to catch.
  */
-function renderAtStaffZoom() {
-  osmd.zoom = staffZoom();
-  osmd.render();
-  const layout = stage.measure();
-  return { layout, fitsHeight: renderedScoreHeight() <= availableScoreHeight() };
-}
 
 /**
  * How tall the engraved score actually is, measured from the rendered SVG
@@ -1058,11 +1016,14 @@ function renderedScoreHeight() {
  * legible and the page scrolls, which is the right trade on a small screen.
  */
 function availableScoreHeight() {
-  const scoreBox = elements.score.getBoundingClientRect();
-  // 底部分頁列蓋住的部分不算(樂譜要在分頁列上方看得完)
+  // 樂譜卡捲到頂欄下面時,頂欄與底部分頁列之間放得下多高(準備時捲到樂譜卡就能一眼看完;播放時也會自動捲到這裡)
+  const header = document.querySelector('header');
+  const top = header ? header.getBoundingClientRect().height : 0;
   const bar = document.getElementById('tabbar');
   const bottom = bar && getComputedStyle(bar).position === 'fixed' ? bar.getBoundingClientRect().top : (window.innerHeight || document.documentElement.clientHeight);
-  return Math.max(120, bottom - scoreBox.top - SCORE_BOTTOM_GAP);
+  const card = $('scoreCard').getBoundingClientRect(), score = elements.score.getBoundingClientRect();
+  const chrome = score.top - card.top;   // 樂譜卡的標題列與內距
+  return Math.max(120, bottom - top - chrome - SCORE_BOTTOM_GAP);
 }
 
 function hasSingleBarLine(layout) {
@@ -1120,81 +1081,64 @@ function matchesRequestedLayout(layout, n, totalBars) {
  */
 async function fitScore() {
   if (!current || !osmd) return;
-
   const shapeKey = layoutShapeKey(current.score);
   const totalBars = current.score.barCount;
   const cached = layoutCache[shapeKey];
 
-  if (cached) {
-    osmd.EngravingRules.RenderXMeasuresPerLineAkaSystem = cached.measuresPerLine;
-    const result = renderAtStaffZoom();
-    /*
-     * The cached count is only meaningful if OSMD still honours it for *this*
-     * test's content — denser content can push it into silently re-wrapping
-     * into a different (still non-stranded) shape. Reusing a mismatched shape
-     * would give this test a visibly different number of lines from every
-     * other same-shaped test, which is the bug the cache exists to prevent,
-     * so a mismatch falls through to a fresh search below.
-     */
-    if (cached.measuresPerLine === 0
-      ? !hasSingleBarLine(result.layout)
-      : matchesRequestedLayout(result.layout, cached.measuresPerLine, totalBars)) {
-      return;
+  // 同樣形狀(級數、小節數、拍號寬窄、螢幕寬度)的題目沿用同一個排法與大小,換題時版面不會忽大忽小
+  if (cached && cached.zoom) {
+    const r = renderAt(cached.measuresPerLine, cached.zoom);
+    if (matchesRequestedLayout(r.layout, cached.measuresPerLine, totalBars)) {
+      if (r.fitsHeight || cached.zoom <= MIN_ZOOM + 0.001) return;
     }
   }
 
-  const tryCount = (n, mustFitHeight) => {
-    osmd.EngravingRules.RenderXMeasuresPerLineAkaSystem = n;
-    const attempt = renderAtStaffZoom();
-    if (hasSingleBarLine(attempt.layout)) return null;
-    if (!matchesRequestedLayout(attempt.layout, n, totalBars)) return null;
-    return !mustFitHeight || attempt.fitsHeight ? attempt : null;
-  };
-
-  /*
-   * Two passes over the same candidates: the first insists the whole test fit
-   * the window, the second drops that. Since the staff size no longer moves,
-   * fitting can only be bought by packing more bars onto a line — and where
-   * even the most compact honoured count is still too tall, the test keeps
-   * full size and the page scrolls rather than the music shrinking.
-   */
-  const search = (mustFitHeight) => {
-    let found = null;
-    for (let n = Math.min(MAX_MEASURES_PER_LINE, totalBars); n >= 2 && !found; n--) {
-      if (totalBars % n === 0) found = tryCount(n, mustFitHeight);
+  let chosen = null;
+  for (const n of perLineCandidates(totalBars)) {
+    // 寬度:縮到 n 小節放得進一行為止(二分搜尋;縮小只會更放得下)
+    const fits = (z) => matchesRequestedLayout(renderAt(n, z).layout, n, totalBars);
+    if (!fits(MIN_ZOOM)) continue;               // 最小還放不下(音太密)→ 每行少一小節
+    let lo = MIN_ZOOM, hi = MAX_ZOOM;
+    if (fits(MAX_ZOOM)) lo = MAX_ZOOM;
+    else for (let k = 0; k < 6; k++) { const mid = (lo + hi) / 2; if (fits(mid)) lo = mid; else hi = mid; }
+    // 高度:整份要在畫面裡(30 秒準備時一眼看完),放不下就再縮一點,但不小於 MIN_ZOOM
+    let z = lo, r = renderAt(n, z);
+    for (let k = 0; k < 4 && !r.fitsHeight && z > MIN_ZOOM + 0.001; k++) {
+      z = Math.max(MIN_ZOOM, z * Math.min(0.97, availableScoreHeight() / Math.max(1, renderedScoreHeight())));
+      r = renderAt(n, z);
     }
-    for (let n = Math.min(MAX_MEASURES_PER_LINE, totalBars); n >= 2 && !found; n--) {
-      if (totalBars % n === 1) continue; // would strand one bar on its own line
-      if (totalBars % n === 0) continue; // already tried above
-      found = tryCount(n, mustFitHeight);
-    }
-    return found;
-  };
-
-  /*
-   * A count that divides the bars evenly comes first. Taking merely the most
-   * compact count that avoids a lone bar is not the same thing: six bars at
-   * four per line gives 4+2, and even with the last line stretched, two bars
-   * spread across a full-width line read as oversized rather than aligned.
-   * 3+3 fills both lines instead. `n=2` is tried last within that pass rather
-   * than skipped, since only reaching it once everything larger has failed
-   * keeps fragmentation down without special-casing it away.
-   */
-  const chosen = search(true) ?? search(false);
-  // `tryCount` leaves `RenderXMeasuresPerLineAkaSystem` set to whichever `n`
-  // it last tried, and the loops stop once `chosen` is found — so this is
-  // still the winning count, captured before the fallback can reset it.
-  const measuresPerLine = chosen ? osmd.EngravingRules.RenderXMeasuresPerLineAkaSystem : 0;
-
-  if (!chosen) {
-    // Nothing uniform worked; OSMD's own greedy wrap is always free of
-    // stranded bars, and the staff size stays put either way.
-    osmd.EngravingRules.RenderXMeasuresPerLineAkaSystem = 0;
-    renderAtStaffZoom();
+    chosen = { measuresPerLine: n, zoom: Math.round(z * 1000) / 1000 };
+    break;
   }
-
-  layoutCache[shapeKey] = { measuresPerLine };
+  if (!chosen && totalBars >= 2) {
+    // 音很密(7–8 級的十六分音符)又是直式手機:每行 2 小節時可以再小一點,總比一小節一行、要一直捲好
+    const fits = (z) => matchesRequestedLayout(renderAt(2, z).layout, 2, totalBars);
+    for (const z of [0.5, MIN_ZOOM_DENSE]) if (fits(z)) { chosen = { measuresPerLine: 2, zoom: z }; break; }
+  }
+  if (!chosen) {   // 還是放不下(折疊機之類):交給 OSMD 自己換行
+    chosen = { measuresPerLine: 0, zoom: MIN_ZOOM_DENSE };
+  }
+  // 同樣形狀的下一題如果比較密、要更小才放得下,就一起縮(只縮不放大),之後同形狀的題目都一樣大
+  if (cached && cached.zoom && cached.measuresPerLine === chosen.measuresPerLine) chosen.zoom = Math.min(chosen.zoom, cached.zoom);
+  renderAt(chosen.measuresPerLine, chosen.zoom);
+  layoutCache[shapeKey] = chosen;
   saveLayoutCache();
+}
+
+/* 每行幾小節的候選(多的先試):像印出來的視奏考卷,一行大約 4 小節。
+   能整除的優先(8 小節 → 4+4、6 小節 → 3+3、10 小節 → 5+5),不留一個小節單獨一行,最後才退到每行 2 小節 */
+function perLineCandidates(bars) {
+  const big = [5, 4, 3].filter((n) => n <= bars);
+  const even = big.filter((n) => bars % n === 0 && (n < 5 || bars >= 10));
+  const rest = big.filter((n) => n < 5 && bars % n !== 0 && bars % n !== 1);
+  return [...new Set([...even, ...rest, 2])].filter((n) => n <= bars);
+}
+function renderAt(n, zoom) {
+  osmd.EngravingRules.RenderXMeasuresPerLineAkaSystem = n;
+  osmd.zoom = zoom;
+  osmd.render();
+  const layout = stage.measure();
+  return { layout, fitsHeight: renderedScoreHeight() <= availableScoreHeight() };
 }
 
 function startFollowing(clock = () => player.elapsed, onFinish = null) {
@@ -1415,6 +1359,14 @@ function updateHistoryInfo() {
   $('logStreak').textContent = streak;
   $('logToday').textContent = today;
   $('logTotal').textContent = history.size;
+  // 最近 7 天(跟技巧、聽音的練習紀錄一樣)
+  const days = readPractice(), names = t('weekdays').split(','), now = new Date();
+  let html = '';
+  for (let i = 6; i >= 0; i -= 1) {
+    const x = new Date(now); x.setDate(x.getDate() - i);
+    html += `<span class="${i === 0 ? 'today' : ''}"><i class="${days[dayKey(x)] ? 'on' : ''}"></i>${names[x.getDay()]}</span>`;
+  }
+  $('logWeek').innerHTML = html;
 }
 
 function escapeHtml(value) {

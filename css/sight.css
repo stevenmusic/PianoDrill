@@ -12,38 +12,21 @@
   background:var(--surface-inset);color:var(--ivory);font-family:inherit;font-size:var(--fs-md);padding:0 12px}
 #mod-sight .sel:focus{outline:none;border-color:var(--gold)}
 
-/* ── 題目卡 ── */
-#mod-sight .s-top{display:flex;align-items:center;gap:10px;min-height:44px}
-/* 調號丨拍號丨小節丨速度:前三格固定寬度,換題時「丨」不會左右跳 */
-#mod-sight .meta{flex:1 1 auto;min-width:0;display:flex;align-items:center;flex-wrap:nowrap;overflow:hidden;
-  font-family:"Noto Serif TC",serif;color:var(--gold-bright);font-size:clamp(17px, 4.6vw, 22px);font-weight:700;font-variant-numeric:tabular-nums}
-#mod-sight .meta span{white-space:nowrap}
-#mod-sight .meta-sep{flex:none;padding:0 .35em;color:var(--muted);font-weight:400}
-#mod-sight .meta-key{flex:none;width:5.2em}
-#mod-sight .meta-time{flex:none;width:2.4em}
-#mod-sight .meta-bars{flex:none;width:4.2em}
-#mod-sight .meta-tempo{flex:none}
-#mod-sight .meta:empty::before{content:"\00a0"}
-#mod-sight .countdown{flex:none;font-family:"Noto Serif TC",serif;font-variant-numeric:tabular-nums;font-size:clamp(30px, 8vw, 40px);
-  font-weight:700;letter-spacing:-.02em;line-height:1;color:var(--gold);text-align:right;transition:color .2s}
-#mod-sight .countdown .unit{font-family:"Noto Sans TC",sans-serif;font-size:var(--fs-sm);font-weight:400;color:var(--muted);margin-left:3px}
+/* ── 題目卡:結構跟技巧、聽音一樣(q-head / q-row / q-foot,樣式在 css/app.css);這裡只放倒數、準備清單 ── */
+#mod-sight .countdown{font-family:"Noto Serif TC",serif;font-variant-numeric:tabular-nums;font-size:24px;font-weight:700;line-height:1;
+  color:var(--gold);margin-left:6px;transition:color .2s;white-space:nowrap}
+#mod-sight .countdown .unit{font-family:"Noto Sans TC",sans-serif;font-size:var(--fs-xs);font-weight:400;color:var(--muted);margin-left:2px}
 #mod-sight .countdown.running{color:var(--gold-bright)}
 #mod-sight .countdown.done{color:var(--muted-bright)}
-#mod-sight .s-actions{display:flex;align-items:center;gap:8px;min-width:0}
-#mod-sight .s-actions .btn{height:40px}
-#mod-sight .s-actions .round{width:44px;height:44px}
-#mod-sight .message{font-size:var(--fs-sm);color:var(--muted-bright);line-height:1.6;min-height:1.6em}
-#mod-sight .message.error{color:var(--error);background:var(--error-bg);border:1px solid var(--error-line);border-radius:var(--radius-sm);padding:8px 10px}
+#mod-sight .feedback.error{color:var(--error);background:var(--error-bg);border:1px solid var(--error-line);border-radius:var(--radius-sm);padding:8px 10px}
 #mod-sight .checklist{padding-left:1.4em;color:var(--muted-bright);font-size:var(--fs-sm);line-height:1.6;columns:2;column-gap:28px}
 #mod-sight .checklist li{break-inside:avoid}
 @media (max-width:600px){ #mod-sight .checklist{columns:1} }
-/* 窄螢幕:「30 秒準備」只留圖示,一排放得下 */
-@media (max-width:420px){ #mod-sight #s-prepare .btn-label{display:none} #mod-sight #s-prepare{width:40px;padding:0} }
-@media (max-width:330px){ #mod-sight .s-actions{gap:5px} #mod-sight #s-generate{padding:0 10px} }
+@media (max-width:340px){ #s-prepare .btn-label{display:none} }
 
-/* ── 樂譜卡:白紙(深淺主題都一樣),播放時目前小節上淡金色、播放軸照 ScrollScore ── */
-#s-scoreCard{padding:8px}
-#mod-sight .stage{position:relative;background:var(--paper);border-radius:var(--radius-sm);padding:4px 6px 6px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.06)}
+/* ── 樂譜卡:白紙(深淺主題都一樣)放在卡片裡,跟技巧的樂譜卡一樣;播放時目前小節上淡金色、播放軸照 ScrollScore ── */
+#mod-sight .stage{position:relative;background:var(--paper);border-radius:var(--radius-sm);padding:4px 6px 6px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.06);min-height:0}
+@media (max-width:600px){ #mod-sight .stage{padding:2px 2px 4px} }
 #mod-sight .measure-highlight{position:absolute;display:none;background:var(--paper-gold);opacity:.16;border-radius:3px;pointer-events:none;z-index:0;
   transition:left .12s linear, width .12s linear, top .25s ease}
 #mod-sight .playline{position:absolute;top:0;left:0;width:2px;display:none;
@@ -53,6 +36,7 @@
 #mod-sight .score{position:relative;z-index:1;min-height:10rem;color:#16130D;opacity:1;transform:translateY(0);transition:opacity .22s ease-out, transform .22s ease-out}
 #mod-sight .score.entering{opacity:0;transform:translateY(4px);transition:none}
 @media (prefers-reduced-motion:reduce){ #mod-sight .score{transition:none} }
+#s-confidence{padding:0 4px}
 
 /* ── 跟著彈(播放軸帶著走,選用麥克風評節奏)── */
 #mod-sight .along{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px}
@@ -69,40 +53,5 @@
 
 /* 練習紀錄卡標題列的「清除出題紀錄」靠右 */
 #s-logCard .card-title .btn{margin-left:auto}
-
-/* 手機橫放:卡片縮小,第一個畫面就看得到譜 */
-@media (max-height:420px), (orientation:landscape) and (max-height:500px){
-  #mod-sight .s-top{min-height:34px}
-  #mod-sight .meta{font-size:17px}
-  #mod-sight .countdown{font-size:28px}
-  #mod-sight .quiz{display:flex;flex-direction:row;flex-wrap:wrap;align-items:center;gap:6px 12px}
-  #mod-sight .s-top{flex:1 1 300px}
-  #mod-sight .s-actions{flex:0 1 auto}
-  #mod-sight .message,#mod-sight .checklist{flex-basis:100%}
-}
-
-/* 手機直式:樂譜卡貼齊畫面左右(樂譜越寬、音符越大;一行才放得下兩個以上的小節) */
-@media (max-width:600px){
-  #s-scoreCard{margin-inline:calc(-1 * max(10px, env(safe-area-inset-left)));border-radius:0;border-left:0;border-right:0;padding:6px 4px}
-  #mod-sight .stage{padding:2px 2px 4px;border-radius:4px}
-}
-/* 很窄的螢幕:調號丨拍號丨小節丨速度一行放不下時,倒數換到下一行 */
-#mod-sight .s-top{flex-wrap:wrap}
-#mod-sight .meta{font-size:clamp(14px, 4.2vw, 22px)}
-#mod-sight .meta-key{width:4.6em}
-#mod-sight .meta-time{width:2.3em}
-#mod-sight .meta-bars{width:3.9em}
-#mod-sight .countdown{margin-left:auto}
-@media (max-width:330px){ #mod-sight .meta{font-size:13px} #mod-sight .meta-sep{padding:0 .25em} }
+/* 級數鈕只寫數字:一樣寬 */
 #s-grades .opt{min-width:44px}
-/* 倒數放在操作列:跟按鈕同高,不另佔一行 */
-#mod-sight .s-actions .countdown{margin-left:4px;font-size:clamp(26px, 7vw, 34px)}
-#mod-sight .s-top{flex-wrap:nowrap}
-/* 操作列在窄螢幕放不下:按鈕不縮扁;「產生新題目」先只留圖示,折疊機再收起「回到開頭」(▶ 本身就能停止) */
-#mod-sight .s-actions > .btn,#mod-sight .s-actions > .play-round{flex:none}
-#mod-sight #s-prepare{width:40px;padding:0}
-#mod-sight #s-prepare .btn-label{display:none}
-@media (min-width:601px){ #mod-sight #s-prepare{width:auto;padding:0 16px} #mod-sight #s-prepare .btn-label{display:inline} }
-@media (max-width:389px){ #mod-sight #s-generate .btn-label{display:none} #mod-sight #s-generate{width:44px;padding:0} }
-@media (max-width:300px){ #mod-sight #s-stop{display:none} #mod-sight .s-actions .countdown{font-size:24px} }
-#s-confidence{padding:0 8px 4px}

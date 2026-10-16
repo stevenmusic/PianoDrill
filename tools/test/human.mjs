@@ -47,7 +47,7 @@ async function run(vpName, vp){
     [3, "視奏 30 秒準備", async () => tap("#s-prepare")],
     [5, "視奏 播放/停止", async () => tap("#s-play")],
     [2, "視奏 停止", async () => tap("#s-stop")],
-    [3, "視奏 級數", async () => tapAny("#s-grades .opt")],
+    [3, "視奏 級數", async () => (await page.isVisible("#mod-sight")) && tapAny("#subSeg button")],
     [2, "視奏 調性", async () => { if (!(await page.isVisible("#s-key"))) return false; const o = await page.$$eval("#s-key option", o => o.map(x => x.value)); await page.selectOption("#s-key", pickOne(o)); return true; }],
     // 聽音
     [6, "聽音 播放", async () => tap("#e-playBtn")],

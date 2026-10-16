@@ -403,7 +403,7 @@ function finish(ok){
 function autoNext(q0){
   const t0 = Date.now();
   const check = () => {
-    if (cur !== q0 || !S.auto) return;                       // 已經換題 / 關掉自動
+    if (cur !== q0 || !S.auto || !active) return;            // 已經換題 / 關掉自動 / 切到別的分頁(不能在背景自己出題播放)
     if (Date.now() - t0 < 1100 || play || starting) { setTimeout(check, 200); return; }
     nextQuestion();
   };

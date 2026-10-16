@@ -12,8 +12,8 @@
  *     nearest chord tone afterwards.
  */
 
-import { chordDegrees, degreeOf, pitchAt } from './theory.js?v=130f9c20';
-import { chordAt } from './harmony.js?v=130f9c20';
+import { chordDegrees, degreeOf, pitchAt } from './theory.js';
+import { chordAt } from './harmony.js';
 
 /**
  * Interval classes that read as dissonant against the bass. A second, tritone

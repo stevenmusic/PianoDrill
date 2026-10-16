@@ -18,10 +18,19 @@
  * the checklist, ...) that no static attribute can reach.
  */
 
-const STORAGE_KEY = 'sm_lang';
+import { getLang } from '../shared/i18n.js';
 
 export const I18N = {
   zh: {
+    gradeN: '{n} 級',
+    logTitle: '練習紀錄',
+    logStreak: '連續天數',
+    logToday: '今天題數',
+    logTotal: '出過的題目',
+    examReady: '按「產生新題目」開始',
+    examNotYet: '這一級還沒有視奏題目',
+    unsupportedTrinity: 'Trinity 的視奏還沒有出題規則:目前的規則是照 ABRSM 官方視奏範例(1–8 級)整理的,Trinity 的要求不同,不拿來充數。想練看譜可以先用「視奏」分頁自由練習 ABRSM 的題目。',
+    unsupportedInitial: 'ABRSM 初級的視奏還沒有出題規則(目前只照官方範例做了 1–8 級)。可以先用「視奏」分頁練 1 級。',
     pageTitle: 'SightDrill — 視奏隨機題目生成器',
     homeAria: '回首頁',
     homeText: '首頁',
@@ -101,6 +110,15 @@ export const I18N = {
     prepStep6: '用最難的那一小節決定速度，然後心裡數一小節',
   },
   en: {
+    gradeN: 'Grade {n}',
+    logTitle: 'Practice log',
+    logStreak: 'Day streak',
+    logToday: 'Today',
+    logTotal: 'Tests seen',
+    examReady: 'Tap New test to start',
+    examNotYet: 'No sight-reading tests for this grade yet',
+    unsupportedTrinity: "Trinity sight-reading isn't covered yet: the rules here are modelled on ABRSM's official specimen tests (Grades 1–8), and Trinity's requirements differ, so we don't fake them. For reading practice, use the Sight-read tab with ABRSM tests.",
+    unsupportedInitial: "ABRSM Initial sight-reading isn't covered yet (only Grades 1–8 so far, modelled on the official specimens). Try Grade 1 in the Sight-read tab.",
     pageTitle: 'SightDrill — Sight-Reading Test Generator',
     homeAria: 'Back to home',
     homeText: 'Home',
@@ -183,18 +201,15 @@ export const I18N = {
   },
 };
 
-let currentLang = 'zh';
-const listeners = [];
-
-/** Currently active language code, "zh" or "en". */
+/** 語言跟外框同一個(js/shared/i18n.js 的 getLang);這個檔只放視奏模組自己的字典 */
 export function getLanguage() {
-  return currentLang;
+  return getLang();
 }
 
 /** Look up `key` in the active dictionary (falling back to zh, then the key
  * itself), substituting any `{name}` placeholders from `params`. */
 export function t(key, params) {
-  const dict = I18N[currentLang] ?? I18N.zh;
+  const dict = I18N[getLang()] ?? I18N.zh;
   let str = dict[key] ?? I18N.zh[key] ?? key;
   if (params) {
     for (const [name, value] of Object.entries(params)) {
@@ -204,51 +219,17 @@ export function t(key, params) {
   return str;
 }
 
-/** Register a callback fired after every `applyLanguage()` call, for the
- * text app.js builds itself (status messages, select options, the
- * preparation checklist, ...) that no static `data-i18n` attribute reaches. */
-export function onLanguageChange(fn) {
-  listeners.push(fn);
-}
-
-/**
- * Switches the active language, persists it, re-walks every `data-i18n`/
- * `data-i18n-attr` element in the document, and notifies subscribers so the
- * rest of the page's dynamic text can re-render in place. No element is ever
- * cloned or duplicated — the same nodes just get new text.
- */
-export function applyLanguage(lang) {
-  currentLang = lang === 'en' ? 'en' : 'zh';
-  try {
-    localStorage.setItem(STORAGE_KEY, currentLang);
-  } catch {
-    /* storage full or unavailable — the switch still works for this load */
-  }
-
-  document.documentElement.lang = currentLang === 'en' ? 'en' : 'zh-Hant';
-
-  document.querySelectorAll('[data-i18n]').forEach((el) => {
-    el.textContent = t(el.getAttribute('data-i18n'));
+/** 視奏模組裡的靜態文字:data-si18n="key"(文字)/ data-si18n-attr="aria-label:key,title:key"
+ *(跟外框的 data-i18n 分開,兩邊的字典不同) */
+export function applySightStatic(root = document.getElementById('mod-sight')) {
+  if (!root) return;
+  root.querySelectorAll('[data-si18n]').forEach((el) => {
+    el.textContent = t(el.getAttribute('data-si18n'));
   });
-  document.querySelectorAll('[data-i18n-attr]').forEach((el) => {
-    for (const pair of el.getAttribute('data-i18n-attr').split(',')) {
+  root.querySelectorAll('[data-si18n-attr]').forEach((el) => {
+    for (const pair of el.getAttribute('data-si18n-attr').split(',')) {
       const [attr, key] = pair.split(':').map((part) => part.trim());
       if (attr && key) el.setAttribute(attr, t(key));
     }
   });
-
-  for (const fn of listeners) fn(currentLang);
-}
-
-/** Reads the persisted choice (defaulting to "zh") and applies it — call
- * this first thing on module load, before anything paints. */
-export function initLanguage() {
-  let stored = 'zh';
-  try {
-    stored = localStorage.getItem(STORAGE_KEY) ?? 'zh';
-  } catch {
-    /* storage unavailable — fall back to the default */
-  }
-  applyLanguage(stored === 'en' ? 'en' : 'zh');
-  return currentLang;
 }

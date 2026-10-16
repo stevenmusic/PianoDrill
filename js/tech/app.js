@@ -1,13 +1,18 @@
-/* FingerDrill 主程式:音階 / 琶音 / 哈農 / 檢定 四個分頁,練習面板(題目、樂譜、節拍器)共用 */
+/* 技巧模組(原 FingerDrill):音階 / 琶音 / 哈農 / 檢定抽考,練習面板(題目、樂譜、節拍器)共用。
+   外框(js/main.js)負責頂欄、分頁、考試系統與級數;這裡的元素 id 都加 "t-" 前綴 */
 import * as store from "./store.js";
 import { gradeOf, questionsFor, applyFilter, drawQuestion, CATEGORIES, masteryKey, UNIT_SYM, NOTES_PER_UNIT } from "./syllabus.js";
 import { buildExercise, questionText } from "./exercise.js";
 import { exerciseToMusicXML, playbackEvents } from "./musicxml.js";
 import { noteLabelStr } from "./theory.js";
-import { tr, T, applyStatic, setLang, getLang, pairText, unpair } from "./i18n.js";
-import * as audio from "./audio.js";
+import { tr, scoped, getLang, pairText, unpair } from "../shared/i18n.js";
+import * as audio from "../shared/audio.js";
+import "./strings.js";
+const T = scoped("tech");
 
-const $ = id => document.getElementById(id);
+const $ = id => document.getElementById("t-" + id);
+const ROOT = document.getElementById("mod-tech");
+let active = false, ctx = null;
 const S = store.load();
 let SY = null, FG = null;
 const tabCur = {};       // 每個分頁目前的題目
@@ -15,27 +20,14 @@ let cur = null, ex = null, show = "both", lastKey = null;
 let bpm = 60;
 let osmd = null;
 
-/* ── 主題 ── */
-function applyTheme(){
-  const light = S.theme === "light";
-  document.body.classList.toggle("light", light);
-  $("themeToggle").setAttribute("aria-pressed", String(light));
-  document.querySelector('meta[name="theme-color"]').content = light ? "#FBF7EE" : "#0C0A07";
-}
-$("themeToggle").onclick = () => { S.theme = S.theme === "light" ? "dark" : "light"; store.save(); applyTheme(); };
-applyTheme();
-applyStatic();
-/* 語言切換:靜態文字換掉,目前分頁與題目重畫(題目、清單、選擇器都會換語言) */
-$("langToggle").onclick = () => {
-  setLang(getLang() === "zh" ? "en" : "zh");
+/* 語言切換(外框通知):目前分頁與題目重畫(題目、清單、選擇器都會換語言) */
+export function relang(){
   if (!SY) return;
-  if (!$("onboard").hidden) fillGrades($("obGrade"), obState.system, Number($("obGrade").value));
   const keep = cur, tab = S.tab;
   if (S.exam) renderExam();
-  switchTab(tab);
-  if (keep) setQuestion(keep, tab);
+  if (active) { switchTab(tab); if (keep) setQuestion(keep, tab); }
   renderLog();
-};
+}
 
 function segBind(el, get, set){
   const seg = typeof el === "string" ? $(el) : el;
@@ -44,11 +36,6 @@ function segBind(el, get, set){
   sync();
   return sync;
 }
-// 手機:設定卡收成一行,點了展開
-document.querySelectorAll(".setup-summary").forEach(btn => btn.onclick = () => {
-  const card = btn.closest(".card"), open = !card.classList.contains("open");
-  card.classList.toggle("open", open); btn.setAttribute("aria-expanded", String(open));
-});
 
 /* ══ 音階 / 琶音 選擇器 ══ */
 const MAJ_KEYS = ["C", "G", "D", "A", "E", "B", "F#", "Db", "Ab", "Eb", "Bb", "F"];
@@ -216,11 +203,6 @@ function sourceText(g){ return getLang() === "en" && g.sourceEn ? g.sourceEn : g
 function examGrade(){ return gradeOf(SY, S.exam.system, S.exam.grade); }
 // 只是點進檢定分頁看看(沒選考試、級數):auto = true,不算在準備考試,音階/琶音分頁不會多出「本級要求」(使用者反映題目被往下推)
 function ensureExam(){ if (!S.exam) S.exam = { system: "abrsm", grade: 1, set: "A", auto: true }; }
-function fillGrades(sel, system, grade){
-  const sys = SY.systems[system];
-  sel.innerHTML = sys.grades.map(g => `<option value="${g.grade}">${gradeLabel(g)}</option>`).join("");
-  sel.value = String(sys.grades.some(g => g.grade === grade) ? grade : 1);
-}
 function filterObj(){ return { quality: S.filter.quality, cats: new Set(S.filter.cats), excludeMastered: S.filter.excludeMastered }; }
 function examPool(){
   if (!S.exam) return [];
@@ -230,8 +212,7 @@ function examPool(){
 function renderExam(){
   ensureExam();
   const sys = SY.systems[S.exam.system], g = examGrade(), sets = sys.mode === "sets";
-  fillGrades($("selGrade"), S.exam.system, S.exam.grade);
-  syncSystemSeg(); syncSetSeg(); syncQualitySeg();
+  syncSetSeg(); syncQualitySeg();
   $("fSet").hidden = !sets; $("fQuality").hidden = sets; $("fCats").hidden = sets;
   $("selMinor").value = S.minorForm;
   const present = new Set(examQuestions().map(q => q.cat));
@@ -245,15 +226,13 @@ function renderExam(){
     + (g.verified ? tr("已逐項核對官方大綱。", "Verified.") : tr("尚未核對。", "Not yet checked."))
     + (sets ? tr(" Trinity:整組都要彈,每一項的手、力度、奏法固定。", " Trinity: play all of Set A or B; hands, dynamics and touch are fixed.")
             : tr(" ABRSM:考官從清單點題,分手的項目會指定左手或右手。", " ABRSM: the examiner picks items and names the hand.")));
-  $("examSummary").textContent = `${sys.name} · ${gradeLabel(g)}` + (sets ? ` · ${setName(S.exam.set)}` : "") + " · " + tr(`${examPool().length} 題`, `${examPool().length} items`);
-  $("examChip").hidden = !!S.exam.auto; $("examChip").textContent = `${sys.name} ${gradeLabel(g)}`;
+  // 考試系統、級數在外框的檢定設定卡;這裡只寫抽考的設定(Trinity 哪一組、範圍有幾題)
+  $("examSummary").textContent = tr("抽考設定", "Drill options") + (sets ? ` · ${setName(S.exam.set)}` : "") + " · " + tr(`${examPool().length} 題`, `${examPool().length} items`);
   renderList();
   if (S.tab === "exam") syncExamButtons();
 }
-const syncSystemSeg = segBind("systemSeg", () => S.exam ? S.exam.system : "abrsm", v => { ensureExam(); S.exam.system = v; delete S.exam.auto; store.save(); onExamChange(); });
-const syncSetSeg = segBind("setSeg", () => S.exam ? S.exam.set : "A", v => { ensureExam(); S.exam.set = v; delete S.exam.auto; store.save(); onExamChange(); });
+const syncSetSeg = segBind("setSeg", () => S.exam ? S.exam.set : "A", v => { ensureExam(); S.exam.set = v; store.save(); onExamChange(); });
 const syncQualitySeg = segBind("qualitySeg", () => S.filter.quality, v => { S.filter.quality = v; store.save(); renderExam(); });
-$("selGrade").onchange = () => { ensureExam(); S.exam.grade = Number($("selGrade").value); delete S.exam.auto; store.save(); onExamChange(); };
 $("selMinor").onchange = () => { S.minorForm = $("selMinor").value; store.save(); onExamChange(true); };
 $("catChips").onclick = e => {
   const b = e.target.closest("[data-cat]"); if (!b) return;
@@ -262,8 +241,16 @@ $("catChips").onclick = e => {
   store.save(); renderExam();
 };
 $("excludeMastered").onclick = () => { S.filter.excludeMastered = !S.filter.excludeMastered; store.save(); renderExam(); };
+/* 外框改了考試系統/級數(exam.auto = 還沒選考試,只是點進檢定分頁看看) */
+export function setExam(ex){
+  S.exam = { set: "A", ...(S.exam || {}), system: ex.system, grade: ex.grade, auto: !!ex.auto };
+  if (!ex.auto) delete S.exam.auto;
+  store.save();
+  if (SY) onExamChange();
+}
 function onExamChange(keepCur){
   mock = null;
+  if (ctx) ctx.examChanged();
   renderExam(); renderQuick("scale"); renderQuick("arp");
   if (S.tab === "exam") {
     const same = keepCur && cur && !cur.free && examQuestions().find(q => q.itemId === cur.itemId && q.tonic === cur.tonic && q.hands === cur.hands && q.articulation === cur.articulation);
@@ -333,14 +320,12 @@ $("qGroups").onclick = e => {
   setQuestion(examQuestions()[Number(b.dataset.i)], "exam");
   $("quizCard").scrollIntoView({ behavior: "smooth", block: "start" });
 };
-$("examChip").onclick = () => switchTab("exam");
 
 /* ══ 分頁切換 ══ */
 function switchTab(tab){
   stopPlayback();
   S.tab = tab; store.save();
-  document.querySelectorAll("#tabbar button").forEach(b => b.setAttribute("aria-selected", String(b.dataset.tab === tab)));
-  document.querySelectorAll(".pane").forEach(p => p.hidden = p.dataset.pane !== tab);
+  ROOT.querySelectorAll(".pane").forEach(p => p.hidden = p.dataset.pane !== tab);
   if (tab !== "exam") mock = null;
   $("drawBtn").hidden = true; $("nextBtn").hidden = true; $("mockBtn").hidden = true;
   if (tab === "scale" || tab === "arp" || tab === "hanon") { renderPicker(tab); setQuestion(tabCur[tab] || freeQuestion(tab), tab); }
@@ -348,11 +333,13 @@ function switchTab(tab){
   window.scrollTo({ top: 0 });
   syncQuizTop();
 }
-$("tabbar").onclick = e => { const b = e.target.closest("button[data-tab]"); if (b) switchTab(b.dataset.tab); };
+/* 外框:顯示 / 離開這個模組 */
+export function enter(tab){ active = true; switchTab(tab); requestAnimationFrame(onStageResize); }
+export function leave(){ active = false; stopPlayback(); }
 
 /* 題目上方那一列(官方大綱標記、抽考範圍、抽考按鈕)沒東西就整列收掉;樂譜還沒畫就留一塊放提示字。用 JS 判斷,不靠 CSS :has */
 function syncQuizTop(){
-  const top = document.querySelector(".quiz-top");
+  const top = ROOT.querySelector(".quiz-top");
   const empty = $("verifyBadge").hidden && !$("poolCount").textContent.trim() && [...top.querySelectorAll(".q-actions button")].every(b => b.hidden);
   top.classList.toggle("blank", empty);
   $("stage").classList.toggle("blank", !$("osmd").childElementCount);
@@ -364,7 +351,7 @@ function showEmpty(){
   $("qTitle").classList.add("empty"); $("qTitle").style.fontSize = "";
   const sets = S.exam && SY.systems[S.exam.system].mode === "sets";
   pairText($("qTitle"), () => { const d = sets ? tr("隨機抽一項", "Random") : tr("隨機抽考", "Random"); return tr("按「" + d + "」,或從下方清單選一項", "Tap " + d + ", or pick from the list below"); }); $("qTags").innerHTML = "";
-  $("playBtn").disabled = true; document.querySelectorAll(".mbtn").forEach(b => { b.disabled = true; b.setAttribute("aria-pressed", "false"); });
+  $("playBtn").disabled = true; ROOT.querySelectorAll(".mbtn").forEach(b => { b.disabled = true; b.setAttribute("aria-pressed", "false"); });
   $("verifyBadge").hidden = true; $("poolCount").textContent = S.exam ? tr(`抽考範圍 ${examPool().length} 題`, `${examPool().length} items in range`) : "";
   if (osmd) { try { osmd.clear(); } catch (e) {} }
   $("osmd").innerHTML = ""; osmd = null; noteXs = []; $("playline").hidden = true;
@@ -384,7 +371,7 @@ function setQuestion(q, tab){
   $("qTags").innerHTML = parts.slice(1).map((t, i) => `<span class="q-tag${q.dynamic && i === parts.length - 2 ? " dyn" : ""}">${t}</span>`).join("") + hanonBestTag(q);
   fitTitle();
   $("playBtn").disabled = false;
-  document.querySelectorAll(".mbtn").forEach(b => b.disabled = false);
+  ROOT.querySelectorAll(".mbtn").forEach(b => b.disabled = false);
   syncMastery();
   // 上方那一列(官方大綱標記、抽考範圍)只在檢定分頁出現:音階/琶音分頁點「本級要求」的題目時不出現,題目才不會往下跳
   if (!q.free && S.exam && tab === "exam") {
@@ -418,14 +405,14 @@ function setQuestion(q, tab){
 }
 function syncMastery(){
   const m = cur && S.mastery[cur.key];
-  document.querySelectorAll(".mbtn").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.m === m)));
+  ROOT.querySelectorAll(".mbtn").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.m === m)));
 }
 /* 哈農的速度階梯:按 ✓ = 這個速度彈順了 → 記錄最高速度、下一輪 +4 */
 function hanonBestTag(q){
   const b = q.type === "hanon" && S.hanonBest[q.no];
   return b ? `<span class="q-tag best">${tr("最高", "Best")} ♩=${b}</span>` : "";
 }
-document.querySelectorAll(".mbtn").forEach(b => b.onclick = () => {
+ROOT.querySelectorAll(".mbtn").forEach(b => b.onclick = () => {
   if (!cur) return;
   const m = b.dataset.m;
   if (cur.type === "hanon" && m === "good") {
@@ -442,6 +429,7 @@ document.querySelectorAll(".mbtn").forEach(b => b.onclick = () => {
   if (S.mastery[cur.key] === m) delete S.mastery[cur.key]; else { S.mastery[cur.key] = m; logPractice(0); }
   store.save(); syncMastery();
   if (S.tab === "exam") renderExam(); else renderQuick(S.tab);
+  if (ctx) ctx.examChanged();
 });
 
 /* ── 樂譜:一整行 + 播放軸(照 ScrollScore)──
@@ -458,9 +446,9 @@ const isPhoneLand = () => matchMedia(PHONE_LAND).matches;
 let landZoom = null;
 function fitLandZoom(){
   if (!isPhoneLand()) { if (landZoom) { landZoom = null; return refit(); } return false; }
-  const svg = document.querySelector("#osmd svg"); if (!svg || !osmd) return false;
+  const svg = $("osmd").querySelector("svg"); if (!svg || !osmd) return false;
   const H = svg.getBoundingClientRect().height; if (!H) return false;
-  const head = document.querySelector("header").offsetHeight, title = document.querySelector("#scoreCard .card-title").offsetHeight;
+  const head = document.querySelector("header").offsetHeight, title = $("scoreCard").querySelector(".card-title").offsetHeight;
   const avail = innerHeight - head - title - 44;           // 卡片與紙的上下內距、間隔
   const z = Math.max(0.85, Math.min(1.8, osmd.zoom * avail / H));
   if (Math.abs(z - osmd.zoom) < 0.03) { landZoom = osmd.zoom; return false; }
@@ -502,7 +490,7 @@ function renderOsmd(){
   drawFingerings();
 }
 function drawFingerings(){
-  const svg = document.querySelector("#osmd svg"); if (!svg) return;
+  const svg = $("osmd").querySelector("svg"); if (!svg) return;
   // OSMD 畫的指法拿掉(排版時它已經幫指法留好上下空間);三連音的「3」不動
   svg.querySelectorAll("text").forEach(t => { if (/^[1-5]$/.test(t.textContent.trim()) && !t.closest(".vf-tuplet")) t.remove(); });
   const NS = "http://www.w3.org/2000/svg", frag = document.createDocumentFragment();
@@ -608,7 +596,7 @@ function measureNotes(){
 }
 /* 播放軸的上下:貼著譜線與音符(含加線、符桿)再往外留 1.2 個譜線間距(ScrollScore 的規則) */
 function placePlaylineExtent(){
-  const stage = $("stage"), pl = $("playline"), svg = document.querySelector("#osmd svg");
+  const stage = $("stage"), pl = $("playline"), svg = $("osmd").querySelector("svg");
   if (!svg) { pl.hidden = true; return; }
   const sr = stage.getBoundingClientRect();
   let top = Infinity, bot = -Infinity, space = 8;
@@ -945,16 +933,6 @@ function stopPlayback(natural, keepView){
 $("stage").addEventListener("click", () => { if (play && document.body.classList.contains("land-play")) stopPlayback(); });
 /* 準備中再按一次不取消(以前會取消 → 看起來像「按了沒反應」);播放中按 = 停止 */
 $("playBtn").onclick = () => { if (play) stopPlayback(); else if (!starting) startPlayback(); };
-/* 禁止連點放大(iOS 有時不理 touch-action / user-scalable):300ms 內的第二下取消預設動作,自己補一次 click */
-let lastTouchEnd = 0;
-document.addEventListener("touchend", e => {
-  const now = Date.now();
-  if (now - lastTouchEnd < 300) { e.preventDefault(); const t = e.target.closest("button, .opt, .chip, [role=tab]"); if (t && !t.disabled) t.click(); }
-  lastTouchEnd = now;
-}, { passive: false });
-document.addEventListener("gesturestart", e => e.preventDefault());
-/* 每一次真的點擊都喚醒音訊(上面補的 click 不算使用者手勢,iOS 不准它打開聲音;被來電、鎖屏打斷的也在這裡叫回來) */
-for (const ev of ["touchend", "click", "keydown"]) document.addEventListener(ev, () => audio.unlockAudio(), { capture: true, passive: true });
 
 /* ── 拍點燈號(示範播放時亮)── */
 function showBeat(click){
@@ -973,22 +951,14 @@ function syncPlayOpts(){
 for (const [id, k] of [["optLoop", "loop"], ["optRamp", "ramp"], ["optClick", "clickOnly"]]) $(id).onclick = () => { S[k] = !S[k]; store.save(); syncPlayOpts(); };
 syncPlayOpts();
 
-/* 練習時螢幕不要暗掉(手機放在譜架上):App 在前景時一直保持亮著 */
-let wakeLock = null;
-async function keepAwake(){
-  try { if ("wakeLock" in navigator && document.visibilityState === "visible" && !wakeLock) { wakeLock = await navigator.wakeLock.request("screen"); wakeLock.addEventListener("release", () => { wakeLock = null; }); } } catch (e) {}
-}
-document.addEventListener("visibilitychange", keepAwake);
-document.addEventListener("pointerdown", keepAwake, { once: true });
 
-/* 桌機快捷鍵:空白鍵 播放/停止、↑↓ 速度 ±1、N 下一題(檢定) */
-document.addEventListener("keydown", e => {
-  if (e.target.closest("input, select, textarea") || e.metaKey || e.ctrlKey || e.altKey) return;
+/* 桌機快捷鍵(外框轉給目前的模組):空白鍵 播放/停止、↑↓ 速度 ±1、N 下一題(檢定) */
+export function onKey(e){
   if (e.code === "Space") { e.preventDefault(); $("playBtn").click(); }
   else if (e.key === "ArrowUp") { e.preventDefault(); setBpm(bpm + 1, true); }
   else if (e.key === "ArrowDown") { e.preventDefault(); setBpm(bpm - 1, true); }
   else if ((e.key === "n" || e.key === "N") && S.tab === "exam") { const b = !$("nextBtn").hidden ? $("nextBtn") : $("drawBtn"); if (!b.hidden && !b.disabled) b.click(); }
-});
+}
 
 /* ══ 練習紀錄 ══
    算一次練習:示範完整播完、或按了 ✓ / ⚠ 標記。S.log = { "YYYY-MM-DD": { n: 次數, sec: 秒數 } }(只留最近 400 天) */
@@ -1019,40 +989,25 @@ function renderLog(){
   $("logWeek").innerHTML = html;
 }
 
-/* ══ 第一次打開:在準備考試嗎? ══ */
-const obState = { system: "abrsm", grade: 1 };
-function showOnboard(){
-  const ob = obState;
-  const syncSys = segBind("obSystem", () => ob.system, v => { ob.system = v; fillGrades($("obGrade"), ob.system, ob.grade); });
-  fillGrades($("obGrade"), ob.system, ob.grade); syncSys();
-  $("obGrade").onchange = () => ob.grade = Number($("obGrade").value);
-  $("onboard").hidden = false;
-  $("obYes").onclick = () => {
-    S.exam = { system: ob.system, grade: Number($("obGrade").value), set: "A" }; S.onboarded = true; store.save();
-    $("onboard").hidden = true; renderExam(); switchTab("exam");
-  };
-  $("obNo").onclick = () => { S.exam = null; S.onboarded = true; store.save(); $("onboard").hidden = true; $("examChip").hidden = true; switchTab("scale"); };
+/* 檢定分頁上方的進度:通過幾項 / 本級幾項 */
+export function examStatus(){
+  if (!SY || !S.exam) return "";
+  const qs = examQuestions(), good = qs.filter(q => S.mastery[q.key] === "good").length;
+  return tr(`通過 ${good} / ${qs.length}`, `${good} / ${qs.length} passed`);
 }
 
-/* ── 啟動 ── */
-async function init(){
-  // 資料檔帶版本指紋(index.html 的 fdVersions,由 tools/build/stamp.mjs 產生),更新後不會讀到舊的快取
-  let ver = {}; try { ver = JSON.parse(document.getElementById("fdVersions").textContent); } catch (e) {}
+/* ── 啟動(外框呼叫)── */
+export async function start(c){
+  ctx = c;
+  setExam(c.exam);
+  // 資料檔帶版本指紋(index.html 的 pdVersions,由 tools/build/stamp.mjs 產生),更新後不會讀到舊的快取
+  let ver = {}; try { ver = JSON.parse(document.getElementById("pdVersions").textContent); } catch (e) {}
   const data = f => fetch(f + (ver[f] ? "?v=" + ver[f] : "")).then(r => r.json());
   const [sy, fg] = await Promise.all([data("data/syllabus.json"), data("data/fingerings.json")]);
   SY = sy; FG = fg;
-  if (S.exam && !(SY.systems[S.exam.system] && gradeOf(SY, S.exam.system, S.exam.grade))) S.exam = null;
   if (window.innerWidth < 600) $("listCard").open = false;
   if (S.exam) renderExam();
   renderLog();
-  window.__app = { get cur(){ return cur; }, get ex(){ return ex; }, get osmd(){ return osmd; },
+  window.__tech = { get cur(){ return cur; }, get ex(){ return ex; }, get osmd(){ return osmd; },
     get state(){ return { play: !!play, starting: !!starting, bpm, show, scheduled: audio.scheduledCount(), noteXs: noteXs.length }; }, setQuestion, examQuestions, examPool, switchTab, fitTitle, S, SY };
-  if (!S.onboarded) { switchTab("scale"); showOnboard(); }
-  else switchTab(S.tab || (S.exam ? "exam" : "scale"));
-  window.__stageReady = 1;
 }
-/* 離線使用:註冊 Service Worker(sw.js);本機開發(localhost)也註冊,方便測試 */
-if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) {
-  window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
-}
-init().catch(e => { console.error(e); $("qTitle").textContent = tr("資料載入失敗:", "Could not load data: ") + e.message; });

@@ -170,8 +170,11 @@ export function createStage(elements) {
        * on a line change, so the reader can still scroll freely in between.
        */
       const viewport = window.innerHeight || document.documentElement.clientHeight;
+      // 頂欄(含子項目列)固定在上方:目前這一行要在頂欄下面,不被蓋住
+      const header = document.querySelector('header');
+      const covered = header ? header.getBoundingClientRect().bottom : 0;
       const lineTop = highlight.getBoundingClientRect().top + window.scrollY;
-      window.scrollTo({ top: Math.max(0, lineTop - viewport * LEAD_RATIO), behavior: 'smooth' });
+      window.scrollTo({ top: Math.max(0, lineTop - covered - (viewport - covered) * LEAD_RATIO), behavior: 'smooth' });
     }
 
     const left = origin.x + box.contentLeft * scale;

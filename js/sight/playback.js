@@ -1,49 +1,14 @@
 /**
- * Reference playback, matching ScrollScore's audio chain.
- *
- * Real recorded piano, not a synthesised timbre: the Salamander sample set
- * that ScrollScore uses, picked by nearest recorded note and pitch-shifted
- * with playbackRate.
- *
- *   sample -> gain (envelope) -> pan (by pitch) -+-> master -> limiter -> out
- *                                                |
- *                                                +-> send -> reverb bus
- *
- * The room is the same synthesised impulse response ScrollScore builds:
- * decaying noise with a one-pole low-pass so the tail darkens, plus discrete
- * early reflections, 18 ms pre-delay. Space is fixed at ScrollScore's default
- * of 30, so there is nothing to switch on.
+ * 視奏的示範播放:把產生的題目排成「哪個音、什麼時候按、什麼時候放、踏板」,
+ * 聲音交給共用的音訊引擎(js/shared/audio.js:ScrollScore 的 Salamander 取樣、殘響、主控限幅)。
+ * 樂譜上的力度、漸強漸弱、斷奏/持音/重音、圓滑線、踏板、rit./a tempo、倚音都會影響播放。
  */
+import * as audio from '../shared/audio.js';
 
-const PIANO_BASE = 'https://tonejs.github.io/audio/salamander/';
-
-/** Exactly the notes the Salamander set ships, as in ScrollScore. */
-const SAMPLE_LIST = [
-  ['A', 0],
-  ['C', 1], ['Ds', 1], ['Fs', 1], ['A', 1],
-  ['C', 2], ['Ds', 2], ['Fs', 2], ['A', 2],
-  ['C', 3], ['Ds', 3], ['Fs', 3], ['A', 3],
-  ['C', 4], ['Ds', 4], ['Fs', 4], ['A', 4],
-  ['C', 5], ['Ds', 5], ['Fs', 5], ['A', 5],
-  ['C', 6], ['Ds', 6], ['Fs', 6], ['A', 6],
-  ['C', 7], ['Ds', 7], ['Fs', 7], ['A', 7],
-  ['C', 8],
-];
-
-const NOTE_SEMITONE = { C: 0, Cs: 1, D: 2, Ds: 3, E: 4, F: 5, Fs: 6, G: 7, Gs: 8, A: 9, As: 10, B: 11 };
-
-/** ScrollScore's slider default of 30, applied as amount * 0.55. */
-const SPACE_AMOUNT = 0.3;
-const REVERB_SEND = 0.5;
-const DECAY_TAU = 2.2;
-const PEAK_GAIN = 0.6;
-const TAIL = 0.4;
-/** A slurred note's release is left to bleed further into the next note's attack — ScrollScore's legato tail. */
-const LEGATO_TAIL = 0.6;
-/** Sustain pedal rings longer still, and a touch louder — every damper is off the strings, not just the held note's. */
-const PEDAL_TAIL = 0.9;
+const within = (p, ms) => Promise.race([p, new Promise((r) => setTimeout(r, ms))]);
+/** Sustain pedal: a touch louder — every damper is off the strings, not just the held note's. */
 const PEDAL_GAIN_BOOST = 1.1;
-/** How much softer/louder each printed dynamic is against `PEAK_GAIN`, `mf` (the usual unmarked default) left at 1. */
+/** How much softer/louder each printed dynamic is against mf (the usual unmarked default) left at 1. */
 const DYNAMIC_GAIN = {
   ppp: 0.4, pp: 0.5, p: 0.65, mp: 0.8, mf: 1, f: 1.25, ff: 1.55, fff: 1.9,
 };
@@ -52,205 +17,102 @@ const MIN_RIT_SCALE = 0.68;
 const MIN_RALL_SCALE = 0.55;
 /** An acciaccatura is crushed against the note it decorates — played just before it, not given its own beat. */
 const GRACE_LEAD = 0.09;
-/**
- * -1dBTP, the streaming-safe true-peak ceiling (YouTube/Spotify both target
- * this). `scripts/loudness.js`'s 4x-oversampled true-peak measurement found
- * the compressor below alone isn't enough to guarantee it: `DynamicsCompressorNode`
- * has no lookahead, so several notes attacking on the same sample (an ordinary
- * chord) sum and reach the output before the gain-reduction envelope has time
- * to respond — one randomly-generated Grade 8 test measured a true peak of
- * exactly 0dBTP, full scale, despite the compressor's -3dB threshold.
- */
-const TRUE_PEAK_CEILING = 0.891;
 
 export function createPlayer({ onStatus } = {}) {
-  let context = null;
-  let master = null;
-  let limiter = null;
-  let ceiling = null;
-  let reverbBus = null;
-  let samples = null;
-  let pending = null;
-  /** Sample downloads start immediately; decoding waits for a user gesture. */
-  let downloads = null;
-  let voices = [];
+  /* 合併成 PianoDrill 後:跟技巧、聽音模組用同一個音訊引擎(js/shared/audio.js,ScrollScore 的 Salamander 取樣、
+     同一個 AudioContext 與主控限幅)。這裡只負責把樂譜排成「什麼時候按、放、踏板」:速度變化、力度、奏法、踏板照舊 */
+  let playingUntil = 0;
   let stopTimer = null;
+  let chordResolve = null;
   /** AudioContext time of musical position zero, for visual sync. */
   let startTime = null;
+  let preloadJob = null;
 
-  const download = () => {
-    downloads ??= SAMPLE_LIST.map(([letter, octave]) => {
-      const midi = (octave + 1) * 12 + NOTE_SEMITONE[letter];
-      return fetch(`${PIANO_BASE}${letter}${octave}.mp3`)
-        .then((response) => {
-          if (!response.ok) throw new Error(String(response.status));
-          return response.arrayBuffer();
-        })
-        .then((data) => ({ midi, data }))
-        .catch(() => null); // a missing sample just drops out; the rest still play
-    });
-    return downloads;
-  };
-
-  const ensureAudio = () => {
-    if (context) {
-      if (context.state === 'suspended') context.resume();
-      return context;
+  const notesOf = (score) => {
+    const out = [];
+    for (const staffNumber of [1, 2]) {
+      for (const bar of score.staves[staffNumber]) {
+        for (const event of bar.events) {
+          if (event.rest || !event.pitch) continue;
+          for (const pitch of [event.pitch, ...(event.chord ?? [])]) out.push({ midi: pitch.midi, vel: 64 });
+          if (event.grace) out.push({ midi: event.grace.pitch.midi, vel: 56 });
+        }
+      }
     }
-    context = new (window.AudioContext ?? window.webkitAudioContext)();
-
-    master = context.createGain();
-    // Calibrated against `scripts/loudness.js`'s real ITU-R BS.1770 LUFS
-    // measurement of the actual playback chain (post-limiter, the exact
-    // signal that reaches destination) — 0.48 was picked purely for
-    // "headroom" and measured at -23 LUFS integrated, well under YouTube/
-    // Spotify's -14 LUFS normalization target. This value is that
-    // measurement's +9 dB correction applied; the limiter below is what
-    // keeps the now-hotter signal from clipping on louder passages.
-    master.gain.value = 1.36;
-
-    limiter = context.createDynamicsCompressor();
-    limiter.threshold.value = -6;
-    limiter.knee.value = 3;
-    limiter.ratio.value = 12;
-    limiter.attack.value = 0.001;
-    limiter.release.value = 0.25;
-
-    // A lookahead-free compressor alone can't guarantee a true-peak ceiling —
-    // see TRUE_PEAK_CEILING above — so a WaveShaper soft-clip sits after it as
-    // a final safety net. `oversample: '4x'` makes the shaping itself immune
-    // to the same inter-sample-overshoot problem it exists to prevent. The
-    // curve is a scaled tanh: near-linear (and so inaudible) for anything
-    // well under the ceiling, and asymptotically approaches but never
-    // crosses it for whatever rare transient the compressor let through.
-    ceiling = context.createWaveShaper();
-    ceiling.oversample = '4x';
-    ceiling.curve = truePeakCurve();
-
-    master.connect(limiter);
-    limiter.connect(ceiling);
-    ceiling.connect(context.destination);
-
-    reverbBus = context.createGain();
-    const preDelay = context.createDelay(0.2);
-    preDelay.delayTime.value = 0.018;
-    const convolver = context.createConvolver();
-    convolver.buffer = impulseResponse(context, 2.1, 2.4);
-    const wet = context.createGain();
-    wet.gain.value = SPACE_AMOUNT * 0.55;
-
-    reverbBus.connect(preDelay);
-    preDelay.connect(convolver);
-    convolver.connect(wet);
-    wet.connect(master); // before the limiter, so the tail is protected too
-
-    return context;
+    return out;
   };
-
-  const loadSamples = () => {
-    if (samples) return Promise.resolve(samples);
-    if (pending) return pending;
-
-    // Passed as an i18n key, not already-localized text — app.js's onStatus
-    // callback resolves it via t(), so a language switch mid-load still
-    // re-renders correctly (see app.js's `lastMessage`/`refreshDynamicText`).
+  /* 取樣:只載這一題用得到的音(打開題目就先在背景載,按播放時接著等同一個工作) */
+  const loadFor = (notes) => {
+    const key = notes.map((n) => n.midi).sort((a, b) => a - b).join(',');
+    if (preloadJob && preloadJob.key === key) return preloadJob.p;
     onStatus?.('loadingSamples');
-    pending = Promise.all(download())
-      .then((entries) => Promise.all(
-        entries.filter(Boolean).map(
-          ({ midi, data }) => context.decodeAudioData(data.slice(0))
-            .then((buffer) => ({ midi, buffer }))
-            .catch(() => null),
-        ),
-      ))
-      .then((decoded) => {
-        samples = decoded.filter(Boolean).sort((a, b) => a.midi - b.midi);
-        onStatus?.(samples.length ? null : 'samplesFailed');
-        return samples;
-      });
-    return pending;
+    const job = { key, p: null };
+    job.p = audio.loadPianoFor(notes, 6)
+      .then(() => { if (preloadJob === job) onStatus?.(null); return true; })
+      .catch(() => { if (preloadJob === job) { preloadJob = null; onStatus?.('samplesFailed'); } return false; });
+    preloadJob = job;
+    return job.p;
+  };
+  const ready = async (notes) => {
+    const ctx = audio.ensureAudio();
+    if (ctx.state !== 'running') await within(ctx.resume().catch(() => {}), 1500);
+    const ok = await loadFor(notes);
+    await within(audio.masterReady, 1500);
+    return ok ? ctx : null;
   };
 
-  // The keynote chord's promise: resolves true when it rings out, false when
-  // cut off by stop() — otherwise whoever awaits it (the prep countdown) waits forever.
-  let chordResolve = null;
   const stop = () => {
     if (chordResolve) {
       const resolve = chordResolve;
       chordResolve = null;
       resolve(false);
     }
-    for (const voice of voices) {
-      try {
-        voice.stop();
-      } catch {
-        /* already stopped */
-      }
-    }
-    voices = [];
+    if (playingUntil) audio.stopAll();
+    playingUntil = 0;
     startTime = null;
     clearTimeout(stopTimer);
     stopTimer = null;
   };
 
+  /* 一個音:力度(相對 mf 的音量倍數)換成 MIDI 力度;keyUp = 放鍵,踏板中的音等踏板放開才停 */
+  const note = (midi, at, sustain, gainScale, pedalEnd) => {
+    const vel = Math.max(18, Math.min(124, Math.round(64 * Math.sqrt(gainScale))));
+    const keyUp = at + Math.max(0.05, sustain);
+    audio.playPianoNote(midi, at, keyUp, pedalEnd ? Math.max(keyUp, pedalEnd) : keyUp, vel, !!pedalEnd);
+    playingUntil = Math.max(playingUntil, (pedalEnd || keyUp) + 0.4);
+  };
+
   return {
     get playing() {
-      return voices.length > 0;
-    },
-    /**
-     * Debugging hook, matching `window.__osmd`/`window.__stage` — used by
-     * `scripts/loudness.js` to tap the real output chain for LUFS/true-peak
-     * calibration rather than measuring an approximation of the gain-staging
-     * math. `output` (the true-peak safety clip) is the exact signal that
-     * reaches `context.destination`; `limiter` is exposed too since it's
-     * still the node earlier LUFS calibration measured from and some callers
-     * may want the pre-safety-net signal specifically.
-     */
-    get audioNodes() {
-      return context ? { context, master, limiter, output: ceiling } : null;
+      return playingUntil > 0;
     },
     /** Seconds since the first note, or null when not playing. */
     get elapsed() {
-      if (startTime === null || !context) return null;
-      return context.currentTime - startTime;
+      const ctx = audio.getCtx();
+      if (startTime === null || !ctx) return null;
+      return ctx.currentTime - startTime;
     },
     /** Start fetching the samples before anyone presses play. */
-    preload: download,
+    preload(score) { if (score) loadFor(notesOf(score)); },
     stop,
     /**
-     * A short block chord — the tonic triad given before the 30-second
-     * preparation starts, matching what an examiner plays to establish the
-     * key. Shares the sample chain and voice bookkeeping with `play()`
-     * rather than standing up a second audio path, so it is stopped by the
-     * same `stop()` (pressing Stop, or starting a new test, cuts it off
-     * exactly as it would the reference playback). `startTime` is left
-     * untouched: a chord announcement isn't the timeline `startFollowing()`
-     * tracks, so `elapsed` should keep reporting null through it.
+     * 主音三和弦(30 秒準備前給音,像考官先彈主和弦)。回傳 true = 響完;被停止或換題 = false
      * @param {number[]} midis
-     * @returns {Promise<boolean>} true once the chord has decayed, false if it was cut off
+     * @returns {Promise<boolean>}
      */
     async playChord(midis, { duration = 1.3 } = {}) {
       stop();
-      ensureAudio();
-      await loadSamples();
-
-      const at = context.currentTime + 0.08;
-      let end = at;
-      for (const midi of midis) {
-        const voice = samples?.length
-          ? sampledNote(context, { master, reverbBus }, samples, midi, at, duration)
-          : fallbackNote(context, { master, reverbBus }, midi, at, duration);
-        voices.push(voice);
-        end = Math.max(end, at + duration);
-      }
-
+      const ctx = await ready(midis.map((midi) => ({ midi, vel: 64 })));
+      if (!ctx) return false;
+      const at = ctx.currentTime + 0.08;
+      for (const midi of midis) note(midi, at, duration, 1, 0);
       return new Promise((resolve) => {
         chordResolve = resolve;
         stopTimer = setTimeout(() => {
-          voices = [];
+          playingUntil = 0;
           chordResolve = null;
           resolve(true);
-        }, (end - context.currentTime + TAIL + 0.3) * 1000);
+        }, (at + duration - ctx.currentTime + 0.5) * 1000);
       });
     },
     /**
@@ -259,19 +121,16 @@ export function createPlayer({ onStatus } = {}) {
      */
     async play(score, options = {}) {
       stop();
-      ensureAudio();
-      await loadSamples();
+      const ctx = await ready(notesOf(score));
+      if (!ctx) throw new Error('piano samples');
 
       const bpm = score.tempoBpm * (options.tempoScale ?? 1);
       const secondsPerDivision = 60 / bpm / score.divisions;
-      const start = context.currentTime + 0.15;
+      const start = ctx.currentTime + 0.15;
       startTime = start;
+      playingUntil = start;
       let end = start;
 
-      // Every printed direction (dynamics, wedges, pedal, rit./a tempo/rall.)
-      // lives on only one staff or the other, but all of them apply to the
-      // whole texture — so this is built once, in notated-offset space
-      // shared by both hands, rather than re-derived per staff.
       const timeline = scoreDirectionTimeline(score);
       const timeAt = buildTimeMap(score, timeline, secondsPerDivision, start);
       const gainAt = buildDynamicsEnvelope(timeline);
@@ -280,48 +139,30 @@ export function createPlayer({ onStatus } = {}) {
       for (const staffNumber of [1, 2]) {
         const { notes, slurRanges } = layOutStaff(score.staves[staffNumber], score.barDuration);
         const legatoAt = (offset) => slurRanges.some((range) => offset >= range.start && offset < range.end);
-        const pedalOnAt = (offset) => pedalRanges.some((range) => offset >= range.start && offset < range.end);
+        const pedalAt = (offset) => pedalRanges.find((range) => offset >= range.start && offset < range.end);
 
         for (const { event, offset, dur } of notes) {
           const at = timeAt(offset);
-          // Both endpoints go through the same tempo-warped map, so a note
-          // under a ritardando doesn't just start later — it actually lasts
-          // longer in real seconds too, which is what makes the slowing
-          // audible rather than just delayed.
           const duration = timeAt(offset + dur) - at;
-          const pedalOn = pedalOnAt(offset);
-          const legato = !pedalOn && legatoAt(offset);
-          const envelope = {
-            tail: pedalOn ? PEDAL_TAIL : (legato ? LEGATO_TAIL : TAIL),
-            gainScale: gainAt(offset) * (pedalOn ? PEDAL_GAIN_BOOST : 1),
-            articulations: event.articulations,
-          };
-          for (const pitch of [event.pitch, ...(event.chord ?? [])]) {
-            const voice = samples?.length
-              ? sampledNote(context, { master, reverbBus }, samples, pitch.midi, at, duration, envelope)
-              : fallbackNote(context, { master, reverbBus }, pitch.midi, at, duration, envelope);
-            voices.push(voice);
-          }
+          const pedal = pedalAt(offset);
+          const legato = !pedal && legatoAt(offset);
+          const { sustain, gain } = applyArticulation(duration * (legato ? 1.04 : 0.94), duration, event.articulations, 0);
+          const gainScale = gainAt(offset) * gain * (pedal ? PEDAL_GAIN_BOOST : 1);
+          const pedalEnd = pedal ? timeAt(pedal.end) : 0;
+          for (const pitch of [event.pitch, ...(event.chord ?? [])]) note(pitch.midi, at, sustain, gainScale, pedalEnd);
           if (event.grace) {
-            // Crushed against the beat: as short as it can be while still
-            // sounding like a distinct note, played right up against the
-            // main note's own onset rather than taking time from the beat.
             const graceDuration = Math.min(GRACE_LEAD, duration * 0.4);
-            const graceAt = Math.max(start, at - graceDuration);
-            const graceEnvelope = { tail: TAIL, gainScale: envelope.gainScale * 0.85 };
-            const voice = samples?.length
-              ? sampledNote(context, { master, reverbBus }, samples, event.grace.pitch.midi, graceAt, graceDuration, graceEnvelope)
-              : fallbackNote(context, { master, reverbBus }, event.grace.pitch.midi, graceAt, graceDuration, graceEnvelope);
-            voices.push(voice);
+            note(event.grace.pitch.midi, Math.max(start, at - graceDuration), graceDuration, gainScale * 0.85, 0);
           }
           end = Math.max(end, at + duration);
         }
       }
+      audio.pruneScheduled();
 
       stopTimer = setTimeout(() => {
-        voices = [];
+        playingUntil = 0;
         options.onEnd?.();
-      }, (end - context.currentTime + TAIL + 2.1) * 1000);
+      }, (end - ctx.currentTime + 0.6) * 1000);
     },
   };
 }
@@ -530,27 +371,7 @@ function buildPedalRanges(timeline) {
   return ranges;
 }
 
-/**
- * Low strings sit left, high strings right, from the player's seat. Kept
- * narrow (±0.32) — wider reads as two pianos rather than one.
- */
-function panFor(midi) {
-  const position = Math.max(0, Math.min(1, (midi - 21) / 87));
-  return (position - 0.5) * 0.64;
-}
 
-function nearest(samples, midi) {
-  let best = samples[0];
-  let bestDistance = Infinity;
-  for (const sample of samples) {
-    const distance = Math.abs(sample.midi - midi);
-    if (distance < bestDistance) {
-      bestDistance = distance;
-      best = sample;
-    }
-  }
-  return best;
-}
 
 /**
  * Duration and gain shaping for engraved articulation marks, matching
@@ -599,122 +420,6 @@ function applyArticulation(sustain, duration, articulations, tail) {
   return { sustain: s, gain, tail: t };
 }
 
-function sampledNote(context, buses, samples, midi, at, duration, envelope = {}) {
-  const { tail: baseTail = TAIL, gainScale = 1, articulations = null } = envelope;
-  const sample = nearest(samples, midi);
-  const rate = 2 ** ((midi - sample.midi) / 12);
 
-  const source = context.createBufferSource();
-  source.buffer = sample.buffer;
-  source.playbackRate.setValueAtTime(rate, at);
 
-  const { sustain, gain: articGain, tail } = applyArticulation(Math.max(duration, 0.1), duration, articulations, baseTail);
-  const peak = PEAK_GAIN * gainScale * articGain;
-  // The recording may be shorter than the note needs; loop its tail to hold on.
-  const needed = (sustain + tail) * rate;
-  if (sample.buffer.duration < needed && sample.buffer.duration > 0.3) {
-    const loopLength = Math.min(0.6, sample.buffer.duration * 0.3);
-    source.loop = true;
-    source.loopStart = Math.max(0, sample.buffer.duration - loopLength);
-    source.loopEnd = sample.buffer.duration;
-  }
 
-  const gain = context.createGain();
-  gain.gain.setValueAtTime(peak, at);
-  // A struck string decays at a fixed rate per second, so a long note and a
-  // short one lose loudness at the same speed.
-  const decayEnd = Math.max(at + sustain, at + 0.02);
-  const endLevel = Math.max(0.06, Math.exp(-(decayEnd - at) / DECAY_TAU));
-  gain.gain.exponentialRampToValueAtTime(Math.max(0.0002, peak * endLevel), decayEnd);
-  gain.gain.exponentialRampToValueAtTime(0.0001, decayEnd + tail);
-
-  const panner = context.createStereoPanner();
-  panner.pan.value = panFor(midi);
-
-  source.connect(gain).connect(panner);
-  panner.connect(buses.master);
-
-  const send = context.createGain();
-  send.gain.value = REVERB_SEND;
-  panner.connect(send).connect(buses.reverbBus);
-
-  source.start(at);
-  source.stop(decayEnd + tail + 0.05);
-  return source;
-}
-
-/** Only reached if the sample set cannot be fetched at all. */
-function fallbackNote(context, buses, midi, at, duration, envelope = {}) {
-  const { tail: baseTail = TAIL, gainScale = 1, articulations = null } = envelope;
-  const oscillator = context.createOscillator();
-  const gain = context.createGain();
-  const panner = context.createStereoPanner();
-  const { sustain, gain: articGain, tail } = applyArticulation(Math.max(duration * 0.92, 0.09), duration, articulations, baseTail);
-  const peak = 0.25 * gainScale * articGain;
-
-  oscillator.type = 'triangle';
-  oscillator.frequency.value = 440 * 2 ** ((midi - 69) / 12);
-  gain.gain.setValueAtTime(0.0001, at);
-  gain.gain.exponentialRampToValueAtTime(peak, at + 0.012);
-  gain.gain.exponentialRampToValueAtTime(0.0001, at + sustain + tail);
-  panner.pan.value = panFor(midi);
-
-  oscillator.connect(gain).connect(panner);
-  panner.connect(buses.master);
-  const send = context.createGain();
-  send.gain.value = REVERB_SEND;
-  panner.connect(send).connect(buses.reverbBus);
-
-  oscillator.start(at);
-  oscillator.stop(at + sustain + tail + 0.05);
-  return oscillator;
-}
-
-/**
- * WaveShaper curve for the true-peak safety clip: `TRUE_PEAK_CEILING * tanh(x
- * / TRUE_PEAK_CEILING)`. tanh's slope is 1 at the origin and falls off as `x`
- * grows, so this is near-identity (inaudible) for anything well under the
- * ceiling and asymptotically approaches but never reaches it beyond that —
- * softer than a hard clip, which would add odd-harmonic distortion right at
- * the moments this is meant to protect.
- */
-function truePeakCurve(steps = 1024) {
-  const curve = new Float32Array(steps);
-  for (let i = 0; i < steps; i++) {
-    const x = (i / (steps - 1)) * 2 - 1;
-    curve[i] = TRUE_PEAK_CEILING * Math.tanh(x / TRUE_PEAK_CEILING);
-  }
-  return curve;
-}
-
-/**
- * Room impulse response, built rather than downloaded.
- * Independent noise per channel gives the tail real stereo width; the
- * one-pole low-pass darkens it over time the way a room absorbs highs; the
- * discrete early reflections are what actually convey the size of the space.
- */
-function impulseResponse(context, seconds, decayPower) {
-  const rate = context.sampleRate;
-  const length = Math.max(1, Math.floor(rate * seconds));
-  const buffer = context.createBuffer(2, length, rate);
-
-  for (let channel = 0; channel < 2; channel++) {
-    const samples = buffer.getChannelData(channel);
-    let lowpass = 0;
-    for (let i = 0; i < length; i++) {
-      const progress = i / length;
-      const noise = (Math.random() * 2 - 1) * (1 - progress) ** decayPower;
-      const coefficient = 0.42 * (1 - progress * 0.8) + 0.02;
-      lowpass += coefficient * (noise - lowpass);
-      samples[i] = lowpass;
-    }
-    const early = [0.011, 0.019, 0.031, 0.044, 0.058, 0.077];
-    early.forEach((time, index) => {
-      const position = Math.floor(rate * (time + (channel ? 0.0031 : 0)));
-      if (position < length) {
-        samples[position] += (0.55 - index * 0.07) * (channel ? -1 : 1) * 0.6;
-      }
-    });
-  }
-  return buffer;
-}

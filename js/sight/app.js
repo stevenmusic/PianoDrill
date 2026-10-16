@@ -1,49 +1,58 @@
-import { generateTest, keyOptionsFor } from '../generator/generate.js?v=130f9c20';
-import { toMusicXml } from '../generator/musicxml.js?v=130f9c20';
-import { createHistory, generateUnique } from '../generator/fingerprint.js?v=130f9c20';
-import { createKey, pitchAt } from '../generator/theory.js?v=130f9c20';
-import { createPlayer } from './playback.js?v=130f9c20';
-import { createRecorder } from './mic.js?v=130f9c20';
-import { expectedOnsets, detectOnsets, scoreRhythm } from './scoring.js?v=130f9c20';
-import { createStage, barTimings } from './stage.js?v=130f9c20';
-import { initLanguage, applyLanguage, getLanguage, t, onLanguageChange } from './i18n.js?v=130f9c20';
+import { generateTest, keyOptionsFor } from './generator/generate.js';
+import { toMusicXml } from './generator/musicxml.js';
+import { createHistory, generateUnique } from './generator/fingerprint.js';
+import { createKey, pitchAt } from './generator/theory.js';
+import { createPlayer } from './playback.js';
+import { createRecorder } from './mic.js';
+import { expectedOnsets, detectOnsets, scoreRhythm } from './scoring.js';
+import { createStage, barTimings } from './stage.js';
+import { t, applySightStatic } from './i18n.js';
 
-// As early as possible, before any other DOM work below, so the page never
-// paints in the wrong language for a returning en visitor.
-initLanguage();
-
-// Keys keep the old 'sightscore' prefix on purpose: the app was renamed
-// SightScore → SightDrill, and renaming them would wipe saved history/layout.
-const STORAGE_KEY = 'sightscore.history.v1';
-const LAYOUT_STORAGE_KEY = 'sightscore.layout.v1';
+/* 視奏模組(原 SightDrill):外框(js/main.js)負責頂欄、分頁、主題、語言與考試設定;這裡的元素 id 都加 "s-" 前綴。
+   檢定分頁:只有 ABRSM 1–8 級有出題規則(照官方視奏範例整理),其他考試/級數只說明還沒有,不自己發明 */
+// 儲存鍵:合併成 PianoDrill 後改前綴;第一次打開沿用同一個網域上 SightDrill 留下的紀錄
+const STORAGE_KEY = 'pianodrill.sight.history.v1';
+const LAYOUT_STORAGE_KEY = 'pianodrill.sight.layout.v1';
+const OLD_KEYS = { [STORAGE_KEY]: 'sightscore.history.v1', [LAYOUT_STORAGE_KEY]: 'sightscore.layout.v1', 'pianodrill.sight.practice.v1': 'sightdrill.practice.v1', 'pianodrill.sight.mic': 'sightdrill.mic' };
+function readKey(key) {
+  const v = localStorage.getItem(key);
+  return v ?? (OLD_KEYS[key] ? localStorage.getItem(OLD_KEYS[key]) : null);
+}
+const SS = (() => { try { return { grade: 1, ...JSON.parse(localStorage.getItem('pianodrill.sight.v1') || '{}') }; } catch { return { grade: 1 }; } })();
+const saveSS = () => { try { localStorage.setItem('pianodrill.sight.v1', JSON.stringify(SS)); } catch { /* 存不了就算了 */ } };
+const $ = (id) => document.getElementById('s-' + id);
+let active = false;
+let mode = 'free';          // 'free' 自由練習 / 'exam' 檢定分頁
+let exam = { system: 'abrsm', grade: 1, auto: true };
+let ctx = null;
+/* 目前用哪一級出題:檢定分頁照考試級數,自由練習照自己選的 */
+const currentGrade = () => (mode === 'exam' ? exam.grade : SS.grade);
+/* 檢定分頁:這個考試/級數有沒有視奏規則 */
+const examSupported = () => exam.system === 'abrsm' && exam.grade >= 1 && exam.grade <= 8;
 
 const elements = {
-  gradeControls: document.getElementById('grade-controls'),
-  grade: document.getElementById('grade'),
-  key: document.getElementById('key'),
-  generate: document.getElementById('generate'),
-  prepare: document.getElementById('prepare'),
-  play: document.getElementById('play'),
-  playIcon: document.getElementById('playIcon'),
-  stop: document.getElementById('stop'),
-  countdown: document.getElementById('countdown'),
-  countdownValue: document.getElementById('countdown-value'),
-  meta: document.getElementById('meta'),
-  metaRow: document.getElementById('meta-row'),
-  scoreFrame: document.getElementById('score-frame'),
-  score: document.getElementById('score'),
-  playline: document.getElementById('playline'),
-  highlight: document.getElementById('measure-highlight'),
-  message: document.getElementById('message'),
-  checklist: document.getElementById('checklist'),
-  along: document.getElementById('along'),
-  playAlong: document.getElementById('play-along'),
-  alongMic: document.getElementById('along-mic'),
-  alongResult: document.getElementById('along-result'),
-  historyInfo: document.getElementById('history-info'),
-  clearHistory: document.getElementById('clear-history'),
-  confidence: document.getElementById('confidence'),
-  langToggle: document.getElementById('lang-toggle'),
+  key: $('key'),
+  grades: $('grades'),
+  sum: $('sum'),
+  generate: $('generate'),
+  prepare: $('prepare'),
+  play: $('play'),
+  playIcon: $('playIcon'),
+  stop: $('stop'),
+  countdown: $('countdown'),
+  countdownValue: $('countdownValue'),
+  meta: $('meta'),
+  score: $('score'),
+  playline: $('playline'),
+  highlight: $('highlight'),
+  message: $('message'),
+  checklist: $('checklist'),
+  along: $('along'),
+  playAlong: $('playAlong'),
+  alongMic: $('alongMic'),
+  alongResult: $('alongResult'),
+  clearHistory: $('clearHistory'),
+  confidence: $('confidence'),
 };
 
 /* ScrollScore's icon paths, so the two apps show the same glyphs. */
@@ -58,7 +67,7 @@ const player = createPlayer({
 });
 const history = createHistory({
   capacity: 60,
-  load: () => JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '[]'),
+  load: () => JSON.parse(readKey(STORAGE_KEY) ?? '[]'),
   save: (entries) => localStorage.setItem(STORAGE_KEY, JSON.stringify(entries)),
 });
 
@@ -98,7 +107,7 @@ const history = createHistory({
  */
 const layoutCache = (() => {
   try {
-    return JSON.parse(localStorage.getItem(LAYOUT_STORAGE_KEY) ?? '{}');
+    return JSON.parse(readKey(LAYOUT_STORAGE_KEY) ?? '{}');
   } catch {
     return {};
   }
@@ -243,9 +252,6 @@ const MAX_MEASURES_PER_LINE = 5;
  *     the row out on even sideways (matches the breakpoint where the
  *     transport buttons' own labels reappear).
  */
-const TOP_ROW_QUERY = window.matchMedia(
-  '(min-width: 900px), (orientation: landscape) and (max-height: 420px) and (min-width: 600px)',
-);
 
 /** Keyed by `score.confidence` — matches the i18n dictionary's own key names
  * one-to-one, so a lookup here is just `t(CONFIDENCE_LABEL_KEY[confidence])`. */
@@ -263,8 +269,6 @@ const CONFIDENCE_LABEL_KEY = {
  */
 let lastMessage = null;
 
-init();
-
 /** Ordinary status text, clearing any error styling left behind. */
 function say(key, params) {
   lastMessage = { kind: 'say', key, params };
@@ -280,35 +284,7 @@ function fail(key, detail) {
   elements.generate.disabled = true;
 }
 
-window.addEventListener('error', (event) => fail('errorGeneric', event.message));
-window.addEventListener('unhandledrejection', (event) => fail('errorGeneric', String(event.reason)));
 
-/**
- * Move the actual #grade-controls (grade + key together, see index.html)
- * and #countdown elements (not copies — they keep their ids and listeners
- * either way) between the score's own top corners and a shared row with
- * the meta line, depending on whether the viewport has room to spare.
- * `showMeta` replaces #meta's own innerHTML on every test, which is why
- * they're moved into #meta-row (a stable wrapper) rather than into #meta
- * itself.
- */
-function pinTopRowLayout() {
-  if (TOP_ROW_QUERY.matches) {
-    if (elements.gradeControls.parentElement !== elements.metaRow) {
-      elements.metaRow.insertBefore(elements.gradeControls, elements.meta);
-    }
-    if (elements.countdown.parentElement !== elements.metaRow) {
-      elements.metaRow.appendChild(elements.countdown);
-    }
-  } else {
-    if (elements.gradeControls.parentElement !== elements.scoreFrame) {
-      elements.scoreFrame.insertBefore(elements.gradeControls, elements.scoreFrame.firstChild);
-    }
-    if (elements.countdown.parentElement !== elements.scoreFrame) {
-      elements.scoreFrame.insertBefore(elements.countdown, elements.gradeControls.nextSibling);
-    }
-  }
-}
 
 /**
  * Move the tempo/character-word text to a fixed spot right after bar 1's
@@ -520,8 +496,13 @@ function pinTempoTermPosition() {
   }
 }
 
-async function init() {
+/* ── 啟動(外框呼叫)── */
+export async function start(c) {
+  ctx = c;
+  exam = { ...c.exam };
   elements.generate.disabled = true;
+  applySightStatic();
+  renderGradeOpts();
 
   if (typeof opensheetmusicdisplay === 'undefined') {
     fail('loadingOSMD');
@@ -529,7 +510,9 @@ async function init() {
   }
 
   try {
-    const response = await fetch(new URL('../rules/abrsm-piano-grades.json', import.meta.url));
+    let ver = {}; try { ver = JSON.parse(document.getElementById('pdVersions').textContent); } catch { /* 沒有版本指紋就直接讀 */ }
+    const f = 'data/sight-rules.json';
+    const response = await fetch(f + (ver[f] ? '?v=' + ver[f] : ''));
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     rules = await response.json();
   } catch (error) {
@@ -603,9 +586,9 @@ async function init() {
   elements.prepare.addEventListener('click', startCountdown);
   elements.play.addEventListener('click', togglePlayback);
   elements.playAlong.addEventListener('click', togglePlayAlong);
-  try { elements.alongMic.checked = localStorage.getItem('sightdrill.mic') === '1'; } catch { /* 沒有儲存空間就預設關 */ }
+  try { elements.alongMic.checked = readKey('pianodrill.sight.mic') === '1'; } catch { /* 沒有儲存空間就預設關 */ }
   elements.alongMic.addEventListener('change', () => {
-    try { localStorage.setItem('sightdrill.mic', elements.alongMic.checked ? '1' : '0'); } catch { /* 不影響使用 */ }
+    try { localStorage.setItem('pianodrill.sight.mic', elements.alongMic.checked ? '1' : '0'); } catch { /* 不影響使用 */ }
   });
   setAlongLabel();
   elements.stop.addEventListener('click', () => {
@@ -620,64 +603,23 @@ async function init() {
     history.clear();
     updateHistoryInfo();
   });
-  elements.grade.addEventListener('change', () => {
-    // Each grade allows a different key list, so the dropdown has to be
-    // rebuilt before (possibly) generating off it.
+  elements.grades.addEventListener('click', (event) => {
+    const b = event.target.closest('.opt'); if (!b || mode === 'exam') return;
+    SS.grade = Number(b.dataset.v); saveSS();
+    renderGradeOpts();
+    // 每一級的調不一樣:調的清單重做(原本選的調如果這一級也有就留著)
     populateKeyOptions();
     if (current) newTest();
   });
   elements.key.addEventListener('change', () => {
+    renderSummary();
     if (current) newTest();
   });
-  // 深色/淺色主題(預設深色,跟 FingerDrill 一樣)。樂譜紙張兩種主題都是白紙,不用重畫。
-  const themeToggle = document.getElementById('theme-toggle');
-  const applyTheme = (light) => {
-    document.documentElement.classList.toggle('light', light);
-    themeToggle.setAttribute('aria-pressed', String(light));
-    document.querySelector('meta[name="theme-color"]').content = light ? '#FBF7EE' : '#0C0A07';
-  };
-  applyTheme(document.documentElement.classList.contains('light'));
-  themeToggle.addEventListener('click', () => {
-    const light = !document.documentElement.classList.contains('light');
-    applyTheme(light);
-    try { localStorage.setItem('sightdrill.theme', light ? 'light' : 'dark'); } catch { /* 私密模式:只是不記住 */ }
-  });
-  elements.langToggle.addEventListener('click', () => {
-    applyLanguage(getLanguage() === 'en' ? 'zh' : 'en');
-  });
-  // `aria-pressed` is a boolean, not translated text, so it's set here
-  // rather than via a static `data-i18n-attr`; `refreshDynamicText` covers
-  // everything else app.js itself builds or labels dynamically. `initLanguage()`
-  // (top of this module) already applied whichever language was stored
-  // before this listener existed to hear about it, so aria-pressed is
-  // synced once explicitly here too — otherwise a returning "en" visitor's
-  // toggle would render as unpressed until the next actual switch.
-  onLanguageChange((lang) => {
-    elements.langToggle.setAttribute('aria-pressed', lang === 'en' ? 'true' : 'false');
-    refreshDynamicText();
-  });
-  elements.langToggle.setAttribute('aria-pressed', getLanguage() === 'en' ? 'true' : 'false');
 
-  pinTopRowLayout();
-  // Crossing the breakpoint changes how much top padding `.score-frame`
-  // needs (see the CSS) and so how much room the score actually has, which
-  // fitScore's own search has to see fresh rather than reuse a cached
-  // layout computed for the other arrangement.
-  TOP_ROW_QUERY.addEventListener('change', () => {
-    pinTopRowLayout();
-    if (current) renderCurrent();
-  });
-
-  // Bars per line depend on the container's actual width, so a resize (or a
-  // phone rotating) can turn a fine layout into single-bar rows again. Width
-  // only, not height: mobile Safari fires a resize event whenever its
-  // address bar auto-hides or reappears from ordinary page scrolling, which
-  // only changes innerHeight — refitting (and so re-rendering the score) on
-  // every one of those reset the scroll position, making the score appear
-  // to snap back to the top while simply scrolling down through it.
+  // 樂譜每行幾小節要看寬度:轉向、改視窗寬度就重排(只看寬度:iOS 捲動時網址列收放只改高度,重排會跳回頂端)
   let lastWidth = window.innerWidth;
   window.addEventListener('resize', () => {
-    if (!current) return;
+    if (!current || !active) return;
     if (window.innerWidth === lastWidth) return;
     lastWidth = window.innerWidth;
     clearTimeout(resizeTimer);
@@ -685,22 +627,78 @@ async function init() {
     resizeTimer = setTimeout(() => { renderCurrent(); }, 200);
   });
 
-  // 「已紀錄 N 題」平常釘在畫面左下角;頁面長到要捲動時,釘住的徽章會在捲動途中
-  // 壓在樂譜上(所有工具共用的規則:固定的東西不能蓋住內容),這時改放回頁面最底端。
-  // 判斷時扣掉它自己放回頁面後多出的高度,免得在臨界高度來回切換。
-  const dockHistoryBadge = () => {
-    const badge = elements.historyInfo;
-    const docked = badge.classList.contains('docked');
-    const own = docked ? badge.offsetHeight + 12 : 0;
-    const shouldDock = document.documentElement.scrollHeight - own > window.innerHeight + 1;
-    if (shouldDock !== docked) badge.classList.toggle('docked', shouldDock);
-  };
-  // 下一格畫面才改:在 ResizeObserver 回呼裡直接改版面會觸發瀏覽器的
-  // 「ResizeObserver loop」錯誤,而這個 app 的全域錯誤處理會把它當成真的失敗。
-  new ResizeObserver(() => requestAnimationFrame(dockHistoryBadge)).observe(document.body);
-  window.addEventListener('resize', dockHistoryBadge);
-
   updateHistoryInfo();
+  renderSummary();
+}
+
+/* ── 外框:顯示 / 離開 / 考試 / 語言 / 快捷鍵 ── */
+let renderedWidth = 0;
+export function enter(tab) {
+  active = true;
+  const was = mode;
+  mode = tab === 'exam' ? 'exam' : 'free';
+  syncMode(was !== mode);
+  // 在別的分頁時寬度變了(或從沒畫過):回來時重排
+  if (current && window.innerWidth !== renderedWidth) renderCurrent();
+}
+export function leave() {
+  active = false;
+  stopAll();
+}
+export function setExam(ex) {
+  const changed = ex.system !== exam.system || ex.grade !== exam.grade;
+  exam = { ...ex };
+  if (rules && mode === 'exam' && changed) syncMode(true);
+}
+export function relang() {
+  applySightStatic();
+  refreshDynamicText();
+  renderGradeOpts();
+  renderSummary();
+  if (mode === 'exam') renderUnsupported();
+}
+export function examStatus() {
+  if (!examSupported()) return t('examNotYet');
+  const { today, streak } = practiceStats();
+  return today ? t('practiceStats', { today, streak }) : t('examReady');
+}
+export function onKey(e) {
+  if (e.code === 'Space') { e.preventDefault(); if (!elements.play.disabled) elements.play.click(); }
+  else if ((e.key === 'n' || e.key === 'N') && !elements.generate.disabled) elements.generate.click();
+}
+function stopAll() {
+  prepToken += 1;
+  stopCountdown();
+  player.stop();
+  if (alongStart !== null) stopPlayAlong();
+  stopFollowing();
+  setPlayState(false);
+}
+/* 自由練習 ↔ 檢定:級數改用考試的;這個考試/級數沒有規則時整個收起來,只留說明 */
+function syncMode(changed) {
+  const supported = mode !== 'exam' || examSupported();
+  $('unsupported').hidden = supported;
+  for (const id of ['setup', 'quiz', 'scoreCard']) $(id).hidden = !supported;
+  if (!supported) { stopAll(); elements.along.hidden = true; renderUnsupported(); return; }
+  $('gradeRow').hidden = mode === 'exam';
+  renderGradeOpts();
+  if (rules) populateKeyOptions();
+  renderSummary();
+  // 換了級數(或第一次進來):重新出一題
+  if (rules && (changed || !current || current.score.grade !== currentGrade())) newTest();
+}
+function renderUnsupported() {
+  const ini = exam.grade === 0;
+  $('unsupportedText').textContent = exam.system === 'trinity'
+    ? t('unsupportedTrinity')
+    : ini ? t('unsupportedInitial') : t('examNotYet');
+}
+function renderGradeOpts() {
+  elements.grades.innerHTML = [1, 2, 3, 4, 5, 6, 7, 8].map((g) => `<button class="opt" data-v="${g}" aria-pressed="${g === currentGrade()}">${escapeHtml(t('gradeN', { n: g }))}</button>`).join('');
+}
+function renderSummary() {
+  const keyText = elements.key.selectedOptions[0]?.textContent ?? t('randomKey');
+  elements.sum.textContent = (mode === 'exam' ? `ABRSM ${t('gradeN', { n: currentGrade() })}` : t('gradeN', { n: currentGrade() })) + ' · ' + keyText;
 }
 
 /**
@@ -742,7 +740,7 @@ function refreshDynamicText() {
  * Grade 5 doesn't quietly drop a still-valid "C 大調" pick back to random.
  */
 function populateKeyOptions() {
-  const gradeRules = rules.grades[elements.grade.value];
+  const gradeRules = rules.grades[String(currentGrade())];
   const { major, minor } = keyOptionsFor(gradeRules);
   const previous = elements.key.value;
 
@@ -771,15 +769,15 @@ async function newTest() {
 
   // Start fetching the piano samples now, so the first press of play is
   // immediate — same moment ScrollScore loads them, once there is a score.
-  player.preload();
 
-  const grade = Number(elements.grade.value);
+  const grade = currentGrade();
   // '' (隨機調性) keeps the fully-random pickKey() behaviour; otherwise
   // every retry generateUnique makes is forced to the same chosen key,
   // same as it's forced to the same grade.
   const [tonic, mode] = elements.key.value ? elements.key.value.split(':') : [];
   const { score } = generateUnique(() => generateTest(rules, { grade, tonic, mode }), history);
   current = { score, xml: toMusicXml(score) };
+  player.preload(score);
 
   loudRender = true;
   await renderCurrent();
@@ -847,6 +845,7 @@ async function drawTest({ score, xml }, quiet = false) {
   }
 
   await fitScore();
+  renderedWidth = window.innerWidth;
   // Two frames: the first lets the browser paint the held opacity-0 state
   // (removing `transition: none` alone wouldn't stop the two class changes
   // from collapsing into one paint), the second flips to the visible state
@@ -1031,7 +1030,7 @@ function renderAtStaffZoom() {
  * reserve room for hanging off the bottom of the screen.
  */
 function renderedScoreHeight() {
-  const svg = document.querySelector('#score svg');
+  const svg = elements.score.querySelector('svg');
   if (!svg) return 0;
   /*
    * From the top of the score container to the bottom of the engraving, so
@@ -1039,8 +1038,7 @@ function renderedScoreHeight() {
    * fit. Measuring the SVG alone would report a score that fits while the
    * padding pushed it off the bottom of the screen.
    */
-  const container = document.getElementById('score');
-  const top = container ? container.getBoundingClientRect().top : svg.getBoundingClientRect().top;
+  const top = elements.score.getBoundingClientRect().top;
   return svg.getBoundingClientRect().bottom - top;
 }
 
@@ -1054,14 +1052,11 @@ function renderedScoreHeight() {
  * legible and the page scrolls, which is the right trade on a small screen.
  */
 function availableScoreHeight() {
-  const scoreBox = document.getElementById('score')?.getBoundingClientRect();
-  if (!scoreBox) return Infinity;
-  const frame = document.getElementById('score-frame');
-  const framePadding = frame
-    ? parseFloat(getComputedStyle(frame).paddingBottom) || 0
-    : 0;
-  const viewport = window.innerHeight || document.documentElement.clientHeight;
-  return Math.max(120, viewport - scoreBox.top - framePadding - SCORE_BOTTOM_GAP);
+  const scoreBox = elements.score.getBoundingClientRect();
+  // 底部分頁列蓋住的部分不算(樂譜要在分頁列上方看得完)
+  const bar = document.getElementById('tabbar');
+  const bottom = bar && getComputedStyle(bar).position === 'fixed' ? bar.getBoundingClientRect().top : (window.innerHeight || document.documentElement.clientHeight);
+  return Math.max(120, bottom - scoreBox.top - SCORE_BOTTOM_GAP);
 }
 
 function hasSingleBarLine(layout) {
@@ -1385,10 +1380,10 @@ function togglePlayback() {
  * 練習紀錄:每次 30 秒準備跑完算「練了一題」,按日期存在本機。徽章顯示今天幾題、
  * 連續幾天(昨天或今天有練就不斷),跟其他練習 App 的每日目標一樣,給人回來練的理由。
  */
-const PRACTICE_KEY = 'sightdrill.practice.v1';
+const PRACTICE_KEY = 'pianodrill.sight.practice.v1';
 const dayKey = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 function readPractice() {
-  try { return JSON.parse(localStorage.getItem(PRACTICE_KEY) ?? '{}'); } catch { return {}; }
+  try { return JSON.parse(readKey(PRACTICE_KEY) ?? '{}'); } catch { return {}; }
 }
 function recordPractice() {
   const days = readPractice();
@@ -1396,6 +1391,7 @@ function recordPractice() {
   days[key] = (days[key] ?? 0) + 1;
   try { localStorage.setItem(PRACTICE_KEY, JSON.stringify(days)); } catch { /* 存不了就算了 */ }
   updateHistoryInfo();
+  if (ctx) ctx.examChanged();
 }
 function practiceStats() {
   const days = readPractice();
@@ -1407,12 +1403,12 @@ function practiceStats() {
   return { today, streak };
 }
 
+/* 練習紀錄卡:連續天數、今天做了幾題(30 秒準備做完算一題)、出過幾題(不重複出題的紀錄) */
 function updateHistoryInfo() {
   const { today, streak } = practiceStats();
-  elements.historyInfo.textContent = today || streak
-    ? t('practiceStats', { today, streak })
-    : t('historyCount', { count: history.size });
-  elements.historyInfo.title = t('historyCount', { count: history.size });
+  $('logStreak').textContent = streak;
+  $('logToday').textContent = today;
+  $('logTotal').textContent = history.size;
 }
 
 function escapeHtml(value) {

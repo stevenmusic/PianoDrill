@@ -1,11 +1,16 @@
-/* EarDrill 主程式:單音 / 音程 / 和弦 / 檢定 四個分頁,題目卡(播放、作答、批改)共用 */
+/* 聽音模組(原 EarDrill):單音 / 音程 / 和弦 / 檢定聽力測驗,題目卡(播放、作答、批改)共用。
+   外框(js/main.js)負責頂欄、分頁、考試系統與級數;這裡的元素 id 都加 "e-" 前綴 */
 import * as store from "./store.js";
 import { ALL_ITEMS, itemLabel, makeQuestion, pcName, isBlack, setSolfege, noteName } from "./ear.js";
 import { makeDrill, drillName, judgeTaps, judgeKeys } from "./aural.js";
-import { tr, T, applyStatic, setLang, getLang, pairText } from "./i18n.js";
-import * as audio from "./audio.js";
+import { tr, scoped, getLang, pairText } from "../shared/i18n.js";
+import * as audio from "../shared/audio.js";
+import "./strings.js";
+const T = scoped("ear");
 
-const $ = id => document.getElementById(id);
+const $ = id => document.getElementById("e-" + id);
+const ROOT = document.getElementById("mod-ear");
+let active = false, ctx = null;
 const S = store.load();
 let SY = null;
 const PRACTICE = ["note", "interval", "chord"];
@@ -14,26 +19,13 @@ let cur = null;                    // 目前的題目(格式見 aural.js 開頭)
 let A = null;                      // 作答狀態:{ step, results, done, keys: [], taps: [] }
 let examDrill = null;              // 檢定:目前練的 { test, drill, idx }
 
-/* ── 主題 ── */
-function applyTheme(){
-  const light = S.theme === "light";
-  document.body.classList.toggle("light", light);
-  $("themeToggle").setAttribute("aria-pressed", String(light));
-  document.querySelector('meta[name="theme-color"]').content = light ? "#FBF7EE" : "#0C0A07";
-}
-$("themeToggle").onclick = () => { S.theme = S.theme === "light" ? "dark" : "light"; store.save(); applyTheme(); };
-applyTheme();
-applyStatic();
-/* 語言切換:靜態文字換掉,選擇器、清單、題目重畫(題目內容不變,只換文字) */
-$("langToggle").onclick = () => {
-  setLang(getLang() === "zh" ? "en" : "zh");
+/* 語言切換(外框通知):選擇器、清單、題目重畫(題目內容不變,只換文字) */
+export function relang(){
   if (!SY) return;
-  if (!$("onboard").hidden) fillGrades($("obGrade"), obState.system, Number($("obGrade").value));
   const keep = cur, keepA = A, tab = S.tab;
-  switchTab(tab, true);
-  if (keep) { cur = relabel(keep); A = keepA; renderQuestion(); }
+  if (active) { switchTab(tab, true); if (keep) { cur = relabel(keep); A = keepA; renderQuestion(); } }
   renderLog();
-};
+}
 /* 換語言:同一題重新產生文字(選項標籤),音不變 */
 function relabel(q){
   if (q.tab && PRACTICE.includes(q.tab)) {
@@ -52,11 +44,6 @@ function segBind(el, get, set){
   sync();
   return sync;
 }
-// 手機:設定卡收成一行,點了展開
-document.querySelectorAll(".setup-summary").forEach(btn => btn.onclick = () => {
-  const card = btn.closest(".card"), open = !card.classList.contains("open");
-  card.classList.toggle("open", open); btn.setAttribute("aria-expanded", String(open));
-});
 
 /* ══ 單音 / 音程 / 和弦 設定 ══
    每一列 [鍵, 標籤, 選項, 多選?];多選列前面的 "__" 選項是快速組合 */
@@ -136,10 +123,6 @@ function newPractice(tab){
 const gradeLabel = g => g === 0 ? tr("初級", "Initial") : tr(g + " 級", "Grade " + g);
 function gradeOf(system, grade){ return SY.systems[system].grades.find(g => g.grade === grade); }
 function ensureExam(){ if (!S.exam) S.exam = { system: "abrsm", grade: 1, auto: true }; }
-function fillGrades(sel, system, grade){
-  sel.innerHTML = SY.systems[system].grades.map(g => `<option value="${g.grade}">${gradeLabel(g.grade)}</option>`).join("");
-  sel.value = String(gradeOf(system, grade) ? grade : SY.systems[system].grades[0].grade);
-}
 const examKey = (t, d) => `exam|${S.exam.system}|${S.exam.grade}|${t.id}|${d.type}`;
 function allDrills(){
   const g = gradeOf(S.exam.system, S.exam.grade);
@@ -148,9 +131,8 @@ function allDrills(){
 function renderExam(){
   ensureExam();
   const sys = SY.systems[S.exam.system], g = gradeOf(S.exam.system, S.exam.grade);
-  syncSystemSeg();
-  fillGrades($("selGrade"), S.exam.system, S.exam.grade);
-  $("examSummary").textContent = `${sys.name} · ${gradeLabel(g.grade)}`;
+  // 考試系統、級數在外框的檢定設定卡;這裡只寫本級有幾項測驗、答對要不要自動下一題
+  $("examSummary").textContent = tr(`${g.tests.length} 項聽力測驗`, `${g.tests.length} aural tests`) + " · " + (S.auto ? tr("答對自動下一題", "Auto next") : tr("手動下一題", "Manual next"));
   pairText($("examNote"), () => tr(`依據:${sys.syllabus} ${g.source}`, `Source: ${sys.syllabus}, ${g.source}`) + (sys.syllabusNote ? tr("(" + sys.syllabusNote + ")", "") : ""));
   $("testsSub").textContent = (getLang() === "en" ? g.paramsEn : g.params) || "";
   $("testsList").innerHTML = (g.params ? "" : "") + g.tests.map(t => {
@@ -162,8 +144,6 @@ function renderExam(){
     return `<div class="test"><h3><b>${t.id}</b><span>${getLang() === "en" ? t.en : t.zh}</span></h3>` +
       (chips ? `<div class="chips">${chips}</div>` : `<p class="self">${tr("這一項要看譜唱或口頭描述,App 不出題;請跟老師練習。", "Needs sight-singing or spoken description — practise with your teacher.")}</p>`) + `</div>`;
   }).join("");
-  $("examChip").hidden = !S.exam || S.exam.auto;
-  $("examChip").textContent = `${sys.name} ${gradeLabel(g.grade)}`;
 }
 $("testsList").onclick = e => {
   const b = e.target.closest(".chip[data-t]"); if (!b) return;
@@ -215,17 +195,20 @@ function showMockResult(){
   fb.textContent = ok === m.queue.length ? tr("全部答對!", "All correct!") : tr("錯的項目可以從下方清單再練", "Practise the missed ones from the list below");
   $("playBtn").disabled = true; $("revealBtn").hidden = true; $("nextBtn").disabled = false;   // 下一題 = 再考一次
 }
-const syncSystemSeg = segBind("systemSeg", () => S.exam ? S.exam.system : "abrsm", v => { ensureExam(); S.exam.system = v; delete S.exam.auto; if (!gradeOf(v, S.exam.grade)) S.exam.grade = 1; store.save(); onExamChange(); });
-$("selGrade").onchange = () => { ensureExam(); S.exam.grade = Number($("selGrade").value); delete S.exam.auto; store.save(); onExamChange(); };
-function onExamChange(){ examDrill = null; tabCur.exam = null; renderExam(); showEmpty(); renderStats(); }
-$("examChip").onclick = () => switchTab("exam");
+/* 外框改了考試系統/級數(exam.auto = 還沒選考試,只是點進檢定分頁看看) */
+export function setExam(ex){
+  S.exam = { system: ex.system, grade: ex.grade };
+  if (ex.auto) S.exam.auto = true;
+  store.save();
+  if (SY) onExamChange();
+}
+function onExamChange(){ examDrill = null; tabCur.exam = null; mock = null; renderExam(); if (active && S.tab === "exam") showEmpty(); renderStats(); }
 
 /* ══ 分頁切換 ══ */
 function switchTab(tab, keepQuestion){
   stopPlayback();
   S.tab = tab; store.save();
-  document.querySelectorAll("#tabbar button").forEach(b => b.setAttribute("aria-selected", String(b.dataset.tab === tab)));
-  document.querySelectorAll(".pane").forEach(p => p.hidden = p.dataset.pane !== tab);
+  ROOT.querySelectorAll(".pane").forEach(p => p.hidden = p.dataset.pane !== tab);
   $("drawBtn").hidden = tab !== "exam"; $("quizTop").hidden = tab !== "exam";
   $("mockBtn").hidden = tab !== "exam"; mock = null;
   if (PRACTICE.includes(tab)) { renderPicker(tab); if (!keepQuestion) { if (tabCur[tab]) setQuestion(tabCur[tab], tab, true); else newPractice(tab); } }
@@ -233,7 +216,9 @@ function switchTab(tab, keepQuestion){
   renderStats();
   if (!keepQuestion) window.scrollTo({ top: 0 });
 }
-$("tabbar").onclick = e => { const b = e.target.closest("button[data-tab]"); if (b) switchTab(b.dataset.tab); };
+/* 外框:顯示 / 離開這個模組 */
+export function enter(tab){ active = true; switchTab(tab); }
+export function leave(){ active = false; stopPlayback(); }
 
 /* ══ 題目卡 ══ */
 function showEmpty(){
@@ -286,14 +271,14 @@ function renderAnswers(){
   } else if (q.keys) {
     box.classList.remove("compact");
     $("stepQ").textContent = q.keys.target.length > 1 ? tr(`在鍵盤上彈出 ${q.keys.target.length} 個音`, `Play the ${q.keys.target.length} notes`) : "";   // 單音:題目已經寫「這是什麼音?」,標籤有「八度不限」
-    box.innerHTML = `<div class="kbd-wrap"><div class="kbd" id="kbd">${keyboardHTML(q.keys)}</div>` +
-      (q.keys.target.length > 1 ? `<div class="kbd-row"><div class="kbd-dots" id="kbdDots"></div><button class="btn ghost small" id="kbdClear">${T("clearKeys")}</button></div>` : "") + `</div>`;
+    box.innerHTML = `<div class="kbd-wrap"><div class="kbd" id="e-kbd">${keyboardHTML(q.keys)}</div>` +
+      (q.keys.target.length > 1 ? `<div class="kbd-row"><div class="kbd-dots" id="e-kbdDots"></div><button class="btn ghost small" id="e-kbdClear">${T("clearKeys")}</button></div>` : "") + `</div>`;
     syncKeys(); fitKeyboard();
   } else if (q.tap) {
     box.classList.remove("compact");
     $("stepQ").textContent = q.tap.kind === "pulse" ? tr("播放時跟著拍子按", "Tap the beat while it plays") : tr(`聽完之後按出節奏(${q.tap.n} 下)`, `After listening, tap the rhythm (${q.tap.n} taps)`);
-    box.innerHTML = `<div class="tap-wrap"><button class="tap-pad" id="tapPad">${T("tapBtn")}</button><span class="tap-info" id="tapInfo"></span>` +
-      `<button class="btn small" id="tapDone">${T("tapDone")}</button></div>`;
+    box.innerHTML = `<div class="tap-wrap"><button class="tap-pad" id="e-tapPad">${T("tapBtn")}</button><span class="tap-info" id="e-tapInfo"></span>` +
+      `<button class="btn small" id="e-tapDone">${T("tapDone")}</button></div>`;
     syncTap();
   }
   if (A.done) showResult();
@@ -359,11 +344,11 @@ $("answers").addEventListener("pointerdown", e => {
 });
 function markRightKey(){
   const k = cur.keys; if (k.target.length !== 1) return;
-  document.querySelectorAll("#kbd .k").forEach(el => { if ((Number(el.dataset.m) - k.target[0]) % 12 === 0) el.classList.add("right"); });
+  $("answers").querySelectorAll(".k").forEach(el => { if ((Number(el.dataset.m) - k.target[0]) % 12 === 0) el.classList.add("right"); });
 }
 $("answers").addEventListener("click", e => {
-  if (e.target.id === "kbdClear" && cur && !A.done) { A.keys = []; A.keyResult = null; syncKeys(); }
-  if (e.target.id === "tapDone" && cur && cur.tap && !A.done) judgeTapNow();
+  if (e.target.id === "e-kbdClear" && cur && !A.done) { A.keys = []; A.keyResult = null; syncKeys(); }
+  if (e.target.id === "e-tapDone" && cur && cur.tap && !A.done) judgeTapNow();
 });
 
 /* ── 節拍鍵 ── */
@@ -372,7 +357,7 @@ function syncTap(){
   info.textContent = A.taps.length ? tr(`${A.taps.length} 下`, `${A.taps.length} taps`) : "";
 }
 $("answers").addEventListener("pointerdown", e => {
-  const pad = e.target.closest("#tapPad"); if (!pad || !cur || !cur.tap || A.done) return;
+  const pad = e.target.closest("#e-tapPad"); if (!pad || !cur || !cur.tap || A.done) return;
   e.preventDefault();
   if (!A.played) { $("feedback").textContent = tr("先按 ▶ 聽題目", "Press ▶ to listen"); return; }
   const now = audio.audioNow();
@@ -404,7 +389,7 @@ function finish(ok){
   showResult();
   $("nextBtn").disabled = false; $("revealBtn").hidden = true;
   syncScoreLine(); renderStats();
-  if (S.tab === "exam") renderExam();
+  if (S.tab === "exam") { renderExam(); if (ctx) ctx.examChanged(); }
   if (ok && S.auto) autoNext(cur);
 }
 /* 答對自動下一題:至少停 1.1 秒讓人看到結果;題目還在播(或又按了重聽)就等播完再換。
@@ -534,35 +519,18 @@ function stopPlayback(natural){
   $("playLabel").textContent = cur && A && A.played ? T("replay") : T("play");
 }
 $("playBtn").onclick = () => { if (play) stopPlayback(); else if (!starting) startPlayback(); };
-/* 禁止連點放大(iOS):300ms 內的第二下取消預設動作,自己補一次 click(鍵盤、節拍鍵用 pointerdown,不受影響) */
-let lastTouchEnd = 0;
-document.addEventListener("touchend", e => {
-  const now = Date.now();
-  if (now - lastTouchEnd < 300) { e.preventDefault(); const t = e.target.closest("button:not(#tapPad), .opt, .chip, [role=tab]"); if (t && !t.disabled) t.click(); }
-  lastTouchEnd = now;
-}, { passive: false });
-document.addEventListener("gesturestart", e => e.preventDefault());
-for (const ev of ["touchend", "click", "keydown", "pointerdown"]) document.addEventListener(ev, () => audio.unlockAudio(), { capture: true, passive: true });
 
 /* ══ 選項 ══ */
 function syncOpts(){ $("optAuto").setAttribute("aria-pressed", String(!!S.auto)); }
-$("optAuto").onclick = () => { S.auto = !S.auto; store.save(); syncOpts(); };
+$("optAuto").onclick = () => { S.auto = !S.auto; store.save(); syncOpts(); if (S.exam && SY) renderExam(); };
 syncOpts();
 
-/* 桌機快捷鍵:空白鍵 播放、Enter / N 下一題、1–9 選答案 */
-document.addEventListener("keydown", e => {
-  if (e.target.closest("input, select, textarea") || e.metaKey || e.ctrlKey || e.altKey) return;
+/* 桌機快捷鍵(外框轉給目前的模組):空白鍵 播放、Enter / N 下一題、1–9 選答案 */
+export function onKey(e){
   if (e.code === "Space") { e.preventDefault(); $("playBtn").click(); }
   else if (e.key === "Enter" || e.key === "n" || e.key === "N") { if (!$("nextBtn").disabled) $("nextBtn").click(); }
   else if (/^[1-9]$/.test(e.key)) { const b = $("answers").querySelectorAll(".ans")[Number(e.key) - 1]; if (b) b.click(); }
-});
-/* 練習時螢幕不要暗掉 */
-let wakeLock = null;
-async function keepAwake(){
-  try { if ("wakeLock" in navigator && document.visibilityState === "visible" && !wakeLock) { wakeLock = await navigator.wakeLock.request("screen"); wakeLock.addEventListener("release", () => { wakeLock = null; }); } } catch (e) {}
 }
-document.addEventListener("visibilitychange", keepAwake);
-document.addEventListener("pointerdown", keepAwake, { once: true });
 
 /* ══ 各項正確率 ══ */
 function renderStats(){
@@ -614,34 +582,22 @@ function renderLog(){
   $("logWeek").innerHTML = html;
 }
 
-/* ══ 第一次打開:在準備考試嗎? ══ */
-const obState = { system: "abrsm", grade: 1 };
-function showOnboard(){
-  const ob = obState;
-  const syncSys = segBind("obSystem", () => ob.system, v => { ob.system = v; fillGrades($("obGrade"), ob.system, ob.grade); });
-  fillGrades($("obGrade"), ob.system, ob.grade); syncSys();
-  $("obGrade").onchange = () => ob.grade = Number($("obGrade").value);
-  $("onboard").hidden = false;
-  $("obYes").onclick = () => {
-    S.exam = { system: ob.system, grade: Number($("obGrade").value) }; S.onboarded = true; store.save();
-    $("onboard").hidden = true; switchTab("exam");
-  };
-  $("obNo").onclick = () => { S.exam = null; S.onboarded = true; store.save(); $("onboard").hidden = true; $("examChip").hidden = true; switchTab("note"); };
+/* 檢定分頁上方的進度:本級的聽力測驗題型答對率 */
+export function examStatus(){
+  if (!SY || !S.exam || !gradeOf(S.exam.system, S.exam.grade)) return "";
+  let n = 0, ok = 0, tests = 0;
+  for (const d of allDrills()) { const s = S.stats[examKey(d.test, d.drill)]; if (s) { n += s.n; ok += s.ok; } }
+  tests = gradeOf(S.exam.system, S.exam.grade).tests.length;
+  return n ? tr(`${tests} 項測驗 · 正確率 ${Math.round(100 * ok / n)}%`, `${tests} tests · ${Math.round(100 * ok / n)}% correct`) : tr(`${tests} 項測驗`, `${tests} tests`);
 }
 
-/* ── 啟動 ── */
-async function init(){
-  let ver = {}; try { ver = JSON.parse(document.getElementById("edVersions").textContent); } catch (e) {}
+/* ── 啟動(外框呼叫)── */
+export async function start(c){
+  ctx = c;
+  setExam(c.exam);
+  let ver = {}; try { ver = JSON.parse(document.getElementById("pdVersions").textContent); } catch (e) {}
   SY = await fetch("data/aural.json" + (ver["data/aural.json"] ? "?v=" + ver["data/aural.json"] : "")).then(r => r.json());
-  if (S.exam && !(SY.systems[S.exam.system] && gradeOf(S.exam.system, S.exam.grade))) S.exam = null;
   if (S.exam) renderExam();
   renderLog();
-  window.__app = { get cur(){ return cur; }, get A(){ return A; }, get play(){ return !!play; }, S, SY, switchTab, loadDrill, allDrills, finish };
-  if (!S.onboarded) { switchTab("note"); showOnboard(); }
-  else switchTab(S.tab || (S.exam ? "exam" : "note"));
-  window.__stageReady = 1;
+  window.__ear = { get cur(){ return cur; }, get A(){ return A; }, get play(){ return !!play; }, S, SY, switchTab, loadDrill, allDrills, finish };
 }
-if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) {
-  window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
-}
-init().catch(e => { console.error(e); $("qTitle").textContent = tr("資料載入失敗:", "Could not load data: ") + e.message; });

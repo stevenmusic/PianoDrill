@@ -5,7 +5,7 @@ import {
   INTERVALS, parseNote, spellScale, startOctave, triadTones, dom7Tones, dim7Tones, inversionTones,
   midiOf, keyFifths, noteLabelStr, pcOf, placeAtLeast, walkCycle, wholeToneCycle, chromaticRun
 } from "./theory.js";
-import { tr, getLang } from "./i18n.js";
+import { tr, getLang } from "../shared/i18n.js";
 import {
   scaleFingersFrom, triadFingers, fourNoteFingers, chromaticFingers, arpGroupFingers, cyclicFingers, BROKEN_FINGERS, thirdsStart, thirdsFingers, sixthsFingers
 } from "./fingering.js";

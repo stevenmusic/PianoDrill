@@ -183,11 +183,11 @@ async function runLimited(jobs, limit){
   await Promise.all(workers);
 }
 /* 取樣檔快取(Cache Storage):第一次下載後存在裝置上,之後直接從本機讀 */
-export const SAMPLE_CACHE = "fingerdrill-samples-v1";
+export const SAMPLE_CACHE = "pianodrill-samples-v1";
 let sampleCachePromise = null;
 function sampleCache(){
   if (!sampleCachePromise) sampleCachePromise = (typeof caches !== "undefined" && window.isSecureContext)
-    ? caches.open(SAMPLE_CACHE).then(async c => { for (const k of await caches.keys()) if (k.startsWith("fingerdrill-samples-") && k !== SAMPLE_CACHE) caches.delete(k); return c; }).catch(() => null)
+    ? caches.open(SAMPLE_CACHE).then(async c => { for (const k of await caches.keys()) if (k.startsWith("pianodrill-samples-") && k !== SAMPLE_CACHE) caches.delete(k); return c; }).catch(() => null)
     : Promise.resolve(null);
   return sampleCachePromise;
 }

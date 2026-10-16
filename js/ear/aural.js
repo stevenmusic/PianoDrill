@@ -2,7 +2,7 @@
    題目格式(單音/音程/和弦分頁也一樣,app.js 統一處理):
    { key, label, tags, play: { ev, clicks, dur }, steps: [{ q, choices: [{ id, label }], answer }],
      keys: { target, lo, hi, octaveOk }, tap: { kind, beat, iois }, reveal, note } */
-import { tr } from "./i18n.js";
+import { tr } from "../shared/i18n.js";
 import { MAJOR, rnd, pick, chance, pickKey, tonicMidi, degMidi, METERS, barLen, melody, render, harmonise,
   keyChordIntro, voiceChords, chordEvents, cadencePhrase, modulation } from "./music.js";
 import { INTERVALS, pcName } from "./ear.js";

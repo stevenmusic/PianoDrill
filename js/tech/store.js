@@ -1,5 +1,6 @@
 /* localStorage(私密瀏覽、清除網站資料時可能讀不到或寫不進去:一律 try/catch,讀不到就用預設值) */
-const KEY = "fingerdrill.v1";
+const KEY = "pianodrill.tech.v1";
+const OLD_KEY = "fingerdrill.v1";   // 同一個網域上的舊工具留下的紀錄:第一次打開時沿用
 const DEFAULTS = {
   tab: "scale",
   exam: null,             // { system, grade, set }:準備的考試(第一次打開時問);null = 自由練習
@@ -16,7 +17,7 @@ const DEFAULTS = {
 let state = null;
 export function load(){
   let saved = {};
-  try { saved = JSON.parse(localStorage.getItem(KEY) || "{}") || {}; } catch (e) {}
+  try { saved = JSON.parse(localStorage.getItem(KEY) || localStorage.getItem(OLD_KEY) || "{}") || {}; } catch (e) {}
   state = { ...DEFAULTS, ...saved, filter: { ...DEFAULTS.filter, ...(saved.filter || {}) }, mastery: { ...(saved.mastery || {}) } };
   return state;
 }

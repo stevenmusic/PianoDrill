@@ -7,16 +7,16 @@
  *   articulation and tempo term.
  */
 
-import { createRandom, randomSeed } from './random.js?v=130f9c20';
-import { createKey, dstepRange, degreeOf, pitchAt, chordDegrees, LETTERS } from './theory.js?v=130f9c20';
-import { buildProgression, firstChord, lastChord, halfCadenceBar } from './harmony.js?v=130f9c20';
+import { createRandom, randomSeed } from './random.js';
+import { createKey, dstepRange, degreeOf, pitchAt, chordDegrees, LETTERS } from './theory.js';
+import { buildProgression, firstChord, lastChord, halfCadenceBar } from './harmony.js';
 import {
   assignPitches, stackChordTones, soundingTimeline, harmoniseLeadingNotes, harmoniseRepeatedLeadingNotes,
   revertClashingBassDecorations,
   relaxParallels,
-} from './melody.js?v=130f9c20';
-import { DIVISIONS, cellsFor, fillBar, wholeBarRest } from './rhythm.js?v=130f9c20';
-import { meterInfo, rescaleCells } from './meter.js?v=130f9c20';
+} from './melody.js';
+import { DIVISIONS, cellsFor, fillBar, wholeBarRest } from './rhythm.js';
+import { meterInfo, rescaleCells } from './meter.js';
 
 const TEMPO_BPM = {
   Grave: 46, Largo: 52, Adagio: 60, Lento: 58, Andante: 76, Andantino: 84,

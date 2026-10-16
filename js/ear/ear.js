@@ -1,6 +1,6 @@
 /* 聽音題目:單音 / 音程 / 和弦。只產生「題目 = 要播的音 + 正確答案」,播放在 app.js、音色在 audio.js。
    音高一律用 MIDI(C4 = 60);音名照升降記號規則拼,不用查表拼字 */
-import { tr } from "./i18n.js";
+import { tr } from "../shared/i18n.js";
 
 /* ── 音名 ── */
 const PC_SHARP = ["C", "C♯", "D", "D♯", "E", "F", "F♯", "G", "G♯", "A", "A♯", "B"];

@@ -3,14 +3,14 @@
    - 同網域的 css / js / data / vendor:網址都帶 ?v=內容指紋(tools/build/stamp.mjs),同一個網址內容不會變 → 先用快取;
      存了新版本就刪掉同一個檔案的舊版本
    - Google 字型:先用快取
-   - 鋼琴取樣(raw.githubusercontent)由 js/audio.js 自己存在 fingerdrill-samples-* 快取,這裡不管
+   - 鋼琴取樣(raw.githubusercontent)由 js/shared/audio.js 自己存在 pianodrill-samples-* 快取,這裡不管
    第一次連網打開時會把用到的檔案都存起來,之後沒網路也能開 */
-const CACHE = "fingerdrill-app-v4";   // 換了圖示:改版本讓舊快取的圖示更新
+const CACHE = "pianodrill-app-v1";
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(["./", "manifest.webmanifest", "icons/icon-192.png", "icons/apple-touch-icon.png"])).then(() => self.skipWaiting()));
 });
 self.addEventListener("activate", e => {
-  e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k.startsWith("fingerdrill-app-") && k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim()));
+  e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k.startsWith("pianodrill-app-") && k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim()));
 });
 async function networkFirst(req){
   const c = await caches.open(CACHE);

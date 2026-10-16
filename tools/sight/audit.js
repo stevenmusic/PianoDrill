@@ -23,12 +23,12 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
-import { generateTest } from '../src/generator/generate.js';
-import { createKey, degreeOf, chordDegrees } from '../src/generator/theory.js';
-import { firstChord, lastChord, chordAt, halfCadenceBar } from '../src/generator/harmony.js';
+import { generateTest } from '../../js/sight/generator/generate.js';
+import { createKey, degreeOf, chordDegrees } from '../../js/sight/generator/theory.js';
+import { firstChord, lastChord, chordAt, halfCadenceBar } from '../../js/sight/generator/harmony.js';
 
 const rules = JSON.parse(
-  readFileSync(fileURLToPath(new URL('../src/rules/abrsm-piano-grades.json', import.meta.url)), 'utf8'),
+  readFileSync(fileURLToPath(new URL('../../data/sight-rules.json', import.meta.url)), 'utf8'),
 );
 
 const args = process.argv.slice(2);

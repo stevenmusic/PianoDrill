@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { generateTest } from '../src/generator/index.js';
-import { expectedOnsets, detectOnsets, scoreRhythm } from '../src/app/scoring.js';
+import { generateTest } from '../../js/sight/generator/index.js';
+import { expectedOnsets, detectOnsets, scoreRhythm } from '../../js/sight/scoring.js';
 import { rules, GRADES } from './helpers.js';
 
 const RATE = 44100;

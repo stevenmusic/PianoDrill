@@ -2,9 +2,11 @@
 // 比對:臨時記號(OSMD 畫的 vs 我們依規則寫的)、指法數字數量、8va 標示
 import { open } from "./harness.mjs";
 const { page, errors, close } = await open({});
-await page.evaluate(() => { const S = window.__app.S; S.onboarded = true; document.getElementById("onboard").hidden = true; });
+// 合併成 PianoDrill:技巧模組要在畫面上(看不到的元素量不出位置),第一次打開的問題關掉
+await page.evaluate(() => { localStorage.setItem("pianodrill.v1", JSON.stringify({ onboarded: true, view: "exam", sub: { exam: "tech" }, exam: { system: "abrsm", grade: 1 } })); });
+await page.reload(); await page.waitForFunction(() => window.__stageReady >= 1);
 const res = await page.evaluate(async () => {
-  const A = window.__app, S = A.S, seen = new Set(), bad = [];
+  const A = window.__tech, S = A.S, seen = new Set(), bad = [];
   let n = 0;
   for (const sys of ["abrsm", "trinity"]) for (const g of A.SY.systems[sys].grades) for (const mf of ["harmonic", "melodic", "natural"]) for (const set of ["A", "B"]) {
     S.exam = { system: sys, grade: g.grade, set }; S.minorForm = mf;
@@ -13,7 +15,7 @@ const res = await page.evaluate(async () => {
       const before = window.__scoreReady || 0;
       A.setQuestion(q, "exam");
       for (let t = 0; t < 400 && (window.__scoreReady || 0) === before; t++) await new Promise(r => setTimeout(r, 25));
-      document.querySelector('#handSeg button[data-v="both"]').click();
+      document.querySelector('#t-handSeg button[data-v="both"]').click();
       const b2 = window.__scoreReady;
       for (let t = 0; t < 400 && window.__scoreReady === b2; t++) await new Promise(r => setTimeout(r, 25));
       const xml = window.__lastXml;
@@ -24,10 +26,10 @@ const res = await page.evaluate(async () => {
         gotAcc += gve.vfStaveNote.modifiers.filter(m => /accidental/i.test(m.getCategory())).length;
       }
       const ex = A.ex, wantF = [...ex.rh, ...ex.lh].reduce((c, x) => c + !!x.finger + !!(x.with && x.with.finger), 0);
-      const fingers = [...document.querySelectorAll("#osmd svg text")].filter(t => /^[1-5]$/.test(t.textContent.trim())).length;
+      const fingers = [...document.querySelectorAll("#t-osmd svg text")].filter(t => /^[1-5]$/.test(t.textContent.trim())).length;
       if (wantAcc !== gotAcc) bad.push(`${sys} ${q.key}: 臨時記號 OSMD ${gotAcc} / XML ${wantAcc}`);
       if (fingers !== wantF) bad.push(`${sys} ${q.key}: 指法 ${fingers} / ${wantF}`);
-      if (/<octave-shift type="(down|up)"/.test(xml) !== [...document.querySelectorAll("#osmd svg text")].some(t => /^8/.test(t.textContent.trim()))) bad.push(`${sys} ${q.key}: 8va 標示`);
+      if (/<octave-shift type="(down|up)"/.test(xml) !== [...document.querySelectorAll("#t-osmd svg text")].some(t => /^8/.test(t.textContent.trim()))) bad.push(`${sys} ${q.key}: 8va 標示`);
       n++;
     }
   }

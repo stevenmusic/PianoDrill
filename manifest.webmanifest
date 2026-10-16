@@ -1,7 +1,7 @@
 {
-  "name": "FingerDrill 手指特訓",
-  "short_name": "手指特訓",
-  "description": "鋼琴音階、琶音、哈農練習與 ABRSM / Trinity 檢定抽考",
+  "name": "PianoDrill 鋼琴檢定特訓",
+  "short_name": "PianoDrill",
+  "description": "音階琶音與哈農、隨機視奏題、聽音與聽力測驗,依 ABRSM / Trinity 大綱出題",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

@@ -60,6 +60,14 @@ function equalize(el){
   lastW.set(el, w); el._pairDone = el._pair;
   el._eq = false;
 }
+/* 字型載好(或載入失敗改用備用字型)之後字寬會變:成對的段落全部重量一次 */
+const paired = new Set();
+const reEqualize = () => { for (const el of paired) { if (!el.isConnected) { paired.delete(el); continue; } lastW.delete(el); equalize(el); } };
+if (typeof document !== "undefined" && document.fonts) {
+  document.fonts.ready.then(reEqualize);
+  document.fonts.addEventListener?.("loadingdone", reEqualize);
+  document.fonts.addEventListener?.("loadingerror", reEqualize);
+}
 /* 設定段落文字:fn 會用中文、英文各跑一次(裡面用 tr) */
 export function pairText(el, fn){
   const keep = LANG;
@@ -67,6 +75,7 @@ export function pairText(el, fn){
   el.textContent = LANG === "en" ? en : zh;
   el._pair = [zh, en];
   if (RO && !el._observed) { RO.observe(el); el._observed = true; }
+  paired.add(el);
   equalize(el);
 }
 export function unpair(el){ el._pair = null; el.style.minHeight = ""; }

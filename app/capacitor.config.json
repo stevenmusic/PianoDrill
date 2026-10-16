@@ -1,6 +1,6 @@
 {
-  "appId": "io.github.stevenmusic.fingerdrill",
-  "appName": "手指特訓",
+  "appId": "io.github.stevenmusic.pianodrill",
+  "appName": "PianoDrill",
   "webDir": "www",
   "ios": { "contentInset": "never", "backgroundColor": "#0C0A07" }
 }

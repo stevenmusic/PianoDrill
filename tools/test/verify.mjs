@@ -5,11 +5,11 @@
    4. MusicXML:每小節每個譜表的時值 = 4 拍、指法數 = 音數、記譜規則(另外寫的檢查,不沿用產生器)
    用法:node tools/test/verify.mjs */
 import fs from "node:fs";
-import { buildExercise } from "../../js/exercise.js";
-import { questionsFor, masteryKey } from "../../js/syllabus.js";
-import { exerciseToMusicXML } from "../../js/musicxml.js";
-import { buildHanon, HANON_KEYS, HANON_RHYTHMS } from "../../js/hanon.js";
-import { INTERVALS, parseNote, pcOf, midiOf, isBlack } from "../../js/theory.js";
+import { buildExercise } from "../../js/tech/exercise.js";
+import { questionsFor, masteryKey } from "../../js/tech/syllabus.js";
+import { exerciseToMusicXML } from "../../js/tech/musicxml.js";
+import { buildHanon, HANON_KEYS, HANON_RHYTHMS } from "../../js/tech/hanon.js";
+import { INTERVALS, parseNote, pcOf, midiOf, isBlack } from "../../js/tech/theory.js";
 
 const root = new URL("../../", import.meta.url);
 const SY = JSON.parse(fs.readFileSync(new URL("data/syllabus.json", root)));

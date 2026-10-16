@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { generateTest } from '../src/generator/generate.js';
-import { toMusicXml } from '../src/generator/musicxml.js';
+import { generateTest } from '../../js/sight/generator/generate.js';
+import { toMusicXml } from '../../js/sight/generator/musicxml.js';
 import { rules, GRADES, assertWellFormedXml, countMatches } from './helpers.js';
 
 const SEEDS = [11, 2027, 40507, 88888];

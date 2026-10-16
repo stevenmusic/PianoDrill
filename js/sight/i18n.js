@@ -1,21 +1,8 @@
 /**
- * Two-language dictionary + tiny apply/lookup helpers, shared shape with
- * ScrollScore/HarmonyMap/LoudMaster's own i18n modules.
- *
- * `sm_lang` is a deliberately shared localStorage key — all four sibling
- * tools and the hub live on the same origin (stevenmusic.github.io/<tool>/),
- * so a language chosen in one carries over to the others. Default is "zh"
- * (this app's original language) whenever nothing is stored yet; there is no
- * browser-language auto-detection.
- *
- * Two kinds of markup consume this:
- *  - `data-i18n="key"` on an element sets its textContent to `t(key)`.
- *  - `data-i18n-attr="attr1:key1,attr2:key2"` sets one or more attributes
- *    (aria-label, title, ...) from their own keys.
- * `applyLanguage()` walks both, then updates `<html lang>` and notifies
- * anything that registered via `onLanguageChange` — used by app.js to
- * re-render the text it builds itself (status messages, select options,
- * the checklist, ...) that no static attribute can reach.
+ * 視奏模組的中英字典與小工具。語言本身由外框管(js/shared/i18n.js 的 getLang / setLang,存在 pianodrill-lang),
+ * 這裡只負責把 key 換成文字:
+ *  - HTML:`data-si18n="key"`(文字)、`data-si18n-attr="attr:key,attr2:key2"`(屬性),跟外框的 data-i18n 分開
+ *  - 程式:`t(key, { name: value })`
  */
 
 import { getLang } from '../shared/i18n.js';

@@ -11,9 +11,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { generateTest } from '../src/generator/generate.js';
-import { toMusicXml } from '../src/generator/musicxml.js';
-import { keyAlterations, LETTERS } from '../src/generator/theory.js';
+import { generateTest } from '../../js/sight/generator/generate.js';
+import { toMusicXml } from '../../js/sight/generator/musicxml.js';
+import { keyAlterations, LETTERS } from '../../js/sight/generator/theory.js';
 import { rules, GRADES } from './helpers.js';
 
 const SEEDS = Array.from({ length: 30 }, (_, i) => i * 2711 + 5);

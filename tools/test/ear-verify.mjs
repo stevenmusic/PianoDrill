@@ -7,7 +7,7 @@ globalThis.localStorage = { getItem(){ return null; }, setItem(){} };
 import fs from "node:fs";
 import { execSync } from "node:child_process";
 const root = new URL("../../", import.meta.url).pathname;
-const ear = await import(root + "js/ear.js"), au = await import(root + "js/aural.js"), mu = await import(root + "js/music.js");
+const ear = await import(root + "js/ear/ear.js"), au = await import(root + "js/ear/aural.js"), mu = await import(root + "js/ear/music.js");
 let fail = 0; const ok = (c, m) => { if (!c) { fail++; console.log("✗", m); } };
 const SY = JSON.parse(fs.readFileSync(root + "data/aural.json"));
 let n = 0;

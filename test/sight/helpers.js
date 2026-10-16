@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 export const rules = JSON.parse(
-  readFileSync(fileURLToPath(new URL('../src/rules/abrsm-piano-grades.json', import.meta.url)), 'utf8'),
+  readFileSync(fileURLToPath(new URL('../../data/sight-rules.json', import.meta.url)), 'utf8'),
 );
 
 export const GRADES = Object.keys(rules.grades).map(Number).sort((a, b) => a - b);

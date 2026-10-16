@@ -6,11 +6,11 @@
 import { open } from "./harness.mjs";
 const W = Number(process.argv[2] || 390);
 const { page, errors, close } = await open({ viewport: { width: W, height: 900 }, mobile: W < 600 });
-await page.evaluate(() => { localStorage.setItem("fingerdrill-lang", "zh"); localStorage.setItem("fingerdrill.v1", JSON.stringify({ onboarded: true, tab: "scale" })); });
+await page.evaluate(() => { localStorage.setItem("pianodrill-lang", "zh"); localStorage.setItem("pianodrill.v1", JSON.stringify({ onboarded: true, view: "tech" })); });
 await page.reload(); await page.waitForFunction(() => window.__stageReady >= 1);
 const qs = await page.evaluate(async () => {
-  const { questionsFor } = await import("./js/syllabus.js");
-  const SY = window.__app.SY, m = new Map();
+  const { questionsFor } = await import("./js/tech/syllabus.js");
+  const SY = window.__tech.SY, m = new Map();
   for (const [sys, s] of Object.entries(SY.systems)) for (const g of s.grades) for (const set of s.mode === "sets" ? ["A", "B"] : [null])
     for (const form of ["harmonic", "melodic", "natural"]) for (const q of questionsFor(SY, sys, g, { set, minorForm: form })) m.set(q.key + (q.dynamic || ""), q);
   const out = [...m.values()];
@@ -21,10 +21,10 @@ let bad = 0, n = 0, nf = 0; const issues = [];
 for (const q of qs) {
   for (const show of q.hands === "HT" ? ["both"] : [q.hands === "RH" ? "rh" : "lh"]) {
     const b = await page.evaluate(() => window.__scoreReady || 0);
-    await page.evaluate(q => window.__app.setQuestion(q, q.type === "hanon" ? "hanon" : "scale"), q);
+    await page.evaluate(q => window.__tech.setQuestion(q, q.type === "hanon" ? "hanon" : "scale"), q);
     await page.waitForFunction(b => (window.__scoreReady || 0) > b, b, { timeout: 30000 });
     const r = await page.evaluate(() => {
-      const svg = document.querySelector("#osmd svg"), out = [];
+      const svg = document.querySelector("#t-osmd svg"), out = [];
       const F = [...svg.querySelectorAll(".fd-finger")].map(t => ({ t, b: t.getBBox() }));
       const heads = [...svg.querySelectorAll(".vf-notehead")].map(h => h.getBBox());
       const beams = [...svg.querySelectorAll(".vf-beam path")].map(p => {

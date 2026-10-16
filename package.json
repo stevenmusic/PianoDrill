@@ -1,2 +1,7 @@
-{ "name": "fingerdrill", "private": true, "type": "module",
-  "scripts": { "test": "node tools/test/verify.mjs" } }
+{ "name": "pianodrill", "private": true, "type": "module",
+  "scripts": {
+    "test": "node tools/test/verify.mjs && node tools/test/ear-verify.mjs && node --test test/sight/*.test.js",
+    "stamp": "node tools/build/stamp.mjs",
+    "audit": "node tools/sight/audit.js",
+    "sample": "node tools/sight/sample.js"
+  } }

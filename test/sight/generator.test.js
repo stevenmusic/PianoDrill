@@ -1,10 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { generateTest } from '../src/generator/generate.js';
-import { fingerprintOf, createHistory, generateUnique } from '../src/generator/fingerprint.js';
-import { firstChord, lastChord, chordAt, halfCadenceBar } from '../src/generator/harmony.js';
-import { createKey, degreeOf, chordDegrees } from '../src/generator/theory.js';
+import { generateTest } from '../../js/sight/generator/generate.js';
+import { fingerprintOf, createHistory, generateUnique } from '../../js/sight/generator/fingerprint.js';
+import { firstChord, lastChord, chordAt, halfCadenceBar } from '../../js/sight/generator/harmony.js';
+import { createKey, degreeOf, chordDegrees } from '../../js/sight/generator/theory.js';
 import { rules, GRADES, expectedDuration, soundingEvents } from './helpers.js';
 
 const SEEDS = Array.from({ length: 40 }, (_, i) => i * 7919 + 13);

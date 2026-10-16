@@ -12,7 +12,7 @@ import { createReadStream, existsSync, statSync } from 'node:fs';
 import { extname, join, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const root = fileURLToPath(new URL('..', import.meta.url));
+const root = fileURLToPath(new URL('../..', import.meta.url));
 const args = process.argv.slice(2);
 const valueOf = (flag, fallback) => {
   const index = args.indexOf(flag);
@@ -46,6 +46,10 @@ await page.route('**', (route) => {
   return route.abort();
 });
 await page.goto(`http://localhost:${port}/index.html`);
+  // 合併成 PianoDrill 後:先打開視奏分頁(跳過第一次打開的問題),介面用中文
+  await page.evaluate(() => { localStorage.setItem('pianodrill.v1', JSON.stringify({ onboarded: true, view: 'sight' })); localStorage.setItem('pianodrill-lang', 'zh'); });
+  await page.reload();
+  await page.waitForFunction(() => window.__stageReady);
 await page.waitForFunction(() => window.__osmd);
 
 /*
@@ -54,7 +58,7 @@ await page.waitForFunction(() => window.__osmd);
  * OSMD's model is deliberate: it is what the eye actually meets.
  */
 const readGeometry = () => page.evaluate(() => {
-  const svg = document.querySelector('#score svg');
+  const svg = document.querySelector('#s-score svg');
   if (!svg) return null;
   /*
    * Screen pixels, not SVG user units: OSMD's zoom scales the SVG itself, so
@@ -107,13 +111,13 @@ const readGeometry = () => page.evaluate(() => {
 
 const rows = [];
 for (const grade of [1, 2, 3, 4, 5, 6, 7, 8]) {
-  await page.selectOption('#grade', String(grade));
+  await page.evaluate((g) => document.querySelector(`#s-grades .opt[data-v=\"${g}\"]`).click(), grade);
   for (let run = 0; run < RUNS; run++) {
-    await page.click('#generate');
-    await page.waitForFunction(() => !document.getElementById('meta').hidden);
+    await page.click('#s-generate');
+    await page.waitForFunction(() => !document.getElementById('s-score').hasAttribute('aria-busy'));
     await page.waitForTimeout(220);
     const g = await readGeometry();
-    const meta = (await page.textContent('#meta')).replace(/\s+/g, ' ').trim();
+    const meta = (await page.textContent('#s-meta')).replace(/\s+/g, ' ').trim();
     rows.push({ grade, ...g, meta });
   }
 }

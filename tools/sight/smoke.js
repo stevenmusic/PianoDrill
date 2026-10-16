@@ -11,7 +11,7 @@ import { createReadStream, existsSync, statSync } from 'node:fs';
 import { extname, join, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const root = fileURLToPath(new URL('..', import.meta.url));
+const root = fileURLToPath(new URL('../..', import.meta.url));
 const args = process.argv.slice(2);
 const valueOf = (flag, fallback) => {
   const index = args.indexOf(flag);
@@ -71,29 +71,33 @@ page.on('console', (message) => {
 });
 
 await page.goto(`http://localhost:${port}/index.html`);
-await page.waitForFunction(() => !document.getElementById('generate').disabled, { timeout: 15000 });
+  // 合併成 PianoDrill 後:先打開視奏分頁(跳過第一次打開的問題),介面用中文
+  await page.evaluate(() => { localStorage.setItem('pianodrill.v1', JSON.stringify({ onboarded: true, view: 'sight' })); localStorage.setItem('pianodrill-lang', 'zh'); });
+  await page.reload();
+  await page.waitForFunction(() => window.__stageReady);
+await page.waitForFunction(() => !document.getElementById('s-generate').disabled, { timeout: 15000 });
 
 const only = valueOf('--grade', null);
 const grades = only ? [Number(only)] : [1, 2, 3, 4, 5, 6, 7, 8];
 const runsPerGrade = only ? 1 : 3;
 
 for (const grade of grades) {
-  await page.selectOption('#grade', String(grade));
+  await page.evaluate((g) => document.querySelector(`#s-grades .opt[data-v=\"${g}\"]`).click(), grade);
   for (let run = 0; run < runsPerGrade; run++) {
-    await page.click('#generate');
+    await page.click('#s-generate');
     await page.waitForFunction(
-      () => document.querySelector('#score svg') !== null
-        && document.getElementById('message').textContent !== '渲染中…',
+      () => document.querySelector('#s-score svg') !== null
+        && document.getElementById('s-message').textContent !== '渲染中…',
       { timeout: 20000 },
     );
 
     const result = await page.evaluate(() => {
-      const svg = document.querySelector('#score svg');
+      const svg = document.querySelector('#s-score svg');
       return {
-        message: document.getElementById('message').textContent,
+        message: document.getElementById('s-message').textContent,
         staves: svg ? svg.querySelectorAll('path, line').length : 0,
         height: svg ? svg.getBoundingClientRect().height : 0,
-        meta: document.getElementById('meta').textContent,
+        meta: document.getElementById('s-meta').textContent,
       };
     });
 

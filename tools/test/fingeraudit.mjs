@@ -3,9 +3,9 @@
    同一指不能連續彈兩個不同的音;一般移動的距離不能超過那兩根手指撐得到的範圍;穿指 / 跨指不超過純五度
    用法:node tools/test/fingeraudit.mjs */
 import fs from "node:fs";
-import { buildExercise } from "../../js/exercise.js";
-import { questionsFor, masteryKey } from "../../js/syllabus.js";
-import { buildHanon, HANON_KEYS } from "../../js/hanon.js";
+import { buildExercise } from "../../js/tech/exercise.js";
+import { questionsFor, masteryKey } from "../../js/tech/syllabus.js";
+import { buildHanon, HANON_KEYS } from "../../js/tech/hanon.js";
 
 const root = new URL("../../", import.meta.url);
 const SY = JSON.parse(fs.readFileSync(new URL("data/syllabus.json", root)));

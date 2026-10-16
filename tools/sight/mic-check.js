@@ -4,17 +4,18 @@
  * chosen times, and the score the app reports is compared with what that
  * performance deserves.
  *
- *   node scripts/mic-check.js
+ *   node tools/sight/mic-check.js
  */
-import { startServer, launch, openPage } from './layout.js';
+import { open } from '../test/harness.mjs';
 
-const { server, url } = await startServer();
-const browser = await launch();
 const problems = [];
 
 /** mode: 'exact' | 'late' (constant 250 ms lag) | 'sloppy' | 'silent' | 'denied' */
 async function take(mode, grade = '1') {
-  const { page, errors } = await openPage(browser, url, { width: 430, height: 932, mobile: true });
+  const { page, errors, close } = await open({ viewport: { width: 430, height: 932 }, mobile: true });
+  await page.evaluate(() => { localStorage.setItem('pianodrill.v1', JSON.stringify({ onboarded: true, view: 'sight' })); localStorage.setItem('pianodrill-lang', 'zh'); });
+  await page.reload();
+  await page.waitForFunction(() => window.__stageReady);
   await page.evaluate((mode) => {
     navigator.mediaDevices.getUserMedia = async () => {
       if (mode === 'denied') throw new DOMException('denied', 'NotAllowedError');
@@ -40,24 +41,24 @@ async function take(mode, grade = '1') {
       return dest.stream;
     };
   }, mode);
-  await page.selectOption('#grade', grade);
-  await page.click('#generate');
-  await page.waitForFunction(() => window.__scoring() && !document.getElementById('score').hasAttribute('aria-busy'));
-  await page.evaluate(() => { document.getElementById('along').hidden = false; });
-  await page.check('#along-mic');
+  await page.evaluate((g) => document.querySelector(`#s-grades .opt[data-v="${g}"]`).click(), grade);
+  await page.click('#s-generate');
+  await page.waitForFunction(() => window.__scoring() && !document.getElementById('s-score').hasAttribute('aria-busy'));
+  await page.evaluate(() => { document.getElementById('s-along').hidden = false; });
+  await page.check('#s-alongMic');
   const seconds = await page.evaluate(() => { const p = window.__scoring(); return p.secondsPerBar * (1 + Math.ceil(p.onsets.at(-1) / p.secondsPerBar)) + 6; });
-  await page.click('#play-along');
-  await page.waitForFunction(() => !document.getElementById('along-result').hidden || /沒有取得麥克風/.test(document.getElementById('along-result').textContent), null, { timeout: (seconds + 40) * 1000 });
+  await page.click('#s-playAlong');
+  await page.waitForFunction(() => !document.getElementById('s-alongResult').hidden || /沒有取得麥克風/.test(document.getElementById('s-alongResult').textContent), null, { timeout: (seconds + 40) * 1000 });
   const out = await page.evaluate(() => ({
     take: window.__lastTake,
-    text: document.getElementById('along-result').innerText.replace(/\s+/g, ' ').slice(0, 160),
-    score: Number((document.querySelector('#along-result .big')?.textContent.match(/\d+/) || [])[0]),
-    message: document.getElementById('along-result').textContent,
-    label: document.getElementById('play-along').textContent,
+    text: document.getElementById('s-alongResult').innerText.replace(/\s+/g, ' ').slice(0, 160),
+    score: Number((document.querySelector('#s-alongResult .big')?.textContent.match(/\d+/) || [])[0]),
+    message: document.getElementById('s-alongResult').textContent,
+    label: document.getElementById('s-playAlong').textContent,
   }));
-  if (process.env.SHOT && mode === 'exact') { await page.evaluate(() => document.getElementById('along').scrollIntoView({ block: 'center' })); await page.screenshot({ path: process.env.SHOT }); }
+  if (process.env.SHOT && mode === 'exact') { await page.evaluate(() => document.getElementById('s-along').scrollIntoView({ block: 'center' })); await page.screenshot({ path: process.env.SHOT }); }
   if (errors.length) problems.push(`${mode}: ${errors.join(' | ')}`);
-  await page.close();
+  await close();
   return out;
 }
 
@@ -84,7 +85,5 @@ const denied = await take('denied');
 console.log('denied ', denied.message.slice(0, 40), '|', denied.label);
 if (!/沒有取得麥克風/.test(denied.message)) problems.push('a refused microphone was not explained');
 
-await browser.close();
-server.close();
 if (problems.length) { console.error('\n✗', problems.length, '項問題:\n - ' + problems.join('\n - ')); process.exit(1); }
 console.log('\n✓ 麥克風評分流程全部通過');

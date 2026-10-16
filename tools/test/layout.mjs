@@ -8,13 +8,15 @@
 import { open } from "./harness.mjs";
 import fs from "node:fs";
 const OUT = new URL("./out/", import.meta.url).pathname; fs.mkdirSync(OUT, { recursive: true });
-const VPS = [
+const ONLY = process.env.ONLY ? process.env.ONLY.split(",") : null;
+const VPS_ALL = [
   ["fold-280", 280, 653, true], ["se1-320", 320, 568, true], ["se-375", 375, 667, true], ["iphone-390", 390, 844, true],
   ["promax-430", 430, 932, true], ["android-360", 360, 800, true], ["android-412", 412, 915, true],
   ["se-land", 667, 375, true], ["iphone-land", 844, 390, true], ["promax-land", 932, 430, true],
   ["ipad-mini", 744, 1133, true], ["ipad", 820, 1180, true], ["ipad-land", 1180, 820, true], ["ipad-pro", 1024, 1366, true], ["ipad-pro-land", 1366, 1024, true],
   ["laptop", 1280, 800, false], ["desktop", 1440, 900, false], ["fhd", 1920, 1080, false], ["narrow-window", 500, 900, false]
 ];
+const VPS = ONLY ? VPS_ALL.filter(v => ONLY.includes(v[0])) : VPS_ALL;
 let bad = 0; const issues = [];
 const report = (vp, state, msg) => { bad++; issues.push(`${vp} ${state}: ${msg}`); };
 
@@ -25,7 +27,7 @@ async function audit(page, vp, state){
     if (document.documentElement.scrollWidth > W + 1) out.push(`橫向捲動 ${document.documentElement.scrollWidth} > ${W}`);
     // 可見元素超出畫面(橫向捲動的 .opts 容器裡的除外;樂譜紙張 overflow hidden)
     for (const e of document.querySelectorAll("body *")) {
-      if (!vis(e) || e.closest(".opts") || e.closest("#scroll") || e.id === "playline" || e.closest(".modal") && !e.closest(".modal-card")) continue;
+      if (!vis(e) || e.closest(".opts") || e.closest("#t-scroll") || e.id === "t-playline" || e.closest(".stage") || e.closest(".modal") && !e.closest(".modal-card")) continue;
       const r = e.getBoundingClientRect();
       if (r.left < -1 || r.right > W + 1) { out.push(`超出畫面:${e.tagName.toLowerCase()}${e.id ? "#" + e.id : ""}.${[...e.classList].join(".")} [${Math.round(r.left)},${Math.round(r.right)}]`); if (out.length > 12) break; }
     }
@@ -44,10 +46,10 @@ async function audit(page, vp, state){
     const h1 = document.querySelector("header h1").getBoundingClientRect(), hr = document.querySelector(".header-right").getBoundingClientRect();
     if (h1.right > hr.left + 1 && h1.bottom > hr.top && h1.top < hr.bottom) out.push(`頂欄重疊:品牌名到 ${Math.round(h1.right)},按鈕從 ${Math.round(hr.left)}`);
     // 樂譜不超出紙張
-    const svg = document.querySelector("#osmd svg"), paper = document.querySelector(".paper");
+    const svg = document.querySelector("#t-osmd svg"), paper = document.querySelector("#mod-tech .paper");
     // 樂譜一整行:比紙張長時要能左右滑(#scroll),比紙張短時要置中
     if (svg && vis(paper)) {
-      const sc = document.getElementById("scroll"), pr = paper.getBoundingClientRect(), gr = svg.getBoundingClientRect();
+      const sc = document.getElementById("t-scroll"), pr = paper.getBoundingClientRect(), gr = svg.getBoundingClientRect();
       if (pr.right > W + 1) out.push("樂譜紙張超出畫面");
       if (gr.width <= sc.clientWidth && Math.abs((gr.left + gr.right) / 2 - (pr.left + pr.right) / 2) > 3) out.push(`樂譜沒有置中(差 ${Math.round((gr.left + gr.right) / 2 - (pr.left + pr.right) / 2)}px)`);
       if (gr.width > sc.clientWidth + 2 && sc.scrollWidth <= sc.clientWidth) out.push("樂譜比紙張長卻不能左右滑");
@@ -62,7 +64,7 @@ async function audit(page, vp, state){
   const cover = await page.evaluate(async () => {
     window.scrollTo(0, document.documentElement.scrollHeight); await new Promise(r => setTimeout(r, 120));
     const tb = document.getElementById("tabbar").getBoundingClientRect();
-    const items = [...document.querySelectorAll("main > *")].filter(e => !e.hidden && e.getBoundingClientRect().height > 0);
+    const items = [...document.querySelectorAll("main > *, main > .mod > *")].filter(e => !e.closest("[hidden]") && e.getBoundingClientRect().height > 0 && !e.classList.contains("mod"));
     const last = items[items.length - 1].getBoundingClientRect();
     window.scrollTo(0, 0);
     return last.bottom > tb.top + 1 ? `最後的內容被底部分頁列蓋住(${Math.round(last.bottom)} > ${Math.round(tb.top)})` : null;
@@ -74,35 +76,46 @@ for (const [name, w, h, mobile] of VPS) {
   const { page, errors, close } = await open({ viewport: { width: w, height: h }, mobile, hasTouch: mobile, dpr: 1 });
   const shot = async st => page.screenshot({ path: `${OUT}layout-${name}-${st}.png` });
   // 第一次打開:對話框
-  await page.evaluate(() => { localStorage.clear(); localStorage.setItem("fingerdrill-lang", "zh"); });
+  await page.evaluate(() => { localStorage.clear(); localStorage.setItem("pianodrill-lang", "zh"); });
   await page.reload(); await page.waitForFunction(() => window.__stageReady >= 1);
   await audit(page, name, "對話框"); await shot("onboard");
   await page.selectOption("#obGrade", "8"); await page.click("#obYes");
   await page.waitForTimeout(300);
-  // 檢定:ABRSM 8 級抽一題(四個八度,最寬的譜)
+  const tab = v => page.click(`#tabbar button[data-view="${v}"]`).then(() => page.waitForTimeout(400));
+  const sub = v => page.click(`#subSeg button[data-v="${v}"]`).then(() => page.waitForTimeout(400));
+  const expand = async sel => { if (await page.isVisible(sel + " .setup-summary")) await page.click(sel + " .setup-summary"); };
+  // 檢定 · 音階琶音:ABRSM 8 級抽一題(四個八度,最寬的譜)
   const b = await page.evaluate(() => window.__scoreReady || 0);
-  await page.click("#drawBtn"); await page.waitForFunction(b => (window.__scoreReady || 0) > b, b);
-  await audit(page, name, "檢定 ABRSM"); await shot("exam");
-  // 展開設定(手機收合時)
-  if (await page.isVisible("#paneExam .setup-summary")) await page.click("#paneExam .setup-summary");
-  await page.click('#systemSeg button[data-v="trinity"]'); await page.waitForTimeout(200);
+  await page.click("#t-drawBtn"); await page.waitForFunction(b => (window.__scoreReady || 0) > b, b);
+  await audit(page, name, "檢定 音階琶音"); await shot("exam");
+  await expand("#examSetup"); await expand("#t-paneExam");
+  await page.click('#systemSeg button[data-v="trinity"]'); await page.waitForTimeout(300);
   await audit(page, name, "檢定 Trinity 設定展開");
-  // 音階:選擇器展開
-  await page.click('#tabbar button[data-tab="scale"]'); await page.waitForTimeout(400);
-  if (await page.isVisible("#paneScale .setup-summary")) await page.click("#paneScale .setup-summary");
-  await page.click('#paneScale .opt[data-v="minor"]'); await page.waitForTimeout(400);
+  // 檢定 · 視奏(Trinity 還沒有規則 → 說明)、聽力
+  await sub("sight"); await audit(page, name, "檢定 視奏 Trinity");
+  await page.click('#systemSeg button[data-v="abrsm"]'); await page.waitForTimeout(1500);
+  await audit(page, name, "檢定 視奏 ABRSM 8"); await shot("exam-sight");
+  await sub("ear"); await audit(page, name, "檢定 聽力"); await shot("exam-ear");
+  // 技巧:音階選擇器展開、琶音、哈農
+  await tab("tech"); await sub("scale");
+  await expand("#t-paneScale");
+  await page.click('#t-paneScale .opt[data-v="minor"]'); await page.waitForTimeout(400);
   await audit(page, name, "音階 選擇器"); await shot("scale");
-  // 琶音
-  await page.click('#tabbar button[data-tab="arp"]'); await page.waitForTimeout(400);
-  await audit(page, name, "琶音");
-  // 哈農
-  await page.click('#tabbar button[data-tab="hanon"]'); await page.waitForTimeout(200);
-  await audit(page, name, "哈農");
+  await sub("arp"); await audit(page, name, "琶音");
+  await sub("hanon"); await audit(page, name, "哈農");
+  // 視奏(自由練習)
+  await tab("sight"); await page.waitForTimeout(1200); await expand("#s-setup");
+  await audit(page, name, "視奏"); await shot("sight");
+  // 聽音:單音(鍵盤)、音程、和弦
+  await tab("ear"); await sub("note"); await audit(page, name, "聽音 單音"); await shot("ear");
+  await sub("interval"); await audit(page, name, "聽音 音程");
+  await sub("chord"); await audit(page, name, "聽音 和弦");
   // 英文(字比較長)
-  await page.click('#tabbar button[data-tab="scale"]'); await page.click("#langToggle"); await page.waitForTimeout(500);
+  await tab("tech"); await sub("scale"); await page.click("#langToggle"); await page.waitForTimeout(500);
   await audit(page, name, "英文 音階"); await shot("english");
-  await page.click('#tabbar button[data-tab="exam"]'); await page.waitForTimeout(400);
-  await audit(page, name, "英文 檢定");
+  await tab("sight"); await page.waitForTimeout(800); await audit(page, name, "英文 視奏");
+  await tab("ear"); await audit(page, name, "英文 聽音");
+  await tab("exam"); await audit(page, name, "英文 檢定");
   for (const e of errors) report(name, "console", e);
   await close();
 }

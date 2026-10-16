@@ -5,9 +5,9 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
-import { generateTest } from '../src/generator/generate.js';
-import { toMusicXml } from '../src/generator/musicxml.js';
-import { fingerprintOf } from '../src/generator/fingerprint.js';
+import { generateTest } from '../../js/sight/generator/generate.js';
+import { toMusicXml } from '../../js/sight/generator/musicxml.js';
+import { fingerprintOf } from '../../js/sight/generator/fingerprint.js';
 
 const args = process.argv.slice(2);
 const valueOf = (flag, fallback) => {
@@ -16,7 +16,7 @@ const valueOf = (flag, fallback) => {
 };
 
 const rules = JSON.parse(
-  readFileSync(fileURLToPath(new URL('../src/rules/abrsm-piano-grades.json', import.meta.url)), 'utf8'),
+  readFileSync(fileURLToPath(new URL('../../data/sight-rules.json', import.meta.url)), 'utf8'),
 );
 
 const grade = Number(valueOf('--grade', '1'));

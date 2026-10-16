@@ -5,7 +5,7 @@
  * so their offsets are measured from `.score-frame`'s padding box, while the
  * numbers driving them come from `getBBox`, measured from the SVG's own
  * origin. Those two origins are not the same point — the frame has padding of
- * its own, and `#score` carries the padding `pinScoreTop` adds — so the two
+ * its own, and `#s-score` carries the padding `pinScoreTop` adds — so the two
  * can drift apart without anything else on the page looking wrong.
  *
  * Note the wait after each step: `.measure-highlight` has a CSS transition on
@@ -21,7 +21,7 @@ import { createReadStream, existsSync, statSync } from 'node:fs';
 import { extname, join, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const root = fileURLToPath(new URL('..', import.meta.url));
+const root = fileURLToPath(new URL('../..', import.meta.url));
 const args = process.argv.slice(2);
 const valueOf = (flag, fallback) => {
   const index = args.indexOf(flag);
@@ -61,17 +61,21 @@ for (const viewport of VIEWPORTS) {
     route.request().url().startsWith(`http://localhost:${port}`) ? route.continue() : route.abort()
   ));
   await page.goto(`http://localhost:${port}/index.html`);
+  // 合併成 PianoDrill 後:先打開視奏分頁(跳過第一次打開的問題),介面用中文
+  await page.evaluate(() => { localStorage.setItem('pianodrill.v1', JSON.stringify({ onboarded: true, view: 'sight' })); localStorage.setItem('pianodrill-lang', 'zh'); });
+  await page.reload();
+  await page.waitForFunction(() => window.__stageReady);
   await page.waitForFunction(() => window.__osmd);
 
   for (const grade of GRADES) {
-    await page.selectOption('#grade', String(grade));
-    await page.click('#generate');
-    await page.waitForFunction(() => !document.getElementById('meta').hidden);
+    await page.evaluate((g) => document.querySelector(`#s-grades .opt[data-v=\"${g}\"]`).click(), grade);
+    await page.click('#s-generate');
+    await page.waitForFunction(() => !document.getElementById('s-score').hasAttribute('aria-busy'));
     await page.waitForTimeout(250);
     await page.evaluate(() => { window.__stage.measure(); window.__stage.begin(); });
 
     const bars = await page.evaluate(() => [...new Set(
-      [...document.querySelectorAll('#score g.vf-measure')].map((el) => Number(el.id)),
+      [...document.querySelectorAll('#s-score g.vf-measure')].map((el) => Number(el.id)),
     )].sort((a, b) => a - b));
 
     let worst = { top: 0, bottom: 0, right: 0 };
@@ -79,8 +83,8 @@ for (const viewport of VIEWPORTS) {
       await page.evaluate((n) => window.__stage.update(n, 0), bar);
       await page.waitForTimeout(SETTLE_MS);
       const delta = await page.evaluate((n) => {
-        const svg = document.getElementById('score').querySelector('svg');
-        const h = document.getElementById('measure-highlight').getBoundingClientRect();
+        const svg = document.getElementById('s-score').querySelector('svg');
+        const h = document.getElementById('s-highlight').getBoundingClientRect();
         let b = null;
         for (const el of svg.querySelectorAll(`g.vf-measure[id="${n}"]`)) {
           const r = el.getBoundingClientRect();

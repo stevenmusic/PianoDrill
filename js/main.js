@@ -192,7 +192,7 @@ async function init(){
   fillGrades($("selGrade"), examNow().grade);
   // 各模組讀自己的資料;一個失敗不影響其他兩個
   await Promise.all(Object.entries(MODS).map(([name, m]) => m.start({ exam: examNow(), examChanged }).catch(e => console.error(name, e))));
-  renderChip();
+  renderChip(); renderExamCard();
   window.__shell = { S, showView, setExam, MODS };
   if (!S.onboarded) { showView("tech"); showOnboard(); }
   else showView(S.view || (S.exam ? "exam" : "tech"));

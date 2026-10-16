@@ -635,3 +635,18 @@ body.land-play #t-stage{flex:1;display:flex;flex-direction:column;justify-conten
 @media (max-width:600px){ .mod{gap:10px} }
 @media (max-height:420px), (orientation:landscape) and (max-height:500px){ .mod{gap:8px} }
 .notice p{font-size:var(--fs-md);line-height:1.7;color:var(--muted-bright)}
+/* 聽音選擇器:每一列用固定寬度的格子(寬度 = 中英文最長的選項),中英文每列放的個數一樣,版面不會因為換語言而變高(tools/test/bilingual.mjs) */
+#mod-ear .picker .opts{display:grid;grid-template-columns:repeat(auto-fill, minmax(var(--cw, 96px), 1fr));gap:6px}
+#mod-ear .picker .opt{min-width:0;padding:0 6px}
+#mod-ear .opts[data-k="preset"]{--cw:102px}
+#e-paneNote .opts[data-k="set"]{--cw:80px}
+#e-paneInterval .opts[data-k="set"]{--cw:84px}
+#e-paneChord .opts[data-k="set"]{--cw:100px}
+#mod-ear .opts[data-k="range"]{--cw:82px}
+#mod-ear .opts[data-k="ref"]{--cw:132px}
+#mod-ear .opts[data-k="naming"]{--cw:150px}
+#mod-ear .opts[data-k="dir"]{--cw:92px}
+#mod-ear .opts[data-k="root"]{--cw:86px}
+#mod-ear .opts[data-k="inv"]{--cw:94px}
+#mod-ear .opts[data-k="style"]{--cw:98px}
+#mod-ear .opts[data-k="opts"]{--cw:126px}

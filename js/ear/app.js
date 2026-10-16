@@ -141,9 +141,15 @@ function renderExam(){
       const on = examDrill && examDrill.test.id === t.id && examDrill.idx === i;
       return `<button class="chip${on ? " cur" : ""}" data-t="${t.id}" data-i="${i}" aria-pressed="${on}">${drillName(d.type)}${pct ? ` <span class="pct">${pct}</span>` : ""}</button>`;
     }).join("");
-    return `<div class="test"><h3><b>${t.id}</b><span>${getLang() === "en" ? t.en : t.zh}</span></h3>` +
-      (chips ? `<div class="chips">${chips}</div>` : `<p class="self">${tr("這一項要看譜唱或口頭描述,App 不出題;請跟老師練習。", "Needs sight-singing or spoken description — practise with your teacher.")}</p>`) + `</div>`;
+    return `<div class="test"><h3><b>${t.id}</b><span data-t="${t.id}">${getLang() === "en" ? t.en : t.zh}</span></h3>` +
+      (chips ? `<div class="chips">${chips}</div>` : `<p class="self"></p>`) + `</div>`;
   }).join("");
+  pairTests(g);
+  $("testsList").querySelectorAll("p.self").forEach(el => pairText(el, () => tr("這一項要看譜唱或口頭描述,App 不出題;請跟老師練習。", "Needs sight-singing or spoken description — practise with your teacher.")));
+}
+/* 測驗說明:中英文行數不一樣 → 保留比較高的那個高度(pairText),換語言時版面不動 */
+function pairTests(g){
+  $("testsList").querySelectorAll("span[data-t]").forEach(el => { const t = g.tests.find(x => x.id === el.dataset.t); if (t) pairText(el, () => tr(t.zh, t.en)); });
 }
 $("testsList").onclick = e => {
   const b = e.target.closest(".chip[data-t]"); if (!b) return;
@@ -541,7 +547,9 @@ function renderStats(){
   $("statsList").innerHTML = rows.length ? rows.map(([name, s]) => {
     const p = Math.round(100 * s.ok / s.n);
     return `<div class="srow"><span>${name}</span><div class="bar"><i class="${p < 70 ? "low" : ""}" style="width:${p}%"></i></div><small>${p}% · ${s.n}</small></div>`;
-  }).join("") : `<p class="stats-empty">${tr("答幾題之後,這裡會顯示每一項的正確率(加強弱項會多出錯得多的)", "Answer a few questions to see accuracy per item (Focus weak drills the ones you miss)")}</p>`;
+  }).join("") : `<p class="stats-empty"></p>`;
+  const empty = $("statsList").querySelector(".stats-empty");
+  if (empty) pairText(empty, () => tr("答幾題之後,這裡會顯示每一項的正確率(加強弱項會多出錯得多的)", "Answer a few questions to see accuracy per item (Focus weak drills the ones you miss)"));
   $("statsReset").hidden = !rows.length;
 }
 $("statsReset").onclick = () => {

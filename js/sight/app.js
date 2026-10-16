@@ -7,6 +7,7 @@ import { createRecorder } from './mic.js';
 import { expectedOnsets, detectOnsets, scoreRhythm } from './scoring.js';
 import { createStage, barTimings } from './stage.js';
 import { t, applySightStatic } from './i18n.js';
+import { pairText, unpair } from '../shared/i18n.js';
 
 /* 視奏模組(原 SightDrill):外框(js/main.js)負責頂欄、分頁、主題、語言與考試設定;這裡的元素 id 都加 "s-" 前綴。
    檢定分頁:只有 ABRSM 1–8 級有出題規則(照官方視奏範例整理),其他考試/級數只說明還沒有,不自己發明 */
@@ -273,13 +274,15 @@ let lastMessage = null;
 function say(key, params) {
   lastMessage = { kind: 'say', key, params };
   elements.message.className = 'message';
-  elements.message.textContent = t(key, params);
+  // 中英文行數不一樣:保留比較高的高度,換語言時下面的樂譜不會跳
+  pairText(elements.message, () => t(key, params));
 }
 
 /** Surface failures on the page — a blank screen tells the user nothing. */
 function fail(key, detail) {
   lastMessage = { kind: 'fail', key, detail };
   elements.message.className = 'message error';
+  unpair(elements.message);
   elements.message.textContent = detail ? t('errorDetail', { text: t(key), detail }) : t(key);
   elements.generate.disabled = true;
 }
@@ -607,8 +610,10 @@ export async function start(c) {
     const b = event.target.closest('.opt'); if (!b || mode === 'exam') return;
     SS.grade = Number(b.dataset.v); saveSS();
     renderGradeOpts();
+    renderSummary();
     // 每一級的調不一樣:調的清單重做(原本選的調如果這一級也有就留著)
     populateKeyOptions();
+    renderSummary();
     if (current) newTest();
   });
   elements.key.addEventListener('change', () => {
@@ -689,12 +694,13 @@ function syncMode(changed) {
 }
 function renderUnsupported() {
   const ini = exam.grade === 0;
-  $('unsupportedText').textContent = exam.system === 'trinity'
+  pairText($('unsupportedText'), () => (exam.system === 'trinity'
     ? t('unsupportedTrinity')
-    : ini ? t('unsupportedInitial') : t('examNotYet');
+    : ini ? t('unsupportedInitial') : t('examNotYet')));
 }
 function renderGradeOpts() {
-  elements.grades.innerHTML = [1, 2, 3, 4, 5, 6, 7, 8].map((g) => `<button class="opt" data-v="${g}" aria-pressed="${g === currentGrade()}">${escapeHtml(t('gradeN', { n: g }))}</button>`).join('');
+  // 只寫數字(列的標籤已經是「級數 / Grade」):中英文的按鈕一樣寬,換語言時不會換行
+  elements.grades.innerHTML = [1, 2, 3, 4, 5, 6, 7, 8].map((g) => `<button class="opt" data-v="${g}" aria-pressed="${g === currentGrade()}" aria-label="${escapeHtml(t('gradeN', { n: g }))}">${g}</button>`).join('');
 }
 function renderSummary() {
   const keyText = elements.key.selectedOptions[0]?.textContent ?? t('randomKey');

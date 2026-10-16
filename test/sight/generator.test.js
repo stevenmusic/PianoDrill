@@ -712,7 +712,7 @@ test('a bass decoration is off the beat, stepped into, and never doubled', () =>
         if (event.rest || event.dstep === undefined) continue;
         if (event === bassFinal) { previous = event.dstep; continue; }
 
-        const tones = chordDegrees(chordAt(score.progression[barIndex] ?? 'I', at, barDuration));
+        const tones = chordDegrees(chordAt(score.progression[barIndex] ?? 'I', at, barDuration, score.beatDuration));
         const isChordTone = tones.includes(degreeOf(event.dstep, key));
         const where = `grade ${context.grade} seed ${context.seed} bar ${barIndex + 1} offset ${at}`;
         if (!isChordTone && previous !== null) {

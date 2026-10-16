@@ -106,6 +106,41 @@ Three checks in that section were wrong before they were right, and the correcti
 
 Two things the audit deliberately does *not* flag, because they are constraints rather than faults — do not "fix" them: in a five-finger grade the chord root is outside the hand's five notes in 14-19% of bars (so the root rate is measured only where it is reachable), and `stepwiseBiasPercent` is the weight the step *category* gets before the harmonic filters run, not a target for the finished line, so the realised rate always sits below it.
 
+### Left hand as accompaniment (2026-10 review; measured over 300-600 seeds/grade)
+
+The user's complaint was that the left hand felt mechanical. An independent reviewer measured it, and these rules came out of that review. Re-measure with `tools/sight/dump.js` and the audit after any change.
+
+- **Rhythms are drawn before pitches, right hand first** (`buildRhythm` → `pitchStaff`). Each left-hand bar draws 10 candidates and `drawComplementaryBar` keeps the best one:
+  - about 0.65× the right hand's notes;
+  - moves where the right hand holds a note;
+  - no off-beat notes under a busy right-hand beat;
+  - always a note at a split bar's chord change.
+  - Left hand: no 16ths through Grade 5 and at most one fast beat after. LH/RH note ratio went from 0.87–0.93 to about 0.70; LH 16ths from 17–28% to 0% (Grades 4–5) and about 10% (Grades 6–8).
+- **Register**: window starts are weighted toward E3 (`pickNear`, σ about 3 steps) and the LH span is capped at 10 steps. The final bar is dropped an octave if its bass is G3 or higher and the move is safe (`lowerFinalBass`; not at five-finger grades).
+- **Chords** (`stackChordTones`):
+  - below C3 the two lowest notes must be a 5th or more apart;
+  - no chord on a 16th;
+  - chords of three or more notes only on a crotchet or longer.
+- **Final bar**:
+  - redrawn until the last note is at least half a bar;
+  - the LH holds one note for the whole bar 60% of the time (from Grade 2, where the hands play together);
+  - `fixCadenceParallels` re-voices the bass into the final chord onto V's root, or its leading note, or else changes the tune's approach, so the arrival isn't in parallel octaves.
+- **Line shape**:
+  - the bass gets an inverted arch (`arch: -0.4`);
+  - returning to the note two back is ×0.2 in the bass (A-B-A-B);
+  - the right hand gets ×2 for contrary motion and ×0.6 for similar motion when the bass moves;
+  - repeated notes on 16ths and bass quavers are a last resort;
+  - `bassDecorationPercent` is raised 10 points from Grade 3, so the bass has more steps.
+- **Harmony**:
+  - no iii in minor (it would be III+);
+  - the pre-cadence fallback has no ii at Grades 1–3;
+  - a split bar changes chord on a beat (`splitPoint`: 3/4 → beat 3, 5/4 → 3+2, 9/8 → 6+3).
+- **Articulation follows the tempo word** (`tempoCharacter`):
+  - a singing or slow word gets only slurs or no marks;
+  - a whole-piece staccato hand only for a lively right hand;
+  - a staccato accompaniment for one phrase at most.
+- The audit's figure-repetition metric keeps held single-note bars in the sequence as unique tokens. Dropping them used to make the bars on either side look adjacent.
+
 ### Phrase structure, motif restatement and cadence
 
 These three are what stop a test reading as separately-invented bars laid end to end. They interlock — the harmony is arranged so the melody's restatement is legal by construction — so changing one without the others mostly undoes it.

@@ -162,7 +162,7 @@ function auditHarmony(grade, tests) {
         offset += event.dur;
         if (event.rest || event.dstep === undefined) continue;
         if (event === bassFinal) { previousDstep = event.dstep; continue; }
-        const tones = chordDegrees(chordAt(score.progression[barIndex] ?? 'I', at, barDur));
+        const tones = chordDegrees(chordAt(score.progression[barIndex] ?? 'I', at, barDur, score.beatDuration));
         const isTone = tones.includes(degreeOf(event.dstep, barKey));
         bassNotes += 1;
         if (!isTone) {
@@ -408,9 +408,13 @@ function auditRhythm(grade, tests) {
        * syllabus asks for, while hiding the thing that actually reads badly —
        * a fussy multi-event figure stamped out bar after bar.
        */
+      // A held single-note bar stays in the sequence as a bar of its own kind
+      // (a unique token): it is not a repeated figure, but dropping it made the
+      // bars either side of it look adjacent and shrank the denominator, so a
+      // held final bass "raised" repetition without a single figure changing.
       const sigs = score.staves[staffNumber]
-        .filter((bar) => notesOfBar(bar).length && bar.events.length >= 2)
-        .map(signature);
+        .filter((bar) => notesOfBar(bar).length)
+        .map((bar, i) => (bar.events.length >= 2 ? signature(bar) : `held-${i}`));
       /*
        * Below four sounding bars these ratios say more about the sample size
        * than the music — where the hands alternate (Grade 1) a staff plays
@@ -982,7 +986,7 @@ function auditVoiceLeading(grade, tests) {
         let offset = 0;
         for (const event of bar.events) {
           if (!event.rest && event.pitch) {
-            flat.push({ event, chord: chordAt(score.progression[barIndex] ?? 'I', offset, score.barDuration) });
+            flat.push({ event, chord: chordAt(score.progression[barIndex] ?? 'I', offset, score.barDuration, score.beatDuration) });
           }
           offset += event.dur;
         }

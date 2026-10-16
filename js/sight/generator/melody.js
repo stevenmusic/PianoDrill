@@ -72,6 +72,8 @@ export function assignPitches({ rng, key, bars, progression, window, options, ag
   let noteIndex = 0;
 
   let previous = null;
+  // The note before `previous`, so the bass can be kept from see-sawing A-B-A-B.
+  let beforePrevious = null;
   let previousLeap = 0;
   let repeatRun = 0;
   // Direction and length of the current run of consecutive same-direction
@@ -155,7 +157,7 @@ export function assignPitches({ rng, key, bars, progression, window, options, ag
       // A bar that splits into two chords (see harmony.js's `chordAt`)
       // hands each half its own tones — a note picks its governing chord
       // by when it starts, same as any other harmonic-rhythm change.
-      const tones = chordDegrees(chordAt(entry, offset, barDuration));
+      const tones = chordDegrees(chordAt(entry, offset, barDuration, bar.beatDuration));
       const absolute = barIndex * barDuration + offset;
       const sounding = soundingAt(against, absolute, event.dur);
       const onBeat = offset % bar.beatDuration === 0;
@@ -186,7 +188,7 @@ export function assignPitches({ rng, key, bars, progression, window, options, ag
        * harmony arrivals to the ordinary weighting is what keeps first and
        * second inversions in the language. The cadence is not up for a roll.
        */
-      const chordHere = chordAt(entry, offset, barDuration);
+      const chordHere = chordAt(entry, offset, barDuration, bar.beatDuration);
       const harmonyArrives = isDownbeat || chordHere !== previousChord;
       previousChord = chordHere;
 
@@ -289,6 +291,8 @@ export function assignPitches({ rng, key, bars, progression, window, options, ag
           bassDecoration,
           sounding,
           preferred,
+          beforePrevious,
+          shortNote: event.dur <= bar.beatDuration / 4 ? 'sixteenth' : event.dur <= bar.beatDuration / 2 ? 'eighth' : null,
         });
       }
 
@@ -328,6 +332,7 @@ export function assignPitches({ rng, key, bars, progression, window, options, ag
         arpeggioLength = continuesArpeggio ? 1 : 0;
       }
       previousLeap = interval;
+      beforePrevious = previous;
       previous = chosen;
       previousDur = event.dur;
 
@@ -587,7 +592,7 @@ function pickWeighted(ctx) {
     rng, key, allSteps, previous, previousLeap, repeatRun, runDirection, runLength, tones,
     arpeggioDirection, arpeggioLength, onBeat, isDownbeat, centre, stepwiseBias, maxLeapSemitones,
     chordToneOnly, sounding, previousWasChordTone, previousWasLeadingNote, previousBass, preferred = null,
-    bassDecoration = 0, fastLeapLimit = 99,
+    bassDecoration = 0, fastLeapLimit = 99, beforePrevious = null, shortNote = null,
   } = ctx;
   const bass = sounding.length ? Math.min(...sounding) : null;
 
@@ -804,6 +809,22 @@ function pickWeighted(ctx) {
     weight *= 1 / (1 + Math.abs(dstep - centre) * 0.12);
     // Within the leap category, a smaller leap still outweighs a bigger one.
     if (distance > 1) weight /= distance - 1;
+    /*
+     * A bass hopping between the same two chord tones (D-G-D-G, E-B-E-B) is
+     * the most mechanical thing in the texture — 55-65% of bass moves were
+     * leaps and direction reversed half the time, a random walk. Going back to
+     * the note two before is strongly discouraged in the bass.
+     */
+    if (chordToneOnly && beforePrevious !== null && distance > 0 && dstep === beforePrevious && previous !== beforePrevious) weight *= 0.2;
+    /*
+     * Outer voices: when the bass has just moved, the melody going the other
+     * way is the classic two-part texture; going the same way (similar motion)
+     * is fine but less valued. Measured before: contrary 17%, similar 14-15% —
+     * nothing favoured contrary motion at all.
+     */
+    if (!chordToneOnly && previousBass !== null && bass !== null && bass !== previousBass && distance > 0) {
+      weight *= Math.sign(midi - previousMidi) === -Math.sign(bass - previousBass) ? 2 : 0.6;
+    }
 
     const candidate = { dstep, weight, clash };
     if (dstep === preferred && !clash) preferredCandidate = candidate;
@@ -918,7 +939,10 @@ function pickWeighted(ctx) {
   const categories = [];
   if (steps.length) categories.push({ items: steps, weight: 10 * stepwiseBias * runBoost });
   if (leaps.length) categories.push({ items: leaps, weight: 10 * (1 - stepwiseBias) * leapBoost });
-  if (repeats.length) categories.push({ items: repeats, weight: 1 });
+  // A repeated note on a semiquaver (either hand) or a bass quaver is a stutter
+  // (C#6-C#6-C#6, A3-A3-A3), not a figure: offer it only as a last resort.
+  const repeatWeight = shortNote === 'sixteenth' || (chordToneOnly && shortNote === 'eighth') ? 0.1 : 1;
+  if (repeats.length) categories.push({ items: repeats, weight: (steps.length || leaps.length) ? repeatWeight : 1 });
   return rng.weighted(rng.weighted(categories).items).dstep;
 }
 
@@ -1258,7 +1282,7 @@ export function stackChordTones({
     const entry = progression[barIndex] ?? 'I';
     let offset = 0;
     bar.events.forEach((event) => {
-      const tones = chordDegrees(chordAt(entry, offset, barDuration));
+      const tones = chordDegrees(chordAt(entry, offset, barDuration, bar.beatDuration));
       const sounding = against ? soundingAt(against, barIndex * barDuration + offset, event.dur) : [];
       offset += event.dur;
       if (event.rest || event.dstep === undefined) return;
@@ -1276,8 +1300,12 @@ export function stackChordTones({
        * ceiling the syllabus permits occasionally, not a target. Most chords
        * are the thinnest the texture allows and the full stack stays an event.
        */
+      // A chord on a 16th is not playable at sight; a three-note chord wants
+      // at least a crotchet (both appeared in the left hand from Grade 5 up).
+      if (event.type === '16th' || event.type === '32nd') return;
+      const roomHere = event.type === 'eighth' ? Math.min(room, 2) : room;
       let want = 2;
-      while (want < room && rng.chance(0.35)) want += 1;
+      while (want < roomHere && rng.chance(0.35)) want += 1;
 
       /*
        * In the bass, a stacked note becomes the *lowest* sounding note and so
@@ -1324,6 +1352,13 @@ export function stackChordTones({
          * note can land a semitone from it.
          */
         if (clashesWith(pitch.midi, sounding)) continue;
+        /*
+         * Low thirds are mud. Below C3 the two lowest notes of a chord must be
+         * at least a fifth apart (fifth, sixth, octave) — close position only
+         * from C3 up. 21-32% of stacked LH intervals broke this before.
+         */
+        const lowestSoFar = extras.length ? extras[extras.length - 1].midi : event.pitch.midi;
+        if (pitch.midi < 48 && lowestSoFar - pitch.midi < 7) continue;
         extras.push(pitch);
       }
       if (extras.length) event.chord = extras;

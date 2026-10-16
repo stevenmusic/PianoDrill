@@ -48,11 +48,13 @@ const FOLLOWS_SIMPLE = {
 };
 
 /** Weighted candidates for what may follow `previous`, excluding an immediate repeat. */
-function mayFollow(table, previous) {
-  const candidates = (table[previous] ?? []).filter((entry) => entry.chord !== previous);
+function mayFollow(table, previous, minor = false) {
+  // Minor keys are written as harmonic minor, so iii (3-5-7) is the augmented
+  // triad III+ — not a chord these tests use. Never offer it in minor.
+  const candidates = (table[previous] ?? []).filter((entry) => entry.chord !== previous && !(minor && entry.chord === 'iii'));
   if (candidates.length) return candidates;
   return Object.keys(table)
-    .filter((chord) => chord !== previous)
+    .filter((chord) => chord !== previous && !(minor && chord === 'iii'))
     .map((chord) => ({ chord, weight: 1 }));
 }
 
@@ -132,9 +134,9 @@ export function buildProgression(rng, barCount, options = {}) {
     }
     sameChordRun = 1;
 
-    const first = rng.weighted(mayFollow(table, previous)).chord;
+    const first = rng.weighted(mayFollow(table, previous, options.minor)).chord;
     if (twoChordBarChance > 0 && rng.chance(twoChordBarChance)) {
-      const second = rng.weighted(mayFollow(table, first)).chord;
+      const second = rng.weighted(mayFollow(table, first, options.minor)).chord;
       progression[bar] = [first, second];
       previous = second;
     } else {
@@ -165,8 +167,11 @@ export function buildProgression(rng, barCount, options = {}) {
   // Weighted toward ii/IV: the classic pre-dominant approach into a cadence,
   // rather than treated as just another equally-likely replacement.
   if (barCount >= 4 && barCount - 3 !== half && lastChord(progression[barCount - 3]) === 'V') {
+    // Grade 1-3 have no ii at all (FOLLOWS_SIMPLE) — the fallback must not slip
+    // one in: at Grade 1 this bar is where the first hand ends its half on the
+    // tonic, and a held tonic under ii is a non-chord bass.
     progression[barCount - 3] = rng.weighted([
-      { chord: 'ii', weight: 3 }, { chord: 'IV', weight: 3 }, { chord: 'vi', weight: 1 }, { chord: 'I', weight: 1 },
+      { chord: 'ii', weight: options.simple ? 0 : 3 }, { chord: 'IV', weight: 3 }, { chord: 'vi', weight: 1 }, { chord: 'I', weight: 1 },
     ]).chord;
   }
   return progression;
@@ -194,8 +199,20 @@ export function lastChord(entry) {
   return Array.isArray(entry) ? entry[entry.length - 1] : entry;
 }
 
+/**
+ * Where a split bar's second chord arrives: on a beat, never mid-beat. Half
+ * the bar works for 2/4, 4/4, 6/8, 12/8, but in 3/4 that is halfway through
+ * beat 2 — so the change goes to the beat after the middle (3/4 → beat 3,
+ * 5/4 → 3+2, 9/8 → 6+3). Without `beatDuration` it falls back to half.
+ */
+export function splitPoint(barDuration, beatDuration) {
+  if (!beatDuration) return barDuration / 2;
+  const beats = Math.round(barDuration / beatDuration);
+  return Math.ceil(beats / 2) * beatDuration;
+}
+
 /** The chord in effect at `offset` divisions into a bar of `barDuration`. */
-export function chordAt(entry, offset, barDuration) {
+export function chordAt(entry, offset, barDuration, beatDuration) {
   if (!Array.isArray(entry)) return entry;
-  return offset < barDuration / 2 ? entry[0] : entry[1];
+  return offset < splitPoint(barDuration, beatDuration) ? entry[0] : entry[1];
 }

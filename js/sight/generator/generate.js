@@ -9,7 +9,7 @@
 
 import { createRandom, randomSeed } from './random.js';
 import { createKey, dstepRange, degreeOf, pitchAt, chordDegrees, LETTERS } from './theory.js';
-import { buildProgression, firstChord, lastChord, halfCadenceBar } from './harmony.js';
+import { buildProgression, firstChord, lastChord, halfCadenceBar, splitPoint } from './harmony.js';
 import {
   assignPitches, stackChordTones, soundingTimeline, harmoniseLeadingNotes, harmoniseRepeatedLeadingNotes,
   revertClashingBassDecorations,
@@ -84,6 +84,7 @@ export function generateTest(rulesTable, options) {
   // Grade 5+, the same range where pedal marking starts appearing.
   const progression = buildProgression(rng, barCount, {
     simple: grade <= 3,
+    minor: key.mode === 'minor',
     twoChordBarChance: grade >= 5 ? 0.3 : 0,
   });
 
@@ -107,22 +108,24 @@ export function generateTest(rulesTable, options) {
 
   // The left hand is written first and becomes the bass the right hand is
   // checked against; writing them independently is what produced clashes.
-  const leftHand = buildStaff({
-    rng, rules, meter, barCount, hand: 'leftHand', progression, key,
-    silentBars: silence.leftHand, restatement,
-  });
+  // Both rhythms first, so the left hand's can be drawn against the right
+  // hand's; pitches are still written left hand first (see buildRhythm).
+  const rightParams = { rng, rules, meter, barCount, hand: 'rightHand', progression, key, silentBars: silence.rightHand, restatement };
+  const rightRhythm = buildRhythm(rightParams);
+  const leftParams = { rng, rules, meter, barCount, hand: 'leftHand', progression, key, silentBars: silence.leftHand, restatement, partner: rightRhythm };
+  const leftHand = pitchStaff(buildRhythm(leftParams), leftParams);
   /*
    * Where the left hand actually settled. The right hand's working range was
    * drawn independently of it, so at the upper grades — where both ranges are
    * wide — the two could end up more than two octaves apart in 40% of moments,
    * a gaping hole in the middle of the texture that no keyboard writing leaves.
    */
+  if (!rules.texture.fiveFingerPosition) lowerFinalBass(leftHand, rules.range.leftHand.minMidi, fastLeapCap(rules.grade), meter.beatDuration);   // five-finger grades stay in their position
   const leftSteps = leftHand
     .flatMap((bar) => bar.events.filter((event) => !event.rest && event.dstep !== undefined))
     .map((event) => event.dstep);
-  const rightHand = buildStaff({
-    rng, rules, meter, barCount, hand: 'rightHand', progression, key,
-    silentBars: silence.rightHand, restatement,
+  const rightHand = pitchStaff(rightRhythm, {
+    ...rightParams,
     against: soundingTimeline(leftHand, meter.barDuration),
     above: leftSteps.length ? Math.max(...leftSteps) : null,
   });
@@ -142,6 +145,7 @@ export function generateTest(rulesTable, options) {
   // against each other, not a hand against its own immediate repeat).
   harmoniseRepeatedLeadingNotes(rightHand, key);
   harmoniseRepeatedLeadingNotes(leftHand, key);
+  fixCadenceParallels(rightHand, leftHand, key, meter.barDuration, fastLeapCap(rules.grade), meter.beatDuration);
 
   const tempoTerm = rng.pick(rules.tempoTerms);
   const score = {
@@ -221,7 +225,18 @@ function pickBarCount(rng, rules, timeSignature) {
   return count % 2 === 0 ? count : Math.min(count + 1, max % 2 === 0 ? max : max - 1) || min;
 }
 
-function buildStaff({ rng, rules, meter, barCount, hand, progression, key, silentBars = new Set(), restatement = [], against = null, above = null }) {
+function buildStaff(params) {
+  return pitchStaff(buildRhythm(params), params);
+}
+
+/**
+ * A hand's rhythm, bar by bar, with no pitches yet. Split from the pitch pass
+ * so both hands' rhythms exist before either is pitched: the left hand's
+ * rhythm used to be drawn without ever seeing the right hand's, so the two
+ * were equally busy (LH 0.87-0.93x the RH's notes) and busy together.
+ * `partner` is the right hand's rhythm, when drawing the left hand.
+ */
+function buildRhythm({ rng, rules, meter, barCount, hand, progression, silentBars = new Set(), restatement = [], partner = null }) {
   const isLeft = hand === 'leftHand';
   const activity = rules.generatorHints.activity ?? 0.4;
   // A supportive accompaniment role only exists once the hands actually
@@ -242,7 +257,9 @@ function buildStaff({ rng, rules, meter, barCount, hand, progression, key, silen
 
   const restBudget = Math.max(1, Math.round((rules.generatorHints.restDensityPercent / 100) * meter.cellBeats));
   // Fast (semiquaver) beats per bar: one through Grade 4, two for 5-6, free after.
-  const maxFast = rules.grade <= 4 ? 1 : rules.grade <= 6 ? 2 : 4;
+  // The left hand accompanies: no semiquavers through Grade 5, one beat at most
+  // after (17-28% of left-hand notes were 16ths from Grade 4 up).
+  const maxFast = isLeft ? (rules.grade <= 5 ? 0 : 1) : rules.grade <= 4 ? 1 : rules.grade <= 6 ? 2 : 4;
   const bank = [];
   const bars = [];
 
@@ -296,13 +313,28 @@ function buildStaff({ rng, rules, meter, barCount, hand, progression, key, silen
     if (silentBars.has(barIndex)) {
       events = wholeBarRest(meter.barDuration);
     } else if (isCadenceBar) {
-      // Cadence bar: end on a long note rather than a busy figure.
+      /*
+       * Cadence bar: short values first, then a held note of at least half
+       * the bar. Drawing calm cells was not enough — `ee` and `dq_e` are calm
+       * too, and nothing put the long value last, so 53-62% of tests ended on
+       * a note shorter than half a bar (a quaver in 23% at Grade 2). The left
+       * hand usually just holds its final note for the whole bar.
+       */
       const calm = cells.filter((cell) => cell.calm && !cell.rests);
-      events = fillBar(rng, calm.length ? calm : cells, meter.cellBeats, {
+      const draw = () => fillBar(rng, calm.length ? calm : cells, meter.cellBeats, {
         restBudget: 0,
         maxFast,
         activity: activity * 0.4,
       }).events;
+      const endsLong = (drawn) => !drawn[drawn.length - 1].rest && drawn[drawn.length - 1].dur >= meter.barDuration / 2;
+      const held = noteOfDuration(meter.barDuration, rules);
+      events = null;
+      if (isFinalBar && isLeft && rules.texture.handsPlayTogether && held && rng.chance(0.6)) events = [held];   // Grade 1's LH is a tune, not a bass
+      for (let attempt = 0; !events && attempt < 30; attempt++) {
+        const candidate = draw();
+        if (endsLong(candidate)) events = candidate;
+      }
+      if (!events) events = held ? [held] : draw();
     } else if (isPhraseEndBar) {
       // The phrase's arrival: calm cells so the bar ends long, but unlike the
       // final bar it may still rest, and it is not driven all the way down to
@@ -405,11 +437,12 @@ function buildStaff({ rng, rules, meter, barCount, hand, progression, key, silen
        * relieving. Restatements are excluded by construction: they are
        * handled in the branches above, where repetition is the intent.
        */
-      events = drawContrastingBar(rng, cells, meter.cellBeats, {
-        restBudget,
-        maxFast,
-        activity: isLeft ? activity * 0.7 : activity,
-      }, [bars[barIndex - 1]?.events, bars[barIndex - 2]?.events, ostinato]);
+      const options = { restBudget, maxFast, activity: isLeft ? activity * 0.7 : activity };
+      const avoid = [bars[barIndex - 1]?.events, bars[barIndex - 2]?.events, ostinato];
+      events = isLeft && partner
+        ? drawComplementaryBar(rng, cells, meter, options, avoid, partner[barIndex]?.events ?? [],
+          Array.isArray(progression[barIndex]) ? splitPoint(meter.barDuration, meter.beatDuration) : null)
+        : drawContrastingBar(rng, cells, meter.cellBeats, options, avoid);
     }
 
     /*
@@ -426,11 +459,25 @@ function buildStaff({ rng, rules, meter, barCount, hand, progression, key, silen
     bars.push({ events, beatDuration: meter.beatDuration, directions: [], motif });
   }
 
+  return bars;
+}
+
+/** Pitches (and chords) for a hand whose rhythm `buildRhythm` has drawn. */
+function pitchStaff(bars, { rng, rules, meter, hand, progression, key, against = null, above = null }) {
+  const isLeft = hand === 'leftHand';
   const range = rules.range[hand];
   const { low, high } = dstepRange(key, range.minMidi, range.maxMidi);
+  /*
+   * The left hand has a home register, not the whole permitted range picked
+   * uniformly: real tests keep it on the bass staff around C3-G3 at the low
+   * grades (a uniform pick put Grade 2 on E2-G2 in 14% of tests) and only dip
+   * low occasionally later. Window starts are weighted toward `center`, and the
+   * left hand's working span is capped at about an octave and a half.
+   */
+  const center = isLeft ? 23 : null;   // E3 as a dstep: the window's middle
   const window = rules.texture.fiveFingerPosition
-    ? fiveFingerWindow(rng, key, low, high, above)
-    : tessituraWindow(rng, key, low, high, 8 + rules.grade, above);
+    ? fiveFingerWindow(rng, key, low, high, above, center === null ? null : center + 1)
+    : tessituraWindow(rng, key, low, high, isLeft ? Math.min(10, 8 + rules.grade) : 8 + rules.grade, above, center);
 
   assignPitches({
     rng,
@@ -454,7 +501,10 @@ function buildStaff({ rng, rules, meter, barCount, hand, progression, key, silen
       barDuration: meter.barDuration,
       // The tune is shaped as an arch across the whole test; the bass that
       // supports it should stay put underneath rather than arch with it.
-      arch: isLeft ? 0 : 1,
+      // The bass gets a gentle *inverted* arch: it sinks while the tune climbs
+      // and comes back as the tune falls — contrary motion at the scale of the
+      // phrase (a flat target left it hopping round the window centre).
+      arch: isLeft ? -0.4 : 1,
     },
     against,
   });
@@ -519,6 +569,47 @@ function drawContrastingBar(rng, cells, cellBeats, options, avoid) {
 }
 
 /**
+ * The left hand's bar chosen against the right hand's: of several drawn
+ * candidates, the one that best complements it — thinner (about two thirds of
+ * the RH's notes), moving where the RH holds, holding where the RH runs, and
+ * sounding at a split bar's chord change. Real tests are a tune over a plainer
+ * accompaniment; drawing the LH blind made both hands equally busy, busy
+ * together in 30-46% of the RH's busy beats, and the bass missed a mid-bar
+ * chord change in a quarter of split bars.
+ */
+function drawComplementaryBar(rng, cells, meter, options, avoid, partnerEvents, splitAt) {
+  const unwanted = new Set(avoid.filter(Boolean).map(rhythmSignature));
+  const attacks = (events) => {
+    const out = []; let offset = 0;
+    for (const event of events) { if (!event.rest) out.push({ at: offset, dur: event.dur }); offset += event.dur; }
+    return out;
+  };
+  const right = attacks(partnerEvents);
+  const beat = meter.beatDuration;
+  const busyBeat = (t) => right.filter((a) => Math.floor(a.at / beat) === Math.floor(t / beat)).length >= 2;
+  const score = (events) => {
+    const left = attacks(events);
+    let value = 0;
+    if (right.length) value -= 4 * Math.abs(left.length / right.length - 0.65);
+    for (const a of left) {
+      if (right.some((b) => b.at < a.at && b.at + b.dur > a.at)) value += 0.6;   // moves while the tune holds
+      else if (a.at % beat !== 0 && busyBeat(a.at)) value -= 0.8;                // off-beat chatter under a busy beat
+    }
+    if (splitAt !== null && !left.some((a) => a.at === splitAt)) value -= 5;     // the bass states the new chord
+    value -= 1.5 * events.filter((event) => event.type === '16th').length / 4;   // semiquavers belong to the tune
+    return value + rng.next() * 0.5;
+  };
+  let best = null, bestScore = -Infinity, fallback = null;
+  for (let attempt = 0; attempt < 10; attempt++) {
+    const { events } = fillBar(rng, cells, meter.cellBeats, options);
+    if (unwanted.has(rhythmSignature(events))) { fallback ??= events; continue; }
+    const value = score(events);
+    if (value > bestScore) { best = events; bestScore = value; }
+  }
+  return best ?? fallback;
+}
+
+/**
  * Which bars of the consequent phrase restate the antecedent's opening, as
  * `plan[destinationBar] = sourceBar`. Only the phrase's first two bars are
  * candidates: a period restates its opening gesture and then goes its own
@@ -577,7 +668,131 @@ function pitchTreatment(rng, progression, sourceBarIndex, barIndex) {
  * wanders and collects ledger lines no real test would print. Pick a working
  * tessitura inside the range, wider at each grade.
  */
-function tessituraWindow(rng, key, low, high, span, above = null) {
+/**
+ * Both hands now arrive on the final chord together (a held note each), so the
+ * step into it is a real outer-voice succession — and D-C over D-C is parallel
+ * octaves into the cadence (89 of 95 Grade 2 parallel octaves sat exactly
+ * here). Re-voice the bass's last note before the final bar onto the root of V
+ * (the textbook 5-1 bass), nearest to where it was, when that removes the
+ * parallel and stays within an octave of the final bass and clear of the RH.
+ */
+function fixCadenceParallels(rightHand, leftHand, key, barDuration, fastCap = 12, beatDuration = Infinity) {
+  const lastBar = rightHand.length - 1;
+  const lastBefore = (bars) => bars.slice(0, lastBar).flatMap((bar) => bar.events).filter((e) => !e.rest && e.pitch).pop();
+  const firstIn = (bars) => bars[lastBar].events.find((e) => !e.rest && e.pitch);
+  const top = (e) => Math.max(e.pitch.midi, ...(e.chord ?? []).map((n) => n.midi));
+  const bottom = (e) => Math.min(e.pitch.midi, ...(e.chord ?? []).map((n) => n.midi));
+  const r0 = lastBefore(rightHand), r1 = firstIn(rightHand), l0 = lastBefore(leftHand), l1 = firstIn(leftHand);
+  if (!r0 || !r1 || !l0 || !l1 || l0.chord?.length) return;
+  const parallel = (bass) => {
+    const up = Math.sign(top(r1) - top(r0)), down = Math.sign(bottom(l1) - bass);
+    const before = (((top(r0) - bass) % 12) + 12) % 12, after = (((top(r1) - bottom(l1)) % 12) + 12) % 12;
+    return up !== 0 && up === down && before === after && (before === 0 || before === 7);
+  };
+  if (!parallel(bottom(l0))) return;
+  let best = null;
+  for (let dstep = l0.dstep - 7; dstep <= l0.dstep + 7; dstep++) {
+    const degree = degreeOf(dstep, key);
+    // The root of V (5-1 bass), or its third — the leading note rising to the
+    // tonic, contrary to the melody — when the tune isn't holding it too.
+    if (degree !== 4 && degree !== 6) continue;
+    if (leftHand.window && (dstep < leftHand.window.low || dstep > leftHand.window.high)) continue;   // stay in the hand's position
+    const pitch = pitchAt(dstep, key, { raiseSeventh: degree === 6 });
+    if (degree === 6 && (pitch.midi % 12 === top(r0) % 12 || dstep + 1 !== l1.dstep)) continue;
+    if (Math.abs(pitch.midi - bottom(l1)) > 12 || pitch.midi >= top(r0) - 2 || parallel(pitch.midi)) continue;
+    // The note it replaces sits between two neighbours: neither leap may break the short-note cap.
+    // Within a five-finger position nothing moves the hand, so the cap is moot.
+    const fixedHand = leftHand.window && leftHand.window.high - leftHand.window.low <= 4;
+    const shortInto = (from, to) => !fixedHand && (from.dur <= beatDuration / 2 || to.dur <= beatDuration / 2);
+    if (shortInto(l0, l1) && Math.abs(pitch.midi - bottom(l1)) > fastCap) continue;
+    const beforeL0 = leftHand.slice(0, lastBar).flatMap((bar) => bar.events).filter((e) => !e.rest && e.pitch);
+    const prior = beforeL0[beforeL0.length - 2];
+    if (prior && shortInto(prior, l0) && Math.abs(pitch.midi - prior.pitch.midi) > fastCap) continue;
+    const harsh = [1, 2, 6, 10, 11].includes((((top(r0) - pitch.midi) % 12) + 12) % 12);
+    if (harsh) continue;
+    // Prefer the root; take the leading note only when no root fits.
+    const rank = (p) => (degreeOf(p.dstep, key) === 4 ? 0 : 100) + Math.abs(p.dstep - l0.dstep);
+    if (!best || rank(pitch) < rank(best)) best = pitch;
+  }
+  if (!best) {
+    // No bass note fits (a five-finger left hand often has neither): re-voice
+    // the tune's approach instead — the mediant falling a third, or the
+    // leading note rising — so the hands no longer move in octaves.
+    if (r0.chord?.length) return;
+    const window = rightHand.window;
+    let tune = null;
+    for (const dstep of [r1.dstep + 2, r1.dstep - 1]) {
+      if (window && (dstep < window.low || dstep > window.high)) continue;
+      const degree = degreeOf(dstep, key);
+      const pitch = pitchAt(dstep, key, { raiseSeventh: degree === 6 });
+      const interval = (((pitch.midi - bottom(l0)) % 12) + 12) % 12;
+      if ([0, 1, 2, 6, 7, 10, 11].includes(interval)) continue;   // no new perfect interval, no clash
+      const prior = rightHand.slice(0, lastBar).flatMap((bar) => bar.events).filter((e) => !e.rest && e.pitch).slice(-2)[0];
+      if (prior && prior !== r0 && Math.abs(prior.pitch.midi - pitch.midi) > 12) continue;
+      tune = pitch; break;
+    }
+    if (!tune) return;
+    r0.dstep = tune.dstep;
+    r0.pitch = tune;
+    r0.raiseSeventh = degreeOf(tune.dstep, key) === 6;
+    return;
+  }
+  l0.dstep = best.dstep;
+  l0.pitch = best;
+  l0.raiseSeventh = degreeOf(best.dstep, key) === 6;
+}
+
+/**
+ * The final chord's bass belongs low. With the left hand centred around E3,
+ * the closing tonic landed on G3 or above in 22-28% of tests — a cadence that
+ * doesn't land. Drop the whole final bar an octave when its lowest note is
+ * that high and the octave below stays in range, joins the previous bar by no
+ * more than an octave, and keeps any chord open below C3 (a fifth or wider).
+ */
+/** Widest leap (semitones) between short notes, by grade — same caps the pitch walk uses. */
+function fastLeapCap(grade) { return grade <= 4 ? 5 : grade <= 6 ? 7 : 9; }
+
+function lowerFinalBass(bars, minMidi, fastCap = 12, beatDuration = Infinity) {
+  const last = bars[bars.length - 1];
+  const sounding = last.events.filter((event) => !event.rest && event.pitch);
+  if (!sounding.length) return;
+  const midis = (event) => [event.pitch.midi, ...(event.chord ?? []).map((note) => note.midi)];
+  const all = sounding.flatMap(midis);
+  if (Math.min(...sounding.map((event) => event.pitch.midi)) < 55 || Math.min(...all) - 12 < minMidi) return;
+  const before = bars.slice(0, -1).flatMap((bar) => bar.events).filter((event) => !event.rest && event.pitch).pop();
+  const leap = before ? Math.abs(before.pitch.midi - (sounding[0].pitch.midi - 12)) : 0;
+  if (leap > 12) return;
+  // Between short notes the hand has no time to travel: keep the grade's cap.
+  if (before && (before.dur <= beatDuration / 2 || sounding[0].dur <= beatDuration / 2) && leap > fastCap) return;
+  for (const event of sounding) {
+    const lowered = midis(event).map((midi) => midi - 12).sort((a, b) => a - b);
+    if (lowered.length > 1 && lowered[0] < 48 && lowered[1] - lowered[0] < 7) return;
+  }
+  const down = (pitch) => ({ ...pitch, octave: pitch.octave - 1, dstep: pitch.dstep - 7, midi: pitch.midi - 12 });
+  for (const event of sounding) {
+    event.dstep -= 7;
+    event.pitch = down(event.pitch);
+    if (event.chord) event.chord = event.chord.map(down);
+  }
+}
+
+/** One note lasting `dur` divisions (24 = crotchet), or null if no single note value fits (e.g. 5/4). */
+function noteOfDuration(dur, gradeRules) {
+  const types = new Set(gradeRules.rhythm.noteValues), dotted = new Set(gradeRules.rhythm.dottedValues ?? []);
+  for (const [type, base] of [['whole', 96], ['half', 48], ['quarter', 24], ['eighth', 12]]) {
+    if (dur === base && types.has(type)) return { type, dur, dots: 0, rest: false };
+    if (dur === base * 1.5 && types.has(type) && dotted.has(type)) return { type, dur, dots: 1, rest: false };
+  }
+  return null;   // the grade can't print one note this long: leave the bar to the redraw
+}
+
+/** Pick a window start, weighted toward `center` (dstep of the window's middle) when given. */
+function pickNear(rng, starts, span, center) {
+  if (center === null || center === undefined) return rng.pick(starts);
+  return rng.weighted(starts.map((start) => ({ start, weight: Math.exp(-((start + span / 2 - center) ** 2) / 18) }))).start;
+}
+
+function tessituraWindow(rng, key, low, high, span, above = null, center = null) {
   if (high - low <= span) return { low, high };
   const starts = [];
   for (let dstep = low; dstep + span <= high; dstep++) {
@@ -586,7 +801,7 @@ function tessituraWindow(rng, key, low, high, span, above = null) {
     if (hasTonic) starts.push(dstep);
   }
   if (!starts.length) return { low, high };
-  const start = rng.pick(reachableFrom(starts, above));
+  const start = pickNear(rng, reachableFrom(starts, above), span, center);
   return { low: start, high: start + span };
 }
 
@@ -607,7 +822,7 @@ function reachableFrom(starts, above) {
  * The window must contain the tonic somewhere, or the test could not cadence
  * on it — a five-note span starting on the 2nd or 3rd degree has no tonic.
  */
-function fiveFingerWindow(rng, key, low, high, above = null) {
+function fiveFingerWindow(rng, key, low, high, above = null, center = null) {
   const all = [];
   for (let dstep = low; dstep + 4 <= high; dstep++) {
     const hasTonic = [0, 1, 2, 3, 4].some((step) => degreeOf(dstep + step, key) === 0);
@@ -616,7 +831,7 @@ function fiveFingerWindow(rng, key, low, high, above = null) {
   if (!all.length) return { low, high };
   const starts = reachableFrom(all, above);
   const tonicStarts = starts.filter((dstep) => degreeOf(dstep, key) === 0);
-  const start = tonicStarts.length && rng.chance(0.7) ? rng.pick(tonicStarts) : rng.pick(starts);
+  const start = tonicStarts.length && rng.chance(0.7) ? pickNear(rng, tonicStarts, 4, center) : pickNear(rng, starts, 4, center);
   return { low: start, high: start + 4 };
 }
 
@@ -632,6 +847,15 @@ function splitBarsBetweenHands(barCount, rng) {
     (rightPlays ? leftHand : rightHand).add(barIndex);
   }
   return { rightHand, leftHand };
+}
+
+/** How a tempo/character word sounds: 'cantabile' (singing, slow), 'lively', or 'neutral'. */
+const CANTABILE_WORDS = /adagio|largo|lento|grave|cantabile|espressivo|sostenuto|tranquillo|dolce|mesto|sadly|gently|smoothly|tenderly|lullaby|flowing|slowly|valse lente/i;
+const LIVELY_WORDS = /leggiero|scherzando|giocoso|vivace|presto|playfully|sprightly|staccato|capriccioso|ritmico|rhythmically|march|marcia|brio|happily|lively/i;
+export function tempoCharacter(term, bpm) {
+  if (CANTABILE_WORDS.test(term) || bpm <= 76) return 'cantabile';
+  if (LIVELY_WORDS.test(term) || bpm >= 116) return 'lively';
+  return 'neutral';
 }
 
 /** Dynamics, wedges, slurs and staccato, within what the grade allows. */
@@ -717,10 +941,18 @@ function applyExpression(rng, rules, score) {
     }
   };
 
+  /*
+   * The tempo/character word decides how detached the piece may be. A
+   * singing or slow term (Adagio, Sadly, Lullaby, Cantabile…) is legato or
+   * plain — staccato under it contradicts the heading (35-50% of such tests
+   * carried it when style was a pure weighted roll). A lively term keeps the
+   * old freedom; anything in between gets staccato for one phrase at most.
+   */
+  const character = tempoCharacter(score.tempoTerm, score.tempoBpm);
   const style = rng.weighted([
     { value: 'legato', weight: canSlur ? 5 : 0 },
-    { value: 'detached', weight: canStaccato ? 2 : 0 },
-    { value: 'mixed', weight: canSlur && canStaccato ? 3 : 0 },
+    { value: 'detached', weight: canStaccato && character !== 'cantabile' ? 2 : 0 },
+    { value: 'mixed', weight: canSlur && canStaccato && character !== 'cantabile' ? 3 : 0 },
     { value: 'plain', weight: 1.5 },
   ]).value;
 
@@ -738,7 +970,14 @@ function applyExpression(rng, rules, score) {
     // Tune slurred, accompaniment detached (or the reverse) — the classic
     // piano texture, with both hands marked consistently across the piece.
     addSlurs(detachedHand === 1 ? 2 : 1, 0.85);
-    addRun(detachedHand, 'staccato', 0, lastBar - 1, ['quarter', 'eighth']);
+    // A whole-piece staccato hand only for a lively right hand; a detached
+    // accompaniment is one phrase (dotting every left-hand note for the whole
+    // test reads as a mechanism, not a phrase), never the final bar.
+    if (detachedHand === 1 && character === 'lively') addRun(1, 'staccato', 0, lastBar - 1, ['quarter', 'eighth']);
+    else {
+      const from = rng.chance(0.5) ? 0 : lastPhraseStart;
+      addRun(detachedHand, 'staccato', from, Math.min(lastBar - 1, from + phraseBars - 1), ['quarter', 'eighth']);
+    }
   }
 
   // Single marks: at most one of each per piece, on a phrase's opening note.
@@ -1190,7 +1429,7 @@ function addMidBarPedalChange(bar, entry, barDuration) {
   if (!Array.isArray(entry)) return;
   let offset = 0;
   for (let index = 0; index < bar.events.length; index++) {
-    if (offset >= barDuration / 2) {
+    if (offset >= splitPoint(barDuration, bar.beatDuration)) {
       bar.directions.push({ kind: 'pedal', type: 'change', atEventIndex: index });
       return;
     }

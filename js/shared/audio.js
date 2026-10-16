@@ -245,7 +245,8 @@ async function fetchPianoBuffer(file, lenSec){
 }
 function loadPianoManifest(){
   if (!pianoManPromise) pianoManPromise = (async () => {
-    const r = await fetch(PIANO_BASE + "manifest.json", typeof AbortSignal !== "undefined" && AbortSignal.timeout ? { signal: AbortSignal.timeout(15000) } : undefined);
+    // 跟取樣存在同一個快取:以前清單每次都上網拿,沒網路時取樣明明存好了也沒聲音
+    const r = await fetchSample(PIANO_BASE + "manifest.json");
     if (!r.ok) throw new Error("manifest " + r.status);
     pianoMan = await r.json();
     return pianoMan;

@@ -50,16 +50,16 @@ Xcode 裡:
 - **關鍵字**(100 字元內,逗號分隔、不重複名稱裡的字):音階,琶音,哈農,視奏,聽音,聽力,練耳,音程,和弦,指法,ABRSM,Trinity,英國皇家,考級,樂理
 - **描述**:
   > 準備鋼琴檢定的學生、上課抽考的老師,或只想好好練琴的人,都可以用。
-  > 技巧:音階、琶音、哈農 1–20 首,每個音都標指法,取樣鋼琴示範附預備拍,速度可以慢慢加。
+  > 技巧:音階、琶音、哈農 1–20 首都標指法(三度、六度照哈農原書),取樣鋼琴示範附預備拍,速度可以慢慢加。
   > 視奏:依 ABRSM 官方視奏範例整理的規則隨機出題(1–8 級),30 秒準備、聽正確版本比對,可以選用麥克風評節奏。
   > 聽音:單音、音程、和弦聽音練習,鍵盤作答、自動批改,錯得多的項目多練。
   > 檢定:選好考試(ABRSM / Trinity)和級數一次,音階琶音、視奏、聽力測驗都照這一級出題,還有模擬考。
-  > 全部離線可用、不需要登入、沒有廣告。
-- **英文描述**:Scales, arpeggios and Hanon with fingering on every note; random sight-reading tests modelled on ABRSM specimens (Grades 1–8); ear training for notes, intervals and chords plus ABRSM / Trinity aural tests — all set to your exam grade in one place. Sampled piano, instant marking, works offline, no sign-in, no ads.
+  > 第一次下載鋼琴音色後可以離線使用;不需要登入、沒有廣告。
+- **英文描述**:Scales, arpeggios and Hanon with fingering on every note; random sight-reading tests modelled on ABRSM specimens (Grades 1–8); ear training for notes, intervals and chords plus ABRSM / Trinity aural tests — all set to your exam grade in one place. Sampled piano, instant marking, works offline once the piano sound has downloaded, no sign-in, no ads.
 - 「考級」只放在關鍵字(有人這樣搜尋),App 內一律用「檢定」「考試」。
 
 ## 審核備註(4.2 最低功能)可以寫
-- 全部離線可用(樂譜引擎、出題規則、資料都在裝置上;鋼琴取樣第一次下載後存在裝置上)
+- 離線可用(樂譜引擎、出題規則、資料都在 App 裡;鋼琴取樣第一次下載後存在裝置上,之後沒網路也有聲音)
 - 題目即時產生:依官方大綱產生音階琶音考題、依規則產生視奏題(不是靜態圖片)、聽力題的旋律/和聲/終止式/轉調即時產生並自動批改
 - 取樣鋼琴示範、播放軸、速度階梯、練習紀錄、正確率統計、模擬考
 - 若還是被以 4.2 退件,可再加原生功能:每日練習提醒(@capacitor/local-notifications)、觸覺回饋(@capacitor/haptics)

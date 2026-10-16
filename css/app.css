@@ -191,9 +191,9 @@ main{
 .quiz-top .count{font-size:var(--fs-xs);color:var(--muted);white-space:nowrap;margin-left:auto;min-width:0;overflow:hidden;text-overflow:ellipsis}
 .quiz-top{flex-wrap:nowrap;min-height:36px}
 .q-title{font-family:"Noto Serif TC",serif;font-weight:700;color:var(--gold-bright);
-  font-size:clamp(26px, 7.4vw, 40px);line-height:1.2;letter-spacing:.02em;overflow-wrap:anywhere}
+  font-size:clamp(26px, 7.4vw, 40px);line-height:1.45;letter-spacing:.02em;overflow-wrap:anywhere}
 .q-title:not(.empty){white-space:nowrap;overflow:hidden;text-overflow:ellipsis;overflow-wrap:normal;
-  height:calc(clamp(26px, 7.4vw, 40px) * 1.2);display:flex;align-items:center}
+  height:calc(clamp(26px, 7.4vw, 40px) * 1.45);display:flex;align-items:center}
 .q-title.empty{color:var(--muted);font-size:var(--fs-xl);font-family:inherit;font-weight:500}
 .q-tags{display:flex;flex-wrap:nowrap;gap:6px;overflow:hidden;align-items:center;min-height:calc(clamp(14px, 4.2vw, 18px) * 1.4 + 10px)}
 .q-tag{flex:none;font-size:calc(clamp(14px, 4.2vw, 18px) * var(--tag-scale, 1));font-weight:700;color:var(--ivory);background:var(--surface-inset);border:1px solid var(--line);
@@ -652,7 +652,8 @@ body.land-play #t-stage{flex:1;display:flex;flex-direction:column;justify-conten
 #mod-ear .opts[data-k="opts"]{--cw:126px}
 /* 三個模組的題目大標題同一個大小(以前技巧 26–40、聽音 22–32,看起來像兩個 App) */
 .q-title,#mod-ear .q-title{font-size:clamp(24px, 6.6vw, 36px)}
-.q-title:not(.empty){height:calc(clamp(24px, 6.6vw, 36px) * 1.2)}
+/* 行高 1.45:Noto Serif 的 g j p y 下伸部會超出 1.2 倍的行框,overflow:hidden 會切掉(使用者回報;tools/test/clip.mjs 檢查) */
+.q-title:not(.empty){height:calc(clamp(24px, 6.6vw, 36px) * 1.45)}
 #mod-ear .q-title:not(.empty){height:auto}
 /* 聽力測驗的題型:固定寬度的格子(中英文每列個數一樣,換語言不換行) */
 #mod-ear .test .chips{display:grid;grid-template-columns:repeat(auto-fill, minmax(150px, 1fr));gap:6px}

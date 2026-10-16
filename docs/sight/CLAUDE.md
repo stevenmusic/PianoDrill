@@ -139,7 +139,22 @@ The user's complaint was that the left hand felt mechanical. An independent revi
   - a singing or slow word gets only slurs or no marks;
   - a whole-piece staccato hand only for a lively right hand;
   - a staccato accompaniment for one phrase at most.
-- The audit's figure-repetition metric keeps held single-note bars in the sequence as unique tokens. Dropping them used to make the bars on either side look adjacent.
+- The audit's figure-repetition metric keeps held single-note bars in the sequence **with their real rhythm**, so two held bars running counts as a repeat. Two earlier versions were wrong:
+  - dropping held bars made the bars on either side look adjacent;
+  - giving each held bar a unique token hid real repetition (the reviewer caught this).
+- **Round 2 (second review)**:
+  - **Bass plan**: `planBassLine` (melody.js) plans every bar's downbeat bass with a small DP over root/third × octave.
+    - Costs: step 0, common tone 1.2, third 1.6, 4th 3.2 and up; keeping direction −0.7; falling toward each phrase's cadence; no two thirds running.
+    - Fixed points: bar 1, the cadential V and the final I take their roots.
+    - `assignPitches` prefers the plan on downbeats, and the bar's last bass note aims for a chord tone next to the next planned note (a leading note only if it rises to the tonic).
+    - A planned inversion is never re-rooted by stacking (`stackChordTones` adds nothing below it).
+    - Bar-to-bar bass: leaps of a 4th or more down from 57–61% to 33–42%; keeping direction up from 31% to 38–44%.
+  - **Cadence**: `cadenceBass` puts the left hand's last note before the final bar on V's root (5→1 in 85–99%). `fixCadenceParallels` re-voices the tune's approach first (supertonic or leading note) and the bass only as a fallback. `resolveFinalLeadingNote` makes a tune leading note at the end of the V bar rise to the tonic.
+  - **Final bar**: `mergeFinalStutter` turns a final LH bar of one repeated pitch into a held note (or an octave drop when no single value fits).
+  - **Retrogression**: `buildProgression`'s last pass replaces IV/ii after V with vi or I (it was ~10% of Grade 7–8 tests).
+  - **Metre**: `termFitsMetre` keeps dance words in their metre (waltz/minuet 3/4 or 3/8; march 2/4, 4/4, 2/2, 6/8; gigue compound; tango 2/4, 4/4).
+  - **Stutters**: `fixSixteenthStutters` moves the second of two same-pitch 16ths a step. It never moves a note on the beat and never lands on the leading note.
+  - **Left-hand movement**: the bonus for the LH moving under an RH note of half a bar or more is now 1.2.
 
 ### Phrase structure, motif restatement and cadence
 

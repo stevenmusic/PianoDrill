@@ -13,7 +13,7 @@ import { buildProgression, firstChord, lastChord, halfCadenceBar, splitPoint } f
 import {
   assignPitches, stackChordTones, soundingTimeline, harmoniseLeadingNotes, harmoniseRepeatedLeadingNotes,
   revertClashingBassDecorations,
-  relaxParallels,
+  relaxParallels, planBassLine,
 } from './melody.js';
 import { DIVISIONS, cellsFor, fillBar, wholeBarRest } from './rhythm.js';
 import { meterInfo, rescaleCells } from './meter.js';
@@ -120,6 +120,8 @@ export function generateTest(rulesTable, options) {
    * wide — the two could end up more than two octaves apart in 40% of moments,
    * a gaping hole in the middle of the texture that no keyboard writing leaves.
    */
+  cadenceBass(leftHand, key, rules, fastLeapCap(rules.grade), meter.beatDuration);
+  mergeFinalStutter(leftHand, rules, meter.barDuration);
   if (!rules.texture.fiveFingerPosition) lowerFinalBass(leftHand, rules.range.leftHand.minMidi, fastLeapCap(rules.grade), meter.beatDuration);   // five-finger grades stay in their position
   const leftSteps = leftHand
     .flatMap((bar) => bar.events.filter((event) => !event.rest && event.dstep !== undefined))
@@ -146,8 +148,14 @@ export function generateTest(rulesTable, options) {
   harmoniseRepeatedLeadingNotes(rightHand, key);
   harmoniseRepeatedLeadingNotes(leftHand, key);
   fixCadenceParallels(rightHand, leftHand, key, meter.barDuration, fastLeapCap(rules.grade), meter.beatDuration);
+  resolveFinalLeadingNote(rightHand, leftHand, key);
+  fixSixteenthStutters(rightHand, leftHand, key, meter.barDuration, meter.beatDuration);
+  fixSixteenthStutters(leftHand, rightHand, key, meter.barDuration, meter.beatDuration);
 
-  const tempoTerm = rng.pick(rules.tempoTerms);
+  // A dance word implies its metre: a Waltz in 4/4 or a March in 3/4 is a
+  // contradiction on the page (64 of 97 Grade 2 waltz/minuet tests were in 2/4 or 4/4).
+  const fitting = rules.tempoTerms.filter((term) => termFitsMetre(term, meter.text));
+  const tempoTerm = rng.pick(fitting.length ? fitting : rules.tempoTerms);
   const score = {
     seed,
     grade,
@@ -479,6 +487,10 @@ function pitchStaff(bars, { rng, rules, meter, hand, progression, key, against =
     ? fiveFingerWindow(rng, key, low, high, above, center === null ? null : center + 1)
     : tessituraWindow(rng, key, low, high, isLeft ? Math.min(10, 8 + rules.grade) : 8 + rules.grade, above, center);
 
+  // The bass line is planned bar to bar first (melody.js planBassLine), then filled.
+  const bassPlan = isLeft
+    ? planBassLine({ rng, key, bars, progression, window, inversion: (rules.generatorHints.bassInversionPercent ?? 0) / 100, phraseEnd: halfCadenceBar(bars.length) })
+    : null;
   assignPitches({
     rng,
     key,
@@ -486,6 +498,7 @@ function pitchStaff(bars, { rng, rules, meter, hand, progression, key, against =
     progression,
     window,
     options: {
+      bassPlan,
       stepwiseBias: rules.generatorHints.stepwiseBiasPercent / 100,
       // Largest leap between short notes (hand has no time to travel): a
       // fourth through Grade 4, a fifth at 5-6, a sixth from 7.
@@ -592,7 +605,8 @@ function drawComplementaryBar(rng, cells, meter, options, avoid, partnerEvents, 
     let value = 0;
     if (right.length) value -= 4 * Math.abs(left.length / right.length - 0.65);
     for (const a of left) {
-      if (right.some((b) => b.at < a.at && b.at + b.dur > a.at)) value += 0.6;   // moves while the tune holds
+      const holding = right.find((b) => b.at < a.at && b.at + b.dur > a.at);
+      if (holding) value += holding.dur >= meter.barDuration / 2 ? 1.2 : 0.5;     // moves while the tune holds
       else if (a.at % beat !== 0 && busyBeat(a.at)) value -= 0.8;                // off-beat chatter under a busy beat
     }
     if (splitAt !== null && !left.some((a) => a.at === splitAt)) value -= 5;     // the bass states the new chord
@@ -669,6 +683,134 @@ function pitchTreatment(rng, progression, sourceBarIndex, barIndex) {
  * tessitura inside the range, wider at each grade.
  */
 /**
+ * Two semiquavers on one pitch (E4s E4s) read as a misprint, especially at
+ * Grade 3-5 where semiquavers are new: 22-38% of tests there had one, about
+ * half from motif restatement and half from the repair passes, which is why
+ * this runs last. The second note moves a step (toward the note after it
+ * where possible) when that is clear of the other hand, writes no augmented
+ * second, stays in the window and leaves the next move within a third.
+ */
+function fixSixteenthStutters(bars, other, key, barDuration, beatDuration) {
+  const flat = [];
+  bars.forEach((bar, b) => { let o = 0; for (const e of bar.events) { if (!e.rest && e.pitch) flat.push({ e, at: b * barDuration + o }); o += e.dur; } });
+  const otherSpans = [];
+  other.forEach((bar, b) => { let o = 0; for (const e of bar.events) { if (!e.rest && e.pitch) otherSpans.push({ from: b * barDuration + o, to: b * barDuration + o + e.dur, midis: [e.pitch.midi, ...(e.chord ?? []).map((c) => c.midi)] }); o += e.dur; } });
+  const window = bars.window;
+  for (let k = 1; k < flat.length; k++) {
+    const a = flat[k - 1], b = flat[k], next = flat[k + 1];
+    if (a.e.type !== '16th' || b.e.type !== '16th' || a.e.pitch.midi !== b.e.pitch.midi || b.e.chord?.length) continue;
+    if (b.at % beatDuration === 0) continue;   // a note on the beat keeps its chord tone
+    const dirs = next ? [Math.sign(next.e.dstep - b.e.dstep) || 1, -(Math.sign(next.e.dstep - b.e.dstep) || 1)] : [1, -1];
+    for (const dir of dirs) {
+      const dstep = b.e.dstep + dir;
+      if (window && (dstep < window.low || dstep > window.high)) continue;
+      const degree = degreeOf(dstep, key);
+      if (degree === 6) continue;   // never introduce a leading note here (its raised/natural form is reconciled earlier)
+      const pitch = pitchAt(dstep, key);
+      if (Math.abs(pitch.midi - a.e.pitch.midi) === 3) continue;                         // augmented 2nd
+      if (next && (Math.abs(next.e.dstep - dstep) > 2 || Math.abs(next.e.pitch.midi - pitch.midi) === 3)) continue;
+      const clash = otherSpans.some((s) => s.from < b.at + b.e.dur && s.to > b.at
+        && s.midis.some((m) => [1, 2, 6, 10, 11].includes((((pitch.midi - m) % 12) + 12) % 12)));
+      if (clash) continue;
+      b.e.dstep = dstep;
+      b.e.pitch = pitch;
+      b.e.raiseSeventh = false;
+      break;
+    }
+  }
+}
+
+/**
+ * With the bass now 5-1 into the final chord, the tune is free to take the
+ * leading note at the end of the V bar — and then must rise to the tonic.
+ * When the final bar opens on something else, move that first note to the
+ * tonic a step above (same pitch class as the final note, so the harmony is
+ * untouched), provided it stays in the hand's window and joins what follows.
+ */
+function resolveFinalLeadingNote(bars, lower, key) {
+  const last = bars.length - 1;
+  const before = bars.slice(0, last).flatMap((bar) => bar.events).filter((e) => !e.rest && e.pitch).pop();
+  const finalNotes = bars[last].events.filter((e) => !e.rest && e.pitch);
+  const first = finalNotes[0];
+  if (!before || !first || degreeOf(before.dstep, key) !== 6 || first.dstep === before.dstep + 1) return;
+  const dstep = before.dstep + 1;
+  const window = bars.window;
+  if (window && (dstep < window.low || dstep > window.high)) return;
+  const next = finalNotes[1];
+  const pitch = pitchAt(dstep, key);
+  if (next && Math.abs(next.pitch.midi - pitch.midi) > 7) return;
+  // Clear of whatever the left hand sounds under it (a raised 7th still moving there, say).
+  const span = (events, target) => { let o = 0; for (const e of events) { if (e === target) return [o, o + e.dur]; o += e.dur; } return null; };
+  const [from, to] = span(bars[last].events, first);
+  let o = 0;
+  for (const e of lower[last].events) {
+    const start = o; o += e.dur;
+    if (e.rest || !e.pitch || start >= to || o <= from) continue;
+    for (const m of [e.pitch.midi, ...(e.chord ?? []).map((c) => c.midi)]) {
+      if ([1, 2, 6, 10, 11].includes((((pitch.midi - m) % 12) + 12) % 12)) return;
+    }
+  }
+  first.dstep = dstep;
+  first.pitch = pitch;
+  first.raiseSeventh = false;
+  delete first.chord;
+}
+
+/**
+ * The cadence's bass is 5-1: the left hand's last note before the final bar
+ * on the root of V, a fifth above or fourth below... i.e. a falling fifth or
+ * rising fourth into the tonic. Measured 29-38% before (the leading note or a
+ * leap of more than a fifth otherwise). Nearest such root to where the note
+ * was, inside the hand's window, without breaking the short-note leap cap.
+ */
+function cadenceBass(bars, key, rules, fastCap, beatDuration) {
+  const last = bars.length - 1;
+  const final = bars[last].events.find((e) => !e.rest && e.pitch);
+  const before = bars.slice(0, last).flatMap((bar) => bar.events).filter((e) => !e.rest && e.pitch);
+  const target = before[before.length - 1], prior = before[before.length - 2];
+  if (!final || !target || degreeOf(target.dstep, key) === 4) return;
+  const window = bars.window;
+  let best = null;
+  for (const dstep of [final.dstep - 3, final.dstep + 4]) {   // rising 4th / falling 5th into the tonic
+    if (window && (dstep < window.low || dstep > window.high)) continue;
+    const pitch = pitchAt(dstep, key);
+    if (pitch.midi < rules.range.leftHand.minMidi || pitch.midi > rules.range.leftHand.maxMidi) continue;
+    const fixedHand = window && window.high - window.low <= 4;
+    if (prior) {
+      const leap = Math.abs(pitch.midi - prior.pitch.midi);
+      if (leap > 12) continue;
+      if (!fixedHand && (prior.dur <= beatDuration / 2 || target.dur <= beatDuration / 2) && leap > fastCap) continue;
+    }
+    // ...and on into the final tonic: a short V root may not leap further than the grade's cap.
+    if (!fixedHand && target.dur <= beatDuration / 2 && Math.abs(pitch.midi - final.pitch.midi) > fastCap) continue;
+    if (!best || Math.abs(pitch.midi - target.pitch.midi) < Math.abs(best.midi - target.pitch.midi)) best = pitch;
+  }
+  if (!best) return;
+  target.dstep = best.dstep;
+  target.pitch = best;
+  target.raiseSeventh = false;
+  delete target.chord;
+}
+
+/**
+ * A final left-hand bar of one pitch struck over and over (G2q G2q G2h) is a
+ * stutter, not a cadence: hold it as one note when the grade can print one.
+ */
+function mergeFinalStutter(bars, rules, barDuration) {
+  const bar = bars[bars.length - 1];
+  const sounding = bar.events.filter((e) => !e.rest);
+  if (sounding.length < 2) return;
+  if (!sounding.every((e) => e.pitch && e.pitch.midi === sounding[0].pitch.midi)) return;
+  const held = noteOfDuration(barDuration, rules);
+  if (held) { bar.events = [{ ...sounding[sounding.length - 1], ...held, rest: false }]; return; }
+  // No single note value fills the bar (5/4, 7/8…): make it an octave drop
+  // into the final note instead, the earlier notes an octave up.
+  const up = (p) => ({ ...p, octave: p.octave + 1, dstep: p.dstep + 7, midi: p.midi + 12 });
+  if (sounding[0].pitch.midi + 12 > rules.range.leftHand.maxMidi) return;
+  for (const event of sounding.slice(0, -1)) { event.dstep += 7; event.pitch = up(event.pitch); delete event.chord; }
+}
+
+/**
  * Both hands now arrive on the final chord together (a held note each), so the
  * step into it is a real outer-voice succession — and D-C over D-C is parallel
  * octaves into the cadence (89 of 95 Grade 2 parallel octaves sat exactly
@@ -690,6 +832,30 @@ function fixCadenceParallels(rightHand, leftHand, key, barDuration, fastCap = 12
     return up !== 0 && up === down && before === after && (before === 0 || before === 7);
   };
   if (!parallel(bottom(l0))) return;
+  /*
+   * The bass is 5-1 on purpose (cadenceBass), so fix the tune first: approach
+   * the final tonic from the supertonic (falling) or the leading note (rising)
+   * rather than from the dominant in octaves with the bass.
+   */
+  if (!r0.chord?.length) {
+    const window = rightHand.window;
+    const priorR = rightHand.slice(0, lastBar).flatMap((bar) => bar.events).filter((e) => !e.rest && e.pitch).slice(-2)[0];
+    for (const dstep of [r1.dstep + 1, r1.dstep - 1]) {
+      if (window && (dstep < window.low || dstep > window.high)) continue;
+      const degree = degreeOf(dstep, key);
+      const pitch = pitchAt(dstep, key, { raiseSeventh: degree === 6 });
+      const interval = (((pitch.midi - bottom(l0)) % 12) + 12) % 12;
+      if ([1, 2, 6, 10, 11].includes(interval)) continue;                       // no clash with the bass
+      if (degree === 6 && bottom(l0) % 12 === pitch.midi % 12) continue;           // no doubled leading note
+      const up = Math.sign(top(r1) - pitch.midi), down = Math.sign(bottom(l1) - bottom(l0));
+      if (up === down && interval === (((top(r1) - bottom(l1)) % 12) + 12) % 12) continue;
+      if (priorR && priorR !== r0 && Math.abs(priorR.pitch.midi - pitch.midi) > 9) continue;
+      r0.dstep = pitch.dstep;
+      r0.pitch = pitch;
+      r0.raiseSeventh = degree === 6;
+      return;
+    }
+  }
   let best = null;
   for (let dstep = l0.dstep - 7; dstep <= l0.dstep + 7; dstep++) {
     const degree = degreeOf(dstep, key);
@@ -847,6 +1013,15 @@ function splitBarsBetweenHands(barCount, rng) {
     (rightPlays ? leftHand : rightHand).add(barIndex);
   }
   return { rightHand, leftHand };
+}
+
+/** Whether a tempo/character word is compatible with the metre (dance names imply one). */
+function termFitsMetre(term, metre) {
+  if (/waltz|valse|minuet|minuetto/i.test(term)) return metre === '3/4' || metre === '3/8';
+  if (/march|marcia/i.test(term)) return ['2/4', '4/4', '2/2', '6/8'].includes(metre);
+  if (/gigue/i.test(term)) return ['6/8', '9/8', '12/8'].includes(metre);
+  if (/tango/i.test(term)) return ['2/4', '4/4'].includes(metre);
+  return true;
 }
 
 /** How a tempo/character word sounds: 'cantabile' (singing, slow), 'lively', or 'neutral'. */

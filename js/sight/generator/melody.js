@@ -13,7 +13,7 @@
  */
 
 import { chordDegrees, degreeOf, pitchAt } from './theory.js';
-import { chordAt } from './harmony.js';
+import { chordAt, firstChord } from './harmony.js';
 
 /**
  * Interval classes that read as dissonant against the bass. A second, tritone
@@ -35,6 +35,85 @@ const NEVER_INTERVALS = new Set([1, 11]);
  * @param {Array<{start: number, end: number, midis: number[]}>} [params.against]
  *        sounding notes of the other hand, in absolute divisions
  */
+/**
+ * Plan the bass's downbeats for the whole piece before any bar is filled.
+ *
+ * Choosing each bar's first bass note on its own (root first, nearest to
+ * wherever the last note was) is what made the bass hop between chord roots:
+ * bar to bar it moved a fourth or more 57-61% of the time, by step 17-19%,
+ * and kept direction only 31% of the time — a zigzag, which is what read as
+ * mechanical. A small dynamic programme over the bars picks root or third
+ * (plus octave) for every downbeat so the line moves by step and common tone
+ * where it can, keeps going the way it was going, and sinks through each
+ * phrase toward its cadence. Fixed points: the first bar, the cadential V and
+ * the closing I take their roots. Never two inversions running.
+ *
+ * Returns `plan[barIndex] = dstep` (undefined for bars that do not start with
+ * a note). It is offered to the walk as a *preference*, so every hard filter
+ * there (leap limits, clashes) still applies.
+ */
+export function planBassLine({ rng, key, bars, progression, window, inversion = 0.5, phraseEnd = null }) {
+  const n = bars.length;
+  const span = window.high - window.low;
+  const steps = [];
+  for (let d = window.low; d <= window.high; d++) steps.push(d);
+  const phraseOf = (b) => (phraseEnd !== null && b > phraseEnd ? [phraseEnd + 1, n - 1] : [0, phraseEnd ?? n - 1]);
+  const lineAt = (b) => {   // falls from upper-middle to lower-middle across each phrase
+    const [a, z] = phraseOf(b);
+    const t = z > a ? (b - a) / (z - a) : 0;
+    return window.low + span * (0.62 - 0.3 * t);
+  };
+  const stages = [];
+  bars.forEach((bar, b) => {
+    const first = bar.events[0];
+    if (!first || first.rest) return;
+    const tones = chordDegrees(firstChord(progression[b] ?? 'I'));
+    const fixed = b === 0 || b === n - 2 || b === n - 1 || !stages.length;
+    const options = [];
+    for (const d of steps) {
+      const degree = degreeOf(d, key);
+      if (degree === tones[0]) options.push({ d, third: false });
+      else if (!fixed && inversion > 0 && degree === tones[1] && degree !== 6) options.push({ d, third: true });
+    }
+    if (options.length) stages.push({ b, options, chord: firstChord(progression[b] ?? 'I') });
+  });
+  if (stages.length < 2) return [];
+  const midi = (d) => pitchAt(d, key).midi;
+  const moveCost = (from, to) => {
+    const steps = Math.abs(to - from), semis = Math.abs(midi(to) - midi(from));
+    if (semis > 12) return Infinity;
+    return steps === 0 ? 1.2 : steps === 1 ? 0 : steps === 2 ? 1.6 : steps === 3 ? 3.2 : 3.6 + 0.5 * (steps - 4);
+  };
+  // State = (option at this stage, option at the previous stage), so direction can be scored.
+  let layer = stages[0].options.map((o, i) => ({ cost: 0.2 * Math.abs(o.d - lineAt(stages[0].b)), path: [i], prev: null }));
+  for (let k = 1; k < stages.length; k++) {
+    const next = [];
+    stages[k].options.forEach((o, j) => {
+      let best = null;
+      for (const state of layer) {
+        const p = stages[k - 1].options[state.path[state.path.length - 1]];
+        if (o.third && p.third) continue;                                      // never two inversions running
+        let c = state.cost + moveCost(p.d, o.d);
+        if (!Number.isFinite(c)) continue;
+        if (state.prev !== null) {
+          const before = Math.sign(p.d - state.prev), now = Math.sign(o.d - p.d);
+          if (before && now && before === now) c -= 0.7;                       // keep going the way it was going
+        }
+        if (o.third) c += stages[k].chord === 'ii' ? 0.6 : 0.15;              // root position stays the norm (fixed points, no two running)
+        c += 0.2 * Math.abs(o.d - lineAt(stages[k].b)) + rng.next() * 0.5;
+        if (!best || c < best.cost) best = { cost: c, path: [...state.path, j], prev: p.d };
+      }
+      if (best) next.push(best);
+    });
+    if (!next.length) return [];
+    layer = next;
+  }
+  const win = layer.reduce((a, c) => (c.cost < a.cost ? c : a));
+  const plan = [];
+  win.path.forEach((j, k) => { plan[stages[k].b] = stages[k].options[j].d; });
+  return plan;
+}
+
 export function assignPitches({ rng, key, bars, progression, window, options, against }) {
   const {
     stepwiseBias = 0.7,
@@ -50,6 +129,7 @@ export function assignPitches({ rng, key, bars, progression, window, options, ag
     endOnTonic = true,
     barDuration = 0,
     arch = 0,
+    bassPlan = null,
   } = options;
 
   const centre = (window.low + window.high) / 2;
@@ -193,7 +273,18 @@ export function assignPitches({ rng, key, bars, progression, window, options, ag
       previousChord = chordHere;
 
       let preferred = null;
-      if (chordToneOnly && harmonyArrives) {
+      const lastInBar = bar.events.slice(bar.events.indexOf(event) + 1).every((e) => e.rest);
+      const nextPlan = bassPlan?.[barIndex + 1];
+      if (chordToneOnly && isDownbeat && bassPlan?.[barIndex] !== undefined) {
+        preferred = bassPlan[barIndex];
+      } else if (chordToneOnly && lastInBar && !isDownbeat && nextPlan !== undefined && !harmonyArrives) {
+        // Lead into the next planned downbeat: the chord tone nearest it (by step
+        // where possible), so bar joins bar instead of the bass jumping at the line.
+        const near = allSteps.filter((d) => tones.includes(degreeOf(d, key)) && d !== nextPlan
+          && (degreeOf(d, key) !== 6 || d + 1 === nextPlan))   // a leading note only where it rises to the tonic
+          .sort((a, b) => Math.abs(a - nextPlan) - Math.abs(b - nextPlan));
+        if (near.length) preferred = near[0];
+      } else if (chordToneOnly && harmonyArrives) {
         /*
          * An inversion is not a coin toss against root position — in real
          * writing the bass takes the third (far less often the fifth)
@@ -250,7 +341,9 @@ export function assignPitches({ rng, key, bars, progression, window, options, ag
       if (isFinalNote && endOnTonic) {
         chosen = nearestWithDegree(allSteps, key, 0, previous ?? target);
       } else if (previous === null) {
-        if (chordToneOnly) {
+        if (chordToneOnly && bassPlan?.[barIndex] !== undefined && offset === 0) {
+          chosen = bassPlan[barIndex];
+        } else if (chordToneOnly) {
           // The harmonic foundation (bass) opens in root position: a real
           // test's opening low note is the chord's root, not whichever
           // chord member happens to sit closest to the middle of the range.
@@ -1325,6 +1418,9 @@ export function stackChordTones({
         if (below < window.low) break;
         if (!tones.includes(degreeOf(below, key))) continue;
         if (bassVoicing && mainIsRoot && degreeOf(below, key) !== rootDegree) continue;
+        // An inversion the bass line chose on purpose (planBassLine) must stay
+        // the lowest note: stacking the root under it silently undid it.
+        if (bassVoicing && !mainIsRoot) break;
         // A stacked note can itself land on the leading note (a V or vii°
         // chord contains it) — harmonic minor raises it there same as anywhere.
         const pitch = pitchAt(below, key, { raiseSeventh: degreeOf(below, key) === 6 });

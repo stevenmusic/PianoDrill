@@ -174,6 +174,19 @@ export function buildProgression(rng, barCount, options = {}) {
       { chord: 'ii', weight: options.simple ? 0 : 3 }, { chord: 'IV', weight: 3 }, { chord: 'vi', weight: 1 }, { chord: 'I', weight: 1 },
     ]).chord;
   }
+  /*
+   * The overwrites above (consequent copying the opening, the pre-cadence
+   * fallback) never re-check what they now follow, so V could fall back to IV
+   * or ii — a retrogression in ~10% of Grade 7-8 tests. Repair any bar that
+   * follows V with IV/ii: vi (deceptive) or I instead. The half cadence, the
+   * consequent's restart and the closing V-I are V or I already and untouched.
+   */
+  for (let bar = 1; bar < barCount - 1; bar++) {
+    if (lastChord(progression[bar - 1]) !== 'V') continue;
+    const here = firstChord(progression[bar]);
+    if (here !== 'IV' && here !== 'ii') continue;
+    progression[bar] = bar === barCount - 2 ? 'V' : rng.weighted([{ chord: 'vi', weight: 2 }, { chord: 'I', weight: 1 }]).chord;
+  }
   return progression;
 }
 

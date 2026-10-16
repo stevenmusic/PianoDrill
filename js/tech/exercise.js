@@ -7,7 +7,7 @@ import {
 } from "./theory.js";
 import { tr, getLang } from "../shared/i18n.js";
 import {
-  scaleFingersFrom, triadFingers, fourNoteFingers, chromaticFingers, arpGroupFingers, cyclicFingers, BROKEN_FINGERS, thirdsStart, thirdsFingers, sixthsFingers
+  scaleFingersFrom, triadFingers, fourNoteFingers, chromaticFingers, arpGroupFingers, cyclicFingers, BROKEN_FINGERS, thirdsFingers, STACCATO_DOUBLE
 } from "./fingering.js";
 import { buildHanon } from "./hanon.js";
 
@@ -187,7 +187,7 @@ function buildBroken(q){
 }
 
 /* ── 三度/六度雙音音階(單手):下方音走音階,上方音高三度或六度。
-   指法版本差異大(連奏三度有多種系統),這裡只標音、不標指法 ── */
+   指法照哈農第 48、52 首(fingering.js) ── */
 function buildDouble(FG, q){
   const t = parseNote(q.tonic);
   const up = spellScale(t, scaleIv(q)), dn = spellScale(t, downIv(q));
@@ -205,9 +205,10 @@ function buildDouble(FG, q){
       const cyc = i <= 7 * n ? up : dn;
       return [ln, placeAtLeast(cyc[(degOf(i) + step) % 7], midiOf(ln) + 1)];
     });
-    // 指法:三度照哈農第 52 首的循環(fingering.js),六度照哈農第 48 首
-    const fs = q.type === "thirds" ? thirdsFingers(lower.map((_, i) => degOf(i)), thirdsStart(up, q.quality, q.tonic).p, h) : sixthsFingers(pairs, h);
-    out[h] = pairs.map(([ln, upper], i) => ({ ...ln, midi: midiOf(ln), finger: fs[i][0], with: { ...upper, midi: midiOf(upper), finger: fs[i][1] } }));
+    // 指法照哈農(fingering.js):斷奏三度/六度 = 第 48 首;圓滑三度 = 第 52 首(原譜沒有的調不標);圓滑六度哈農沒有 → 不標
+    const fs = q.articulation === "staccato" ? pairs.map(() => STACCATO_DOUBLE[q.type][h])
+      : q.type === "thirds" ? thirdsFingers(q.quality, q.tonic, q.form, h, n) : null;
+    out[h] = pairs.map(([ln, upper], i) => ({ ...ln, midi: midiOf(ln), finger: fs ? fs[i][0] : null, with: { ...upper, midi: midiOf(upper), finger: fs ? fs[i][1] : null } }));
   }
   return out;
 }

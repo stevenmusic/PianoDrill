@@ -5,6 +5,7 @@ import { gradeOf, questionsFor, applyFilter, drawQuestion, CATEGORIES, masteryKe
 import { buildExercise, questionText } from "./exercise.js";
 import { exerciseToMusicXML, playbackEvents } from "./musicxml.js";
 import { noteLabelStr } from "./theory.js";
+import { hanonThirdsKey } from "./fingering.js";
 import { tr, scoped, getLang, pairText, unpair } from "../shared/i18n.js";
 import * as audio from "../shared/audio.js";
 import "./strings.js";
@@ -29,6 +30,16 @@ export function relang(){
   renderLog();
 }
 
+/* 雙音音階的指法說明(fingering.js 照哈農第 48、52 首) */
+function doubleNote(q){
+  if (q.articulation === "staccato") return q.type === "thirds"
+    ? () => tr("斷奏三度照哈農第 48 首:右手 2–4、左手 4–2(原譜是 C 大調,其他調用同一個指法)。", "Staccato thirds follow Hanon No. 48: RH 2–4, LH 4–2 (printed in C; same fingering in every key).")
+    : () => tr("斷奏六度照哈農第 48 首:右手 1–5、左手 5–1(原譜是 C 大調,其他調用同一個指法)。", "Staccato sixths follow Hanon No. 48: RH 1–5, LH 5–1 (printed in C; same fingering in every key).");
+  if (q.type === "sixths") return () => tr("哈農沒有圓滑六度音階,所以不標指法,請照老師指定的。", "Hanon has no legato sixths scale, so no fingering is shown; use your teacher's.");
+  if (!hanonThirdsKey(q.quality, q.tonic, q.form)) return () => tr("哈農第 52 首只有 C G D A E F B♭ E♭ A♭ 大調與 A D G 和聲小調,這個調沒有,所以不標指法,請照老師指定的。", "Hanon No. 52 only covers C G D A E F B♭ E♭ A♭ major and A D G harmonic minor, so no fingering is shown here; use your teacher's.");
+  return q.octaves >= 2 ? () => tr("三度指法照哈農第 52 首逐調照抄(原譜沒印、又推不出來的留空)。", "Thirds fingering copied from Hanon No. 52 key by key (blank where Hanon prints none).")
+    : () => tr("三度指法照哈農第 52 首;原譜是兩個八度,一個八度用其中一個八度的指法。", "Thirds fingering from Hanon No. 52, which is two octaves; one octave uses one of its octaves.");
+}
 function segBind(el, get, set){
   const seg = typeof el === "string" ? $(el) : el;
   const sync = () => seg.querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.v === String(get()))));
@@ -384,9 +395,7 @@ function setQuestion(q, tab){
   } else { $("verifyBadge").hidden = true; $("poolCount").textContent = ""; }
   // 樂譜下方說明
   const notes = [], noteFns = notes;   // 每一則是函式:中英文各跑一次
-  if (q.type === "thirds") notes.push(() => tr("三度指法照哈農第 52 首(Scales in Thirds)" + (["C", "G", "D", "A", "E", "F", "Bb", "Eb", "Ab"].includes(q.tonic) && q.quality !== "minor" || ["A", "D", "G"].includes(q.tonic) && q.quality === "minor" ? "。" : ";這個調原譜沒有印,照同一套循環推算。") + "雙音指法各版本不同,老師另有指定就照老師的。",
-    "Thirds fingering follows Hanon No. 52 (Scales in Thirds)" + (["C", "G", "D", "A", "E", "F", "Bb", "Eb", "Ab"].includes(q.tonic) && q.quality !== "minor" || ["A", "D", "G"].includes(q.tonic) && q.quality === "minor" ? ". " : "; this key isn't printed there, so the same cycle is applied. ") + "Editions differ; follow your teacher if they say otherwise."));
-  if (q.type === "sixths") notes.push(() => tr("六度指法照哈農第 48 首(斷奏六度):右手 1–5、左手 5–1,黑鍵用 4。雙音指法各版本不同,老師另有指定就照老師的。", "Sixths fingering follows Hanon No. 48 (detached sixths): RH 1–5, LH 5–1, 4 on black keys. Editions differ; follow your teacher if they say otherwise."));
+  if (q.type === "thirds" || q.type === "sixths") notes.push(doubleNote(q));
   if (q.type === "broken") notes.push(() => (q.range === "5th" ? tr("分解三和弦照 Trinity 大綱的譜例(1-3-5-3-1,3/4 拍)。", "Broken triad as in the Trinity syllabus example (1-3-5-3-1 in 3/4).") : tr("分解和弦照 Trinity 大綱 1 級的譜例:三連音,原位 → 第一轉位 → 第二轉位到高八度主音,再反過來,停在五音。", "Broken chord as in the Trinity Grade 1 syllabus example: triplets, root → 1st → 2nd inversion to the upper tonic, then back, ending on the 5th.")));
   if (q.type === "dom7" && q.sys !== "trinity") notes.push(() => tr("屬七和弦琶音最後解決到主音(照 ABRSM 大綱的譜例)。", "The dominant 7th resolves on the tonic (as in the ABRSM syllabus example)."));
   if (q.apart === 3) notes.push(() => tr("相隔三度:右手比左手高十度(三度 + 八度),左手從主音、右手從第三級開始。", "A third apart: RH plays a tenth above LH — LH starts on the tonic, RH on the 3rd."));

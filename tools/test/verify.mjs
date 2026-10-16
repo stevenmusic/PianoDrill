@@ -260,7 +260,8 @@ function checkQuestion(q, label){
     }
     if (q.type === "thirds" || q.type === "sixths") notes.forEach((n, i) => { const iv = n.with.midi - n.midi; ok(q.type === "thirds" ? iv === 3 || iv === 4 : iv === 8 || iv === 9, `${label} ${hand} 第 ${i + 1} 個雙音音程 ${iv}`); });
     // 雙音:單音的指法規則不適用;改查每組兩個手指(右手下方指 < 上方指、左手相反)
-    if (q.type === "thirds" || q.type === "sixths") notes.forEach((n, i) => ok(n.finger >= 1 && n.with.finger <= 5 && (hand === "rh" ? n.finger < n.with.finger : n.finger > n.with.finger), `${label} ${hand} 第 ${i + 1} 組雙音指法 ${n.finger}/${n.with.finger}`));
+    // 哈農沒有的調、圓滑六度、E 大調下行兩處不標指法(null);有標的才查
+    if (q.type === "thirds" || q.type === "sixths") notes.forEach((n, i) => ok((n.finger == null && n.with.finger == null) || (n.finger >= 1 && n.with.finger <= 5 && (hand === "rh" ? n.finger < n.with.finger : n.finger > n.with.finger)), `${label} ${hand} 第 ${i + 1} 組雙音指法 ${n.finger}/${n.with.finger}`));
     else checkPlayable(notes, hand, label, q);
   }
   // 兩手的距離
@@ -327,6 +328,38 @@ for (const oct of [1, 2, 3, 4]) {
     for (const k of MIN) for (const type of ["thirds", "sixths"]) T({ type, tonic: k, quality: "minor", form: "harmonic", octaves: oct, hands: "RH" });
   }
 }
+/* 哈農第 52 首(Ricordi 版,p.87–90)印出來的數字:每個調第 1 小節上行 8 組(. = 沒印)、頂端那組、最後一組;(下方指, 上方指)。
+   跟 js/tech/fingering.js 的表比對,防止打錯字或之後改壞 */
+const H52_PRINTED = {
+  "major:C":  { rh: ["12 13 24 35 13 24 35 12", "35", "12"], lh: ["53 42 31 21 53 42 31 53", "21", "53"] },
+  "major:G":  { rh: ["12 13 24 35 12 13 24 35", "35", "12"], lh: ["53 42 31 21 53 42 31 21", "21", "53"] },
+  "major:D":  { rh: ["12 13 24 35 13 24 35 12", "35", "12"], lh: ["53 42 31 21 53 42 31 53", "21", "53"] },
+  "major:A":  { rh: ["13 24 35 12 13 24 35 13", "13", "13"], lh: ["53 42 31 53 42 31 21 53", "42", "53"] },
+  "major:E":  { rh: ["13 24 35 12 13 24 35 13", "35", "13"], lh: ["53 42 31 53 42 31 21 53", "31", "53"] },
+  "major:F":  { rh: ["12 13 24 35 13 24 35 12", "35", "12"], lh: ["53 42 31 21 53 42 31 53", "21", "53"] },
+  "major:Bb": { rh: ["12 13 . . 12 13 . .", "35", "12"], lh: ["53 . . 21 53 . . 21", "31", "53"] },
+  "major:Eb": { rh: ["13 24 13 24 35 13 24 35", "35", "13"], lh: ["42 31 53 . . 53 42 31", "31", "42"] },
+  "major:Ab": { rh: ["13 24 13 24 35 13 24 35", "35", "13"], lh: ["42 31 42 31 21 53 42 31", "31", "42"] },
+  "minor:A":  { rh: ["12 13 24 35 13 24 35 12", "35", "12"], lh: ["53 42 31 21 53 42 31 53", "21", "53"] },
+  "minor:D":  { rh: ["13 24 35 12 13 24 35 13", "13", "13"], lh: ["53 42 31 53 42 31 21 53", "31", "53"] },
+  "minor:G":  { rh: ["13 24 35 12 13 24 35 13", "13", "13"], lh: ["53 42 31 53 42 31 21 53", "31", "53"] }
+};
+for (const [key, hands] of Object.entries(H52_PRINTED)) {
+  const [quality, tonic] = key.split(":");
+  const ex = buildExercise(FG, { type: "thirds", tonic, quality, form: quality === "minor" ? "harmonic" : undefined, octaves: 2, hands: "RH", articulation: "legato" });
+  for (const h of ["rh", "lh"]) {
+    const got = ex[h].map(n => `${n.finger}${n.with.finger}`), [bar1, top, last] = hands[h];
+    bar1.split(" ").forEach((f, i) => { if (f !== ".") ok(got[i] === f, `哈農第 52 首 ${tonic} ${quality} ${h} 第 ${i + 1} 組:印的是 ${f},程式是 ${got[i]}`); });
+    ok(got[14] === top, `哈農第 52 首 ${tonic} ${quality} ${h} 頂端:印的是 ${top},程式是 ${got[14]}`);
+    ok(got[28] === last, `哈農第 52 首 ${tonic} ${quality} ${h} 最後:印的是 ${last},程式是 ${got[28]}`);
+  }
+}
+// 斷奏(第 48 首)每組同一個指法;哈農沒有的調(B 大調)不標
+for (const [type, rh, lh] of [["thirds", "24", "42"], ["sixths", "15", "51"]]) {
+  const ex = buildExercise(FG, { type, tonic: "G", quality: "major", octaves: 2, hands: "RH", articulation: "staccato" });
+  ok(ex.rh.every(n => `${n.finger}${n.with.finger}` === rh) && ex.lh.every(n => `${n.finger}${n.with.finger}` === lh), `哈農第 48 首斷奏${type}指法`);
+}
+ok(buildExercise(FG, { type: "thirds", tonic: "B", quality: "major", octaves: 2, hands: "RH", articulation: "legato" }).rh.every(n => n.finger == null), "哈農沒有的調不標指法");
 for (const k of MAJ) { T({ type: "broken", tonic: k, quality: "major", octaves: 1, sub: 3 }); T({ type: "scale", tonic: k, quality: "major", range: "5th", motion: "contrary" }); T({ type: "arpeggio", tonic: k, quality: "major", range: "5th" }); }
 for (const k of MIN) { T({ type: "broken", tonic: k, quality: "minor", octaves: 1, sub: 3 }); T({ type: "arpeggio", tonic: k, quality: "minor", range: "5th" }); }
 // 半音階雙手錯開

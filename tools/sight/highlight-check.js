@@ -77,7 +77,8 @@ for (const viewport of VIEWPORTS) {
     await page.evaluate(() => { window.__stage.measure(); window.__stage.begin(); });
 
     const bars = await page.evaluate(() => [...new Set(
-      [...document.querySelectorAll('#s-score g.vf-measure')].map((el) => Number(el.id)),
+      // id < 1 是轉調時 OSMD 畫的提示調號(不是真的小節;stage.js 也略過它)
+      [...document.querySelectorAll('#s-score g.vf-measure')].map((el) => Number(el.id)).filter((n) => n >= 1),
     )].sort((a, b) => a - b));
 
     let worst = { top: 0, bottom: 0, right: 0 };

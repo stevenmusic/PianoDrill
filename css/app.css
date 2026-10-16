@@ -684,3 +684,10 @@ body.land-play #t-stage{flex:1;display:flex;flex-direction:column;justify-conten
   #examSetup .fields{grid-template-columns:repeat(2, minmax(0, 1fr))}
   #examSetup .exam-parts{margin-top:0}
 }
+/* 兩欄的左欄比較窄:選擇器的選項改固定寬度格子(中英文每列個數一樣,換語言不會多一行;聽音各列另外有自己的寬度) */
+@media (min-width:1100px){
+  .mod-side .picker .opts{display:grid;grid-template-columns:repeat(auto-fill, minmax(var(--cw, 98px), 1fr));gap:6px}
+  .mod-side .picker .opt{min-width:0;padding:0 6px}
+  #mod-tech .picker .opts[data-k="key"],#mod-tech .picker .opts[data-k="no"]{--cw:50px}
+  #mod-tech .picker .opts[data-k="octaves"]{--cw:72px}
+}

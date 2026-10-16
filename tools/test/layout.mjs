@@ -73,6 +73,10 @@ async function audit(page, vp, state){
   // 飽滿(使用者要求):每種裝置的第一個畫面,題目卡要在畫面上半部(設定卡不能把題目擠到下面去)
   const quizTop = await page.evaluate(() => {
     const q = [...document.querySelectorAll(".mod:not([hidden]) .quiz")].find(e => !e.closest("[hidden]") && e.getBoundingClientRect().height > 0);
+    // 使用者自己打開的設定卡把題目往下推是正常的;只檢查設定卡都收著(或在兩欄的左欄)的時候
+    const opened = [...document.querySelectorAll(".setup.open, .picker.open")].some(e => !e.closest("[hidden]") && !e.closest(".mod-side, #examSetup") || (e.closest("#examSetup") && innerWidth < 1100));
+    const sideOpen = innerWidth < 1100 && [...document.querySelectorAll(".mod-side .setup.open, .mod-side .picker.open")].some(e => !e.closest("[hidden]"));
+    if (opened || sideOpen) return null;
     return q ? { top: Math.round(q.getBoundingClientRect().top + scrollY), H: innerHeight } : null;
   });
   if (quizTop && !/對話框|設定展開|選擇器/.test(state) && quizTop.top > quizTop.H * 0.5) report(vp, state, `題目卡太下面(${quizTop.top} > 畫面一半 ${quizTop.H / 2})`);

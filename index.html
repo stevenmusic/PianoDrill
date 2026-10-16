@@ -19,7 +19,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/app.css?v=b3fb91c222">
-<link rel="stylesheet" href="css/sight.css?v=96f0010df3">
+<link rel="stylesheet" href="css/sight.css?v=a3cbebe7d6">
 </head>
 <body>
 <header>
@@ -214,7 +214,6 @@
             <div class="prow" id="s-gradeRow"><span class="lbl" data-si18n="gradeLabel">級數</span><div class="opts" id="s-grades"></div></div>
             <div class="prow"><label class="lbl" for="s-key" data-si18n="keyLabel">調性</label><div class="opts"><select id="s-key" class="sel"><option value="" data-si18n="randomKey">隨機調性</option></select></div></div>
           </div>
-          <p class="verify-note" id="s-confidence" hidden></p>
         </div>
       </section>
 
@@ -252,6 +251,8 @@
           <div id="s-score" class="score"></div>
           <div class="playline" id="s-playline"></div>
         </div>
+        <!-- 這一級的參數有推估值時的說明:放在樂譜下面,上面的五線譜位置才不會因級數不同而上下移動 -->
+        <p class="score-note" id="s-confidence" hidden></p>
       </section>
 
       <!-- 備考時間結束後:播放軸依速度自己走、自動換行,彈的人不用碰螢幕 -->

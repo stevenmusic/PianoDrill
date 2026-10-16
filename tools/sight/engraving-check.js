@@ -53,7 +53,9 @@ await page.route('**', (route) => (
   route.request().url().startsWith(`http://localhost:${port}`) ? route.continue() : route.abort()
 ));
 await page.goto(`http://localhost:${port}/index.html`);
-  // 合併成 PianoDrill 後:先打開視奏分頁(跳過第一次打開的問題),介面用中文
+  // 合併成 PianoDrill 後:先打開視奏分頁(跳過第一次打開的問題),介面用中文。
+  // 要等頁面啟動完再寫:啟動時外框會存一次設定,太早寫會被蓋掉
+  await page.waitForFunction(() => window.__stageReady);
   await page.evaluate(() => { localStorage.setItem('pianodrill.v1', JSON.stringify({ onboarded: true, view: 'sight' })); localStorage.setItem('pianodrill-lang', 'zh'); });
   await page.reload();
   await page.waitForFunction(() => window.__stageReady);

@@ -105,3 +105,4 @@
 @media (min-width:601px){ #mod-sight #s-prepare{width:auto;padding:0 16px} #mod-sight #s-prepare .btn-label{display:inline} }
 @media (max-width:389px){ #mod-sight #s-generate .btn-label{display:none} #mod-sight #s-generate{width:44px;padding:0} }
 @media (max-width:300px){ #mod-sight #s-stop{display:none} #mod-sight .s-actions .countdown{font-size:24px} }
+#s-confidence{padding:0 8px 4px}

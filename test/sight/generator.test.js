@@ -1,0 +1,797 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+
+import { generateTest } from '../src/generator/generate.js';
+import { fingerprintOf, createHistory, generateUnique } from '../src/generator/fingerprint.js';
+import { firstChord, lastChord, chordAt, halfCadenceBar } from '../src/generator/harmony.js';
+import { createKey, degreeOf, chordDegrees } from '../src/generator/theory.js';
+import { rules, GRADES, expectedDuration, soundingEvents } from './helpers.js';
+
+const SEEDS = Array.from({ length: 40 }, (_, i) => i * 7919 + 13);
+
+function eachTest(callback) {
+  for (const grade of GRADES) {
+    for (const seed of SEEDS) {
+      callback(generateTest(rules, { grade, seed }), rules.grades[String(grade)], { grade, seed });
+    }
+  }
+}
+
+test('every bar of every staff adds up to a full bar', () => {
+  eachTest((score, _grade, context) => {
+    for (const staffNumber of [1, 2]) {
+      score.staves[staffNumber].forEach((bar, barIndex) => {
+        const total = bar.events.reduce((sum, event) => sum + event.dur, 0);
+        assert.equal(
+          total, score.barDuration,
+          `grade ${context.grade} seed ${context.seed} staff ${staffNumber} bar ${barIndex + 1}: ${total} != ${score.barDuration}`,
+        );
+      });
+    }
+  });
+});
+
+test('printed note values match their durations', () => {
+  eachTest((score) => {
+    for (const staffNumber of [1, 2]) {
+      for (const bar of score.staves[staffNumber]) {
+        for (const event of bar.events) {
+          if (event.measureRest) continue;
+          assert.equal(
+            event.dur, expectedDuration(event, score.divisions),
+            `${event.type} (dots ${event.dots ?? 0}) should last ${expectedDuration(event, score.divisions)}, got ${event.dur}`,
+          );
+        }
+      }
+    }
+  });
+});
+
+test('pitches stay inside the grade range for each hand', () => {
+  eachTest((score, gradeRules, context) => {
+    for (const [staffNumber, hand] of [[1, 'rightHand'], [2, 'leftHand']]) {
+      const { minMidi, maxMidi } = gradeRules.range[hand];
+      for (const bar of score.staves[staffNumber]) {
+        for (const event of soundingEvents(bar)) {
+          for (const pitch of [event.pitch, ...(event.chord ?? [])]) {
+            assert.ok(
+              pitch.midi >= minMidi && pitch.midi <= maxMidi,
+              `grade ${context.grade} seed ${context.seed} ${hand}: MIDI ${pitch.midi} outside ${minMidi}–${maxMidi}`,
+            );
+          }
+        }
+      }
+    }
+  });
+});
+
+test('key, time signature and length follow the rules table', () => {
+  eachTest((score, gradeRules, context) => {
+    assert.ok(
+      gradeRules.timeSignatures.includes(score.timeSignature.text),
+      `grade ${context.grade}: unexpected time signature ${score.timeSignature.text}`,
+    );
+
+    if (!gradeRules.keys.allKeys) {
+      const allowed = [
+        ...gradeRules.keys.major.map((k) => `${k.tonic} major`),
+        ...gradeRules.keys.minor.map((k) => `${k.tonic} minor`),
+      ];
+      assert.ok(
+        allowed.includes(`${score.key.tonic} ${score.key.mode}`),
+        `grade ${context.grade}: key ${score.key.tonic} ${score.key.mode} not in the allowed list`,
+      );
+    }
+    assert.ok(
+      Math.abs(score.key.fifths) <= gradeRules.keys.maxAccidentals,
+      `grade ${context.grade}: ${score.key.fifths} accidentals exceeds the limit`,
+    );
+
+    const [min, max] = gradeRules.lengthBars[score.timeSignature.text] ?? gradeRules.lengthBars.default;
+    assert.ok(
+      score.barCount >= min && score.barCount <= max,
+      `grade ${context.grade}: ${score.barCount} bars outside ${min}–${max}`,
+    );
+  });
+});
+
+test('rhythmic features only appear once the grade introduces them', () => {
+  eachTest((score, gradeRules, context) => {
+    const allowedTypes = new Set(gradeRules.rhythm.noteValues);
+    const allowedDots = new Set(gradeRules.rhythm.dottedValues);
+
+    for (const staffNumber of [1, 2]) {
+      for (const bar of score.staves[staffNumber]) {
+        for (const event of bar.events) {
+          if (event.measureRest) continue;
+          assert.ok(
+            allowedTypes.has(event.type),
+            `grade ${context.grade}: note type ${event.type} is not in the grade's vocabulary`,
+          );
+          if (event.dots) {
+            assert.ok(
+              allowedDots.has(event.type),
+              `grade ${context.grade}: dotted ${event.type} is not allowed`,
+            );
+          }
+          if (event.timeModification) {
+            assert.ok(
+              gradeRules.rhythm.triplets,
+              `grade ${context.grade}: triplet produced but the grade does not allow one`,
+            );
+          }
+        }
+      }
+    }
+  });
+});
+
+test('Grade 1 keeps the hands apart and inside one five-finger position', () => {
+  for (const seed of SEEDS) {
+    const score = generateTest(rules, { grade: 1, seed });
+
+    for (let barIndex = 0; barIndex < score.barCount; barIndex++) {
+      const rightSounds = soundingEvents(score.staves[1][barIndex]).length > 0;
+      const leftSounds = soundingEvents(score.staves[2][barIndex]).length > 0;
+      assert.ok(
+        !(rightSounds && leftSounds),
+        `seed ${seed} bar ${barIndex + 1}: both hands sound, but Grade 1 alternates`,
+      );
+    }
+
+    for (const staffNumber of [1, 2]) {
+      const steps = score.staves[staffNumber]
+        .flatMap(soundingEvents)
+        .map((event) => event.dstep);
+      if (steps.length) {
+        const span = Math.max(...steps) - Math.min(...steps);
+        assert.ok(span <= 4, `seed ${seed} staff ${staffNumber}: span of ${span + 1} notes exceeds a five-finger position`);
+      }
+    }
+  }
+});
+
+test('Grade 2 plays hands together but stays in a five-finger position', () => {
+  for (const seed of SEEDS) {
+    const score = generateTest(rules, { grade: 2, seed });
+    const barsWithBothHands = score.staves[1].filter(
+      (_, index) => soundingEvents(score.staves[1][index]).length && soundingEvents(score.staves[2][index]).length,
+    );
+    assert.ok(barsWithBothHands.length > 0, `seed ${seed}: Grade 2 should have the hands playing together`);
+
+    for (const staffNumber of [1, 2]) {
+      const steps = score.staves[staffNumber].flatMap(soundingEvents).map((event) => event.dstep);
+      const span = Math.max(...steps) - Math.min(...steps);
+      assert.ok(span <= 4, `seed ${seed} staff ${staffNumber}: span exceeds a five-finger position`);
+    }
+  }
+});
+
+test('every test cadences on the tonic', () => {
+  // A modulating test (generate.js's addModulation, Grade 8's "曲中轉調")
+  // genuinely ends in the new key, not the printed opening key — that is
+  // what modulation means. score.keyChange carries the destination tonic
+  // for exactly this: cadence checks after it should use the new key.
+  eachTest((score, gradeRules, context) => {
+    const tonicPitchClass = tonicPitchClassOf(score.keyChange ?? score.key);
+    // Where the hands alternate (Grade 1) only the hand still playing at the
+    // end carries the cadence; the other one has already dropped out.
+    const staves = gradeRules.texture.handsPlayTogether === false
+      ? [lastSoundingStaff(score)]
+      : [1, 2];
+
+    for (const staffNumber of staves) {
+      const notes = score.staves[staffNumber].flatMap(soundingEvents);
+      if (!notes.length) continue;
+      const last = notes[notes.length - 1];
+      assert.equal(
+        last.pitch.midi % 12, tonicPitchClass,
+        `grade ${context.grade} seed ${context.seed} staff ${staffNumber}: ends on ${last.pitch.step}, not the tonic`,
+      );
+    }
+  });
+});
+
+function lastSoundingStaff(score) {
+  const lastBar = score.barCount - 1;
+  return soundingEvents(score.staves[1][lastBar]).length ? 1 : 2;
+}
+
+test('the same seed always produces the same test', () => {
+  for (const grade of GRADES) {
+    const first = generateTest(rules, { grade, seed: 4242 });
+    const second = generateTest(rules, { grade, seed: 4242 });
+    assert.equal(fingerprintOf(first), fingerprintOf(second));
+    assert.deepEqual(first.progression, second.progression);
+  }
+});
+
+test('different seeds produce different tests', () => {
+  for (const grade of GRADES) {
+    const fingerprints = new Set(
+      SEEDS.map((seed) => fingerprintOf(generateTest(rules, { grade, seed }))),
+    );
+    assert.ok(
+      fingerprints.size >= SEEDS.length * 0.9,
+      `grade ${grade}: only ${fingerprints.size} distinct tests from ${SEEDS.length} seeds`,
+    );
+  }
+});
+
+test('history records each distinct test once', () => {
+  const history = createHistory({ capacity: 10 });
+
+  // A producer pinned to one seed can only ever make the same test, so the
+  // retry loop gives up and returns it — but the history holds one entry.
+  const first = generateUnique(() => generateTest(rules, { grade: 3, seed: 1 }), history, 3);
+  const second = generateUnique(() => generateTest(rules, { grade: 3, seed: 1 }), history, 3);
+  assert.equal(first.fingerprint, second.fingerprint);
+  assert.equal(history.size, 1);
+  assert.ok(history.has(first.fingerprint));
+
+  // A free-running producer should get past the history immediately.
+  let seed = 100;
+  const third = generateUnique(() => generateTest(rules, { grade: 3, seed: seed++ }), history, 12);
+  assert.notEqual(third.fingerprint, first.fingerprint);
+  assert.equal(history.size, 2);
+});
+
+test('history evicts the oldest entries beyond its capacity', () => {
+  const history = createHistory({ capacity: 3 });
+  const fingerprints = [1, 2, 3, 4, 5].map((seed) =>
+    generateUnique(() => generateTest(rules, { grade: 4, seed }), history, 1).fingerprint,
+  );
+  assert.equal(history.size, 3);
+  assert.ok(!history.has(fingerprints[0]));
+  assert.ok(history.has(fingerprints[4]));
+});
+
+function tonicPitchClassOf(key) {
+  const base = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
+  const accidental = key.tonic.includes('#') ? 1 : key.tonic.includes('b') ? -1 : 0;
+  return (base[key.tonic[0]] + accidental + 12) % 12;
+}
+
+test('simultaneous intervals stay consonant', () => {
+  // Before the hands were written against each other, roughly 18% of
+  // simultaneous intervals were seconds, sevenths or tritones. What is left
+  // should only be off-beat passing dissonance. That bound moved from 6% to
+  // 10% when melody.js started forcing a passing/neighbour tone to actually
+  // resolve by step (previously it could get silently discarded and
+  // replaced with a chord tone instead, which is why so few survived to
+  // clash in the first place) — more of them surviving means slightly more
+  // of exactly the dissonance this test expects to find, still strictly
+  // off-beat and never a forced unconditional clash (see pickWeighted).
+  const HARSH = new Set([1, 2, 6, 10, 11]);
+
+  for (const grade of GRADES) {
+    let harsh = 0;
+    let total = 0;
+
+    for (const seed of SEEDS) {
+      const score = generateTest(rules, { grade, seed });
+      const right = soundingTimeline(score, 1);
+      const left = soundingTimeline(score, 2);
+
+      for (const above of right) {
+        for (const below of left) {
+          if (above.start >= below.end || above.end <= below.start) continue;
+          for (const a of above.midis) {
+            for (const b of below.midis) {
+              total += 1;
+              if (HARSH.has(Math.abs(a - b) % 12)) harsh += 1;
+            }
+          }
+        }
+      }
+    }
+
+    if (!total) continue; // Grade 1 alternates, so nothing ever sounds together
+    const rate = harsh / total;
+    assert.ok(
+      rate <= 0.10,
+      `grade ${grade}: ${(rate * 100).toFixed(1)}% of simultaneous intervals are harsh`,
+    );
+  }
+});
+
+test('no false relations between the hands', () => {
+  for (const grade of GRADES) {
+    for (const seed of SEEDS) {
+      const score = generateTest(rules, { grade, seed });
+      if (score.key.mode !== 'minor') continue;
+      const right = soundingTimeline(score, 1);
+      const left = soundingTimeline(score, 2);
+
+      for (const above of right) {
+        for (const below of left) {
+          if (above.start >= below.end || above.end <= below.start) continue;
+          for (const a of above.midis) {
+            for (const b of below.midis) {
+              // Same letter sounding both natural and raised at once.
+              assert.notEqual(
+                Math.abs(a - b) % 12, 1,
+                `grade ${grade} seed ${seed}: semitone clash between the hands (${a} vs ${b})`,
+              );
+            }
+          }
+        }
+      }
+    }
+  }
+});
+
+test('a repeated note never disagrees with itself on the raised 7th', () => {
+  // resolveClashes (dodging the other hand) and harmoniseLeadingNotes
+  // (reconciling the two hands) can each flip just one occurrence of a
+  // repeated scale-degree-7 note to its natural form — e.g. a G minor test
+  // whose bass sat on G/D printed the melody's F# immediately followed by
+  // F-natural, an obvious wrong note no real test would write. Every
+  // immediately repeated pitch within one hand must agree with itself.
+  for (const grade of GRADES) {
+    for (const seed of SEEDS) {
+      const score = generateTest(rules, { grade, seed });
+      if (score.key.mode !== 'minor') continue;
+
+      for (const staffNumber of [1, 2]) {
+        const notes = soundingEvents({ events: score.staves[staffNumber].flatMap((bar) => bar.events) });
+        for (let i = 1; i < notes.length; i++) {
+          const previous = notes[i - 1];
+          const current = notes[i];
+          if (current.dstep !== previous.dstep) continue;
+          assert.equal(
+            current.raiseSeventh, previous.raiseSeventh,
+            `grade ${grade} seed ${seed} staff ${staffNumber}: repeated note disagrees with itself on the raised 7th`,
+          );
+        }
+      }
+    }
+  }
+});
+
+test('minor keys are written as harmonic minor by default', () => {
+  // The 7th degree used to raise only under a dominant-function chord (V or
+  // vii°) — a tonic-function bar's own leading-tone passing/neighbour tone
+  // stayed natural even though harmonic minor raises it everywhere. Now the
+  // raise is unconditional by degree; the only notes that should still come
+  // out natural are the deliberate exceptions (avoiding an augmented 2nd
+  // next to the natural 6th, or an unavoidable clash against the other
+  // hand — see fixAugmentedSeconds/resolveClashes), not "this bar's chord
+  // wasn't V". Measured at ~70% raised across the full grade/seed matrix.
+  let raised = 0;
+  let total = 0;
+
+  eachTest((score) => {
+    if (score.key.mode !== 'minor') return;
+    const seventhLetter = (letterIndexOf(score.key.tonic) + 6) % 7;
+    for (const staffNumber of [1, 2]) {
+      for (const event of soundingEvents({ events: score.staves[staffNumber].flatMap((bar) => bar.events) })) {
+        const letter = ((event.dstep % 7) + 7) % 7;
+        if (letter !== seventhLetter) continue;
+        total += 1;
+        if (event.raiseSeventh) raised += 1;
+      }
+    }
+  });
+
+  const rate = raised / total;
+  assert.ok(
+    rate >= 0.6,
+    `only ${(rate * 100).toFixed(1)}% of degree-7 notes in minor keys are raised`,
+  );
+});
+
+function letterIndexOf(tonic) {
+  return 'CDEFGAB'.indexOf(tonic[0].toUpperCase());
+}
+
+test('a pedal span never holds through an unmarked harmony change', () => {
+  // With one chord per bar and the progression essentially never repeating
+  // a chord in consecutive bars, a plain start/stop pedal pair spanning
+  // several bars used to hold straight through whatever harmony changed
+  // underneath it — real pedalling lifts and reapplies at each change
+  // instead (MusicXML's `<pedal type="change"/>`, addPedalMarking).
+  eachTest((score) => {
+    const bars = score.staves[2];
+    let pedalOpen = false;
+    bars.forEach((bar, barIndex) => {
+      const kinds = bar.directions.filter((d) => d.kind === 'pedal').map((d) => d.type);
+      // progression entries are a plain roman numeral or, for a bar that
+      // splits into two chords, a [first, second] pair — compare the actual
+      // sounding chord at the boundary (lastChord of the previous bar vs.
+      // firstChord of this one), not the raw entries, or every split bar
+      // reads as "changed" purely because an array is never === a string.
+      const harmonyChanged =
+        barIndex > 0 && firstChord(score.progression[barIndex]) !== lastChord(score.progression[barIndex - 1]);
+      if (pedalOpen && harmonyChanged) {
+        assert.ok(
+          kinds.includes('change') || kinds.includes('stop'),
+          `bar ${barIndex}: pedal held through a harmony change with no change/stop mark`,
+        );
+      }
+      for (const type of kinds) {
+        if (type === 'start' || type === 'change') pedalOpen = true;
+        if (type === 'stop') pedalOpen = false;
+      }
+    });
+  });
+});
+
+test('a slur never spans a rest', () => {
+  // `applyExpression` only checked that each bar in the pair had *some*
+  // sounding note, not that the whole span between the pair's first and
+  // last sounding note was continuous — a bar shaped [note, rest, note]
+  // passed that check and still got slurred straight across the rest.
+  eachTest((score, _grade, context) => {
+    for (const staffNumber of [1, 2]) {
+      const events = score.staves[staffNumber].flatMap((bar) => bar.events);
+      let openIndex = null;
+      events.forEach((event, index) => {
+        if (event.slur === 'start') openIndex = index;
+        if (event.slur === 'stop' && openIndex !== null) {
+          const span = events.slice(openIndex, index + 1);
+          assert.ok(
+            span.every((e) => !e.rest),
+            `grade ${context.grade} seed ${context.seed} staff ${staffNumber}: slur spans a rest`,
+          );
+          openIndex = null;
+        }
+      });
+    }
+  });
+});
+
+test('a melodic hand develops fresh rhythm rather than leaning on repetition', () => {
+  // A genuine accompaniment (Grade 2-3's left hand, once the hands play
+  // together) is *supposed* to repeat one figure for the whole piece — real
+  // Alberti-bass-style accompaniments do exactly that (see buildStaff's
+  // `ostinato`) — so only the melodic hand is checked here: the right hand
+  // always, and the left hand once Grade 1's alternation or Grade 4+'s
+  // independent rhythms mean it isn't a fixed accompaniment figure.
+  const rhythmSignature = (bar) => bar.events.map((e) => `${e.rest ? 'r' : 'n'}${e.dur}.${e.dots ?? 0}`).join(',');
+  let repeated = 0;
+  let total = 0;
+
+  eachTest((score, gradeRules) => {
+    for (const [handKey, hand] of [[1, 'rightHand'], [2, 'leftHand']]) {
+      const isAccompaniment = hand === 'leftHand' && gradeRules.grade < 4 && gradeRules.texture.handsPlayTogether;
+      if (isAccompaniment) continue;
+
+      const seen = [];
+      for (const bar of score.staves[handKey]) {
+        const sig = rhythmSignature(bar);
+        total += 1;
+        if (seen.includes(sig)) repeated += 1;
+        seen.push(sig);
+      }
+    }
+  });
+
+  // Before buildStaff's motif-reuse mechanic was scoped down, 33-46% of a
+  // melodic hand's bars were an exact rhythmic clone of an earlier one —
+  // it kept echoing bars 1-2 specifically for the rest of the piece
+  // (instead of whichever phrase most recently played) at too high a
+  // chance (0.55) to begin with. Measured at ~29% after the fix.
+  const rate = repeated / total;
+  assert.ok(
+    rate <= 0.35,
+    `${(rate * 100).toFixed(1)}% of melodic-hand bars exactly repeat an earlier bar's rhythm`,
+  );
+});
+
+test('melodies include real scale-run figures, not just note-by-note wobble', () => {
+  // Scoring every step candidate independently (no memory of a run already
+  // in progress) made a 4+-note stepwise run — a routine figure in real
+  // specimens, often spanning most of a beat or bar — rare: only 4-6% of
+  // stepwise motion formed one. `pickWeighted`'s run-continuation bias
+  // (melody.js) should make that a regular occurrence instead. Grade 1 is
+  // excluded: its five-finger window and short alternating phrases leave
+  // no room for a run this long regardless of weighting.
+  const runLengths = (bars) => {
+    const notes = bars.flatMap((bar) => soundingEvents(bar));
+    const runs = [];
+    let current = 0;
+    let direction = 0;
+    for (let i = 1; i < notes.length; i++) {
+      const interval = notes[i].dstep - notes[i - 1].dstep;
+      const isStep = Math.abs(interval) === 1;
+      const stepDirection = isStep ? Math.sign(interval) : 0;
+      if (isStep && stepDirection === direction && stepDirection !== 0) {
+        current += 1;
+      } else {
+        if (current > 0) runs.push(current);
+        current = isStep ? 1 : 0;
+        direction = stepDirection;
+      }
+    }
+    if (current > 0) runs.push(current);
+    return runs;
+  };
+
+  let longRuns = 0;
+  let totalRuns = 0;
+
+  eachTest((score, gradeRules) => {
+    if (gradeRules.grade === 1) return;
+    for (const staffNumber of [1, 2]) {
+      const runs = runLengths(score.staves[staffNumber]);
+      totalRuns += runs.length;
+      longRuns += runs.filter((length) => length >= 4).length;
+    }
+  });
+
+  // Measured at ~7.3% after adding the run-continuation bias, against
+  // 4-6% before it existed.
+  const rate = longRuns / totalRuns;
+  assert.ok(
+    rate >= 0.03,
+    `only ${(rate * 100).toFixed(1)}% of stepwise runs reach 4+ notes — scale-run figures are too rare`,
+  );
+});
+
+/** Absolute-time sounding notes of one staff. */
+function soundingTimeline(score, staffNumber) {
+  const timeline = [];
+  score.staves[staffNumber].forEach((bar, barIndex) => {
+    let offset = 0;
+    for (const event of bar.events) {
+      if (!event.rest) {
+        const start = barIndex * score.barDuration + offset;
+        timeline.push({
+          start,
+          end: start + event.dur,
+          midis: [event.pitch.midi, ...(event.chord ?? []).map((p) => p.midi)],
+        });
+      }
+      offset += event.dur;
+    }
+  });
+  return timeline;
+}
+
+test('a test is built as a period, not one undifferentiated span', () => {
+  // Real sight-reading tests are periods: the antecedent phrase puts a comma
+  // on the dominant, and the consequent restarts at home before closing V-I.
+  // Without it every middle bar is harmonically interchangeable and the test
+  // reads as a single span rather than a question answered.
+  eachTest((score, _rules, context) => {
+    if (score.barCount < 6) return;
+    const half = Math.floor(score.barCount / 2) - 1;
+    if (half < 1 || half >= score.barCount - 3) return;
+    assert.equal(
+      lastChord(score.progression[half]), 'V',
+      `grade ${context.grade} seed ${context.seed}: antecedent ends on `
+      + `${lastChord(score.progression[half])}, not a half cadence`,
+    );
+    assert.equal(
+      firstChord(score.progression[half + 1]), 'I',
+      `grade ${context.grade} seed ${context.seed}: consequent does not restart on I`,
+    );
+  });
+});
+
+test('the melody restates its opening material, not just its rhythm', () => {
+  /*
+   * Reusing a bar's rhythm while re-inventing its pitches gives the ear a
+   * rhythmic rhyme with no melodic one, which is most of why a generated test
+   * used to read as separately-invented bars laid end to end. Measured at
+   * 1-5% of bars sharing any melodic contour with an earlier bar before the
+   * motif mechanic carried pitch as well as rhythm, and ~10% after — the
+   * restatements now landing where a period wants them (the consequent
+   * bringing back the antecedent's opening) rather than at random.
+   */
+  const contourOf = (bar) => {
+    const notes = soundingEvents(bar).filter((event) => event.dstep !== undefined);
+    if (notes.length < 2) return null;
+    return notes.slice(1).map((note, i) => note.dstep - notes[i].dstep).join(',');
+  };
+
+  let restated = 0;
+  let total = 0;
+  eachTest((score) => {
+    const contours = score.staves[1].map(contourOf).filter(Boolean);
+    const seen = new Set();
+    for (const contour of contours) {
+      total += 1;
+      if (seen.has(contour)) restated += 1;
+      else seen.add(contour);
+    }
+  });
+
+  const rate = restated / total;
+  assert.ok(
+    rate >= 0.05,
+    `only ${(rate * 100).toFixed(1)}% of melody bars restate an earlier bar's contour`,
+  );
+});
+
+test('the melody reaches its final tonic by step', () => {
+  /*
+   * Almost every closing gesture in tonal music approaches the tonic by step
+   * — the leading note rising to it or the supertonic falling to it — and both
+   * belong to the dominant the progression puts under the penultimate bar.
+   * Merely preferring that during pitch selection was not enough: the repair
+   * passes that run afterwards moved the note often enough that it survived
+   * only ~20% of the time, so the cadence is now shaped after those passes.
+   */
+  let stepwise = 0;
+  let total = 0;
+  eachTest((score) => {
+    const notes = score.staves[1]
+      .flatMap((bar) => soundingEvents(bar))
+      .filter((event) => event.dstep !== undefined);
+    if (notes.length < 2) return;
+    total += 1;
+    if (Math.abs(notes[notes.length - 1].dstep - notes[notes.length - 2].dstep) === 1) stepwise += 1;
+  });
+
+  /*
+   * Not quite universal, and legitimately so. In a five-finger grade whose
+   * tonic sits at the bottom of the position, the leading note below it is
+   * outside the five notes the hand may use — a hard Grade 1-2 rule — and the
+   * supertonic above it can still be blocked by a clash with the left hand
+   * (G minor, seed 95041: the A would make a major 7th against the bass B flat).
+   * With neither neighbour available the leap is the correct outcome, so this
+   * asserts the rate rather than every single test.
+   */
+  const rate = stepwise / total;
+  assert.ok(
+    rate >= 0.85,
+    `only ${(rate * 100).toFixed(1)}% of melodies reach their final tonic by step`,
+  );
+});
+
+test('chord density stays inside the grade texture', () => {
+  /*
+   * `maxNotesPerChord` and `maxNotesTotal` were both declared in the rules
+   * table long before anything generated against them: chords were stacked in
+   * the left hand only, and never more than two notes deep, so Grade 6-8's
+   * three- and four-note chords never appeared and Grade 8 came out no thicker
+   * than Grade 3. Counted by attack — notes struck together, which is what the
+   * syllabus's "four-part chords, two notes per hand" describes — rather than
+   * by overlap, since a sustained bass under a running melody is not a chord.
+   */
+  eachTest((score, gradeRules, context) => {
+    const attacks = new Map();
+    for (const staffNumber of [1, 2]) {
+      score.staves[staffNumber].forEach((bar, barIndex) => {
+        let offset = 0;
+        for (const event of bar.events) {
+          if (!event.rest && event.pitch) {
+            const notes = 1 + (event.chord?.length ?? 0);
+            assert.ok(
+              notes <= gradeRules.texture.maxNotesPerChord,
+              `grade ${context.grade} seed ${context.seed}: ${notes}-note chord in one hand `
+              + `exceeds ${gradeRules.texture.maxNotesPerChord}`,
+            );
+            const at = barIndex * score.barDuration + offset;
+            attacks.set(at, (attacks.get(at) ?? 0) + notes);
+          }
+          offset += event.dur;
+        }
+      });
+    }
+
+    const limit = gradeRules.texture.maxNotesTotal;
+    if (!limit) return;
+    for (const [at, notes] of attacks) {
+      assert.ok(
+        notes <= limit,
+        `grade ${context.grade} seed ${context.seed}: ${notes} notes struck together at ${at}, limit ${limit}`,
+      );
+    }
+  });
+});
+
+/*
+ * A bass decoration has to behave like one. `pickWeighted` admits a non-chord
+ * tone in the chord-tone-only hand only off the beat, only stepped into and
+ * only when the note before it was a chord tone; this asserts what actually
+ * survives to the page, since several later passes relocate notes. The
+ * hand's own forced final tonic is exempt for the same reason
+ * `repairNonChordTones` exempts it, and a modulating test is judged against
+ * the key it has moved into rather than the one it opened in.
+ */
+test('a bass decoration is off the beat, stepped into, and never doubled', () => {
+  eachTest((score, _rules, context) => {
+    const opening = createKey(score.key);
+    const destination = score.keyChange ? createKey(score.keyChange) : opening;
+    const bassFinal = score.staves[2]
+      .flatMap((bar) => bar.events.filter((event) => !event.rest && event.dstep !== undefined))
+      .at(-1) ?? null;
+
+    let previous = null;
+    let previousWasChordTone = true;
+    score.staves[2].forEach((bar, barIndex) => {
+      const key = score.keyChange && barIndex >= score.keyChange.barIndex ? destination : opening;
+      const barDuration = bar.events.reduce((sum, event) => sum + event.dur, 0);
+      let offset = 0;
+      for (const event of bar.events) {
+        const at = offset;
+        offset += event.dur;
+        if (event.rest || event.dstep === undefined) continue;
+        if (event === bassFinal) { previous = event.dstep; continue; }
+
+        const tones = chordDegrees(chordAt(score.progression[barIndex] ?? 'I', at, barDuration));
+        const isChordTone = tones.includes(degreeOf(event.dstep, key));
+        const where = `grade ${context.grade} seed ${context.seed} bar ${barIndex + 1} offset ${at}`;
+        if (!isChordTone && previous !== null) {
+          assert.equal(
+            Math.abs(event.dstep - previous), 1,
+            `${where}: bass non-chord tone leapt into`,
+          );
+          assert.ok(previousWasChordTone, `${where}: two bass non-chord tones running`);
+          assert.notEqual(at, 0, `${where}: bass non-chord tone on a downbeat`);
+        }
+        previous = event.dstep;
+        previousWasChordTone = isChordTone;
+      }
+    });
+  });
+});
+
+/*
+ * The bass must actually use the freedom above: restricted to chord tones it
+ * structurally cannot step, since the smallest move inside one triad is a
+ * third. Asserted over the whole sample rather than per test — a single short
+ * test can legitimately have a bass that only leaps.
+ */
+test('the bass line steps between its chord tones rather than only arpeggiating', () => {
+  let moves = 0;
+  let steps = 0;
+  eachTest((score) => {
+    let previous = null;
+    for (const bar of score.staves[2]) {
+      for (const event of bar.events) {
+        if (event.rest || event.dstep === undefined) continue;
+        if (previous !== null) {
+          moves += 1;
+          if (Math.abs(event.dstep - previous) === 1) steps += 1;
+        }
+        previous = event.dstep;
+      }
+    }
+  });
+  const rate = (steps / moves) * 100;
+  assert.ok(rate >= 18, `bass moves by step in only ${rate.toFixed(1)}% of moves`);
+});
+
+/*
+ * A period breathes at its half cadence: the antecedent arrives on a longer
+ * note than an ordinary bar ends on. Without it a test runs at flat density
+ * from bar 1 to the double bar and reads as bars laid end to end. Measured
+ * across the sample, and excluding the final bar, which has its own stronger
+ * cadence treatment.
+ *
+ * Grade 1-2 are excluded, not overlooked: three quarters of their tests are
+ * four bars long and have no half cadence at all, and in the six-bar ones the
+ * hands strictly alternate, so the half-cadence bar is already taking the
+ * cadence treatment `buildStaff` gives a bar the other hand sits out. Folding
+ * them in dilutes the measurement to the point of uselessness — with the
+ * phrase breath switched off the all-grades ratio is 1.05, which any threshold
+ * loose enough to pass a healthy generator would also let through.
+ */
+test('the antecedent phrase arrives on a longer note at its half cadence', () => {
+  let phraseEnd = 0;
+  let phraseEndBars = 0;
+  let elsewhere = 0;
+  let elsewhereBars = 0;
+  eachTest((score, _rules, context) => {
+    if (context.grade < 3) return;
+    const half = halfCadenceBar(score.barCount);
+    if (half === null) return;
+    for (let barIndex = 0; barIndex < score.barCount - 1; barIndex++) {
+      const tail = [1, 2].reduce((longest, staffNumber) => {
+        const last = [...(score.staves[staffNumber][barIndex]?.events ?? [])]
+          .reverse().find((event) => !event.rest);
+        return last ? Math.max(longest, last.dur) : longest;
+      }, 0);
+      if (barIndex === half) { phraseEnd += tail; phraseEndBars += 1; }
+      else { elsewhere += tail; elsewhereBars += 1; }
+    }
+  });
+  const ratio = (phraseEnd / phraseEndBars) / (elsewhere / elsewhereBars);
+  // Measured 1.47 with the phrase breath and 1.05 without it, so this sits
+  // clear of both rather than shaving one of them.
+  assert.ok(ratio >= 1.2, `half-cadence bar ends on a note only ${ratio.toFixed(2)}x an ordinary bar's`);
+});

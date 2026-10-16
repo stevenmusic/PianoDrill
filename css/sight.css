@@ -1,0 +1,855 @@
+/*
+ * SightDrill — styled to match ScrollScore.
+ *
+ * Same type pairing (Noto Serif TC for the brand, Noto Sans TC for the rest),
+ * the same light-theme palette, the same three-step radius/shadow/type scales,
+ * and the same pill-shaped `.btn`. Values are taken from ScrollScore's
+ * `body.light` block so the two apps read as one family.
+ */
+
+:root {
+  /* 深色(預設):黑金系列,值照抄 FingerDrill / HarmonyMap,同一家族的工具放在一起看是同一個產品 */
+  --bg: #0C0A07;
+  --panel: #161209;
+  --panel-2: #201A0F;
+  --gold: #F2B94B;
+  --gold-bright: #EFD48A;
+  --brand-gold: #C9A24B;
+  --ivory: #F4ECDA;  /* 主文字色(名稱沿用 ScrollScore) */
+  --muted: #8A7D5F;
+  --muted-bright: #B6A576;
+  --line: #2A2415;
+  --surface-inset: rgba(22, 18, 9, .55);
+  --card-tint: rgba(242, 185, 75, .06);
+  --on-fill: #16110A;   /* 金色實心按鈕上的字 */
+  --error: #F08A72;
+  --error-bg: rgba(240, 138, 114, .08);
+  --error-line: rgba(240, 138, 114, .35);
+
+  /* 樂譜紙張:深色/淺色主題都一樣是白紙黑字,所以紙上的播放高亮/播放軸
+     用固定的深金色,不跟著主題換(深色主題的亮金色在白紙上看不清楚) */
+  --paper: #FFFDF6;
+  --paper-gold: #856418;
+  --paper-gold-bright: #6B5115;
+  --paper-glow: rgba(133, 100, 24, .45);
+
+  /* No shadow scale, no larger radius steps — the app deliberately has no
+     drop shadows or big-radius cards anywhere (see .topbar/.score-frame),
+     so ScrollScore's full token set was trimmed to only what's actually
+     used rather than carrying dead variables that contradict that. */
+  --radius-sm: 8px;
+  --radius-pill: 999px;
+
+  --fs-2xs: 11px;
+  --fs-xs: 12px;
+  --fs-sm: 13px;
+  --fs-md: 14px;
+  --fs-lg: 16px;
+  /* Scaled down by the same ~0.8 factor as the mobile h1 override below
+     (see that comment for how it was measured against a ScrollScore
+     screenshot) — reported as "標題的字大小也不一樣" (the title's font
+     size is different too). */
+  --fs-2xl: 20px;
+
+  /* The page's own horizontal inset, kept as a variable so `.topbar` and
+     `.score-frame` can bleed exactly past it to the true viewport edge at
+     every breakpoint (see the comment on `.topbar` below) without
+     duplicating each breakpoint's number. */
+  --body-px: 16px;
+
+  color-scheme: dark;
+}
+
+/* 淺色主題:同一組語意變數換一套值(就是改版前的米白配色) */
+:root.light {
+  --bg: #FBF7EE;
+  --panel: #F4EEE0;
+  --panel-2: #EDE6D4;
+  --gold: #856418;
+  --gold-bright: #6B5115;
+  --brand-gold: #856418;
+  --ivory: #241E12;
+  --muted: #6F6450;
+  --muted-bright: #544B3B;
+  --line: #D8CDB2;
+  --surface-inset: rgba(255, 255, 255, .7);
+  --card-tint: rgba(133, 100, 24, .05);
+  --on-fill: #FBF7EE;
+  --error: #8f2f1d;
+  --error-bg: rgba(143, 47, 29, .07);
+  --error-line: rgba(143, 47, 29, .28);
+  color-scheme: light;
+}
+
+/* touch-action:manipulation only disables the double-tap-to-zoom gesture; pinch-zoom
+   is unaffected -- unlike locking the viewport with user-scalable=no, which would also
+   block zoom for anyone who actually needs it */
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+
+body {
+  background: var(--bg);
+  color: var(--ivory);
+  font-family: "Noto Sans TC", sans-serif;
+  font-size: var(--fs-md);
+  line-height: 1.6;
+  max-width: 64rem;
+  margin: 0 auto;
+  /* The full-bleed rule below widens `.topbar`/`.score-frame` to the whole
+     viewport, which on a screen wider than `max-width` reaches past this
+     element. `clip` contains that without the side effects `hidden` has on
+     sticky positioning and programmatic scrolling. */
+  overflow-x: clip;
+  /* No top padding: `.topbar` is the first thing on the page and should
+     sit flush against the viewport's top edge, matching ScrollScore
+     exactly, rather than floating below a gap of page padding. */
+  padding: 0 var(--body-px) 40px;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ---------- header ---------- */
+
+/*
+ * Title left, transport right, one row — the only layout this row ever has.
+ * There is no fullscreen mode to hide or rearrange it: the page has nothing
+ * left to strip away once the title bar, the meta line and the score are all
+ * that is on it, so a distraction-free view would have no extra chrome to
+ * remove. Because the buttons live here and nowhere else, they cannot move or
+ * disappear when a test is generated — only the meta strip below reacts to
+ * that.
+ *
+ * Styled after ScrollScore's own toolbar: a flat full-width band with a
+ * hairline underneath, not a rounded, shadowed card floating with margin
+ * on either side; `.score-frame` below uses the same full-bleed trick for
+ * the same reason.
+ */
+/*
+ * Full bleed. Cancelling `--body-px` alone only reaches the edge of the
+ * page's *content column*, and `body` is capped at 64rem and centred — so on
+ * anything wider (an iPad in landscape is about 1366px) the band stopped
+ * short of the screen with a gutter either side, which is not the flat
+ * edge-to-edge toolbar this is supposed to be. Widening to `100vw` about the
+ * element's own centre cancels the centring gutter as well as the inset.
+ */
+.topbar {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 16px;
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
+  margin-bottom: 20px;
+  /* Inset from the true viewport edge, not from the centred content column,
+     so the row reads as a full-width toolbar. */
+  padding: 12px var(--body-px);
+  background: var(--panel);
+  border-bottom: 1px solid var(--line);
+}
+
+.title-block { min-width: 0; display: flex; align-items: center; gap: 8px; }
+.brand-logo { width: 28px; height: 28px; flex: none; color: var(--gold); }
+@media (max-width: 480px) { .brand-logo { display: none; } }
+
+/* Hub 頁(stevenmusic.github.io)是後來才生的,工具頁原本沒有回首頁的路徑——
+   跟 ScrollScore 用同一套安靜文字連結,不用 .btn 那套實心/邊框樣式 */
+.home-link {
+  display: inline-flex; align-items: center; gap: 4px; flex: none;
+  color: var(--muted); font-size: var(--fs-sm); text-decoration: none;
+  padding: 6px 4px; border-radius: var(--radius-sm); transition: color .15s;
+}
+.home-link:hover, .home-link:focus-visible { color: var(--gold-bright); }
+
+h1 {
+  font-family: "Noto Serif TC", serif;
+  font-size: var(--fs-2xl);
+  font-weight: 700;
+  letter-spacing: .06em;
+  color: var(--brand-gold);
+  line-height: 1.2;
+  /* Noto Serif TC's descenders (the tail on "g") sit lower than a 1.2
+     line-height box allows for — with overflow:hidden that clipped the
+     bottom of "Sight" off outright. The padding gives the glyph room to
+     render fully without moving where the ellipsis (for the rare overlong
+     case) kicks in. */
+  padding-bottom: 0.15em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+h1 span { color: var(--ivory); font-weight: 600; }
+
+/* ---------- controls ---------- */
+
+/*
+ * One row, always. Wrapping pushed a control onto a second line on a phone,
+ * which cost vertical space the score needs, so the labels give way instead
+ * (see the icon-only breakpoint below). The panel background/border/shadow
+ * live on `.topbar` (shared with the title, matching ScrollScore's toolbar,
+ * which is one continuous band rather than a separate panel just behind the
+ * buttons) — `.controls` is just the flex row of buttons within it.
+ */
+.controls {
+  display: flex;
+  flex: none;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 8px 10px;
+}
+
+.control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--fs-sm);
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+/* ScrollScore's button: pill, gold outline, filled when primary or active. */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  line-height: 1;
+  border: 1px solid var(--gold);
+  background: transparent;
+  color: var(--gold);
+  font-family: inherit;
+  font-size: var(--fs-md);
+  font-weight: 500;
+  padding: 8px 16px;
+  height: 38px;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  transition: background .2s, color .2s;
+  white-space: nowrap;
+}
+
+.btn svg { flex: none; }
+.btn:active { background: var(--gold); color: var(--on-fill); }
+.btn.primary { background: var(--gold); color: var(--on-fill); font-weight: 700; }
+.btn:disabled { opacity: .35; cursor: not-allowed; }
+.btn:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+
+/* Play and stop carry an icon only — no label at any width. flex-shrink:0
+   keeps it from being squeezed narrower than its own set width by the
+   nowrap controls row (aspect-ratio alone isn't reliable here once this is
+   a flex item with min-width in play, so width is set explicitly to match
+   height at each breakpoint below instead). */
+.btn.icon-only { width: 38px; padding: 0; flex-shrink: 0; }
+.btn.icon-only.is-active { background: var(--gold); color: var(--on-fill); }
+
+select {
+  font-family: inherit;
+  font-size: var(--fs-sm);
+  color: var(--ivory);
+  background: var(--surface-inset);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 7px 8px;
+  cursor: pointer;
+}
+
+select:focus-visible { outline: 2px solid var(--gold); outline-offset: 1px; }
+
+button.link {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--muted);
+  font-family: inherit;
+  font-size: var(--fs-sm);
+  text-decoration: underline;
+  text-underline-offset: .2em;
+  cursor: pointer;
+  /* 文字連結也要有手指點得到的高度(所有工具共用的 28×28 下限) */
+  min-height: 28px;
+}
+
+button.link:hover { color: var(--gold); }
+
+/* ---------- meta strip ---------- */
+
+/*
+ * No labels — just the four values in a fixed reading order, separated by
+ * "丨". The key/time/bar-count fields get a fixed width (sized generously
+ * above the widest value the rules table can ever produce — see the width
+ * comments below), so the separators sit at the same horizontal position
+ * on every generated test; only the tempo field (last, nothing after it)
+ * is allowed to vary in width.
+ *
+ * This sits directly below `.topbar` and is the *only* thing a new test
+ * changes above the score — the controls row is a fixed sibling, never a
+ * parent or neighbour this has to share space with, so its own width
+ * changing can never push a button anywhere.
+ *
+ * `.meta-row` (the wrapper around this, added for the wide-viewport layout
+ * below) is deliberately a no-op here — narrow viewports keep the grade
+ * selector and countdown pinned to the score's own corners exactly as
+ * before, so this element alone still owns the "space below the topbar"
+ * job it always has.
+ */
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 4px 0;
+  margin: 16px 4px 8px;
+  overflow-x: auto;
+}
+
+.meta span {
+  font-size: var(--fs-md);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  /* A small positive track on bold text this size reads clearer at a
+     glance — the same per-size tuning principle as the countdown's
+     negative track at the opposite end of the scale, just the sign
+     small text wants rather than a big display numeral. */
+  letter-spacing: 0.01em;
+  color: var(--ivory);
+  white-space: nowrap;
+}
+
+.meta-sep {
+  flex: none;
+  padding: 0 10px;
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.meta-key { flex: none; width: 68px; }   /* widest: "Gb 大調" */
+.meta-time { flex: none; width: 42px; }  /* widest: "12/8" */
+.meta-bars { flex: none; width: 66px; }  /* widest: "16 小節" */
+/*
+ * Tempo now prints only the metronome mark (♩≈88) — the term itself already
+ * appears above bar 1 in the score (`pinTempoTermPosition`), so it was
+ * dropped from this string. That leaves a short, bounded value ("♩≈46" to
+ * "♩≈168"), so the wrap/clamp machinery a free-text tempo term used to need
+ * here is gone too; it never has to break onto a second line.
+ */
+.meta span.meta-tempo {
+  flex: none;
+  white-space: nowrap;
+}
+
+/* ---------- score ---------- */
+
+/*
+ * No card here either — matching ScrollScore, the sheet sits directly on
+ * the page's own background with no border, radius or shadow, and (via
+ * the same negative-margin trick as `.topbar`) bleeds to the true
+ * viewport edge instead of stopping at the page's usual inset, so the
+ * score gets as much width as the screen actually has to give it.
+ */
+.score-frame {
+  position: relative;
+  margin-top: 10px;
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
+  /* The score itself takes the whole width rather than lining up with the
+     page's content column: a wider system means larger notes, which is the
+     entire point of the reading view. Extra top padding leaves room for the
+     grade selector and countdown pinned to its two top corners without
+     either overlapping the first system. */
+  padding: 56px var(--body-px) 22px;
+}
+
+/*
+ * The grade selector (and, alongside it, the key selector) live over the
+ * score's own white area rather than in the controls row — they're
+ * "what to generate onto this paper" inputs, not playback controls, so they
+ * read more clearly pinned to the paper they're about to fill. The
+ * countdown (below) mirrors the pair at the opposite top corner, for the
+ * same reason: all of them are about this particular sheet, not the page.
+ */
+.grade-controls {
+  position: absolute;
+  top: 14px;
+  left: 16px;
+  z-index: 2;
+  display: flex;
+  gap: 6px;
+}
+
+.countdown {
+  white-space: nowrap;
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  z-index: 2;
+  font-family: "Noto Serif TC", serif;
+  font-variant-numeric: tabular-nums;
+  font-size: 44px;
+  font-weight: 700;
+  /* The one large display numeral on the page — a slight negative track
+     tightens it the way a considered type scale treats its biggest size,
+     without going anywhere near a sans-serif display's aggressive negative
+     spacing (that reads wrong on a serif face at this weight). */
+  letter-spacing: -0.02em;
+  line-height: 1;
+  color: var(--gold);
+  text-align: right;
+  transition: color .2s;
+}
+
+.countdown .unit {
+  font-family: "Noto Sans TC", sans-serif;
+  font-size: var(--fs-sm);
+  font-weight: 400;
+  color: var(--muted);
+  margin-left: 3px;
+}
+
+.countdown.running { color: var(--gold-bright); }
+.countdown.done { color: var(--muted-bright); }
+
+/* ---------- playback highlight + playhead ---------- */
+
+/*
+ * The whole test renders here in normal page flow. The highlight block and
+ * playhead are absolutely positioned within it, over the notes.
+ */
+.stage {
+  position: relative;
+  /* 白色譜紙,深色/淺色主題都一樣(跟 FingerDrill 的 .paper 同一個做法) */
+  background: var(--paper);
+  border-radius: var(--radius-sm);
+  padding: 4px 6px 6px;
+}
+
+/* The bar being played, tinted behind the notes rather than over them. */
+.measure-highlight {
+  position: absolute;
+  display: none;
+  background: var(--paper-gold);
+  opacity: .16;
+  border-radius: 3px;
+  pointer-events: none;
+  z-index: 0;
+  transition: left .12s linear, width .12s linear, top .25s ease;
+}
+
+.playline {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 2px;
+  display: none;
+  /* 外觀照抄 FingerDrill / ScrollScore:半透明金線、上下漸層淡出、頂端小三角 */
+  background: linear-gradient(to bottom, transparent, #B8860B 12%, #B8860B 88%, transparent);
+  box-shadow: 0 0 14px 2px rgba(184, 134, 11, .45);
+  opacity: .5;
+  pointer-events: none;
+  z-index: 5;
+  transition: transform .12s linear;
+}
+.playline::before {
+  content: "";
+  position: absolute;
+  top: -2px;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 7px solid transparent;
+  border-top: 10px solid #B8860B;
+}
+
+.score {
+  position: relative;
+  z-index: 1;
+  min-height: 10rem;
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity .22s ease-out, transform .22s ease-out;
+}
+
+/*
+ * Applied only once — after fitScore() has already settled on a final
+ * layout, not during OSMD's own repeated measuring renders (fitScore calls
+ * osmd.render() many times while searching for a bars-per-line/zoom
+ * combination that fits; fading on every one of those would flicker,
+ * not read as an entrance). A short, understated motion — 4px and 180ms,
+ * matching the rest of the app's transitions — not a flourish; a new test
+ * is a fresh page turn, not a modal opening.
+ */
+.score.entering {
+  opacity: 0;
+  transform: translateY(4px);
+  transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .score { transition: none; }
+}
+
+/*
+ * The element must keep a real width at all times: OSMD measures it when
+ * render() is called, and a display:none (or zero-width) parent makes it lay
+ * the staves out backwards into negative x.
+ */
+.score[hidden] { display: block; visibility: hidden; }
+
+.message {
+  margin: 12px 4px 0;
+  color: var(--muted);
+  font-size: var(--fs-sm);
+}
+
+/* Failures must be visible on the page: a phone has no dev console. */
+.message.error {
+  color: var(--error);
+  background: var(--error-bg);
+  border: 1px solid var(--error-line);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+}
+
+/* ---------- footer ---------- */
+
+footer {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 32px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+  font-size: var(--fs-sm);
+  color: var(--muted);
+}
+
+.spacer { flex: 1; }
+
+.contact a {
+  color: var(--muted); text-decoration: underline; text-decoration-color: var(--line);
+  text-underline-offset: .25em;
+  /* 點擊區域至少 28px 高;用底線而不是 border-bottom,底線才不會跟著撐高的框掉到下面 */
+  display: inline-flex; align-items: center; min-height: 28px;
+}
+.contact a:hover, .contact a:focus-visible { color: var(--gold); }
+
+.badge {
+  border: 1px solid var(--gold);
+  border-radius: var(--radius-pill);
+  padding: 3px 10px;
+  color: var(--gold);
+  background: var(--card-tint);
+  font-size: var(--fs-2xs);
+  white-space: nowrap;
+}
+
+/*
+ * Pinned to the viewport's own bottom-left corner rather than sitting in
+ * the footer's normal document flow — on a short page (nothing generated
+ * yet) the footer sits right under the empty message area, nowhere near
+ * the bottom of the screen. Fixed positioning keeps it anchored exactly
+ * where it reads as "an ambient counter", regardless of how tall the
+ * rest of the page is.
+ *
+ * That same viewport-relative pinning used to make it unreadable on a tall
+ * test: a page just over one viewport tall (a longer score on a tablet, say)
+ * puts `.message`'s own in-flow text at almost this exact corner at rest —
+ * two transparent, backgroundless texts landed on the same pixels and both
+ * became illegible. A solid pill (same treatment as `.badge` above) fixes
+ * that the way any floating chip/FAB elsewhere on the web does: it always
+ * reads cleanly on its own, at the cost of covering a small, fixed-size
+ * corner of whatever's behind it — a normal, bounded trade a formless
+ * transparent overlap never had.
+ */
+.history-badge {
+  position: fixed;
+  left: 8px;
+  bottom: 6px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  padding: 3px 10px;
+  background: var(--bg);
+  color: var(--muted);
+  font-size: var(--fs-2xs);
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 1;
+}
+/* 頁面需要捲動時改放回頁面最底端(app.js 的 dockHistoryBadge),不再浮在樂譜上 */
+.history-badge.docked {
+  position: static;
+  display: inline-block;
+  margin-top: 12px;
+}
+/* body 的底部留白(40px)要比這個徽章高(bottom 6px + 約 22px),
+   捲到底時頁尾最後一列(窄手機上「推估值」徽章會換到左邊)才不會被它蓋住 */
+
+/*
+ * The full-label controls need about 604px to lay out on one line; below
+ * that (but above the phone breakpoint) they used to silently overflow
+ * their panel with no icon-only fallback to catch them — a gap discovered
+ * by resizing the window through it, not by any of the fixed device widths
+ * this app is normally checked against. The shared 900px step leaves a
+ * generous margin over that measured 604px limit.
+ */
+/* 收成圖示的那一階移到共用斷點的 600px。上面量到「完整文字的控制列需要約 604px」,
+   600px 直接收合會差那 4px,所以 600~900px 這一段改讓按鈕的字級與內距跟著寬度連續縮放
+   (見下方 .btn 的 clamp),把整列壓進 600px 以內——用 clamp 取代「再多開一個 680px 斷點」,
+   平板也就不必為了遷就斷點而失去按鈕文字 */
+@media (max-width: 600px) {
+  .topbar { padding: 10px 8px; }
+  .controls { gap: 6px; }
+  /* Every button becomes its icon so the row still fits on one line.
+     .btn.icon-only's own width (higher specificity, set above) would
+     otherwise keep winning over this at 38px and break the circle. */
+  .btn { width: 36px; height: 36px; padding: 0; }
+  .btn.icon-only { width: 36px; }
+  .btn .btn-label, .home-link .btn-label { display: none; }
+  .grade-select { font-size: var(--fs-xs); padding: 6px 4px; }
+}
+
+@media (max-width: 600px) {
+  body { --body-px: 12px; padding: 0 var(--body-px) 40px; }
+  /*
+   * Measured directly against a ScrollScore screenshot taken at the same
+   * device scale (iPhone, 3x): SightDrill's title cap-height came out to
+   * 45 physical px at the old 19px size against ScrollScore's 36px — a
+   * ~0.8x ratio applied here gives 15px.
+   */
+  h1 { font-size: 15px; }
+
+  .meta { margin: 12px 2px 6px; gap: 2px 0; }
+  /* Smaller fixed columns leave more of the strip for the tempo field,
+     which is the one part allowed to ellipsize on a narrow phone. */
+  .meta span { font-size: var(--fs-sm); }
+  .meta-sep { padding: 0 6px; }
+  .meta-key { width: 58px; }
+  .meta-time { width: 36px; }
+  .meta-bars { width: 58px; }
+  /*
+   * This block used to force tempo onto its own row unconditionally, because
+   * a long free-text tempo term ("Sadly and slowly") could get pushed onto
+   * a second row by the browser while a short one ("Waltz") shared row 1 —
+   * a content-dependent toggle that made the strip's height (and everything
+   * below it) jump between tests. The meta strip no longer prints the term
+   * at all, only the short, bounded metronome mark, so that toggle can no
+   * longer happen and the override was removed.
+   */
+
+  .score-frame { padding: 48px 8px 12px; }
+  .grade-controls { top: 10px; left: 8px; }
+  .countdown { top: 10px; right: 8px; font-size: 32px; }
+  .message { font-size: var(--fs-xs); }
+}
+
+@media (min-width: 600px) and (max-width: 900px) {
+  body { --body-px: 20px; padding: 0 var(--body-px) 40px; }
+
+  /*
+   * A tablet is normally read from further away than a phone held in the
+   * hand — held on a stand or propped up like real sheet music, closer to a
+   * desktop's viewing distance than a phone's — so reusing the phone-tuned
+   * base sizes here read small even though there isn't room yet for the
+   * combined row 900px and up gets. `.btn.icon-only`'s own width stays
+   * explicit rather than inherited from the plain `.btn` rule below it in
+   * the 900px block, so icon-only buttons stay square instead of 42px
+   * tall but still 38px wide in the part of this range narrow enough to
+   * also be in icon-only mode.
+   */
+  .btn { font-size: 16px; height: 42px; }
+  .btn.icon-only { width: 42px; }
+  .grade-select { font-size: 16px; padding: 8px 10px; }
+  .meta span { font-size: 18px; }
+  .meta-key { width: 86px; }
+  .meta-time { width: 54px; }
+  .meta-bars { width: 84px; }
+  .countdown { font-size: 52px; }
+  /* 52px 的倒數數字比 56px 的預留高度還高,會壓到白色譜紙的上緣 */
+  .score-frame { padding-top: 72px; }
+}
+
+/*
+ * Below this, the grade/key controls and countdown stay pinned to the
+ * score's own top corners (see `.meta` above and `.grade-controls`/
+ * `.countdown` below); qualifying for this block (see `TOP_ROW_QUERY` in app.js — kept
+ * in sync with this media query by hand, since CSS can't reference a JS
+ * constant) means pinning them there would just leave a stretch of
+ * near-empty space where `.score-frame`'s reserved top padding used to make
+ * room for them, whether that's because the screen is outright wide or
+ * because it's a phone rotated to landscape and short on the height a
+ * separate row for each would cost. `pinTopRowLayout` (app.js) is what
+ * actually moves the #grade/#countdown elements into `.meta-row` under
+ * either condition — this only styles them structurally once they're
+ * there; font sizes are left to the width-tiered rules elsewhere (the
+ * 600–900px block above already covers a landscape phone's width, so it
+ * doesn't need its own font sizing here).
+ */
+@media (min-width: 900px), (orientation: landscape) and (max-height: 420px) and (min-width: 600px) {
+  .meta-row {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    margin: 16px 4px 8px;
+  }
+
+  /* The row now owns the outer spacing `.meta` normally provides itself;
+     without this it would be offset a second time within the row. */
+  .meta-row #meta { margin: 0; flex: 1 1 auto; }
+
+  .meta-row .grade-controls { flex: none; position: static; }
+  .meta-row .countdown { position: static; }
+
+  /* The grade selector and countdown no longer live inside the frame, so
+     the extra top padding that used to reserve room for them at its
+     corners is dead space now — brought back down to the same rhythm as
+     the frame's own bottom padding. */
+  .score-frame { padding-top: 22px; }
+}
+
+/*
+ * Font sizes for the combined row, specific to true desktop/wide width —
+ * a landscape phone qualifies for the structural rules above too, but it's
+ * still a phone, and already gets its own sizing from the 600–900px block
+ * regardless of orientation (a landscape iPhone Pro is 852px wide, well
+ * inside that range) rather than needing a duplicate set here.
+ */
+@media (min-width: 900px) {
+  /* Comfortable to read at the distance a wide screen is usually held or
+     sat back from, rather than reusing phone-sized type just because nothing
+     forces a change at this width. */
+  .meta-row .meta span { font-size: var(--fs-lg); }
+
+  .meta-row .grade-select { font-size: var(--fs-md); padding: 8px 10px; }
+
+  .meta-row .countdown {
+    /* Sitting inline with the meta line's ~16px text, the phone-sized 44px
+       reads as oversized rather than a considered "biggest thing in the
+       row" — scaled down to stay the clear focal point without dominating
+       everything next to it. */
+    font-size: 36px;
+  }
+}
+
+/* Preparation checklist, shown only while the 30 seconds are running. */
+.checklist {
+  margin: 10px 4px 0;
+  padding-left: 1.4em;
+  color: var(--muted-bright);
+  font-size: var(--fs-sm);
+  columns: 2;
+  column-gap: 28px;
+}
+
+.checklist li { margin-bottom: 2px; break-inside: avoid; }
+
+@media (max-width: 600px) {
+  .checklist { columns: 1; }
+}
+
+/* ══ 共用斷點:觸控裝置的點擊目標 ══════════════════════════════════
+   與 ScrollScore / LoudNorm / HarmonyMap 同一組。放在檔案最後,
+   才不會被上面各寬度階的 .btn 尺寸蓋掉。 */
+@media (pointer: coarse) {
+  .btn { height: 44px; min-width: 44px; }
+  .btn.icon-only { width: 44px; }
+  #lang-toggle { font-size: var(--fs-sm); }
+}
+/* 手機橫向:高度吃緊,44px 會再吃掉寶貴的高度,取 36px 折衷 */
+@media (pointer: coarse) and (max-height: 420px) {
+  .btn { height: 36px; }
+  .btn.icon-only { width: 36px; }
+}
+/* 觸控目標寬度連續縮放:320px 只放得下 38px(仍遠高於 WCAG 2.2 AA 2.5.8 要求的 24px),
+   400px 以上就回到 Apple HIG 建議的 44px。只放寬有文字標籤按鈕的最小寬度——
+   .btn.icon-only 固定維持 44px 寬,跟 ScrollScore/LoudNorm/HarmonyMap 的圖示按鈕
+   一樣不隨窄螢幕縮小,才能維持正圓形(否則高度不縮但寬度縮,會變成橢圓) */
+@media (pointer: coarse) and (max-width: 420px) {
+  .btn:not(.icon-only) { min-width: clamp(38px, 10.5vw, 44px); }
+}
+
+/* ══ 600~900px:保留按鈕文字,改用連續縮放把整列壓進寬度 ══════════════
+   完整文字的控制列在原本的字級下需要約 604px。與其為它多開一個斷點,
+   不如讓字級與左右內距跟著視窗寬度連續縮放:600px 時收到最小、900px 以上回到原尺寸。
+   這樣平板不會因為遷就共用斷點而被迫變成圖示按鈕。 */
+@media (min-width: 600px) and (max-width: 900px) {
+  .btn { font-size: clamp(12px, 1.55vw, 16px); padding: 0 clamp(8px, 1.3vw, 14px); }
+  .grade-select { font-size: clamp(12px, 1.55vw, 16px); padding: 8px clamp(6px, 1vw, 10px); }
+}
+
+/* ══ 360px 以下(SE 320、折疊機 280):六顆按鈕 + 品牌名要擠進一列 ══════════
+   44px 的觸控按鈕六顆就佔掉 260px 以上,375/390 的手機品牌名就被截掉一截、折疊機上只剩「Si…」。
+   按鈕跟著寬度縮(最小 28px,所有工具共用的點擊下限),間距、字距一起收。
+   用 .topbar .btn 提高權重,蓋過 (pointer: coarse) 的 44px。 */
+@media (max-width: 420px) {
+  .controls { gap: 5px; }
+  .topbar .btn, .topbar .btn.icon-only { height: 36px; min-width: 36px; }
+  .topbar .btn.icon-only { width: 36px; }
+}
+@media (max-width: 360px) {
+  .topbar { gap: 8px; }
+  .controls { gap: 4px; }
+  h1 { font-size: clamp(12px, 4.3vw, 15px); letter-spacing: .02em; }
+  .topbar .btn, .topbar .btn.icon-only { height: 32px; min-width: 32px; }
+  .topbar .btn.icon-only { width: 32px; }
+}
+@media (max-width: 330px) {
+  .topbar { padding-left: 10px; padding-right: 10px; }
+  .controls { gap: 3px; }
+  .topbar .btn, .topbar .btn.icon-only { height: 30px; min-width: 30px; }
+  .topbar .btn.icon-only { width: 30px; }
+}
+@media (max-width: 300px) {
+  .topbar { padding-left: 8px; padding-right: 8px; gap: 6px; }
+  h1 { font-size: 12px; letter-spacing: 0; }
+  .topbar .btn, .topbar .btn.icon-only { height: 28px; min-width: 28px; }
+  .topbar .btn.icon-only { width: 28px; }
+}
+
+/* ══ 寬螢幕:級數/調性、資訊列、倒數、訊息、頁尾跟樂譜對齊同一組左右邊界 ══════════
+   樂譜和頂欄本來就撐滿整個畫面寬,但中間的資訊列和下面的頁尾還停在 64rem 的置中欄裡,
+   1080p 上級數選單從 x=468 開始、樂譜卻從 x=45 開始,看起來沒對齊。
+   改成同樣的滿版 + 內距,整頁只剩一條左邊界、一條右邊界。 */
+@media (min-width: 900px) {
+  .meta-row, .message, .checklist, footer {
+    margin-left: calc(50% - 50vw);
+    margin-right: calc(50% - 50vw);
+    padding-left: var(--body-px);
+    padding-right: var(--body-px);
+  }
+  .meta-row { padding-left: calc(var(--body-px) + 4px); padding-right: calc(var(--body-px) + 4px); }
+  .checklist { padding-left: calc(var(--body-px) + 1.4em); }
+  .history-badge.docked { margin-left: calc(50% - 50vw + var(--body-px)); }
+}
+
+/* ══ 手機橫放(高 ≤420px):資訊列用手機的字級和欄寬 ══════════
+   橫放的手機有 600~900px 寬,會吃到平板那一段放大的字級和欄寬;可是級數/調性和倒數
+   也擠在同一列,資訊列只剩約 350px,最後的速度被擠到第二行,行尾留下一個孤零零的「丨」。
+   它終究是手機,看的距離也是手機的距離,用回手機的尺寸。 */
+@media (orientation: landscape) and (max-height: 420px) and (min-width: 600px) {
+  .meta span { font-size: var(--fs-sm); }
+  .meta-sep { padding: 0 6px; }
+  .meta-key { width: 58px; }
+  .meta-time { width: 36px; }
+  .meta-bars { width: 58px; }
+  .meta-row { gap: 14px; }
+  .meta-row .countdown { font-size: 32px; }
+}
+/* 折疊機 280:四個值放得進一列,不讓速度掉到第二行 */
+@media (max-width: 360px) {
+  .meta-sep { padding: 0 4px; }
+  .meta-key { width: 54px; }
+  .meta-bars { width: 54px; }
+}
+
+/* 開始彈奏(跟著播放軸):備考時間結束後出現在提示文字下方 */
+.along { margin: 12px 4px 0; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
+.along[hidden] { display: none; }
+.along .btn { min-height: 44px; padding-inline: 18px; }
+@media (max-width: 600px) { .along .btn { width: 100%; justify-content: center; } }
+
+.along-opt { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; color: var(--muted-bright); font-size: var(--fs-sm); cursor: pointer; }
+.along-opt input { width: 20px; height: 20px; accent-color: var(--gold); }
+.along-note { flex-basis: 100%; margin: 0; color: var(--muted); font-size: var(--fs-xs); line-height: 1.4; }
+.along-result { flex-basis: 100%; border: 1px solid var(--border, rgba(255,255,255,.14)); border-radius: var(--radius-sm); padding: 12px 14px; line-height: 1.4; }
+.along-result[hidden] { display: none; }
+.along-result .big { font-size: 34px; font-weight: 700; color: var(--gold-bright); line-height: 1.2; }
+.along-result .big small { font-size: var(--fs-sm); font-weight: 400; color: var(--muted-bright); margin-left: 4px; }
+.along-result p { margin: 4px 0 0; color: var(--muted-bright); font-size: var(--fs-sm); }
+.along-result .disclaimer { color: var(--muted); font-size: var(--fs-xs); }

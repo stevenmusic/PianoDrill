@@ -1,0 +1,29 @@
+{
+  "name": "sightdrill",
+  "version": "0.1.0",
+  "description": "Rule-based ABRSM sight-reading test generator (MusicXML out, OSMD in the browser)",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "test": "node --test \"test/*.test.js\"",
+    "serve": "node scripts/serve.js",
+    "sample": "node scripts/sample.js",
+    "audit": "node scripts/audit.js",
+    "devices": "node scripts/devices.js",
+    "smoke": "node scripts/smoke.js",
+    "loudness": "node scripts/loudness.js",
+    "staff": "node scripts/staff-metrics.js",
+    "engraving": "node scripts/engraving-check.js",
+    "highlight": "node scripts/highlight-check.js",
+    "layout": "node scripts/layout.js",
+    "human": "node scripts/human.js",
+    "stamp": "node tools/stamp.mjs",
+    "stamp:check": "node tools/stamp.mjs --check"
+  },
+  "dependencies": {
+    "opensheetmusicdisplay": "^2.1.0"
+  },
+  "devDependencies": {
+    "playwright": "^1.62.0"
+  }
+}

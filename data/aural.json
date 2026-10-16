@@ -1,0 +1,185 @@
+{
+  "note": "聽力測驗要求:依官方大綱逐項整理(文字為摘要,不是原文)。drills = App 能產生並批改的練習;沒有 drills 的項目(看譜唱、描述風格等)只列出要求。",
+  "systems": {
+    "abrsm": {
+      "name": "ABRSM",
+      "syllabus": "Piano Practical Grades Qualification Specification 2025 & 2026",
+      "syllabusNote": "2027 & 2028 版聽力測驗文字逐字比對過,完全相同",
+      "grades": [
+        { "grade": 0, "source": "p.46", "tests": [
+          { "id": "A", "zh": "跟著考官彈的曲子拍出拍子(盡快加入、保持穩定)", "en": "Clap the pulse of a piece, joining in as soon as possible",
+            "drills": [{ "type": "pulse", "p": { "meters": ["2", "3", "4"] } }] },
+          { "id": "B", "zh": "拍出兩個節奏回聲:兩小節、三或四拍子、只有旋律;先數兩小節,聽完馬上接著拍", "en": "Clap back two 2-bar rhythm echoes (3 or 4 time) in time, after a 2-bar count-in",
+            "drills": [{ "type": "rhythm", "p": { "bars": 2, "meters": ["3", "4"], "countIn": true } }] },
+          { "id": "C", "zh": "唱出兩個回聲:一小節、4/4、大調、主音到中音;先聽主和弦與主音,數兩小節", "en": "Sing back two 1-bar echoes (4/4, major, tonic–mediant) after key-chord, tonic and count-in",
+            "drills": [{ "type": "echo", "p": { "bars": 1, "meters": ["4"], "range": [0, 2], "minor": false, "onlyC": false } }] },
+          { "id": "D", "zh": "回答曲子的一個特徵:力度(大聲/小聲)或奏法(圓滑/斷開)", "en": "Answer about one feature: dynamics (loud/quiet) or articulation (smooth/detached)",
+            "drills": [{ "type": "dyn", "p": { "set": "lq" } }, { "type": "artic", "p": {} }] }
+        ] },
+        { "grade": 1, "source": "p.46", "tests": [
+          { "id": "A", "zh": "拍出拍子(強拍拍大聲),並回答是二拍子還是三拍子", "en": "Clap the pulse (stressing strong beats) and say if it is in two or three time",
+            "drills": [{ "type": "pulse", "p": { "meters": ["2", "3"] } }, { "type": "meter", "p": { "choices": ["2", "3"] } }] },
+          { "id": "B", "zh": "唱出三個回聲:兩小節、大調、主音到中音", "en": "Sing back three 2-bar echoes (major, tonic–mediant)",
+            "drills": [{ "type": "echo", "p": { "bars": 2, "meters": ["2", "3", "4"], "range": [0, 2], "minor": false } }] },
+          { "id": "C", "zh": "兩小節樂句(大調)彈兩次,第二次改了一個音:改變在開頭附近還是結尾附近", "en": "A 2-bar major phrase is played twice with one note changed: near the beginning or near the end?",
+            "drills": [{ "type": "change", "p": { "bars": 2, "kind": "pitch", "ask": "half", "minor": false, "intro": true } }] },
+          { "id": "D", "zh": "回答兩個特徵:力度(大聲/小聲、突然/漸漸改變)與奏法(圓滑/斷開)", "en": "Two features: dynamics (loud/quiet, sudden/gradual changes) and articulation",
+            "drills": [{ "type": "dyn", "p": { "set": "abrsm" } }, { "type": "artic", "p": {} }] }
+        ] },
+        { "grade": 2, "source": "p.47", "tests": [
+          { "id": "A", "zh": "拍出拍子,並回答是二拍子還是三拍子", "en": "Clap the pulse and say if it is in two or three time",
+            "drills": [{ "type": "pulse", "p": { "meters": ["2", "3"] } }, { "type": "meter", "p": { "choices": ["2", "3"] } }] },
+          { "id": "B", "zh": "唱出三個回聲:兩小節、大調、主音到屬音", "en": "Sing back three 2-bar echoes (major, tonic–dominant)",
+            "drills": [{ "type": "echo", "p": { "bars": 2, "meters": ["2", "3", "4"], "range": [0, 4], "minor": false } }] },
+          { "id": "C", "zh": "兩小節樂句(大調)彈兩次,第二次有改變:是音高還是節奏改了", "en": "A 2-bar major phrase played twice: was the change in pitch or rhythm?",
+            "drills": [{ "type": "change", "p": { "bars": 2, "kind": "either", "ask": "type", "minor": false, "intro": true } }] },
+          { "id": "D", "zh": "回答兩個特徵:力度或奏法,以及速度(變慢/變快/不變)", "en": "Two features: dynamics or articulation, then tempo (slower/faster/same)",
+            "drills": [{ "type": "dyn", "p": { "set": "abrsm" } }, { "type": "artic", "p": {} }, { "type": "tempo", "p": {} }] }
+        ] },
+        { "grade": 3, "source": "p.47", "tests": [
+          { "id": "A", "zh": "拍出拍子,並回答是二、三還是四拍子", "en": "Clap the pulse and say if it is in two, three or four time",
+            "drills": [{ "type": "pulse", "p": { "meters": ["2", "3", "4"] } }, { "type": "meter", "p": { "choices": ["2", "3", "4"] } }] },
+          { "id": "B", "zh": "唱出三個回聲:兩小節、大調或小調、一個八度以內", "en": "Sing back three 2-bar echoes (major or minor, within an octave)",
+            "drills": [{ "type": "echo", "p": { "bars": 2, "meters": ["2", "3", "4"], "range": "oct", "minor": true } }] },
+          { "id": "C", "zh": "最多四小節的樂句(大調或小調)彈兩次:音高還是節奏改了", "en": "A phrase of up to 4 bars (major or minor) played twice: pitch or rhythm change?",
+            "drills": [{ "type": "change", "p": { "bars": 4, "kind": "either", "ask": "type", "minor": true, "intro": true } }] },
+          { "id": "D", "zh": "回答兩個特徵:力度、奏法或速度,以及調性(大調/小調)", "en": "Two features: dynamics, articulation or tempo, then tonality (major/minor)",
+            "drills": [{ "type": "dyn", "p": { "set": "abrsm" } }, { "type": "artic", "p": {} }, { "type": "tempo", "p": {} }, { "type": "tonality", "p": {} }] }
+        ] },
+        { "grade": 4, "source": "p.48", "tests": [
+          { "id": "A", "zh": "旋律彈兩次,唱出或彈出來(一個八度以內,大調或小調,最多三個升降記號)", "en": "Sing or play back a melody heard twice (octave range, major/minor, up to 3 sharps/flats)",
+            "drills": [{ "type": "echo", "p": { "bars": 4, "meters": ["2", "3", "4"], "range": "oct", "minor": true, "twice": true } }] },
+          { "id": "B", "zh": "看譜唱五個音(C、F、G 大調,主音上下三度以內)", "en": "Sight-sing five notes (C, F or G major, within a third of the tonic)", "drills": [] },
+          { "id": "C", "zh": "(i) 回答兩個特徵:力度、奏法、速度或調性,以及性格;(ii) 拍出片段的節奏,並回答二、三或四拍子", "en": "(i) Two features — dynamics, articulation, tempo or tonality, then character; (ii) clap the rhythm of an extract and name two, three or four time",
+            "drills": [{ "type": "dyn", "p": { "set": "abrsm" } }, { "type": "artic", "p": {} }, { "type": "tempo", "p": {} }, { "type": "tonality", "p": {} },
+              { "type": "rhythm", "p": { "bars": 2, "meters": ["2", "3", "4"], "twice": true } }, { "type": "meter", "p": { "choices": ["2", "3", "4"] } }] }
+        ] },
+        { "grade": 5, "source": "p.49", "tests": [
+          { "id": "A", "zh": "旋律彈兩次,唱出或彈出來(一個八度以內,大調或小調,最多三個升降記號)", "en": "Sing or play back a melody heard twice (octave range, major/minor, up to 3 sharps/flats)",
+            "drills": [{ "type": "echo", "p": { "bars": 4, "meters": ["2", "3", "4"], "range": "oct", "minor": true, "twice": true } }] },
+          { "id": "B", "zh": "看譜唱六個音(最多兩個升降記號的大調)", "en": "Sight-sing six notes (major key, up to 2 sharps/flats)", "drills": [] },
+          { "id": "C", "zh": "(i) 回答兩個特徵:力度、奏法、速度、調性或性格,以及風格與時期;(ii) 拍出片段的節奏,並回答二、三或四拍子", "en": "(i) Two features, then style and period; (ii) clap the rhythm of an extract and name two, three or four time",
+            "drills": [{ "type": "dyn", "p": { "set": "abrsm" } }, { "type": "artic", "p": {} }, { "type": "tempo", "p": {} }, { "type": "tonality", "p": {} },
+              { "type": "rhythm", "p": { "bars": 2, "meters": ["2", "3", "4"], "twice": true } }, { "type": "meter", "p": { "choices": ["2", "3", "4"] } }] }
+        ] },
+        { "grade": 6, "source": "p.50", "tests": [
+          { "id": "A", "zh": "兩聲部樂句彈兩次,唱出或彈出上聲部(一個八度以內)", "en": "Sing or play back the upper part of a two-part phrase heard twice",
+            "drills": [{ "type": "echo", "p": { "bars": 2, "meters": ["2", "3", "4"], "range": "oct", "minor": true, "twice": true, "part": "upper" } }] },
+          { "id": "B", "zh": "看譜唱一段旋律,考官彈伴奏", "en": "Sing a melody from score with an accompaniment", "drills": [] },
+          { "id": "C", "zh": "樂句結尾的終止式:完全或不完全(原位和弦,彈兩次)", "en": "Identify the cadence as perfect or imperfect (root-position chords, played twice)",
+            "drills": [{ "type": "cadence", "p": { "set": ["perfect", "imperfect"], "twice": true } }] },
+          { "id": "D", "zh": "(i) 回答兩個特徵:織體或曲式,以及另一項;(ii) 拍出片段的節奏,並回答二、三或四拍子", "en": "(i) Two features — texture or structure, then another; (ii) clap an extract's rhythm and name two, three or four time",
+            "drills": [{ "type": "rhythm", "p": { "bars": 2, "meters": ["2", "3", "4"], "twice": true } }, { "type": "meter", "p": { "choices": ["2", "3", "4"] } }] }
+        ] },
+        { "grade": 7, "source": "p.51", "tests": [
+          { "id": "A", "zh": "兩聲部樂句彈兩次,唱出或彈出下聲部(一個八度以內)", "en": "Sing or play back the lower part of a two-part phrase heard twice",
+            "drills": [{ "type": "echo", "p": { "bars": 2, "meters": ["2", "3", "4"], "range": "oct", "minor": true, "twice": true, "part": "lower" } }] },
+          { "id": "B", "zh": "看譜唱兩聲部的上聲部,考官彈下聲部", "en": "Sing the upper part of a two-part phrase from score", "drills": [] },
+          { "id": "C", "zh": "(i) 終止式:完全、不完全或阻礙;(ii) 這個終止式的兩個和弦(I、IV、V、V7、vi,原位);(iii) 從大調轉到屬調、下屬調或關係小調", "en": "(i) Cadence: perfect, imperfect or interrupted; (ii) its two chords (I, IV, V, V7, vi); (iii) modulation from a major key to dominant, subdominant or relative minor",
+            "drills": [{ "type": "cadence", "p": { "set": ["perfect", "imperfect", "interrupted"], "twice": true } }, { "type": "chords", "p": { "n": 2 } },
+              { "type": "modulation", "p": { "starts": ["major"], "targets": ["dominant", "subdominant", "relative"] } }] },
+          { "id": "D", "zh": "(i) 回答兩個特徵(力度、奏法、速度、調性、性格、風格與時期、織體、曲式);(ii) 拍出片段的節奏,並回答二、三、四或 6/8 拍", "en": "(i) Two features; (ii) clap an extract's rhythm and name two, three, four or 6/8 time",
+            "drills": [{ "type": "dyn", "p": { "set": "abrsm" } }, { "type": "artic", "p": {} }, { "type": "tempo", "p": {} }, { "type": "tonality", "p": {} },
+              { "type": "rhythm", "p": { "bars": 2, "meters": ["2", "3", "4", "6"], "twice": true } }, { "type": "meter", "p": { "choices": ["2", "3", "4", "6"] } }] }
+        ] },
+        { "grade": 8, "source": "p.52", "tests": [
+          { "id": "A", "zh": "(i) 三聲部樂句彈兩次,唱出或彈出最低聲部;(ii) 終止式:完全、不完全、阻礙或變格;(iii) 終止進行的三個和弦(含轉位)", "en": "(i) Sing/play back the lowest part of a three-part phrase; (ii) cadence: perfect, imperfect, interrupted or plagal; (iii) its three chords with positions",
+            "drills": [{ "type": "echo", "p": { "bars": 2, "meters": ["2", "3", "4"], "range": "oct", "minor": true, "twice": true, "part": "lowest3" } },
+              { "type": "cadence", "p": { "set": ["perfect", "imperfect", "interrupted", "plagal"], "twice": true } }, { "type": "chords", "p": { "n": 3 } }] },
+          { "id": "B", "zh": "看譜唱兩聲部的下聲部,考官彈上聲部", "en": "Sing the lower part of a two-part phrase from score", "drills": [] },
+          { "id": "C", "zh": "兩段轉調(一段從大調、一段從小調開始):屬調、下屬調或關係大/小調", "en": "Two modulations (from a major and from a minor key): dominant, subdominant or relative",
+            "drills": [{ "type": "modulation", "p": { "starts": ["major", "minor"], "targets": ["dominant", "subdominant", "relative"] } }] },
+          { "id": "D", "zh": "描述曲子的特徵(織體、曲式、性格、風格與時期等)", "en": "Describe the characteristic features of a piece", "drills": [] }
+        ] }
+      ]
+    },
+    "trinity": {
+      "name": "Trinity",
+      "syllabus": "Piano Syllabus — Qualification specifications for graded exams from 2023 (Supporting tests: Aural)",
+      "syllabusNote": "所有問題都根據考官在鋼琴上彈的一段音樂;不用唱",
+      "grades": [
+        { "grade": 0, "source": "p.99", "params": "旋律、4 小節、大調、2 拍", "paramsEn": "Melody only · 4 bars · major · 2 time", "tests": [
+          { "id": "1", "zh": "聽三次,第三次拍出拍子(強拍加重)", "en": "Clap the pulse on the third playing, stressing the strong beat",
+            "drills": [{ "type": "pulse", "p": { "meters": ["2"] } }] },
+          { "id": "2", "zh": "聽一次:力度是 forte 還是 piano", "en": "Dynamic: forte or piano?", "drills": [{ "type": "dyn", "p": { "set": "fp" } }] },
+          { "id": "3", "zh": "聽一次:奏法是圓滑還是斷奏", "en": "Articulation: legato or staccato?", "drills": [{ "type": "artic", "p": { "names": "it" } }] },
+          { "id": "4", "zh": "聽前三個音:哪一個最高 / 最低", "en": "First three notes: which is highest / lowest?", "drills": [{ "type": "highlow", "p": {} }] }
+        ] },
+        { "grade": 1, "source": "p.102", "params": "旋律、4 小節、大調、2 或 3 拍", "paramsEn": "Melody only · 4 bars · major · 2 or 3 time", "tests": [
+          { "id": "1", "zh": "聽三次,第三次拍出拍子(強拍加重)", "en": "Clap the pulse on the third playing, stressing the strong beat",
+            "drills": [{ "type": "pulse", "p": { "meters": ["2", "3"] } }] },
+          { "id": "2", "zh": "聽一次:(i) forte 還是 piano;(ii) 圓滑還是斷奏", "en": "(i) Forte or piano; (ii) legato or staccato",
+            "drills": [{ "type": "dyn", "p": { "set": "fp" } }, { "type": "artic", "p": { "names": "it" } }] },
+          { "id": "3", "zh": "聽前兩小節:最後一個音比第一個音高還是低", "en": "First two bars: is the last note higher or lower than the first?",
+            "drills": [{ "type": "lastfirst", "p": { "bars": 2, "meters": ["2", "3"], "minor": false } }] },
+          { "id": "4", "zh": "聽兩次,第二次改了節奏或音高:改在哪裡", "en": "Played twice with a rhythm or pitch change: where is it?",
+            "drills": [{ "type": "change", "p": { "bars": 4, "meters": ["2", "3"], "kind": "either", "ask": "bar", "minor": false } }] }
+        ] },
+        { "grade": 2, "source": "p.105", "params": "旋律、4 小節、大調或小調、2 或 3 拍", "paramsEn": "Melody only · 4 bars · major or minor · 2 or 3 time", "tests": [
+          { "id": "1", "zh": "聽三次,第三次拍出拍子(強拍加重)", "en": "Clap the pulse on the third playing, stressing the strong beat",
+            "drills": [{ "type": "pulse", "p": { "meters": ["2", "3"] } }] },
+          { "id": "2", "zh": "聽一次:(i) 描述力度的變化;(ii) 圓滑還是斷奏", "en": "(i) Describe the changing dynamics; (ii) legato or staccato",
+            "drills": [{ "type": "dyn", "p": { "set": "vary" } }, { "type": "artic", "p": { "names": "it" } }] },
+          { "id": "3", "zh": "聽一次:最後一個音比第一個音高還是低", "en": "Is the last note higher or lower than the first?",
+            "drills": [{ "type": "lastfirst", "p": { "bars": 4, "meters": ["2", "3"], "minor": true } }] },
+          { "id": "4", "zh": "聽兩次,第二次有改變:(i) 改在哪裡;(ii) 是節奏還是音高", "en": "Played twice with a change: (i) where; (ii) rhythm or pitch?",
+            "drills": [{ "type": "change", "p": { "bars": 4, "meters": ["2", "3"], "kind": "either", "ask": "bar+type", "minor": true } }] }
+        ] },
+        { "grade": 3, "source": "p.108", "params": "旋律、4 小節、大調或小調、3 或 4 拍", "paramsEn": "Melody only · 4 bars · major or minor · 3 or 4 time", "tests": [
+          { "id": "1", "zh": "聽兩次,第二次拍出拍子(強拍加重)", "en": "Clap the pulse on the second playing, stressing the strong beat",
+            "drills": [{ "type": "pulse", "p": { "meters": ["3", "4"] } }] },
+          { "id": "2", "zh": "聽一次:大調還是小調", "en": "Tonality: major or minor?", "drills": [{ "type": "tonality", "p": { "acc": false } }] },
+          { "id": "3", "zh": "聽前兩個音:音程是幾度(只說度數:二到六度)", "en": "First two notes: interval by number only (2nd–6th)",
+            "drills": [{ "type": "interval", "p": { "number": true, "set": ["m2", "M2", "m3", "M3", "P4", "P5", "m6", "M6"] } }] },
+          { "id": "4", "zh": "看樂譜、聽兩次(一次照譜、一次有改變):(i) 第幾小節;(ii) 節奏還是音高", "en": "With the score, heard as written then changed: (i) which bar; (ii) rhythm or pitch?",
+            "drills": [{ "type": "change", "p": { "bars": 4, "meters": ["3", "4"], "kind": "either", "ask": "bar+type", "minor": true } }] }
+        ] },
+        { "grade": 4, "source": "p.111", "params": "有和聲、4 小節、大調或小調、4 或 6 拍", "paramsEn": "Harmonised · 4 bars · major or minor · 4 or 6 time", "tests": [
+          { "id": "1", "zh": "聽兩次,第二次拍出拍子(強拍加重)", "en": "Clap the pulse on the second playing, stressing the strong beat",
+            "drills": [{ "type": "pulse", "p": { "meters": ["4", "6"], "acc": true } }] },
+          { "id": "2", "zh": "聽兩次:(i) 大調還是小調;(ii) 結尾終止式是完全還是不完全", "en": "(i) Major or minor; (ii) final cadence perfect or imperfect?",
+            "drills": [{ "type": "tonality", "p": { "acc": true } }, { "type": "cadence", "p": { "set": ["perfect", "imperfect"] } }] },
+          { "id": "3", "zh": "聽前兩個音:大小二度、大小三度、完全四/五度、大小六度", "en": "First two notes: m/M 2nd, m/M 3rd, P4, P5, m/M 6th",
+            "drills": [{ "type": "interval", "p": { "set": ["m2", "M2", "m3", "M3", "P4", "P5", "m6", "M6"] } }] },
+          { "id": "4", "zh": "看樂譜、聽兩次(一次照譜、一次改了節奏和音高):(i) 節奏改在第幾小節;(ii) 音高改在第幾小節", "en": "With the score, heard as written then with a rhythm and a pitch change: which bar for each?",
+            "drills": [{ "type": "change", "p": { "bars": 4, "meters": ["4", "6"], "kind": "both", "ask": "bars", "minor": true, "acc": true } }] }
+        ] },
+        { "grade": 5, "source": "p.114", "params": "有和聲、8 小節、大調或小調、2/3/4/6 拍", "paramsEn": "Harmonised · 8 bars · major or minor · 2, 3, 4 or 6 time", "tests": [
+          { "id": "1", "zh": "聽兩次:(i) 第二次拍出拍子;(ii) 拍號", "en": "(i) Clap the pulse on the second playing; (ii) time signature",
+            "drills": [{ "type": "pulse", "p": { "meters": ["2", "3", "4", "6"], "acc": true } }, { "type": "meter", "p": { "choices": ["2", "3", "4", "6"], "ts": true, "acc": true } }] },
+          { "id": "2", "zh": "聽兩次:(i) 調性怎麼改變;(ii) 終止式:完全、變格、不完全或阻礙", "en": "(i) The changing tonality; (ii) cadence: perfect, plagal, imperfect or interrupted",
+            "drills": [{ "type": "tonchange", "p": {} }, { "type": "cadence", "p": { "set": ["perfect", "plagal", "imperfect", "interrupted"] } }] },
+          { "id": "3", "zh": "旋律中連續兩個音的音程:大小二到七度、完全四/五度、八度", "en": "Two consecutive melody notes: m/M 2nd–7th, P4, P5 or octave",
+            "drills": [{ "type": "interval", "p": { "set": ["m2", "M2", "m3", "M3", "P4", "P5", "m6", "M6", "m7", "M7", "P8"] } }] },
+          { "id": "4", "zh": "看樂譜、聽兩次(旋律改了節奏和音高):各改在第幾小節", "en": "With the score: bar of the rhythm change and of the pitch change (melody line)",
+            "drills": [{ "type": "change", "p": { "bars": 8, "meters": ["2", "3", "4", "6"], "kind": "both", "ask": "bars", "minor": true, "acc": true } }] }
+        ] },
+        { "grade": 6, "source": "p.117", "params": "有和聲、8 小節、大調、2/3/4/6 拍", "paramsEn": "Harmonised · 8 bars · major · 2, 3, 4 or 6 time", "tests": [
+          { "id": "1", "zh": "聽兩次:(i) 拍號;(ii) 力度;(iii) 奏法", "en": "(i) Time signature; (ii) dynamics; (iii) articulation",
+            "drills": [{ "type": "meter", "p": { "choices": ["2", "3", "4", "6"], "ts": true, "acc": true } }, { "type": "dyn", "p": { "set": "vary" } }, { "type": "artic", "p": { "names": "it" } }] },
+          { "id": "2", "zh": "聽兩次:說出並評論曲子另外兩個特徵", "en": "Identify and comment on two other characteristics", "drills": [] },
+          { "id": "3", "zh": "聽前四小節:轉到下屬調、屬調還是關係小調", "en": "First four bars: modulation to subdominant, dominant or relative minor?",
+            "drills": [{ "type": "modulation", "p": { "starts": ["major"], "targets": ["subdominant", "dominant", "relative"] } }] },
+          { "id": "4", "zh": "看樂譜、聽兩次,旋律有兩處改變:找出位置並說是音高還是節奏", "en": "With the score, two changes in the melody: locate each, pitch or rhythm",
+            "drills": [{ "type": "change", "p": { "bars": 8, "meters": ["2", "3", "4", "6"], "kind": "either", "ask": "bar+type", "changes": 2, "minor": false, "acc": true } }] }
+        ] },
+        { "grade": 7, "source": "p.120", "params": "有和聲、8 小節、大調或小調、2/3/4/6 拍", "paramsEn": "Harmonised · 8 bars · major or minor · 2, 3, 4 or 6 time", "tests": [
+          { "id": "1", "zh": "聽兩次:(i) 拍號;(ii) 力度;(iii) 奏法", "en": "(i) Time signature; (ii) dynamics; (iii) articulation",
+            "drills": [{ "type": "meter", "p": { "choices": ["2", "3", "4", "6"], "ts": true, "acc": true } }, { "type": "dyn", "p": { "set": "vary" } }, { "type": "artic", "p": { "names": "it" } }] },
+          { "id": "2", "zh": "聽兩次:說出並評論曲子另外兩個特徵", "en": "Identify and comment on two other characteristics", "drills": [] },
+          { "id": "3", "zh": "聽前四小節:轉到下屬調、屬調還是關係調", "en": "First four bars: modulation to subdominant, dominant or relative key?",
+            "drills": [{ "type": "modulation", "p": { "starts": ["major", "minor"], "targets": ["subdominant", "dominant", "relative"] } }] },
+          { "id": "4", "zh": "看樂譜、聽兩次,有三處改變:找出位置並說是音高(只在旋律)還是節奏", "en": "With the score, three changes: locate each, pitch (melody only) or rhythm",
+            "drills": [{ "type": "change", "p": { "bars": 8, "meters": ["2", "3", "4", "6"], "kind": "either", "ask": "bar+type", "changes": 3, "minor": true, "acc": true } }] }
+        ] },
+        { "grade": 8, "source": "p.123", "params": "有和聲、12–16 小節、大調或小調、2/3/4/6/5 拍", "paramsEn": "Harmonised · 12–16 bars · major or minor · 2, 3, 4, 6 or 5 time", "tests": [
+          { "id": "1", "zh": "聽一次:(i) 拍號;(ii) 力度;(iii) 奏法", "en": "Heard once: (i) time signature; (ii) dynamics; (iii) articulation",
+            "drills": [{ "type": "meter", "p": { "choices": ["2", "3", "4", "6", "5"], "ts": true, "acc": true } }, { "type": "dyn", "p": { "set": "vary" } }, { "type": "artic", "p": { "names": "it" } }] },
+          { "id": "2", "zh": "聽兩次:說出並評論曲子另外三個特徵", "en": "Identify and comment on three other characteristics", "drills": [] },
+          { "id": "3", "zh": "看樂譜、聽兩次,有三處改變:找出位置並說是音高還是節奏", "en": "With the score, three changes: locate each, pitch or rhythm",
+            "drills": [{ "type": "change", "p": { "bars": 12, "meters": ["2", "3", "4", "6", "5"], "kind": "either", "ask": "bar+type", "changes": 3, "minor": true, "acc": true } }] }
+        ] }
+      ]
+    }
+  }
+}

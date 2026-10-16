@@ -650,7 +650,7 @@ export function relang() {
   if (mode === 'exam') renderUnsupported();
 }
 export function examStatus() {
-  if (!examSupported()) return t('examNotYet');
+  if (!examSupported()) return t('examNotYetShort');
   const { today, streak } = practiceStats();
   return today ? t('practiceStats', { today, streak }) : t('examReady');
 }
@@ -1020,7 +1020,9 @@ function availableScoreHeight() {
   const header = document.querySelector('header');
   const top = header ? header.getBoundingClientRect().height : 0;
   const bar = document.getElementById('tabbar');
-  const bottom = bar && getComputedStyle(bar).position === 'fixed' ? bar.getBoundingClientRect().top : (window.innerHeight || document.documentElement.clientHeight);
+  // 分頁列在下面才扣掉它;手機橫放時分頁列是左邊的直欄(top = 0),不佔下面的高度
+  const barBox = bar ? bar.getBoundingClientRect() : null;
+  const bottom = barBox && barBox.top > window.innerHeight / 2 ? barBox.top : (window.innerHeight || document.documentElement.clientHeight);
   const card = $('scoreCard').getBoundingClientRect(), score = elements.score.getBoundingClientRect();
   const chrome = score.top - card.top;   // 樂譜卡的標題列與內距
   return Math.max(120, bottom - top - chrome - SCORE_BOTTOM_GAP);

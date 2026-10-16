@@ -105,6 +105,7 @@ function showView(view){
   for (const [name, m] of Object.entries(MODS)) $("mod-" + name).hidden = name !== modName;
   curMod = modName;
   document.body.classList.toggle("view-sight", modName === "sight");
+  document.body.classList.toggle("view-exam", exam);
   renderSubnav();
   if (exam) renderExamCard();
   window.scrollTo({ top: 0 });

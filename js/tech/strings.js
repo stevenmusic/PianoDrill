@@ -5,7 +5,7 @@ addStrings("tech", {
   lblSet: ["準備哪一組(Trinity)", "Set (Trinity)"],
   setA: ["A 組", "Set A"], setB: ["B 組", "Set B"],
   lblQuality: ["大調 / 小調", "Major / minor"], qAll: ["全部", "All"], qMajor: ["大調", "Major"], qMinor: ["小調", "Minor"],
-  lblMinorForm: ["小調形式(考生自選時)", "Minor form (your choice)"],
+  lblMinorForm: ["小調形式(考生自選時)", "Minor form (choice)"],
   formHarmonic: ["和聲小調", "Harmonic minor"], formMelodic: ["旋律小調", "Melodic minor"], formNatural: ["自然小調(大綱允許時)", "Natural minor (where allowed)"],
   lblCats: ["抽考範圍", "Include"], excludeMastered: ["排除已通過的項目", "Skip passed items"],
   draw: ["隨機抽考", "Random"], next: ["下一項", "Next"], play: ["播放示範", "Play"], stop: ["停止", "Stop"],

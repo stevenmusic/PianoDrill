@@ -64,10 +64,13 @@ async function audit(page, vp, state){
   const cover = await page.evaluate(async () => {
     window.scrollTo(0, document.documentElement.scrollHeight); await new Promise(r => setTimeout(r, 120));
     const tb = document.getElementById("tabbar").getBoundingClientRect();
-    const items = [...document.querySelectorAll("main > *, main > .mod > *")].filter(e => !e.closest("[hidden]") && e.getBoundingClientRect().height > 0 && !e.classList.contains("mod"));
-    const last = items[items.length - 1].getBoundingClientRect();
+    const items = [...document.querySelectorAll("main .card, main > footer")].filter(e => !e.closest("[hidden]") && e.getBoundingClientRect().height > 0);
+    const lastBottom = Math.max(...items.map(e => e.getBoundingClientRect().bottom));
+    const left = Math.min(...items.map(e => e.getBoundingClientRect().left));
     window.scrollTo(0, 0);
-    return last.bottom > tb.top + 1 ? `最後的內容被底部分頁列蓋住(${Math.round(last.bottom)} > ${Math.round(tb.top)})` : null;
+    // 分頁列在下面:最後的內容要在它上面;手機橫放時分頁列是左邊的直欄:內容要在它右邊
+    if (tb.height > innerHeight / 2) return left < tb.right - 1 ? `內容被左邊的分頁列蓋住(${Math.round(left)} < ${Math.round(tb.right)})` : null;
+    return lastBottom > tb.top + 1 ? `最後的內容被底部分頁列蓋住(${Math.round(lastBottom)} > ${Math.round(tb.top)})` : null;
   });
   if (cover) report(vp, state, cover);
   // 飽滿(使用者要求):每種裝置的第一個畫面,題目卡要在畫面上半部(設定卡不能把題目擠到下面去)

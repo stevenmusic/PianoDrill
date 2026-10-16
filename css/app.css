@@ -338,7 +338,7 @@ main{padding-bottom:calc(84px + env(safe-area-inset-bottom))}
   font-family:inherit;font-size:var(--fs-xs);padding:6px 0;cursor:pointer;border-radius:var(--radius-sm);min-height:52px}
 .tabbar button[aria-selected="true"]{color:var(--gold)}
 .tabbar button[aria-selected="true"] span{font-weight:700}
-@media (min-width:901px){ .tabbar{left:50%;right:auto;transform:translateX(-50%);width:min(560px, 100%);border:1px solid var(--line);border-bottom:0;border-radius:var(--radius-lg) var(--radius-lg) 0 0} }
+/* 寬畫面(平板橫式、電腦)也跟直式一樣滿版貼底、四格平均分配整個寬度(使用者要求) */
 #examChip{max-width:44vw;overflow:hidden;text-overflow:ellipsis}
 
 /* 選擇器:每一列 = 標籤 + 一排按鈕(太多時橫向捲動,頁面不橫向捲) */
@@ -690,4 +690,48 @@ body.land-play #t-stage{flex:1;display:flex;flex-direction:column;justify-conten
   .mod-side .picker .opt{min-width:0;padding:0 6px}
   #mod-tech .picker .opts[data-k="key"],#mod-tech .picker .opts[data-k="no"]{--cw:50px}
   #mod-tech .picker .opts[data-k="octaves"]{--cw:72px}
+}
+
+/* ══ 手機橫放(高度 ≤ 500):使用者反映比例怪、底部四個分頁卡住內容 ══
+   - 四個分頁改成左邊的直欄(橫放時寬度多、高度少;左邊本來就是瀏海/動態島的區域),下面什麼都不蓋
+   - 頂欄一行:藏副標與考試標籤(底部「檢定」分頁就有)
+   - 題目卡的「點題提示」字縮小;檢定分頁「考試設定」與「抽考設定」排在同一列 */
+@media (orientation:landscape) and (max-height:500px){
+  body{padding-left:calc(68px + env(safe-area-inset-left))}
+  .tabbar{top:0;bottom:0;left:0 !important;right:auto;width:calc(68px + env(safe-area-inset-left)) !important;transform:none !important;
+    display:flex;flex-direction:column;justify-content:center;gap:6px;border:0;border-right:1px solid var(--line);border-radius:0 !important;box-shadow:none;
+    padding:max(6px, env(safe-area-inset-top)) 6px max(6px, env(safe-area-inset-bottom)) max(6px, env(safe-area-inset-left))}
+  .tabbar button{flex-direction:column !important;gap:2px !important;min-height:52px !important;padding:4px 0 !important;font-size:10px;justify-content:center}
+  .tabbar svg{width:20px !important;height:20px !important}
+  body.land-play .tabbar{transform:none !important}
+  main{padding-bottom:max(12px, env(safe-area-inset-bottom)) !important}
+  footer{padding-bottom:max(16px, env(safe-area-inset-bottom))}
+  header{flex-wrap:nowrap}
+  .tagline,#examChip{display:none !important}
+  .subnav{flex:1 1 auto;max-width:460px;margin-left:auto}
+  .q-title.empty,#mod-ear .q-title.empty{font-size:var(--fs-lg)}
+  /* 檢定:兩條收起來的設定列並排(頁尾排最後:格子裡沒寫 order 的會被排到前面) */
+  body.view-exam footer{order:99}
+  body.view-exam #examSetup .fields{grid-template-columns:1fr}
+  body.view-exam .mod .setup .fields{grid-template-columns:repeat(2, minmax(0, 1fr))}
+  body.view-exam .exam-parts{grid-template-columns:1fr}
+  body.view-exam .part{min-height:0;flex-direction:row;align-items:baseline;gap:8px}
+  body.view-exam .part small{min-height:0}
+  body.view-exam main{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;align-items:start}
+  body.view-exam main > .mod:not([hidden]){display:contents}
+  body.view-exam main > *{grid-column:1 / -1}
+  body.view-exam #examSetup{grid-column:1;grid-row:1}
+  body.view-exam #t-paneExam,body.view-exam #e-paneExam,body.view-exam #s-setup{grid-column:2;grid-row:1}
+  body.view-exam .mod-side > *,body.view-exam .mod-main > *{grid-column:1 / -1}
+  body.view-exam #t-paneExam,body.view-exam #e-paneExam,body.view-exam #s-setup{grid-column:2 !important}
+  /* 視奏題目卡:標題 | 標籤 | ▶ 一行,下面一行說明,再一行操作 */
+  #mod-sight .quiz{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:4px 12px}
+  #mod-sight .q-head,#mod-sight .q-row{display:contents}
+  #s-title{grid-column:1;grid-row:1;font-size:24px;height:auto}
+  #mod-sight .q-row .q-tags{grid-column:2;grid-row:1;min-height:0}
+  #s-play{grid-column:3;grid-row:1;width:44px;height:44px}
+  #s-message{grid-column:1 / -1;grid-row:2;font-size:var(--fs-sm);min-height:0}
+  #s-checklist{grid-column:1 / -1}
+  #mod-sight .q-foot{grid-column:1 / -1}
+  #mod-sight .q-tag{font-size:14px;padding:0 8px;line-height:26px}
 }

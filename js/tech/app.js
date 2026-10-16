@@ -449,11 +449,26 @@ function fitLandZoom(){
   if (!isPhoneLand()) { if (landZoom) { landZoom = null; return refit(); } return false; }
   const svg = $("osmd").querySelector("svg"); if (!svg || !osmd) return false;
   const H = svg.getBoundingClientRect().height; if (!H) return false;
-  const head = document.querySelector("header").offsetHeight, title = $("scoreCard").querySelector(".card-title").offsetHeight;
-  const avail = innerHeight - head - title - 44;           // 卡片與紙的上下內距、間隔
-  const z = Math.max(0.85, Math.min(1.8, osmd.zoom * avail / H));
+  // 第一個畫面(沒有捲動時)樂譜上緣以下還剩多少高度:雙手兩行譜都要看得到(以前照「樂譜卡貼頂欄」算,沒播放時下面那行被切掉)
+  // 播放中(樂譜卡貼在頂欄下面)可以放到滿版
+  const playing = document.body.classList.contains("land-play");
+  const top = playing ? document.querySelector("header").offsetHeight + $("scoreCard").querySelector(".card-title").offsetHeight + 30
+    : $("stage").getBoundingClientRect().top + scrollY - openSetupHeight();
+  const avail = Math.max(130, innerHeight - top - 14);
+  const z = Math.max(0.6, Math.min(1.8, osmd.zoom * avail / H));
   if (Math.abs(z - osmd.zoom) < 0.03) { landZoom = osmd.zoom; return false; }
   landZoom = z; return refit();
+}
+// 上方展開的設定卡不算(照收合時的位置算):不然展開/收合設定、切語言時樂譜大小跟著變
+function openSetupHeight(){
+  const st = $("stage").getBoundingClientRect().top;
+  // 並排的設定卡(橫式檢定分頁)垂直範圍重疊,只算一次
+  const spans = [...document.querySelectorAll(".setup.open .setup-body, .picker.open .setup-body")]
+    .map(el => el.getBoundingClientRect()).filter(r => r.height && r.bottom <= st)
+    .map(r => [r.top - 8, r.bottom]).sort((a, b) => a[0] - b[0]);
+  let h = 0, end = -Infinity;
+  for (const [a, b] of spans) { if (b <= end) continue; h += b - Math.max(a, end); end = b; }
+  return h;
 }
 function refit(){ osmd.zoom = scoreZoom(); lastZoom = osmd.zoom; renderOsmd(); measureNotes(); return true; }
 async function renderScore(){
@@ -852,12 +867,14 @@ function revealScore(){
     // 樂譜卡貼在工具列下面、下方分頁列收起來,樂譜延伸到底
     if (landScroll == null) landScroll = scrollY;
     document.body.classList.add("land-play");
+    if (fitLandZoom()) movePlayline(0, false);   // 播放時樂譜放大到滿版
     const top = $("scoreCard").getBoundingClientRect().top - document.querySelector("header").getBoundingClientRect().bottom - 6;
     if (Math.abs(top) > 2) window.scrollBy({ top, behavior: "smooth" });
     return;
   }
   const r = $("scoreCard").getBoundingClientRect(), bar = document.querySelector(".tabbar");
-  const bottom = bar ? bar.getBoundingClientRect().top : innerHeight;
+  const bt = bar ? bar.getBoundingClientRect().top : innerHeight;
+  const bottom = bt > innerHeight / 2 ? bt : innerHeight;   // 手機橫放時分頁列在左邊(top = 0),下面沒有東西擋
   if (r.bottom > bottom - 4) window.scrollBy({ top: Math.min(r.bottom - bottom + 8, r.top - 4), behavior: "smooth" });
   else if (r.top < 0) window.scrollBy({ top: r.top - 8, behavior: "smooth" });
 }
@@ -923,6 +940,7 @@ function stopPlayback(natural, keepView){
   if (!keepView && landScroll != null) {
     document.body.classList.remove("land-play");
     window.scrollTo({ top: landScroll, behavior: "smooth" }); landScroll = null;
+    fitLandZoom();   // 停止後縮回第一個畫面放得下的大小
   }
   if (play) { cancelAnimationFrame(play.raf); play = null; if (!natural) audio.stopAll(); }
   if (osmd && noteXs.length) { $("scroll").scrollLeft = 0; movePlayline(0, false); }

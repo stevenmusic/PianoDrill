@@ -1,6 +1,0 @@
-{
-  "appId": "io.github.stevenmusic.eardrill",
-  "appName": "聽音特訓",
-  "webDir": "www",
-  "ios": { "contentInset": "never", "backgroundColor": "#0C0A07" }
-}

@@ -1,7 +1,0 @@
-// App 打包用:把網頁本體複製到 app/www(Capacitor 的 webDir)。網頁本身沒有 build step,這只是複製檔案
-import fs from "node:fs";
-const root = new URL("../../", import.meta.url).pathname, out = root + "app/www/";
-fs.rmSync(out, { recursive: true, force: true }); fs.mkdirSync(out, { recursive: true });
-for (const f of ["index.html", "privacy.html", "manifest.webmanifest", "sw.js", "css", "js", "data", "icons"])
-  fs.cpSync(root + f, out + f, { recursive: true });
-console.log("app/www 已更新");

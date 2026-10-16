@@ -1,2 +1,0 @@
-{ "name": "eardrill", "private": true, "type": "module",
-  "scripts": { "test": "node tools/test/verify.mjs" } }

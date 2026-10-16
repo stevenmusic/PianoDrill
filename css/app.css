@@ -657,3 +657,30 @@ body.land-play #t-stage{flex:1;display:flex;flex-direction:column;justify-conten
 /* 聽力測驗的題型:固定寬度的格子(中英文每列個數一樣,換語言不換行) */
 #mod-ear .test .chips{display:grid;grid-template-columns:repeat(auto-fill, minmax(150px, 1fr));gap:6px}
 #mod-ear .test .chip{justify-content:center;min-width:0}
+
+/* ══ 每種裝置都要「飽滿」(使用者要求):手機、平板直式一欄;平板橫式、筆電、桌機兩欄 ══
+   index.html 裡每個模組的卡片分成 .mod-side(設定、速度、紀錄、清單)與 .mod-main(題目、樂譜/作答)。
+   窄螢幕:兩個容器 display:contents,卡片照 order 排回原本的順序(設定 → 題目 → 樂譜 → 其他) */
+.mod-side,.mod-main{display:contents}
+#t-paneScale,#t-paneArp,#t-paneHanon,#t-paneExam{order:1} #t-quizCard{order:2} #t-scoreCard{order:3} #t-metroCard{order:4} #t-logCard{order:5} #t-listCard{order:6}
+#s-setup{order:1} #s-unsupported{order:2} #s-quiz{order:3} #s-scoreCard{order:4} #s-along{order:5} #s-logCard{order:6}
+#e-paneNote,#e-paneInterval,#e-paneChord,#e-paneExam{order:1} #e-quizCard{order:2} #e-testsCard{order:3} #e-statsCard{order:4} #e-logCard{order:5}
+/* 一欄的時候(手機、平板直式):設定卡一律收成一行,第一個畫面就是題目和樂譜(平板直式以前設定全部攤開,佔掉三分之一) */
+@media (max-width:1099px){
+  .setup-summary,.picker .setup-summary{display:flex}
+  .setup:not(.open) .setup-body,.picker:not(.open) .setup-body{display:none}
+  .setup.open .setup-body,.picker.open .setup-body{margin-top:8px}
+  .picker,.setup{padding:8px 12px}
+}
+/* 兩欄(平板橫式 1180、筆電、桌機):左欄 = 設定、速度、紀錄(設定直接攤開);右欄 = 題目 + 樂譜/作答,盡量寬 */
+@media (min-width:1100px){
+  main,footer,body.view-sight main,body.view-sight footer{max-width:1480px}
+  .mod{display:grid;grid-template-columns:minmax(300px, 360px) minmax(0, 1fr);gap:16px;align-items:start}
+  .mod-side,.mod-main{display:flex;flex-direction:column;gap:16px;min-width:0}
+  .mod-side .prow{grid-template-columns:1fr;gap:4px}
+  .mod-side .fields{grid-template-columns:1fr}   /* 左欄窄:欄位一個一行(以前四欄擠在一起,分段鈕的字被截斷) */
+  /* 檢定設定卡:系統、級數與三項進度排在同一列 */
+  #examSetup .setup-body{display:grid;grid-template-columns:minmax(0, 420px) minmax(0, 1fr);gap:16px;align-items:end}
+  #examSetup .fields{grid-template-columns:repeat(2, minmax(0, 1fr))}
+  #examSetup .exam-parts{margin-top:0}
+}

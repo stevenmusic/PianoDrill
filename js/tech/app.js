@@ -439,7 +439,8 @@ const PLAYLINE_RATIO = 0.25;
 let noteXs = [];
 const syncHandSeg = segBind("handSeg", () => show, v => { show = v; stopPlayback(); renderScore(); });
 let renderSeq = 0;
-const scoreZoom = () => landZoom || (window.innerWidth < 600 ? 0.85 : window.innerWidth < 1000 ? 0.95 : 1.05);
+// 兩欄(≥1100)時右欄很寬:譜放大一點,畫面才飽滿(比畫面長的照樣左右捲、播放軸停在 25%)
+const scoreZoom = () => landZoom || (window.innerWidth < 600 ? 0.85 : window.innerWidth < 1000 ? 0.95 : window.innerWidth < 1100 ? 1.05 : 1.25);
 /* 手機橫放(平板不算):樂譜照畫面高度放大,讓「工具列 + 樂譜標題 + 樂譜」剛好一個畫面(播放時下方分頁列收起來) */
 const PHONE_LAND = "(orientation: landscape) and (max-height: 500px)";
 const isPhoneLand = () => matchMedia(PHONE_LAND).matches;

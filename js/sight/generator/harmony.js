@@ -206,6 +206,18 @@ export function buildProgression(rng, barCount, options = {}) {
     if (after !== undefined && !mayMove(table, chords[chords.length - 1], firstChord(after), minor)) return false;
     return chords.every((chord) => chord === 'I' || usable(chord, minor) && table[chord]);
   };
+  /*
+   * The consequent's copy can bring a deceptive V-vi back a second time; keep
+   * the first and make any later one an ordinary V-I.
+   */
+  let seenDeceptive = false;
+  for (let bar = 1; bar < barCount - 1; bar++) {
+    const chords = Array.isArray(progression[bar]) ? progression[bar] : [progression[bar]];
+    const before = [lastChord(progression[bar - 1]), ...chords];
+    const hit = chords.some((c, i) => c === 'vi' && before[i] === 'V');
+    if (hit && seenDeceptive) progression[bar] = Array.isArray(progression[bar]) ? progression[bar].map((c, i) => (c === 'vi' && before[i] === 'V' ? 'I' : c)) : 'I';
+    else if (hit) seenDeceptive = true;
+  }
   for (let bar = 1; bar < barCount - 1; bar++) {
     if (fixed.has(bar) || fits(progression[bar], progression[bar - 1], progression[bar + 1])) continue;
     const before = lastChord(progression[bar - 1]);

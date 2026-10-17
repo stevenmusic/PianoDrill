@@ -162,7 +162,9 @@ export function generateTest(rulesTable, options) {
   // character mismatch: keep slow terms for tests that are mostly not fast.
   const fastBars = [...leftHand, ...rightHand].filter((bar) => bar.events.some((e) => !e.rest && e.dur <= meter.beatDuration / 4)).length;
   const busy = fastBars > 0.25 * 2 * barCount;
-  const fitting = rules.tempoTerms.filter((term) => termFitsMetre(term, meter.text) && !(busy && (TEMPO_BPM[term] ?? 96) <= 66));
+  // "Sadly", "Mesto", "Lamentoso" describe a minor-key piece.
+  const sadInMajor = (term) => key.mode === 'major' && /sad|mesto|lament|dolente|doloroso/i.test(term);
+  const fitting = rules.tempoTerms.filter((term) => termFitsMetre(term, meter.text) && !(busy && (TEMPO_BPM[term] ?? 96) <= 66) && !sadInMajor(term));
   const tempoTerm = rng.pick(fitting.length ? fitting : rules.tempoTerms);
   const score = {
     seed,
@@ -320,6 +322,7 @@ function buildRhythm({ rng, rules, meter, barCount, hand, progression, silentBar
    * rests stay available.
    */
   const phraseEnd = halfCadenceBar(barCount);
+  let figure = null;
 
   for (let barIndex = 0; barIndex < barCount; barIndex++) {
     const isFinalBar = barIndex === barCount - 1;
@@ -371,7 +374,10 @@ function buildRhythm({ rng, rules, meter, barCount, hand, progression, silentBar
       }).events;
       events = draw();
       // The accompaniment arrives on the half cadence's dominant with its bass note.
-      for (let attempt = 0; isLeft && events[0]?.rest && attempt < 12; attempt++) events = draw();
+      for (let attempt = 0; isLeft && events[0]?.rest && attempt < 12; attempt++) {
+        const again = draw();
+        if (!again[0].rest && again[again.length - 1].dur >= events[events.length - 1].dur) events = again;
+      }
       /*
        * The breath itself. A longer note at the half cadence is most of the
        * gesture, but a real antecedent usually also *lifts* before the
@@ -454,12 +460,28 @@ function buildRhythm({ rng, rules, meter, barCount, hand, progression, silentBar
        * relieving. Restatements are excluded by construction: they are
        * handled in the branches above, where repetition is the intent.
        */
-      const options = { restBudget, maxFast, activity: isLeft ? activity * 0.7 : activity };
+      /*
+       * A tune that rests in bar after bar reads as choppy (12-18% of Grade 2-4
+       * tests rested in half their bars): once about a third of the melody's
+       * bars have had a rest, its remaining ordinary bars play through.
+       */
+      const restedBars = bars.filter((bar) => bar.events.some((e) => e.rest) && bar.events.some((e) => !e.rest)).length;
+      const restsLeft = isLeft || restedBars < Math.ceil(barCount * 0.3) ? restBudget : 0;
+      const options = { restBudget: restsLeft, maxFast, activity: isLeft ? activity * 0.7 : activity,
+        // Grade 1-2: an ordinary bar carries at least two notes (four dotted minims is not a tune).
+        minNotes: rules.grade <= 2 ? (meter.cellBeats >= 3 ? 3 : 2) : 1 };
+      // The phrase's accompaniment figure (Grade 4 up): set by the first fresh bar of each phrase.
+      if (isLeft && phraseEnd !== null && barIndex === phraseEnd + 1) figure = null;
+      // The figure may sound twice running, then breaks (like the Grade 2-3 ostinato).
+      const sigOf = (b) => (bars[b] ? rhythmSignature(bars[b].events) : null);
+      const figureRun = figure && sigOf(barIndex - 1) === rhythmSignature(figure) && sigOf(barIndex - 2) === rhythmSignature(figure);
+      if (isLeft && rules.grade >= 4 && figure && !figureRun) { options.figure = rhythmSignature(figure); options.figureEvents = figure; }
       const avoid = [bars[barIndex - 1]?.events, bars[barIndex - 2]?.events, ostinato];
       events = isLeft && partner
         ? drawComplementaryBar(rng, cells, meter, options, avoid, partner[barIndex]?.events ?? [],
           Array.isArray(progression[barIndex]) ? splitPoint(meter.barDuration, meter.beatDuration) : null)
         : drawContrastingBar(rng, cells, meter.cellBeats, options, avoid);
+      if (isLeft && rules.grade >= 4 && !figure && events.filter((e) => !e.rest).length > 1) figure = events.map((e) => ({ ...e }));
     }
 
     /*
@@ -469,10 +491,33 @@ function buildRhythm({ rng, rules, meter, barCount, hand, progression, silentBar
      */
     ostinatoRun = usedOstinato ? ostinatoRun + 1 : 0;
 
+    // The bass states a split bar's second chord: a note held across the change
+    // is re-struck there (8% of split bars held the old bass under the new chord).
+    if (isLeft && Array.isArray(progression[barIndex])) events = strikeAt(events, splitPoint(meter.barDuration, meter.beatDuration), rules);
     bars.push({ events, beatDuration: meter.beatDuration, directions: [], motif, formSource });
   }
 
   return bars;
+}
+
+const NOTE_OF = { 96: ['whole', 0], 72: ['half', 1], 48: ['half', 0], 36: ['quarter', 1], 24: ['quarter', 0], 18: ['eighth', 1], 12: ['eighth', 0], 6: ['16th', 0] };
+/** Split the note sounding across `at` into two attacks, when both halves are printable at this grade. */
+function strikeAt(events, at, rules) {
+  let offset = 0;
+  for (let i = 0; i < events.length; i++) {
+    const event = events[i];
+    if (offset === at) return events;
+    if (offset < at && offset + event.dur > at && !event.rest && !event.timeModification) {
+      const a = NOTE_OF[at - offset], b = NOTE_OF[offset + event.dur - at];
+      const ok = (n) => n && rules.rhythm.noteValues.includes(n[0]) && (!n[1] || (rules.rhythm.dottedValues ?? []).includes(n[0]));
+      if (!ok(a) || !ok(b)) return events;
+      const first = { ...event, dur: at - offset, type: a[0], dots: a[1] };
+      const second = { ...event, dur: offset + event.dur - at, type: b[0], dots: b[1] };
+      return [...events.slice(0, i), first, second, ...events.slice(i + 1)];
+    }
+    offset += event.dur;
+  }
+  return events;
 }
 
 /** Pitches (and chords) for a hand whose rhythm `buildRhythm` has drawn. */
@@ -491,7 +536,7 @@ function pitchStaff(bars, { rng, rules, meter, hand, progression, key, against =
   // The accompaniment stays on the bass staff's side of middle C (D4 at most,
   // through Grade 5): reaching F4-G4 under a tune that sits around C5 put the
   // hands within a tone of each other at 7-14% of attacks.
-  const top = isLeft && !rules.texture.fiveFingerPosition ? Math.max(low + 6, rules.grade >= 6 ? high : Math.min(high, 29)) : high;
+  const top = isLeft && !rules.texture.fiveFingerPosition ? Math.max(low + 6, Math.min(high, 29)) : high;
   const window = rules.texture.fiveFingerPosition
     ? fiveFingerWindow(rng, key, low, high, above, center === null ? null : center + 1)
     : tessituraWindow(rng, key, low, top, isLeft ? Math.min(10, 8 + rules.grade) : 8 + rules.grade, above, center);
@@ -589,6 +634,7 @@ function drawContrastingBar(rng, cells, cellBeats, options, avoid) {
   let first = null;
   for (let attempt = 0; attempt < 24; attempt++) {
     const { events } = fillBar(rng, cells, cellBeats, options);
+    if (events.filter((e) => !e.rest).length < (options.minNotes ?? 1) && attempt < 20) continue;
     if (first === null) first = events;
     if (!unwanted.has(rhythmSignature(events))) return events;
   }
@@ -650,13 +696,24 @@ function drawComplementaryBar(rng, cells, meter, options, avoid, partnerEvents, 
     if (splitAt !== null && !left.some((a) => a.at === splitAt)) value -= 5;     // the bass states the new chord
     value -= 1.5 * events.filter((event) => !event.rest && event.dur <= beat / 4).length / 4;   // fast notes belong to the tune
     if (crossRhythm(events)) value -= 20;                                         // never 3 against 2
+    // Both hands silent on the same off-beat is a hiccup in the texture.
+    {
+      let o = 0; const rests = [];
+      for (const e of partnerEvents) { if (e.rest) rests.push([o, o + e.dur]); o += e.dur; }
+      o = 0;
+      for (const e of events) { if (e.rest && rests.some(([a, z]) => a < o + e.dur && z > o)) value -= 2; o += e.dur; }
+    }
+    // An accompaniment keeps its figure through a phrase (Grade 4 up).
+    if (options.figure && rhythmSignature(events) === options.figure) value += 1.0;
     if (events[0]?.rest && partnerEvents.some((event) => !event.rest)) value -= 3; // the bass states the harmony on the downbeat
     return value + rng.next() * 0.5;
   };
   let best = null, bestScore = -Infinity, fallback = null;
   for (let attempt = 0; attempt < 16; attempt++) {
-    const { events } = fillBar(rng, cells, meter.cellBeats, options);
-    if (unwanted.has(rhythmSignature(events)) && !crossRhythm(events)) { fallback ??= events; continue; }
+    const events = attempt === 0 && options.figureEvents
+      ? options.figureEvents.map((e) => ({ ...e }))
+      : fillBar(rng, cells, meter.cellBeats, options).events;
+    if (unwanted.has(rhythmSignature(events)) && !crossRhythm(events) && rhythmSignature(events) !== options.figure) { fallback ??= events; continue; }
     const value = score(events);
     if (value > bestScore) { best = events; bestScore = value; }
   }
@@ -1229,6 +1286,9 @@ function applyExpression(rng, rules, score) {
   const addRun = (staffNumber, mark, firstBar, lastBar, types) => {
     for (let barIndex = firstBar; barIndex <= lastBar; barIndex++) {
       if (slurredBars.has(`${staffNumber}:${barIndex}`)) continue;
+      const eligible = marksOf(score.staves[staffNumber][barIndex]?.events ?? [])
+        .filter((event) => types.includes(event.type) && !event.slur && !event.dots);
+      if (eligible.length < 2) continue;   // a lone dot in a plain bar reads as a stray mark
       for (const event of marksOf(score.staves[staffNumber][barIndex]?.events ?? [])) {
         // Never on a dotted value: a dot of length and a dot of detachment on
         // one note contradict each other at sight.
@@ -1551,6 +1611,8 @@ function addModulation(rng, rules, score) {
         if (event.rest || !event.pitch) continue;
         const midi = transposePitch(event.pitch).midi;
         if (midi < minMidi || midi > maxMidi) return false;
+        // Up a fifth must not lift the bass out of the bass register.
+        if (hand === 'leftHand' && midi > 64) return false;
       }
     }
   }
@@ -1809,9 +1871,15 @@ function addOrnaments(rng, score) {
   }
 
   const count = Math.min(shuffled.length, rng.int(1, 2));
-  for (const event of shuffled.slice(0, count)) {
+  let added = 0;
+  for (const event of shuffled) {
+    if (added >= count) break;
+    const before = notes[notes.indexOf(event) - 1];
     const graceDstep = event.dstep + (rng.chance(0.5) ? 1 : -1);
+    // A grace note on the pitch just played reads as a misprinted repeat.
+    if (before && before.dstep === graceDstep) continue;
     event.grace = { pitch: pitchAt(graceDstep, key, { raiseSeventh: false }) };
+    added += 1;
   }
 }
 

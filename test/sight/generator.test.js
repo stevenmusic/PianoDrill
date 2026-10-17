@@ -454,7 +454,10 @@ test('a melodic hand develops fresh rhythm rather than leaning on repetition', (
 
   eachTest((score, gradeRules) => {
     for (const [handKey, hand] of [[1, 'rightHand'], [2, 'leftHand']]) {
-      const isAccompaniment = hand === 'leftHand' && gradeRules.grade < 4 && gradeRules.texture.handsPlayTogether;
+      // From Grade 4 the left hand keeps a figure through each phrase too
+      // (generate.js `figure`), so it is an accompaniment at every grade
+      // where the hands play together; only the melody is held to this.
+      const isAccompaniment = hand === 'leftHand' && gradeRules.texture.handsPlayTogether;
       if (isAccompaniment) continue;
 
       const seen = [];

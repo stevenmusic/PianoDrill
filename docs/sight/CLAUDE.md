@@ -181,6 +181,15 @@ Second review round (Opus reviewer, same day), each measured over 300 seeds/grad
 - **Climax too early / stutters**: `scoreBar` charges notes that reach the planned climax before the climax bar, and three on one pitch; `fixSixteenthStutters(…, true)` turns a melody's A-A-A into A-B-A (and no longer writes a new repeat when fixing one). Climax in the first third 30-47% → 5-20%.
 - **Accompaniment register**: through Grade 5 the left hand's window tops out at D4 (it reached F4-G4 under a tune around C5). Not applied from Grade 6 — capping there cost the cadential V its root (89% → 83%) because the window had nowhere central left to sit.
 
+Third review round (300 seeds/grade, before → after):
+
+- **Hands colliding** (within a tone, unison or crossing at an attack) 6-11% at Grade 4-8 → 0-5%: the left hand's window tops out at D4 at every grade, and the melody keeps a third clear of the accompaniment's top note whenever any other candidate is playable (`tight` in `pickWeighted`, the same in `planMelodyLine`). The cadential V's bass may leap a fifth on its downbeat so the root is reachable even from a capped window. A modulation is abandoned if it would lift the bass above E4.
+- **No accompaniment idiom from Grade 4** (the left hand repeated a bar's rhythm 1-2% of the time): the first fresh left-hand bar of each phrase becomes its `figure`, offered first to `drawComplementaryBar` with a bonus, at most twice running. 16-17% of bars now repeat the one before; the audit's accompaniment bounds hold.
+- **A bass held across a split bar's change** 10-13% → 2-3%: `strikeAt` re-strikes the note at the split point when both halves are printable.
+- **Grade 1-2 too sparse**: an ordinary bar carries at least two notes (three in a bar of three or more beats); G1 tests of seven notes or fewer 28% → 12%.
+- **Choppy tunes**: once about a third of the melody's bars have a rest, its remaining ordinary bars play through; both hands resting on the same off-beat costs the left-hand bar; a pitch struck four or more times in one bar costs `scoreBar`.
+- **Deceptive cadence twice** (the consequent copied it back): only the first V-vi survives. Small fixes: no lone staccato dot in an otherwise plain bar, no grace note on the pitch just played, no "Sadly"/"Mesto" in a major key.
+
 ### Phrase structure, motif restatement and cadence
 
 These three are what stop a test reading as separately-invented bars laid end to end. They interlock — the harmony is arranged so the melody's restatement is legal by construction — so changing one without the others mostly undoes it.

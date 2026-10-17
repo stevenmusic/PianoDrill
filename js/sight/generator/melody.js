@@ -163,7 +163,7 @@ export function planMelodyLine({ rng, key, bars, progression, window, phraseEnd 
       if (!tones.includes(degree)) continue;
       if (b === n - 1 && degree !== 0) continue;
       const m = midi(d);
-      if (ceiling !== null && m < ceiling) continue;
+      if (ceiling !== null && m < ceiling + 3) continue;   // a third clear of the accompaniment
       // Nothing the walk would refuse on a downbeat: no second, seventh or
       // tritone against anything the left hand is holding.
       if (sounding.some((o) => HARSH_INTERVALS.has(Math.abs(m - o) % 12))) continue;
@@ -229,7 +229,7 @@ export function planMelodyLine({ rng, key, bars, progression, window, phraseEnd 
     const at = state.path.map((o, k) => (o.d === top ? stages[k].b : -1)).filter((b) => b >= 0);
     let c = state.cost + 1.2 * (at.length - 1);
     // Reached first somewhere past the middle, never in the closing bars.
-    if (at[0] < 0.45 * (n - 1)) c += 2;
+    if (at[0] < 0.45 * (n - 1)) c += 4;
     if (at.some((b) => b >= n - 2)) c += 2.5;                                       // the line falls into the cadence
     return c;
   };
@@ -539,7 +539,9 @@ export function assignPitches({ rng, key, bars, progression, window, options, ag
           isDownbeat,
           centre: target,
           stepwiseBias,
-          maxLeapSemitones,
+          // The cadential V's bass may leap a fifth to reach its root even in a
+          // five-finger position (otherwise it opened on the fifth, a 6/4).
+          maxLeapSemitones: chordToneOnly && isCadentialBar && harmonyArrives ? Math.max(maxLeapSemitones, 7) : maxLeapSemitones,
           // Moving the hand a long way between short notes is the hardest
           // thing in sight-reading: cap how far a leap may go when either
           // note is an eighth or shorter, by grade.
@@ -638,6 +640,10 @@ export function assignPitches({ rng, key, bars, progression, window, options, ag
       if (!last.chordDegrees.includes(degreeOf(last.dstep, key))
         && (d !== 1 || before === null || Math.sign(last.dstep - before) !== Math.sign(next - last.dstep))) cost += 2.5;
     }
+    // One pitch struck four or more times in a bar (E-B-B-E-B-B) is a stutter.
+    const counts = {};
+    for (const note of notes) counts[note.dstep] = (counts[note.dstep] ?? 0) + 1;
+    for (const k in counts) if (counts[k] >= 4) cost += 1.5 * (counts[k] - 3);
     // The antecedent ends on the dominant: its last note is 2, 5 or 7.
     if (barIndex === halfBar && ![1, 4, 6].includes(degreeOf(last.dstep, key))) cost += 3;
     // Nothing overshoots the planned climax before the climax bar is reached.
@@ -973,6 +979,7 @@ function pickWeighted(ctx) {
   const repeats = [];
   const steps = [];
   const leaps = [];
+  const tight = [];
   let preferredCandidate = null;
 
   for (const dstep of allSteps) {
@@ -1091,7 +1098,11 @@ function pickWeighted(ctx) {
     if (clash && (onBeat || distance !== 1)) continue;
     // Keep the hands out of each other's way: the melody stays above
     // everything the left hand is holding, not just its lowest note.
+    // Keep the hands out of each other's way: the tune sits a third clear of the
+    // accompaniment's top note when it can (unisons and seconds between the
+    // hands at 8-11% of Grade 5-8 tests); the bare minimum is not crossing.
     if (ceiling !== null && midi < ceiling) continue;
+    if (ceiling !== null && !chordToneOnly && midi < ceiling + 3) tight.push(dstep);
 
     /*
      * On the beat, prefer a chord tone — that's correct harmony. Off the
@@ -1199,6 +1210,15 @@ function pickWeighted(ctx) {
     else leaps.push(candidate);
   }
 
+  if (tight.length) {
+    const clear = (c) => !tight.includes(c.dstep);
+    if ([...steps, ...leaps, ...repeats].some(clear)) {
+      for (const list of [steps, leaps, repeats]) {
+        const keep = list.filter(clear); list.length = 0; list.push(...keep);
+      }
+      if (preferredCandidate && tight.includes(preferredCandidate.dstep)) preferredCandidate = null;
+    }
+  }
   // The weight above only matters inside a category, and the category is drawn
   // first: take the fifth out entirely wherever anything else is playable.
   if (arrival) {

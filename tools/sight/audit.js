@@ -262,8 +262,9 @@ function auditHarmony(grade, tests) {
     // ii is the exception: ii6 (third in the bass) is its commonest classical
     // form, so only a floor that proves root position is reachable applies.
     const floor = chord === 'ii' ? 40 : 55;
-    lines.push(check('harmony', grade, `  ${chord}: bass on the chord root`, `${fixed(rate)}%`,
-      rate >= floor, `>=${floor}% of bars where the root is reachable`));
+    // A chord seen only a handful of times (vi at Grade 1) cannot fail on noise.
+    lines.push(check('harmony', grade, `  ${chord}: bass on the chord root (n=${n})`, `${fixed(rate)}%`,
+      rate >= floor || n < 30, `>=${floor}% of bars where the root is reachable`));
   }
 
   const cadRate = pct(cadenceVRoot, cadenceV);

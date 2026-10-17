@@ -24,7 +24,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 import { generateTest } from '../../js/sight/generator/generate.js';
-import { createKey, degreeOf, chordDegrees } from '../../js/sight/generator/theory.js';
+import { createKey, degreeOf, chordDegrees, pitchAt } from '../../js/sight/generator/theory.js';
 import { firstChord, lastChord, chordAt, halfCadenceBar } from '../../js/sight/generator/harmony.js';
 
 const rules = JSON.parse(
@@ -247,9 +247,17 @@ function auditHarmony(grade, tests) {
     }
   }
 
+  /*
+   * Grade 1's hands take turns, so its left hand plays a tune of its own (see
+   * pitchStaff's bassLine): the bass-line checks below are reported, not asserted.
+   */
+  const tune = rules.grades[String(grade)].texture.handsPlayTogether === false;
+  const bassCheck = (label, value, ok, expected) => (tune
+    ? `       g${grade} ${label.padEnd(42)} ${String(value).padStart(8)}   (hands take turns: the left hand is a tune)`
+    : check('harmony', grade, label, value, ok, expected));
   const total = position.root + position.third + position.fifth + position.other;
   const rootRate = pct(position.root, total);
-  lines.push(check('harmony', grade, 'bass in root position at downbeats', `${fixed(rootRate)}%`,
+  lines.push(bassCheck('bass in root position at downbeats', `${fixed(rootRate)}%`,
     rootRate >= 55, '>=55% (root position is the norm)'));
   lines.push(`       inversions: 3rd ${fixed(pct(position.third, total))}%  `
     + `5th ${fixed(pct(position.fifth, total))}%  non-chord ${fixed(pct(position.other, total))}%`);
@@ -263,7 +271,7 @@ function auditHarmony(grade, tests) {
     // form, so only a floor that proves root position is reachable applies.
     const floor = chord === 'ii' ? 40 : 55;
     // A chord seen only a handful of times (vi at Grade 1) cannot fail on noise.
-    lines.push(check('harmony', grade, `  ${chord}: bass on the chord root (n=${n})`, `${fixed(rate)}%`,
+    lines.push(bassCheck(`  ${chord}: bass on the chord root (n=${n})`, `${fixed(rate)}%`,
       rate >= floor || n < 30, `>=${floor}% of bars where the root is reachable`));
   }
 
@@ -272,7 +280,7 @@ function auditHarmony(grade, tests) {
   // so the dominant root is not always both reachable and playable from the
   // note before it; the upper grades have no such excuse.
   const cadFloor = rules.grades[String(grade)].texture.fiveFingerPosition ? 60 : 85;
-  lines.push(check('harmony', grade, 'cadential V has its root in the bass', `${fixed(cadRate)}%`,
+  lines.push(bassCheck('cadential V has its root in the bass', `${fixed(cadRate)}%`,
     cadRate >= cadFloor, `>=${cadFloor}% (a V-I cadence needs the dominant root)`));
   lines.push(check('harmony', grade, 'final bass note is the tonic', `${fixed(pct(finalTonicBass, tests0))}%`,
     pct(finalTonicBass, tests0) >= 95, '>=95%'));
@@ -281,7 +289,7 @@ function auditHarmony(grade, tests) {
   // five-note hand the tonic's root is often simply not the lowest note
   // available, which is the syllabus's constraint rather than a fault.
   const closingFloor = rules.grades[String(grade)].texture.fiveFingerPosition ? 35 : 92;
-  lines.push(check('harmony', grade, 'closing tonic lands in root position', `${fixed(closingRate)}%`,
+  lines.push(bassCheck('closing tonic lands in root position', `${fixed(closingRate)}%`,
     closingRate >= closingFloor, `>=${closingFloor}% (the final chord has to land)`));
   const repeatRate = pct(repeatedChordBars, barTransitions);
   lines.push(check('harmony', grade, 'chord held over from the previous bar', `${fixed(repeatRate)}%`,
@@ -318,16 +326,16 @@ function auditHarmony(grade, tests) {
    */
   const thirdRate = pct(position.third, position.root + position.third + position.fifth + position.other);
   const fifthRate = pct(position.fifth, position.root + position.third + position.fifth + position.other);
-  lines.push(check('harmony', grade, 'first inversion in the bass', `${fixed(thirdRate)}%`,
+  lines.push(bassCheck('first inversion in the bass', `${fixed(thirdRate)}%`,
     thirdRate >= 8, '>=8% of downbeats (a bass that only ever takes roots is not a line)'));
-  lines.push(check('harmony', grade, 'second inversion rarer than first', `${fixed(fifthRate)}%`,
+  lines.push(bassCheck('second inversion rarer than first', `${fixed(fifthRate)}%`,
     fifthRate <= thirdRate, `<=${fixed(thirdRate)}% (a 6/4 is rule-bound, a 6/3 is ordinary)`));
 
   const bassNct = pct(bassNonChordTones, bassNotes);
-  lines.push(check('harmony', grade, 'bass notes that decorate (passing/neighbour)', `${fixed(bassNct)}%`,
+  lines.push(bassCheck('bass notes that decorate (passing/neighbour)', `${fixed(bassNct)}%`,
     bassNct >= 3 && bassNct <= 20, '3%-20% of bass notes (a bass passes between its chord tones, but still states them)'));
   const bassStep = pct(bassSteps, bassMoves);
-  lines.push(check('harmony', grade, 'bass moves by step', `${fixed(bassStep)}%`,
+  lines.push(bassCheck('bass moves by step', `${fixed(bassStep)}%`,
     bassStep >= 18, '>=18% of bass moves (a chord-tones-only bass structurally cannot step)'));
   /*
    * A decoration has to behave like one or it is simply a wrong bass note:
@@ -336,7 +344,7 @@ function auditHarmony(grade, tests) {
    * reached the page rather than what was chosen.
    */
   const illBehaved = pct(bassNctOnBeat + bassNctLeapt, bassNonChordTones);
-  lines.push(check('harmony', grade, 'bass decorations that misbehave', `${fixed(illBehaved)}%`,
+  lines.push(bassCheck('bass decorations that misbehave', `${fixed(illBehaved)}%`,
     illBehaved <= 12, '<=12% of them (a decoration is off the beat and stepped into, or it is a wrong note)'));
   return lines;
 }
@@ -1050,6 +1058,43 @@ function auditVoiceLeading(grade, tests) {
   lines.push(check('voiceleading', grade, 'leading note doubled',
     `${fixed(pct(doubledLeading, chordsWithLeading), 2)}%`,
     pct(doubledLeading, chordsWithLeading) <= 2, '<=2% of chords containing it'));
+
+  /*
+   * In harmonic minor the dominant takes the raised 7th; a natural 7th over V
+   * turns the cadence into v-i. The repairs used to un-raise it to dodge an
+   * augmented 2nd (5-11% of minor tests). Only a 8-7-6 descent off the beat is
+   * the melodic minor's own and exempt.
+   */
+  let minorTests = 0, naturalOverV = 0;
+  for (const score of tests) {
+    if (score.key.mode !== 'minor' || score.keyChange) continue;
+    minorTests += 1;
+    const key = createKey(score.key);
+    let found = false;
+    for (const staff of [1, 2]) {
+      const notes = [];
+      score.staves[staff].forEach((bar, b) => {
+        let o = 0;
+        for (const e of bar.events) { if (!e.rest && e.pitch) notes.push({ e, b, o, beat: bar.beatDuration, dur: bar.events.reduce((x, y) => x + y.dur, 0) }); o += e.dur; }
+      });
+      notes.forEach(({ e, b, o, beat, dur }, i) => {
+        if (found || e.chromatic) return;
+        const chord = chordAt(score.progression[b], o, dur, beat);
+        if (chord !== 'V' && chord !== 'viio') return;
+        for (const p of [e.pitch, ...(e.chord ?? [])]) {
+          if (degreeOf(p.dstep ?? e.dstep, key) !== 6) continue;
+          const natural = p.midi % 12 !== pitchAt(key.seventhLetter + 28, key, { raiseSeventh: true }).midi % 12;
+          if (!natural) continue;
+          const before = notes[i - 1]?.e, after = notes[i + 1]?.e;
+          if (p === e.pitch && o % beat && before?.dstep === e.dstep + 1 && after?.dstep === e.dstep - 1) continue;
+          found = true;
+        }
+      });
+    }
+    if (found) naturalOverV += 1;
+  }
+  lines.push(check('voiceleading', grade, 'natural 7th over V (minor)',
+    `${fixed(pct(naturalOverV, minorTests))}%`, naturalOverV === 0, '0% of minor tests (the dominant takes the leading note)'));
 
   lines.push(check('voiceleading', grade, 'V falling back to IV/ii',
     `${fixed(pct(retrogressions, progressions))}%`,

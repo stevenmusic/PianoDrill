@@ -717,13 +717,14 @@ export function assignPitches({ rng, key, bars, progression, window, options, ag
   });
 
   repairNonChordTones(bars, key, window, { against, barDuration, finalEvent: endOnTonic ? finalEvent : null });
-  fixAugmentedSeconds(bars, key);
+  const augmentedContext = { window, against, barDuration, finalEvent: endOnTonic ? finalEvent : null };
+  fixAugmentedSeconds(bars, key, augmentedContext);
   // Both repairs move pitches after the vertical check, so verify once more.
   resolveClashes({ bars, key, window, against, barDuration, finalEvent: endOnTonic ? finalEvent : null });
   // resolveClashes can relocate a note onto the raised 7th next to the natural
   // 6th, so the augmented-2nd rule has to be re-checked after it rather than
   // only before — it writes raised 7ths now, where it used to force naturals.
-  fixAugmentedSeconds(bars, key);
+  fixAugmentedSeconds(bars, key, augmentedContext);
   // The cadence is settled last, and by construction rather than by
   // preference: every pass above can move the note before the tonic, so a
   // stepwise approach merely *asked* for during the walk survived only about
@@ -1667,17 +1668,50 @@ function nearestWithDegreeSet(steps, key, degrees, target) {
 
 /**
  * In minor keys a raised 7th next to a natural 6th makes an augmented 2nd,
- * which ABRSM tests do not write. Drop the raise unless it resolves upward
- * to the tonic.
+ * which ABRSM tests do not write. Over the dominant the 7th is its leading
+ * note and must stay raised (a natural 7th over V turns the cadence into v-i,
+ * a fault on the page), so there the note moves to another tone of the chord
+ * instead; elsewhere, or when no tone fits, the raise is dropped unless it
+ * resolves upward to the tonic.
  */
-function fixAugmentedSeconds(bars, key) {
+function fixAugmentedSeconds(bars, key, { window = null, against = null, barDuration = 0, finalEvent = null } = {}) {
   if (!key.isMinor) return;
-  const notes = bars.flatMap((bar) => bar.events.filter((event) => !event.rest));
+  const notes = [];
+  bars.forEach((bar, b) => {
+    let offset = 0;
+    for (const event of bar.events) {
+      if (!event.rest) notes.push({ event, at: b * barDuration + offset });
+      offset += event.dur;
+    }
+  });
+  // Move note i to a nearby tone of its own chord that is neither the 6th nor
+  // the 7th, so the move cannot make another augmented 2nd.
+  const relocate = (i) => {
+    if (!notes[i]) return false;
+    const { event, at } = notes[i];
+    const tones = event.chordDegrees ?? [];
+    if (!window || event === finalEvent || event.chord?.length) return false;
+    const sounding = against?.length ? soundingAt(against, at, event.dur) : [];
+    const ceiling = sounding.length ? Math.max(...sounding) : null;
+    const neighbours = [notes[i - 1]?.event, notes[i + 1]?.event].filter(Boolean);
+    for (const delta of [-1, 1, -2, 2, -3, 3]) {
+      const dstep = event.dstep + delta;
+      const degree = degreeOf(dstep, key);
+      if (dstep < window.low || dstep > window.high || degree === 5 || degree === 6 || !tones.includes(degree)) continue;
+      const pitch = pitchAt(dstep, key);
+      if (clashesWith(pitch.midi, sounding) || (ceiling !== null && pitch.midi < ceiling)) continue;
+      if (neighbours.some((n) => n.dstep === dstep || Math.abs(n.dstep - dstep) > 4
+        || Math.abs(n.pitch.midi - pitch.midi) === 6 || alteredInterval(n.dstep, n.pitch.midi, dstep, pitch.midi))) continue;
+      Object.assign(event, { dstep, pitch, raiseSeventh: false });
+      return true;
+    }
+    return false;
+  };
   for (let i = 0; i < notes.length; i++) {
-    const current = notes[i];
+    const current = notes[i].event;
     if (!current.raiseSeventh) continue;
-    const next = notes[i + 1];
-    const previous = notes[i - 1];
+    const next = notes[i + 1]?.event;
+    const previous = notes[i - 1]?.event;
     const resolvesUp = next && next.dstep === current.dstep + 1;
     const approachedFromSixth = previous && degreeOf(previous.dstep, key) === 5
       && Math.abs(current.dstep - previous.dstep) === 1;
@@ -1686,6 +1720,9 @@ function fixAugmentedSeconds(bars, key) {
     // Stepping to or from the natural 6th makes the augmented 2nd either way;
     // resolving upward afterwards does not undo the approach.
     if (approachedFromSixth || (leavesToSixth && !resolvesUp)) {
+      // Over V: move the 7th to another chord tone, or else the 6th beside it.
+      if ((current.chordDegrees ?? []).includes(6)
+        && (relocate(i) || relocate(approachedFromSixth ? i - 1 : i + 1))) continue;
       current.raiseSeventh = false;
       current.pitch = pitchAt(current.dstep, key, { raiseSeventh: false });
     }

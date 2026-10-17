@@ -9,7 +9,7 @@
 
 import { createRandom, randomSeed } from './random.js';
 import { createKey, dstepRange, degreeOf, pitchAt, chordDegrees, LETTERS } from './theory.js';
-import { buildProgression, firstChord, lastChord, halfCadenceBar, splitPoint } from './harmony.js';
+import { buildProgression, firstChord, lastChord, halfCadenceBar, splitPoint, chordAt } from './harmony.js';
 import {
   assignPitches, stackChordTones, soundingTimeline, harmoniseLeadingNotes, harmoniseRepeatedLeadingNotes,
   revertClashingBassDecorations,
@@ -64,11 +64,65 @@ const TEMPO_BPM = {
  * @param {{grade: number, seed?: number}} options
  */
 export function generateTest(rulesTable, options) {
+  const seed = options.seed ?? randomSeed();
+  /*
+   * A minor-key dominant takes the raised 7th. The repairs settle almost every
+   * conflict by moving a note, but a five-finger hand or a crowded bar can
+   * leave no tone to move to, and then the 7th was written natural over V —
+   * a v-i cadence an examiner would mark. Such a draw is redone from a seed
+   * derived from this one, so a seed still always gives the same test.
+   */
+  let score = null;
+  for (let attempt = 0; attempt < 6; attempt++) {
+    score = generateOnce(rulesTable, attempt
+      ? { ...options, seed: (seed * 31 + attempt * 7919) >>> 0, tonic: score.key.tonic, mode: score.key.mode }   // same key, new draw
+      : { ...options, seed });
+    if (!naturalSeventhOverDominant(score)) break;
+  }
+  score.seed = seed;
+  return score;
+}
+
+/** Whether a minor-key test sounds the 7th unraised over V (outside a descending passing note). */
+function naturalSeventhOverDominant(score) {
+  if (score.key.mode !== 'minor' || score.keyChange) return false;
+  const key = createKey(score.key);
+  for (const staff of [1, 2]) {
+    const notes = [];
+    score.staves[staff].forEach((bar, b) => {
+      let offset = 0;
+      for (const event of bar.events) {
+        if (!event.rest && event.pitch) notes.push({ event, b, offset, beat: bar.beatDuration });
+        offset += event.dur;
+      }
+    });
+    for (let i = 0; i < notes.length; i++) {
+      const { event, b, offset, beat } = notes[i];
+      if (event.chromatic) continue;
+      const barDuration = score.staves[staff][b].events.reduce((sum, e) => sum + e.dur, 0);
+      const chord = chordAt(score.progression[b], offset, barDuration, beat);
+      if (chord !== 'V' && chord !== 'viio') continue;
+      const raised = pitchAt(key.seventhLetter + 7 * 4, key, { raiseSeventh: true }).midi % 12;
+      const voices = [event.pitch, ...(event.chord ?? [])];
+      for (const pitch of voices) {
+        if (degreeOf(pitch.dstep ?? event.dstep, key) !== 6 || pitch.midi % 12 === raised) continue;
+        // 8-7-6 falling through the beat is the melodic minor's own descent.
+        const before = notes[i - 1]?.event, after = notes[i + 1]?.event;
+        const passing = pitch === event.pitch && offset % beat !== 0 && before && after
+          && before.dstep === event.dstep + 1 && after.dstep === event.dstep - 1;
+        if (!passing) return true;
+      }
+    }
+  }
+  return false;
+}
+
+function generateOnce(rulesTable, options) {
   const grade = options.grade;
   const rules = rulesTable.grades[String(grade)];
   if (!rules) throw new Error(`no rules for grade ${grade}`);
 
-  const seed = options.seed ?? randomSeed();
+  const seed = options.seed;
   const rng = createRandom(seed);
 
   // A specific tonic/mode (the app's key selector) overrides the random
@@ -622,11 +676,18 @@ function pitchStaff(bars, { rng, rules, meter, hand, progression, key, against =
     ? fiveFingerWindow(rng, key, low, high, above, center === null ? null : center + 1)
     : tessituraWindow(rng, key, isLeft && top - 15 >= Math.min(10, 8 + rules.grade) ? Math.max(low, 15) : low, top, isLeft ? Math.min(10, 8 + rules.grade) : 8 + rules.grade, above, center);
 
+  /*
+   * Grade 1's hands take turns, so its left hand is a tune of its own, not a
+   * bass: written under the bass rules (chord tones only, root on every
+   * arrival, a held note under a new chord) it came out as one pitch struck
+   * five or six times in 15% of tests. It gets the melody's treatment.
+   */
+  const bassLine = isLeft && rules.texture.handsPlayTogether !== false;
   // The bass line is planned bar to bar first (melody.js planBassLine), then filled.
-  const bassPlan = isLeft
+  const bassPlan = bassLine
     ? planBassLine({ rng, key, bars, progression, window, inversion: (rules.generatorHints.bassInversionPercent ?? 0) / 100, phraseEnd: halfCadenceBar(bars.length) })
     : null;
-  const melodyPlan = isLeft
+  const melodyPlan = bassLine
     ? null
     : planMelodyLine({ rng, key, bars, progression, window, phraseEnd: halfCadenceBar(bars.length), form, against, barDuration: meter.barDuration });
   assignPitches({
@@ -647,10 +708,10 @@ function pitchStaff(bars, { rng, rules, meter, hand, progression, key, against =
       maxLeapSemitones: isLeft
         ? Math.min(rules.generatorHints.maxLeapSemitones, 12)
         : rules.generatorHints.maxLeapSemitones,
-      chordToneOnly: isLeft,
+      chordToneOnly: bassLine,
       // Only the bass is chord-tone-restricted, so only the bass reads this.
-      bassDecoration: isLeft ? (rules.generatorHints.bassDecorationPercent ?? 0) / 100 : 0,
-      bassInversion: isLeft ? (rules.generatorHints.bassInversionPercent ?? 0) / 100 : 0,
+      bassDecoration: bassLine ? (rules.generatorHints.bassDecorationPercent ?? 0) / 100 : 0,
+      bassInversion: bassLine ? (rules.generatorHints.bassInversionPercent ?? 0) / 100 : 0,
       endOnTonic: true,
       barDuration: meter.barDuration,
       // The tune is shaped as an arch across the whole test; the bass that
@@ -658,7 +719,7 @@ function pitchStaff(bars, { rng, rules, meter, hand, progression, key, against =
       // The bass gets a gentle *inverted* arch: it sinks while the tune climbs
       // and comes back as the tune falls — contrary motion at the scale of the
       // phrase (a flat target left it hopping round the window centre).
-      arch: isLeft ? -0.4 : 1,
+      arch: bassLine ? -0.4 : 1,
     },
     against,
   });
@@ -1967,7 +2028,11 @@ function addOrnaments(rng, score) {
     const graceDstep = event.dstep + (rng.chance(0.5) ? 1 : -1);
     // A grace note on the pitch just played reads as a misprinted repeat.
     if (before && before.dstep === graceDstep) continue;
-    event.grace = { pitch: pitchAt(graceDstep, key, { raiseSeventh: false }) };
+    // Spelled like any other note (raised 7th in minor), and never an
+    // augmented 2nd into the main note (Db-E in F minor).
+    const grace = pitchAt(graceDstep, key, { raiseSeventh: degreeOf(graceDstep, key) === 6 });
+    if (alteredInterval(graceDstep, grace.midi, event.dstep, event.pitch.midi)) continue;
+    event.grace = { pitch: grace };
     added += 1;
   }
 }

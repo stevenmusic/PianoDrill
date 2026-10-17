@@ -696,7 +696,9 @@ test('chord density stays inside the grade texture', () => {
  * the key it has moved into rather than the one it opened in.
  */
 test('a bass decoration is off the beat, stepped into, and never doubled', () => {
-  eachTest((score, _rules, context) => {
+  eachTest((score, gradeRules, context) => {
+    // Grade 1's hands take turns: its left hand is a tune, not a bass.
+    if (gradeRules.texture.handsPlayTogether === false) return;
     const opening = createKey(score.key);
     const destination = score.keyChange ? createKey(score.keyChange) : opening;
     const bassFinal = score.staves[2]

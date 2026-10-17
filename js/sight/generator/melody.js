@@ -1006,6 +1006,8 @@ function pickWeighted(ctx) {
      * guarded against, and nothing was stopping it.
      */
     if (semitones === 6) continue;
+    // Nor any other augmented or diminished interval (C-G# in A minor).
+    if (alteredInterval(previous, previousMidi, dstep, midi)) continue;
 
     const isChordTone = tones.includes(degreeOf(dstep, key));
     /*
@@ -1884,7 +1886,24 @@ function parallelPerfect(before, now) {
   return beforeInterval === afterInterval && (afterInterval === 0 || afterInterval === 7);
 }
 
+/**
+ * An augmented or diminished melodic interval (judged by letter distance
+ * against semitones): augmented 2nd, diminished 4th or 7th, augmented 5th,
+ * tritone. Harmonic minor writes them wherever the raised 7th meets the 3rd,
+ * 4th or 6th — C to G# in A minor is a diminished 4th a teacher marks.
+ */
+const PLAIN = [[0], [1, 2], [3, 4], [5], [7], [8, 9], [10, 11]];
+export function alteredInterval(fromDstep, fromMidi, toDstep, toMidi) {
+  let g = Math.abs(toDstep - fromDstep), sem = Math.abs(toMidi - fromMidi);
+  while (g >= 7) { g -= 7; sem -= 12; }
+  return !PLAIN[g].includes(sem);
+}
+
 function writesAugmentedSecond(notes, index, dstep, raiseSeventh, key) {
+  const midi = pitchAt(dstep, key, { raiseSeventh }).midi;
+  for (const neighbour of [notes[index - 1], notes[index + 1]]) {
+    if (neighbour?.pitch && alteredInterval(neighbour.dstep, neighbour.pitch.midi, dstep, midi)) return true;
+  }
   if (!key.isMinor) return false;
   for (const neighbour of [notes[index - 1], notes[index + 1]]) {
     if (!neighbour) continue;

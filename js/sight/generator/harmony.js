@@ -232,10 +232,12 @@ export function buildProgression(rng, barCount, options = {}) {
    * repairs above can line up a third bar of the same chord after the walk's
    * own two-bar cap, so runs are broken here, last of all.
    */
-  const sameAs = (a, b) => !Array.isArray(a) && !Array.isArray(b) && a === b;
+  // A split bar counts by the chord it joins with (ii | ii | ii/V is ii for 2.5 bars).
   for (let bar = 2; bar < barCount; bar++) {
-    if (!sameAs(progression[bar], progression[bar - 1]) || !sameAs(progression[bar - 1], progression[bar - 2])) continue;
     const middle = bar - 1;
+    if (Array.isArray(progression[middle])) continue;
+    const c = progression[middle];
+    if (lastChord(progression[middle - 1]) !== c || firstChord(progression[bar]) !== c) continue;
     if (fixed.has(middle)) continue;
     const choices = Object.keys(table).filter((chord) => chord !== progression[middle]
       && fits(chord, progression[middle - 1], progression[middle + 1]));

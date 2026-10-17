@@ -13,7 +13,7 @@ import { buildProgression, firstChord, lastChord, halfCadenceBar, splitPoint } f
 import {
   assignPitches, stackChordTones, soundingTimeline, harmoniseLeadingNotes, harmoniseRepeatedLeadingNotes,
   revertClashingBassDecorations,
-  relaxParallels, planBassLine, planMelodyLine,
+  relaxParallels, planBassLine, planMelodyLine, alteredInterval,
 } from './melody.js';
 import { DIVISIONS, cellsFor, fillBar, wholeBarRest } from './rhythm.js';
 import { meterInfo, rescaleCells } from './meter.js';
@@ -151,6 +151,10 @@ export function generateTest(rulesTable, options) {
   resolveFinalLeadingNote(rightHand, leftHand, key);
   fixSixteenthStutters(rightHand, leftHand, key, meter.barDuration, meter.beatDuration, true);
   fixSixteenthStutters(leftHand, rightHand, key, meter.barDuration, meter.beatDuration);
+  // The repairs after the walk can still leave an augmented or diminished leap
+  // in the tune (C-G# in A minor); move one of its two notes to the nearest
+  // pitch that fits.
+  fixAlteredLeaps(rightHand, leftHand, key, meter.barDuration, meter.beatDuration);
   // Last, once every repair has settled the final pitches. The tune too: a final bar of tonic-then-tonic (the downbeat cannot step
   // into the tonic over the tonic chord) is one held note, so the line steps
   // into the last bar instead of stuttering inside it.
@@ -403,6 +407,8 @@ function buildRhythm({ rng, rules, meter, barCount, hand, progression, silentBar
        * shorter, and the half-cadence bar stopped arriving on a longer note
        * than its neighbours at all (measured 1.11 -> 1.02 at Grade 2).
        */
+      // The tune is heard arriving at its half cadence, not silent through it.
+      for (let attempt = 0; !isLeft && !events.some((e) => !e.rest) && attempt < 12; attempt++) events = draw();
       const endsResting = (drawn) => drawn[drawn.length - 1]?.rest === true;
       if (rules.grade >= 3 && !isAccompaniment && !endsResting(events) && rng.chance(0.5)) {
         for (let attempt = 0; attempt < 6; attempt++) {
@@ -498,11 +504,79 @@ function buildRhythm({ rng, rules, meter, barCount, hand, progression, silentBar
 
     // The bass states a split bar's second chord: a note held across the change
     // is re-struck there (8% of split bars held the old bass under the new chord).
+    // Last word on 3 against 2: a figure, a copy or a cadence draw that slipped
+    // one in is redrawn against the tune.
+    if (isLeft && partner && crossRhythmBetween(events, partner[barIndex]?.events ?? [], meter.beatDuration)) {
+      events = drawComplementaryBar(rng, cells, meter, { restBudget, maxFast, activity: activity * 0.7 }, [], partner[barIndex].events,
+        Array.isArray(progression[barIndex]) ? splitPoint(meter.barDuration, meter.beatDuration) : null);
+    }
     if (isLeft && Array.isArray(progression[barIndex])) events = strikeAt(events, splitPoint(meter.barDuration, meter.beatDuration), rules);
     bars.push({ events, beatDuration: meter.beatDuration, directions: [], motif, formSource });
   }
 
   return bars;
+}
+
+/** Move one note of each augmented/diminished melodic leap to a nearby pitch that fits. */
+function fixAlteredLeaps(bars, other, key, barDuration, beatDuration) {
+  const flat = [];
+  bars.forEach((bar, b) => { let o = 0; for (const e of bar.events) { if (!e.rest && e.pitch) flat.push({ e, at: b * barDuration + o }); o += e.dur; } });
+  const spans = [];
+  other.forEach((bar, b) => { let o = 0; for (const e of bar.events) { if (!e.rest && e.pitch) spans.push({ from: b * barDuration + o, to: b * barDuration + o + e.dur, midis: [e.pitch.midi, ...(e.chord ?? []).map((c) => c.midi ?? c.pitch?.midi)] }); o += e.dur; } });
+  const window = bars.window;
+  const fits = (k, dstep, allowRepeat = false) => {
+    const x = flat[k];
+    const raise = degreeOf(dstep, key) === 6;
+    const pitch = pitchAt(dstep, key, { raiseSeventh: raise });
+    if (window && (dstep < window.low || dstep > window.high)) return null;
+    if (x.at % beatDuration === 0 && x.e.chordDegrees && !x.e.chordDegrees.includes(degreeOf(dstep, key))) return null;
+    for (const n of [flat[k - 1], flat[k + 1]]) {
+      if (!n) continue;
+      if (alteredInterval(n.e.dstep, n.e.pitch.midi, dstep, pitch.midi)) return null;
+      if (!allowRepeat && n.e.dstep === dstep) return null;
+      if (Math.abs(n.e.dstep - dstep) > 5) return null;
+    }
+    const clash = spans.some((s) => s.from < x.at + x.e.dur && s.to > x.at
+      && s.midis.some((m) => m !== undefined && ([1, 2, 6, 10, 11].includes((((pitch.midi - m) % 12) + 12) % 12) || pitch.midi < m)));
+    return clash ? null : { pitch, raise };
+  };
+  for (let k = 1; k < flat.length; k++) {
+    const a = flat[k - 1], b = flat[k];
+    if (a.e.chromatic || b.e.chromatic || b.e.timeModification) continue;
+    if (!alteredInterval(a.e.dstep, a.e.pitch.midi, b.e.dstep, b.e.pitch.midi)) continue;
+    let done = false;
+    for (const j of k === flat.length - 1 ? [k - 1] : [k, k - 1]) {
+      if (done || j < 1 && j !== k) continue;
+      for (const [delta, allowRepeat] of [[1], [-1], [2], [-2], [3], [-3], [1, true], [-1, true], [2, true], [-2, true]]) {
+        if (flat[j].e.chord?.length) break;
+        const ok = fits(j, flat[j].e.dstep + delta, allowRepeat);
+        if (!ok) continue;
+        Object.assign(flat[j].e, { dstep: flat[j].e.dstep + delta, pitch: ok.pitch, raiseSeventh: ok.raise });
+        done = true; break;
+      }
+    }
+  }
+}
+
+/** Whether one hand plays a triplet in a beat where the other moves inside it (3 against 2). */
+function crossRhythmBetween(left, right, beat) {
+  const beats = (events) => {
+    const out = new Map(); let offset = 0;
+    for (const event of events) {
+      const b = Math.floor(offset / beat);
+      if (!out.has(b)) out.set(b, { tuplet: false, inner: false });
+      if (event.timeModification) out.get(b).tuplet = true;
+      if (!event.rest && offset % beat !== 0) out.get(b).inner = true;
+      offset += event.dur;
+    }
+    return out;
+  };
+  const r = beats(right);
+  for (const [b, l] of beats(left)) {
+    const o = r.get(b) ?? { tuplet: false, inner: false };
+    if (l.tuplet !== o.tuplet && ((l.tuplet && o.inner) || (o.tuplet && l.inner))) return true;
+  }
+  return false;
 }
 
 const NOTE_OF = { 96: ['whole', 0], 72: ['half', 1], 48: ['half', 0], 36: ['quarter', 1], 24: ['quarter', 0], 18: ['eighth', 1], 12: ['eighth', 0], 6: ['16th', 0] };
@@ -546,7 +620,7 @@ function pitchStaff(bars, { rng, rules, meter, hand, progression, key, against =
   const top = isLeft && !rules.texture.fiveFingerPosition ? Math.max(low + 6, Math.min(high, 29)) : high;
   const window = rules.texture.fiveFingerPosition
     ? fiveFingerWindow(rng, key, low, high, above, center === null ? null : center + 1)
-    : tessituraWindow(rng, key, low, top, isLeft ? Math.min(10, 8 + rules.grade) : 8 + rules.grade, above, center);
+    : tessituraWindow(rng, key, isLeft && top - 15 >= Math.min(10, 8 + rules.grade) ? Math.max(low, 15) : low, top, isLeft ? Math.min(10, 8 + rules.grade) : 8 + rules.grade, above, center);
 
   // The bass line is planned bar to bar first (melody.js planBassLine), then filled.
   const bassPlan = isLeft
@@ -1175,7 +1249,10 @@ function fiveFingerWindow(rng, key, low, high, above = null, center = null) {
     if (hasTonic) all.push(dstep);
   }
   if (!all.length) return { low, high };
-  const starts = reachableFrom(all, above);
+  // The bass position holds the dominant as well as the tonic, or the cadence
+  // can only be V6 or V6/4 (16-26% of Grade 2 cadences before).
+  const withDominant = center !== null ? all.filter((d) => [0, 1, 2, 3, 4].some((step) => degreeOf(d + step, key) === 4)) : all;
+  const starts = reachableFrom(withDominant.length ? withDominant : all, above);
   const tonicStarts = starts.filter((dstep) => degreeOf(dstep, key) === 0);
   const start = tonicStarts.length && rng.chance(0.7) ? pickNear(rng, tonicStarts, 4, center) : pickNear(rng, starts, 4, center);
   return { low: start, high: start + 4 };
@@ -1554,6 +1631,7 @@ function addChromaticGroup(rng, score) {
     // an unset field there reads as a disagreement even when the two notes
     // are otherwise identical.
     raiseSeventh: degreeOf(pitch.dstep, key) === 6,
+    chromatic: true,   // a written-out chromatic run: its augmented unisons are the point
   }));
   bar.events.splice(eventIndex, 1, ...group);
 }

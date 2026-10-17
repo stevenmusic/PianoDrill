@@ -55,8 +55,8 @@ Xcode 裡:
   > 視奏:依 ABRSM 官方視奏範例整理的規則隨機出題(1–8 級),30 秒準備、聽正確版本比對,可以選用麥克風評節奏。
   > 聽音:單音、音程、和弦聽音練習,鍵盤作答、自動批改,錯得多的項目多練。
   > 檢定:選好考試(ABRSM / Trinity)和級數一次,音階琶音、視奏、聽力測驗都照這一級出題,還有模擬考。
-  > 第一次下載鋼琴音色後可以離線使用;不需要登入、沒有廣告。
-- **英文描述**:Scales, arpeggios and Hanon with fingering on every note; random sight-reading tests modelled on ABRSM specimens (Grades 1–8); ear training for notes, intervals and chords plus ABRSM / Trinity aural tests — all set to your exam grade in one place. Sampled piano, instant marking, works offline once the piano sound has downloaded, no sign-in, no ads.
+  > 鋼琴音色內建在 App 裡,不用網路也能用;不需要登入、沒有廣告。
+- **英文描述**:Scales, arpeggios and Hanon with fingering on every note; random sight-reading tests modelled on ABRSM specimens (Grades 1–8); ear training for notes, intervals and chords plus ABRSM / Trinity aural tests — all set to your exam grade in one place. Sampled piano built in, instant marking, works fully offline, no sign-in, no ads.
 - 「考級」只放在關鍵字(有人這樣搜尋),App 內一律用「檢定」「考試」。
 
 ## 審核備註(4.2 最低功能)可以寫

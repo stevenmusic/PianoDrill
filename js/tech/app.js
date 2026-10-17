@@ -117,9 +117,11 @@ const PICKERS = {
   },
   /* 哈農:曲目 1–20、調(12 個大調,同一個樣式移調)、手 */
   hanon: {
-    defaults: { no: 1, key: "C", hands: "HT", rhythm: "even", pulse: "q", moreKeys: false },
+    defaults: { no: 1, key: "C", hands: "HT", rhythm: "even", pulse: "q", moreKeys: false, octaves: 2 },
     rows: p => [
       ["no", tr("曲目", "No."), HANON_NOS()],
+      // 音域:原譜兩個八度;一個八度 = 上行、下行各少 7 小節(使用者要求)
+      ["octaves", tr("音域", "Range"), [[2, tr("2八度", "2 oct.")], [1, tr("1八度", "1 oct.")]]],
       // 調:預設只有原譜的 C 大調;「其他調」展開 12 個調(進階,指法照 C 大調原譜)
       ["key", tr("調", "Key"), p.moreKeys || p.key !== "C" ? keyOpts(MAJ_KEYS).concat([["__less", tr("收起", "Less")]])
         : [["C", tr("C(原譜)", "C (orig.)")], ["__more", tr("其他調…", "Other keys…")]]],
@@ -128,7 +130,7 @@ const PICKERS = {
       // 拍點:♩ = 每 4 個音一拍(原譜的速度記法)、♪ = 每 2 個音一拍(比較好數;樂譜不變,速度數字 ×2)
       PULSE()   // 跟音階、琶音同一個順序(♪ 每 2 音 → ♩ 每 4 音);哈農預設仍是 ♩
     ],
-    toQ: p => ({ type: "hanon", no: Number(p.no), tonic: p.key, hands: p.hands, rhythm: p.rhythm, quality: "major", articulation: "legato", motion: "similar", cat: "hanon" })
+    toQ: p => ({ type: "hanon", no: Number(p.no), tonic: p.key, hands: p.hands, rhythm: p.rhythm, octaves: Number(p.octaves) === 1 ? 1 : 2, quality: "major", articulation: "legato", motion: "similar", cat: "hanon" })
   }
 };
 S.pick = S.pick || {};
@@ -171,7 +173,7 @@ function freeQuestion(tab){
   q.free = true;
   if (q.type === "broken") { q.tempo = { unit: "q.", bpm: S.freeBpm.broken || 50 }; q.sub = 3; q.key = masteryKey(q); return q; }   // 分解和弦照 Trinity:♩. = 50、三連音
   q.sub = tab === "hanon" ? 4 : 2;
-  q.key = tab === "hanon" ? `hanon|${q.no}|${q.tonic}${q.quality === "minor" ? "m" : ""}|${q.hands}|${q.rhythm}` : masteryKey(q);
+  q.key = tab === "hanon" ? `hanon|${q.no}|${q.tonic}${q.quality === "minor" ? "m" : ""}|${q.hands}|${q.rhythm}${q.octaves === 1 ? "|1" : ""}` : masteryKey(q);
   return q;
 }
 function loadFree(tab){ setQuestion(freeQuestion(tab), tab); }

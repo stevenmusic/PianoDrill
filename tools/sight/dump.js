@@ -17,7 +17,7 @@ const T = { whole: 'w', half: 'h', quarter: 'q', eighth: 'e', '16th': 's', '32nd
 const ACC = { '-2': 'bb', '-1': 'b', 0: '', 1: '#', 2: 'x' };
 const name = p => p.step + ACC[p.alter || 0] + p.octave;
 const ev = e => {
-  const d = (T[e.type] || e.type) + '.'.repeat(e.dots || 0) + (e.tuplet ? '3' : '');
+  const d = (T[e.type] || e.type) + '.'.repeat(e.dots || 0) + (e.timeModification ? '3' : '');
   if (e.rest) return 'r' + d;
   const notes = [e.pitch, ...(e.chord || []).map(c => c.pitch || c)].filter(Boolean).map(name).join('+');
   return (e.grace ? '(' + name(e.grace.pitch) + ')' : '') + notes + d + (e.slur ? '~' : '') + ((e.articulations || []).includes('staccato') ? "'" : '');

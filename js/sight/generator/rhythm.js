@@ -120,14 +120,16 @@ export function fillBar(rng, cells, beatsPerBar, options = {}) {
   const exponent = -0.5 + 1.7 * (options.activity ?? 0.4);
   const cellIds = [];
   const events = [];
-  let remaining = beatsPerBar;
+  // `from` continues a bar whose first beats are already written (a varied
+  // restatement keeps its source's opening and redraws the rest).
+  let remaining = beatsPerBar - (options.from ?? 0);
   let restsUsed = 0;
   // Real tests keep semiquaver figures to a beat or two a bar at the lower
   // grades and never start one straight out of a rest: a reader gets one fast
   // beat to deal with, not a rest followed by a scramble.
   const maxFast = options.maxFast ?? Infinity;
   let fastUsed = 0;
-  let lastWasRest = false;
+  let lastWasRest = options.afterRest ?? false;
 
   while (remaining > 0) {
     const position = beatsPerBar - remaining;

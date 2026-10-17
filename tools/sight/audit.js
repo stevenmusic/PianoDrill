@@ -259,8 +259,11 @@ function auditHarmony(grade, tests) {
     const rate = pct(root, n);
     // Every chord should reach root position a fair share of the time; a
     // chord that never does is a hole in the harmonic vocabulary.
+    // ii is the exception: ii6 (third in the bass) is its commonest classical
+    // form, so only a floor that proves root position is reachable applies.
+    const floor = chord === 'ii' ? 40 : 55;
     lines.push(check('harmony', grade, `  ${chord}: bass on the chord root`, `${fixed(rate)}%`,
-      rate >= 55, '>=55% of bars where the root is reachable'));
+      rate >= floor, `>=${floor}% of bars where the root is reachable`));
   }
 
   const cadRate = pct(cadenceVRoot, cadenceV);

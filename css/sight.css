@@ -19,7 +19,7 @@
 #mod-sight .countdown.running{color:var(--gold-bright)}
 #mod-sight .countdown.done{color:var(--muted-bright)}
 #mod-sight .feedback.error{color:var(--error);background:var(--error-bg);border:1px solid var(--error-line);border-radius:var(--radius-sm);padding:8px 10px}
-#mod-sight .checklist{padding-left:1.4em;color:var(--muted-bright);font-size:var(--fs-sm);line-height:1.6;columns:2;column-gap:28px}
+#mod-sight .checklist{margin:12px 0 0;padding-left:1.4em;color:var(--muted-bright);font-size:var(--fs-sm);line-height:1.6;columns:2;column-gap:28px}
 #mod-sight .checklist li{break-inside:avoid}
 @media (max-width:600px){ #mod-sight .checklist{columns:1} }
 @media (max-width:340px){ #s-prepare .btn-label{display:none} }
@@ -55,3 +55,12 @@
 #s-logCard .card-title .btn{margin-left:auto}
 /* 級數鈕只寫數字:一樣寬 */
 #s-grades .opt{min-width:44px}
+/* 準備 30 秒的浮動倒數(樂譜捲到畫面上時,題目卡的倒數看不到) */
+#mod-sight .prep-float{position:fixed;right:12px;z-index:55;display:flex;align-items:baseline;gap:2px;padding:6px 14px;border-radius:var(--radius-pill);
+  background:var(--gold-fill);color:var(--on-fill);font-family:"Noto Serif TC",serif;font-size:22px;font-weight:700;line-height:1.2;
+  box-shadow:0 4px 14px rgba(0,0,0,.35);font-variant-numeric:tabular-nums;pointer-events:none}
+#mod-sight .prep-float .unit{font-size:12px;font-family:inherit}
+#mod-sight .prep-float.low{animation:prep-pulse 1s ease-in-out infinite}
+@keyframes prep-pulse{50%{transform:scale(1.12)}}
+@media (prefers-reduced-motion:reduce){#mod-sight .prep-float.low{animation:none}}
+#mod-sight .prep-float[hidden]{display:none}

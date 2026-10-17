@@ -215,7 +215,7 @@ function buildDouble(FG, q){
 
 export const SIXTEENTH_TYPES = ["scale", "chromatic", "wholetone", "thirds", "sixths", "arpeggio", "dom7", "dim7"];   // 分解和弦照 Trinity 大綱(三連音 / 初級八分音符)
 export function buildExercise(FG, q){
-  if (q.type === "hanon") return buildHanon(q.no, q.tonic, q.rhythm);
+  if (q.type === "hanon") return buildHanon(q.no, q.tonic, q.rhythm, q.octaves === 1 ? 1 : 2);
   const b = {
     scale: buildScale, arpeggio: buildArp, dom7: buildArp, dim7: buildArp,
     chromatic: (FG, q) => buildChromatic(q), wholetone: (FG, q) => buildWholeTone(q),
@@ -264,7 +264,7 @@ export function keyName(q){
 }
 export const keyNameZh = keyName;
 export function questionText(q){
-  if (q.type === "hanon") return [tr(`哈農 第 ${q.no} 首`, `Hanon No. ${q.no}`), pick(HAND[q.hands] || HAND.HT), nm(q.tonic) + (q.quality === "minor" ? tr(" 小調", " minor") : tr(" 大調", " major"))]
+  if (q.type === "hanon") return [tr(`哈農 第 ${q.no} 首`, `Hanon No. ${q.no}`), pick(HAND[q.hands] || HAND.HT), nm(q.tonic) + (q.quality === "minor" ? tr(" 小調", " minor") : tr(" 大調", " major"))].concat(q.octaves === 1 ? [tr("1八度", "1 oct.")] : [])
     .concat(q.rhythm === "dotted" ? [tr("附點", "Dotted")] : q.rhythm === "reverse" ? [tr("反附點", "Rev. dotted")] : []);
   // 相隔三度/六度放在標籤(取代「雙手」),題目才不會比另一種語言多一行
   const parts = [keyName(q.apart ? { ...q, apart: 0 } : q)];

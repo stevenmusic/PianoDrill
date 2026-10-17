@@ -736,3 +736,7 @@ body.land-play #t-stage{flex:1;display:flex;flex-direction:column;justify-conten
   #mod-sight .q-foot{grid-column:1 / -1}
   #mod-sight .q-tag{font-size:14px;padding:0 8px;line-height:26px}
 }
+/* 哈農曲目:1–10 一排、11–20 一排(使用者要求);太窄(< 375)放不下 10 個 28px 的鈕 → 每排 5 個,仍是 1–10、11–20 分組 */
+#mod-tech .picker .opts[data-k="no"]{display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:4px}
+#mod-tech .picker .opts[data-k="no"] .opt{min-width:0;padding:0;font-variant-numeric:tabular-nums}
+@media (max-width:374px){ #mod-tech .picker .opts[data-k="no"]{grid-template-columns:repeat(5,minmax(0,1fr))} }

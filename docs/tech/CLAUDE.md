@@ -19,7 +19,12 @@
   並對照 PDF 頁面圖片逐格核對手、力度、奏法、八度、速度,都對了才設 verified = true;README 的清單用 `node tools/build/checklist.mjs --fingerings` 重新產生
 - 官方大綱 PDF:ABRSM https://www.abrsm.org/en-gb/piano(Cloudflare 擋 curl,要用 Playwright 開頁面再在頁內 fetch);Trinity https://www.trinitycollege.com/resource/?id=9079
 - **不要用合成鋼琴音**:鋼琴讀 ScrollScore 的 Salamander 取樣(`raw.githubusercontent.com/stevenmusic/ScrollScore/main/piano/`),引擎照 HarmonyHands;節拍器用 Naked Drums 的 xstick 取樣
-- **哈農不要逐音手打**:用「樣式 + 移位規則」生成(`js/hanon.js`),已對照原譜(IMSLP #00874)逐首核對第 1、15 小節與結尾
+- **哈農不要逐音手打**:用「樣式 + 移位規則」生成(`js/tech/hanon.js`),對照原譜(IMSLP #00874)。
+  2026-10 使用者發現錯音,第二次逐首核對**第 1、14、15、28 小節與結尾**(第一次只看第 1、15 小節,漏掉轉折處):
+  哈農在轉折處會避開同一個音連彈兩次,所以第 6、12、15、17 首第 14 小節、第 6、15 首第 28 小節的最後一個音跟樣式不同(`fix`);
+  第 12 首的樣式本身錯了(第一個音是六度 A C E D C D E C,下行從 B 開始);第 20 首上行、下行各 **15** 小節(不是 14)。
+  verify.mjs 的 HANON_PRINTED 是照原譜讀出來的這四個小節,改哈農一定要通過
+- 哈農可以選一個八度(上行、下行各少 7 小節,最後一小節與結尾跟原譜一樣);曲目 1–10 一排、11–20 一排(窄於 375 時每排 5 個)
 - 外觀照 HarmonyHands / HarmonyMap 的設計代幣(`css/app.css` 開頭那段逐項相同),圖示用線稿 SVG(24 格、stroke 2、圓端點)
 
 ## 樂理/指法

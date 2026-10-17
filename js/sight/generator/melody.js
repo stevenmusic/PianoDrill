@@ -53,6 +53,7 @@ const NEVER_INTERVALS = new Set([1, 11]);
  * there (leap limits, clashes) still applies.
  */
 export function planBassLine({ rng, key, bars, progression, window, inversion = 0.5, phraseEnd = null }) {
+  // The half cadence is a root-position V, the same as the final cadence's.
   const n = bars.length;
   const span = window.high - window.low;
   const steps = [];
@@ -68,7 +69,7 @@ export function planBassLine({ rng, key, bars, progression, window, inversion = 
     const first = bar.events[0];
     if (!first || first.rest) return;
     const tones = chordDegrees(firstChord(progression[b] ?? 'I'));
-    const fixed = b === 0 || b === n - 2 || b === n - 1 || !stages.length;
+    const fixed = b === 0 || b === n - 2 || b === n - 1 || b === phraseEnd || !stages.length;
     const options = [];
     for (const d of steps) {
       const degree = degreeOf(d, key);
@@ -99,7 +100,7 @@ export function planBassLine({ rng, key, bars, progression, window, inversion = 
           const before = Math.sign(p.d - state.prev), now = Math.sign(o.d - p.d);
           if (before && now && before === now) c -= 0.7;                       // keep going the way it was going
         }
-        if (o.third) c += stages[k].chord === 'ii' ? 0.6 : 0.15;              // root position stays the norm (fixed points, no two running)
+        if (o.third) c += stages[k].chord === 'ii' ? 0.6 : stages[k].chord === 'I' ? 0.45 : 0.15;   // root position stays the norm (a tonic most of all)
         c += 0.2 * Math.abs(o.d - lineAt(stages[k].b)) + rng.next() * 0.5;
         if (!best || c < best.cost) best = { cost: c, path: [...state.path, j], prev: p.d };
       }
@@ -111,6 +112,130 @@ export function planBassLine({ rng, key, bars, progression, window, inversion = 
   const win = layer.reduce((a, c) => (c.cost < a.cost ? c : a));
   const plan = [];
   win.path.forEach((j, k) => { plan[stages[k].b] = stages[k].options[j].d; });
+  return plan;
+}
+
+/**
+ * The melody's skeleton: one structural note per bar (its downbeat), planned
+ * across the whole test before any bar is filled in.
+ *
+ * Choosing every note on the spot — a weighted step or leap from wherever the
+ * last one landed, drawn faintly toward an arch — gives a line with no goals:
+ * it circles the same two or three notes (A A A, then an unprepared leap down
+ * and back), because nothing tells it where the next bar wants to be. Real
+ * tunes are a few goal notes joined up: a line that rises through the
+ * antecedent, comes to rest on 2 (or 7, or 5) at the half cadence, climbs to
+ * one high point in the consequent and falls 3-2-1 into the tonic. A beam
+ * search picks those downbeat notes — chord tones of each bar, moving mostly
+ * by step or third, keeping direction, one climax, consonant with the bass
+ * already written and never in parallel fifths or octaves with it — and bars
+ * that restate an earlier bar take the matching transposed note. The walk
+ * then aims each bar at the next bar's goal (see `assignPitches`).
+ *
+ * Returns `plan[barIndex] = dstep` for bars that open with a note.
+ */
+export function planMelodyLine({ rng, key, bars, progression, window, phraseEnd = null, form = [], against = null, barDuration = 0 }) {
+  const n = bars.length;
+  const span = window.high - window.low;
+  const midi = (d) => soundingMidi(d, key);
+  const lastPhrase = (b) => phraseEnd === null || b > phraseEnd;
+  const targetAt = (b) => {
+    const [a, z] = phraseEnd !== null && b > phraseEnd ? [phraseEnd + 1, n - 1] : [0, phraseEnd ?? n - 1];
+    const t = z > a ? (b - a) / (z - a) : 0;
+    const peak = lastPhrase(b) ? 0.85 : 0.55;
+    const end = lastPhrase(b) ? 0.25 : 0.48;
+    const h = t <= 0.6 ? 0.35 + (peak - 0.35) * (t / 0.6) : peak + (end - peak) * ((t - 0.6) / 0.4);
+    return window.low + span * h;
+  };
+  const stages = [];
+  bars.forEach((bar, b) => {
+    const first = bar.events[0];
+    if (!first || first.rest) return;
+    const chord = firstChord(progression[b] ?? 'I');
+    const tones = chordDegrees(chord);
+    const sounding = against && barDuration ? soundingAt(against, b * barDuration, first.dur) : [];
+    const atOnset = against && barDuration ? soundingAt(against, b * barDuration, 1) : [];
+    const bass = atOnset.length ? Math.min(...atOnset) : null;
+    const ceiling = sounding.length ? Math.max(...sounding) : null;
+    const options = [];
+    for (let d = window.low; d <= window.high; d++) {
+      const degree = degreeOf(d, key);
+      if (!tones.includes(degree)) continue;
+      if (b === n - 1 && degree !== 0) continue;
+      const m = midi(d);
+      if (ceiling !== null && m < ceiling) continue;
+      // Nothing the walk would refuse on a downbeat: no second, seventh or
+      // tritone against anything the left hand is holding.
+      if (sounding.some((o) => HARSH_INTERVALS.has(Math.abs(m - o) % 12))) continue;
+      let cost = 0;
+      if (bass !== null) {
+        const vertical = (((m - bass) % 12) + 12) % 12;
+        if (degree === 6 && sounding.some((o) => o % 12 === m % 12)) continue;   // doubled leading note
+        if ([3, 4, 8, 9].includes(vertical)) cost -= 0.25;
+        else if (vertical === 0 && b !== 0 && b !== n - 1) cost += 0.35;
+      }
+      if (stages.length === 0) cost += degree === 2 ? 0 : degree === 4 ? 0.15 : 0.3;
+      else if (b === phraseEnd) cost += degree === 1 ? 0 : degree === 4 ? 0.3 : 0.5;
+      else if (b === n - 2) cost += degree === 1 ? 0 : degree === 6 ? 0.3 : 0.6;
+      options.push({ d, m, cost, bass });
+    }
+    if (options.length) stages.push({ b, options });
+  });
+  if (stages.length < 2) return [];
+  const stageOf = new Map(stages.map((stage, k) => [stage.b, k]));
+  const STEP = [1.0, 0, 0.4, 1.4, 2.2];
+  let beam = stages[0].options.map((o) => ({
+    cost: o.cost + 0.22 * Math.abs(o.d - targetAt(stages[0].b)) + rng.next() * 0.6,
+    path: [o],
+  }));
+  for (let k = 1; k < stages.length; k++) {
+    const { b, options } = stages[k];
+    const boundary = phraseEnd !== null && stages[k - 1].b === phraseEnd;
+    const plan = form[b] && form[b].transpose !== null && stageOf.has(form[b].source) ? form[b] : null;
+    const next = [];
+    for (const state of beam) {
+      const p = state.path[k - 1];
+      const p2 = k >= 2 ? state.path[k - 2] : null;
+      for (const o of options) {
+        const dd = Math.abs(o.d - p.d);
+        if (!boundary && Math.abs(o.m - p.m) > 12) continue;
+        let c = state.cost + o.cost + (boundary ? 0.2 * dd : STEP[dd] ?? 3 + (dd - 5));
+        if (p2 && !boundary) {
+          const before = Math.sign(p.d - p2.d), now = Math.sign(o.d - p.d);
+          if (before && now === before && dd <= 2) c -= 0.25;                       // keeps going
+          if (Math.abs(p.d - p2.d) >= 3 && now === -before) c -= 0.4;               // a leap turns back
+          if (dd === 0 && p.d === p2.d) c += 2;                                     // three heads on one note
+        }
+        if (!boundary && o.bass !== null && p.bass !== null) {
+          const mv = Math.sign(o.m - p.m), bv = Math.sign(o.bass - p.bass);
+          const was = (((p.m - p.bass) % 12) + 12) % 12, is = (((o.m - o.bass) % 12) + 12) % 12;
+          if (mv && mv === bv && was === is && (is === 0 || is === 7)) c += 4;     // parallel fifths/octaves
+        }
+        if (plan) {
+          const want = state.path[stageOf.get(plan.source)].d + plan.transpose;
+          if ((((o.d - want) % 7) + 7) % 7 !== 0) c += 6;                           // the restated bar's own note
+        }
+        c += 0.3 * Math.abs(o.d - targetAt(b)) + rng.next() * 0.6;
+        next.push({ cost: c, path: [...state.path, o] });
+      }
+    }
+    if (!next.length) return [];
+    next.sort((x, y) => x.cost - y.cost);
+    beam = next.slice(0, 48);
+  }
+  // One high point, and in the consequent where there is one.
+  const total = (state) => {
+    const top = Math.max(...state.path.map((o) => o.d));
+    const at = state.path.map((o, k) => (o.d === top ? stages[k].b : -1)).filter((b) => b >= 0);
+    let c = state.cost + 1.2 * (at.length - 1);
+    // Reached first somewhere past the middle, never in the closing bars.
+    if (at[0] < 0.45 * (n - 1)) c += 2;
+    if (at.some((b) => b >= n - 2)) c += 2.5;                                       // the line falls into the cadence
+    return c;
+  };
+  const best = beam.reduce((a, s) => (total(s) < total(a) ? s : a));
+  const plan = [];
+  best.path.forEach((o, k) => { plan[stages[k].b] = o.d; });
   return plan;
 }
 
@@ -130,6 +255,11 @@ export function assignPitches({ rng, key, bars, progression, window, options, ag
     barDuration = 0,
     arch = 0,
     bassPlan = null,
+    // The melody's planned downbeat notes (planMelodyLine): each bar aims at
+    // the next one's.
+    melodyPlan = null,
+    // The antecedent's half-cadence bar (harmony.js halfCadenceBar), or null.
+    halfBar = null,
   } = options;
 
   const centre = (window.low + window.high) / 2;
@@ -148,7 +278,7 @@ export function assignPitches({ rng, key, bars, progression, window, options, ag
   const noteTotal = soundingEvents.length;
   // Where the closing tonic will land, worked out before the walk starts so
   // the note before it can aim to be a step away from it (see below).
-  const cadenceTonic = endOnTonic ? nearestWithDegree(allSteps, key, 0, aim(1)) : null;
+  const cadenceTonic = endOnTonic ? (melodyPlan?.[bars.length - 1] ?? nearestWithDegree(allSteps, key, 0, aim(1))) : null;
   let noteIndex = 0;
 
   let previous = null;
@@ -188,7 +318,7 @@ export function assignPitches({ rng, key, bars, progression, window, options, ag
   let previousBass = null;
   let previousDur = null;
 
-  bars.forEach((bar, barIndex) => {
+  const walkBar = (bar, barIndex) => {
     const entry = progression[barIndex] ?? 'I';
     let offset = 0;
     /*
@@ -244,7 +374,16 @@ export function assignPitches({ rng, key, bars, progression, window, options, ag
       const isDownbeat = offset === 0;
       const isFinalNote = event === finalEvent;
       const position = noteTotal > 1 ? noteIndex / (noteTotal - 1) : 0;
-      const target = aim(position);
+      /*
+       * With a planned skeleton the line is drawn from this bar's goal note
+       * toward the next bar's, so each bar travels somewhere and arrives at the
+       * barline a step or so from where the next bar begins.
+       */
+      const planHere = melodyPlan?.[barIndex];
+      const planNext = melodyPlan?.[barIndex + 1];
+      const target = melodyPlan && (planHere !== undefined || planNext !== undefined)
+        ? (planHere ?? planNext) + ((planNext ?? planHere) - (planHere ?? planNext)) * (offset / (barDuration || 1))
+        : aim(position);
 
       /*
        * The pitch this note would ideally take, offered to `pickWeighted` and
@@ -269,7 +408,9 @@ export function assignPitches({ rng, key, bars, progression, window, options, ag
        * second inversions in the language. The cadence is not up for a roll.
        */
       const chordHere = chordAt(entry, offset, barDuration, bar.beatDuration);
-      const harmonyArrives = isDownbeat || chordHere !== previousChord;
+      // A bar that opens with a rest still states its harmony with its first note.
+      const firstSounding = bar.events.find((e) => !e.rest) === event;
+      const harmonyArrives = isDownbeat || firstSounding || chordHere !== previousChord;
       previousChord = chordHere;
 
       let preferred = null;
@@ -277,6 +418,9 @@ export function assignPitches({ rng, key, bars, progression, window, options, ag
       const nextPlan = bassPlan?.[barIndex + 1];
       if (chordToneOnly && isDownbeat && bassPlan?.[barIndex] !== undefined) {
         preferred = bassPlan[barIndex];
+      } else if (chordToneOnly && lastInBar && !isDownbeat && barIndex === halfBar) {
+        // The half cadence lands: the bass ends the antecedent on the dominant's root.
+        preferred = nearestWithDegree(allSteps, key, tones[0], previous ?? target);
       } else if (chordToneOnly && lastInBar && !isDownbeat && nextPlan !== undefined && !harmonyArrives) {
         // Lead into the next planned downbeat: the chord tone nearest it (by step
         // where possible), so bar joins bar instead of the bass jumping at the line.
@@ -309,17 +453,18 @@ export function assignPitches({ rng, key, bars, progression, window, options, ag
          * rate against the pre-change generator; this keeps it a minority of
          * an already-conditional choice.
          */
-        const smooth = previous === null || isCadentialBar || isClosingBar
+        // Never the fifth: a 6/4 outside the cadential formula is a fault on the page.
+        const smooth = previous === null || isCadentialBar || isClosingBar || barIndex === halfBar
           ? null
-          : smoothInversion(allSteps, key, tones, previous, rng.chance(0.08));
+          : smoothInversion(allSteps, key, tones, previous, false);
         if (smooth !== null && rng.chance(bassInversion)) preferred = smooth;
-        else if (isCadentialBar || isClosingBar || rng.chance(0.8)) {
+        else if (isCadentialBar || isClosingBar || barIndex === halfBar || rng.chance(0.88)) {
           preferred = nearestWithDegree(allSteps, key, tones[0], previous ?? target);
         }
       } else if (event === penultimateEvent && cadenceTonic !== null) {
         preferred = cadenceApproach(cadenceTonic, previous, window);
       } else if (motifSource && !isFinalNote) {
-        const source = motifSource[motifIndex];
+        const source = motifIndex < (motif.limit ?? Infinity) ? motifSource[motifIndex] : null;
         if (source) {
           // The octave is settled once for the whole bar, by how well the
           // entire shape fits the window rather than by where its first note
@@ -331,9 +476,29 @@ export function assignPitches({ rng, key, bars, progression, window, options, ag
           // would restate a bar perfectly while the right hand, whose window
           // is the binding one, kept only its first note.
           if (motifOctave === null) {
-            motifOctave = fitMotifOctave(motifSource, motif.transpose, window, previous ?? target);
+            // The skeleton already chose where this restatement sits.
+            motifOctave = planHere !== undefined && !chordToneOnly && motifIndex === 0
+              ? Math.round((planHere - (motifSource[0].dstep + motif.transpose)) / 7) * 7
+              : fitMotifOctave(motifSource, motif.transpose, window, previous ?? target);
           }
-          preferred = source.dstep + motif.transpose + motifOctave;
+          preferred = isDownbeat && planHere !== undefined && !chordToneOnly
+            ? planHere
+            : source.dstep + motif.transpose + motifOctave;
+        }
+      }
+      if (preferred === null && melodyPlan && !chordToneOnly && !isFinalNote) {
+        if (isDownbeat && planHere !== undefined) preferred = planHere;
+        else if (lastInBar && planNext !== undefined && previous !== null) {
+          // Arrive at the next goal by step, from the side the line is on — or,
+          // on a beat (where a non-chord note must be a passing step), by the
+          // nearest chord tone that leads there.
+          const side = previous <= planNext ? -1 : 1;
+          const options = [planNext + side, planNext - side, planNext + 2 * side, planNext - 2 * side];
+          // A chord tone may sit anywhere; a passing note must be stepped into
+          // on its way to the goal, so that resolving it *is* arriving there.
+          preferred = options.find((d) => d !== previous && d >= window.low && d <= window.high
+            && (tones.includes(degreeOf(d, key))
+              || (Math.abs(d - previous) === 1 && Math.sign(d - previous) === Math.sign(planNext - d)))) ?? null;
         }
       }
 
@@ -386,6 +551,8 @@ export function assignPitches({ rng, key, bars, progression, window, options, ag
           preferred,
           beforePrevious,
           shortNote: event.dur <= bar.beatDuration / 4 ? 'sixteenth' : event.dur <= bar.beatDuration / 2 ? 'eighth' : null,
+          pull: melodyPlan && !chordToneOnly ? 0.45 : 0.12,
+          arrival: chordToneOnly && harmonyArrives,
         });
       }
 
@@ -439,6 +606,91 @@ export function assignPitches({ rng, key, bars, progression, window, options, ag
       event.pitch = pitchAt(chosen, key, { raiseSeventh: event.raiseSeventh });
       offset += event.dur;
     });
+  };
+
+  const snapshot = () => ({
+    noteIndex, previous, beforePrevious, previousLeap, repeatRun, runDirection, runLength, arpeggioDirection,
+    arpeggioLength, previousChord, previousWasChordTone, previousWasLeadingNote, previousBass, previousDur,
+  });
+  const restore = (state) => {
+    ({
+      noteIndex, previous, beforePrevious, previousLeap, repeatRun, runDirection, runLength, arpeggioDirection,
+      arpeggioLength, previousChord, previousWasChordTone, previousWasLeadingNote, previousBass, previousDur,
+    } = state);
+  };
+  /*
+   * How well a written bar serves the plan: on its own goal note, and arriving
+   * at the next bar's goal by step (a passing note there has to be heading
+   * into it). Turning back and forth, repeated notes and wide leaps cost a
+   * little — a line that goes somewhere, rather than one that circles.
+   */
+  const scoreBar = (bar, barIndex, start) => {
+    const notes = bar.events.filter((event) => !event.rest);
+    const here = melodyPlan[barIndex];
+    const next = melodyPlan[barIndex + 1];
+    let cost = 0;
+    if (!bar.events[0].rest && here !== undefined && notes[0].dstep !== here) cost += 2;
+    const last = notes[notes.length - 1];
+    if (next !== undefined && last !== finalEvent) {
+      const d = Math.abs(last.dstep - next);
+      cost += d === 1 ? 0 : d === 0 ? 1.2 : d === 2 ? 0.6 : 1.5 + 0.5 * (d - 3);
+      const before = notes.length > 1 ? notes[notes.length - 2].dstep : start.previous;
+      if (!last.chordDegrees.includes(degreeOf(last.dstep, key))
+        && (d !== 1 || before === null || Math.sign(last.dstep - before) !== Math.sign(next - last.dstep))) cost += 2.5;
+    }
+    // The antecedent ends on the dominant: its last note is 2, 5 or 7.
+    if (barIndex === halfBar && ![1, 4, 6].includes(degreeOf(last.dstep, key))) cost += 3;
+    // Nothing overshoots the planned climax before the climax bar is reached.
+    if (barIndex < climaxBar) cost += 1.5 * notes.filter((note) => note.dstep >= climax).length;
+    let previousNote = start.previous;
+    let direction = 0;
+    let before = start.beforePrevious;
+    for (const note of notes) {
+      if (previousNote !== null) {
+        const interval = note.dstep - previousNote;
+        if (interval === 0 && before === previousNote) cost += 4;                 // three on one pitch
+        if (interval === 0) cost += 0.4;
+        else {
+          if (direction && Math.sign(interval) !== direction) cost += 0.25;
+          direction = Math.sign(interval);
+          if (Math.abs(interval) >= 4) cost += 0.3;
+        }
+      }
+      before = previousNote;
+      previousNote = note.dstep;
+    }
+    return cost;
+  };
+  const planned = melodyPlan ? melodyPlan.filter((d) => d !== undefined) : [];
+  const climax = planned.length ? Math.max(...planned) : Infinity;
+  const climaxBar = melodyPlan ? melodyPlan.findIndex((d) => d === climax) : -1;
+  const FIELDS = ['dstep', 'raiseSeventh', 'chordDegrees', 'pitch'];
+  bars.forEach((bar, barIndex) => {
+    // The bass, and a melody without a plan, are written in one pass.
+    if (!melodyPlan || chordToneOnly || !bar.events.some((event) => !event.rest)) {
+      walkBar(bar, barIndex);
+      return;
+    }
+    // A planned melody tries a bar several ways and keeps the one that best
+    // reaches its goals — composing the bar, rather than accepting whatever
+    // a single run of note-by-note choices happened to produce.
+    const start = snapshot();
+    let best = null;
+    for (let trial = 0; trial < 12; trial++) {
+      restore(start);
+      walkBar(bar, barIndex);
+      const cost = scoreBar(bar, barIndex, start);
+      if (!best || cost < best.cost) {
+        best = {
+          cost,
+          state: snapshot(),
+          notes: bar.events.map((event) => (event.rest ? null : Object.fromEntries(FIELDS.map((f) => [f, event[f]])))),
+        };
+      }
+      if (cost <= 0.3) break;
+    }
+    restore(best.state);
+    bar.events.forEach((event, i) => { if (best.notes[i]) Object.assign(event, best.notes[i]); });
   });
 
   repairNonChordTones(bars, key, window, { against, barDuration, finalEvent: endOnTonic ? finalEvent : null });
@@ -560,9 +812,17 @@ function shapeCadence({ bars, key, window, against, barDuration, soundingEvents 
   // The melody has to clear the other hand here as much as anywhere else;
   // this pass runs after resolveClashes, so nothing downstream would catch it.
   const ceiling = sounding.length ? Math.max(...sounding) : null;
+  /*
+   * When the note before the tonic is itself the final bar's downbeat, it sits
+   * on the tonic chord's strongest beat: a 2 or 7 there is an accented
+   * dissonance on the last chord (15-18% of tests ended that way). Only a
+   * chord tone may take that beat, so the step approach is left out there.
+   */
+  const onDownbeat = bars.some((bar) => bar.events.find((event) => !event.rest) === penultimate && bar.events[0] === penultimate);
   // The leading note first: 7–1 is the stronger of the two approaches.
   for (const candidate of [tonic - 1, tonic + 1]) {
     if (candidate < window.low || candidate > window.high) continue;
+    if (onDownbeat && !(penultimate.chordDegrees ?? []).includes(degreeOf(candidate, key))) continue;
     let raiseSeventh = degreeOf(candidate, key) === 6;
     /*
      * This runs after `fixAugmentedSeconds`, so it has to keep that rule
@@ -685,9 +945,14 @@ function pickWeighted(ctx) {
     rng, key, allSteps, previous, previousLeap, repeatRun, runDirection, runLength, tones,
     arpeggioDirection, arpeggioLength, onBeat, isDownbeat, centre, stepwiseBias, maxLeapSemitones,
     chordToneOnly, sounding, previousWasChordTone, previousWasLeadingNote, previousBass, preferred = null,
-    bassDecoration = 0, fastLeapLimit = 99, beforePrevious = null, shortNote = null,
+    bassDecoration = 0, fastLeapLimit = 99, beforePrevious = null, shortNote = null, pull = 0.12, arrival = false,
   } = ctx;
   const bass = sounding.length ? Math.min(...sounding) : null;
+  // On a planned line, which way the bar's goal lies (0 when already close):
+  // momentum only counts when it carries the line toward it.
+  const planned = pull > 0.12;
+  const toward = planned && Math.abs(centre - previous) >= 1.5 ? Math.sign(centre - previous) : 0;
+  const runCounts = !planned || toward === 0 || runDirection === toward;
 
   const previousMidi = soundingMidi(previous, key);
   const ceiling = sounding.length ? Math.max(...sounding) : null;
@@ -860,9 +1125,11 @@ function pickWeighted(ctx) {
      * and capped so it tapers off rather than producing an unbroken
      * octave-plus scale every time.
      */
-    if (distance === 1 && runDirection !== 0 && Math.sign(interval) === runDirection) {
+    if (distance === 1 && runDirection !== 0 && Math.sign(interval) === runDirection && runCounts) {
       weight *= 1 + Math.min(runLength, 4) * 0.6;
     }
+    // A passing note heading away from the goal starts a run the wrong way.
+    if (planned && !isChordTone && toward !== 0 && Math.sign(interval) === -toward) weight *= 0.4;
     /*
      * Having sounded the leading note, go to the tonic. It is the strongest
      * tendency in the idiom — and in a minor key the raised 7th exists for no
@@ -899,7 +1166,10 @@ function pickWeighted(ctx) {
       const reverses = Math.sign(interval) === -Math.sign(previousLeap);
       weight *= reverses ? (distance === 1 ? 6 : 1.2) : (distance === 1 ? 0.5 : 0.08);
     }
-    weight *= 1 / (1 + Math.abs(dstep - centre) * 0.12);
+    // A planned line (pull above the default) is held to its course more
+    // firmly: the pull grows with the square of the distance, so a run can
+    // carry on a little past the target but not wander off it.
+    weight *= pull > 0.12 ? 1 / (1 + (Math.abs(dstep - centre) * pull) ** 2) : 1 / (1 + Math.abs(dstep - centre) * pull);
     // Within the leap category, a smaller leap still outweighs a bigger one.
     if (distance > 1) weight /= distance - 1;
     /*
@@ -919,6 +1189,9 @@ function pickWeighted(ctx) {
       weight *= Math.sign(midi - previousMidi) === -Math.sign(bass - previousBass) ? 2 : 0.6;
     }
 
+    // Where the harmony arrives the bass is the root or the third, almost never
+    // the fifth: a 6/4 outside the cadential formula is a fault on the page.
+    if (arrival && degreeOf(dstep, key) === tones[2]) weight *= 0.03;
     const candidate = { dstep, weight, clash };
     if (dstep === preferred && !clash) preferredCandidate = candidate;
     if (distance === 0) repeats.push(candidate);
@@ -926,6 +1199,16 @@ function pickWeighted(ctx) {
     else leaps.push(candidate);
   }
 
+  // The weight above only matters inside a category, and the category is drawn
+  // first: take the fifth out entirely wherever anything else is playable.
+  if (arrival) {
+    const notFifth = (c) => degreeOf(c.dstep, key) !== tones[2];
+    if ([...steps, ...leaps, ...repeats].some(notFifth)) {
+      for (const list of [steps, leaps, repeats]) {
+        const keep = list.filter(notFifth); list.length = 0; list.push(...keep);
+      }
+    }
+  }
   if (!steps.length && !leaps.length && !repeats.length) {
     /*
      * Nothing survived the filters. This last resort used to reach for the
@@ -1022,7 +1305,7 @@ function pickWeighted(ctx) {
   // not just which direction to step in once that category is chosen —
   // otherwise a run this same weighting just made attractive within the
   // step category could still get cut short by an unrelated leap roll.
-  const runBoost = runDirection !== 0 ? 1 + Math.min(runLength, 4) * 0.5 : 1;
+  const runBoost = runDirection !== 0 && runCounts ? 1 + Math.min(runLength, 4) * 0.5 : 1;
   // Same reasoning for an arpeggio in progress: the within-category boost
   // above only matters if the leap category is even rolled in the first
   // place.

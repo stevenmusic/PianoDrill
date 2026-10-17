@@ -8,7 +8,7 @@ import fs from "node:fs";
 import { buildExercise } from "../../js/tech/exercise.js";
 import { questionsFor, masteryKey } from "../../js/tech/syllabus.js";
 import { exerciseToMusicXML } from "../../js/tech/musicxml.js";
-import { buildHanon, HANON_KEYS, HANON_RHYTHMS } from "../../js/tech/hanon.js";
+import { buildHanon, HANON, HANON_KEYS, HANON_RHYTHMS } from "../../js/tech/hanon.js";
 import { INTERVALS, parseNote, pcOf, midiOf, isBlack } from "../../js/tech/theory.js";
 
 const root = new URL("../../", import.meta.url);
@@ -368,30 +368,61 @@ for (const [lh, rh, motion, tenth] of [["F#", "A#", "contrary"], ["C#", "E", "co
   T({ type: "chromatic", tonic: lh, lhStart: lh, rhStart: rh, motion, octaves: oct, apartTenth: !!tenth });
 }
 
-// 哈農:20 首 × 12 個調 × 3 種節奏 —— 移位規則、兩手八度、調內音、指法位置、音域、記譜
+// 哈農:20 首 × 12 個調 × 3 種節奏 × 一/兩個八度 —— 移位規則、兩手八度、調內音、指法位置、音域、記譜
+// HANON_PRINTED:2026-10 照原譜(IMSLP #00874)逐首讀出的右手:第 1 小節、上行最後一小節、下行第一小節、下行最後一小節(C 大調、兩個八度)
+const HANON_PRINTED = {
+  1: ["C3 E3 F3 G3 A3 G3 F3 E3", "B4 D5 E5 F5 G5 F5 E5 D5", "G5 E5 D5 C5 B4 C5 D5 E5", "A3 F3 E3 D3 C3 D3 E3 F3"],
+  2: ["C3 E3 A3 G3 F3 G3 F3 E3", "B4 D5 G5 F5 E5 F5 E5 D5", "G5 D5 B4 C5 D5 C5 D5 E5", "A3 E3 C3 D3 E3 D3 E3 F3"],
+  3: ["C3 E3 A3 G3 F3 E3 F3 G3", "B4 D5 G5 F5 E5 D5 E5 F5", "G5 D5 B4 C5 D5 E5 D5 C5", "A3 E3 C3 D3 E3 F3 E3 D3"],
+  4: ["C3 D3 C3 E3 A3 G3 F3 E3", "B4 C5 B4 D5 G5 F5 E5 D5", "G5 F5 G5 D5 B4 C5 D5 E5", "A3 G3 A3 E3 C3 D3 E3 F3"],
+  5: ["C3 A3 G3 A3 F3 G3 E3 F3", "B4 G5 F5 G5 E5 F5 D5 E5", "C5 D5 C5 E5 D5 F5 E5 G5", "D3 E3 D3 F3 E3 G3 F3 A3"],
+  6: ["C3 A3 G3 A3 F3 A3 E3 A3", "B4 G5 F5 G5 E5 G5 D5 C5", "G5 B4 C5 B4 D5 B4 E5 B4", "A3 C3 D3 C3 E3 C3 F3 E3"],
+  7: ["C3 E3 D3 F3 E3 G3 F3 E3", "B4 D5 C5 E5 D5 F5 E5 D5", "G5 E5 F5 D5 E5 C5 D5 E5", "A3 F3 G3 E3 F3 D3 E3 F3"],
+  8: ["C3 E3 G3 A3 F3 G3 E3 F3", "B4 D5 F5 G5 E5 F5 D5 E5", "G5 E5 C5 B4 D5 C5 E5 D5", "A3 F3 D3 C3 E3 D3 F3 E3"],
+  9: ["C3 E3 F3 E3 G3 F3 A3 G3", "B4 D5 E5 D5 F5 E5 G5 F5", "G5 E5 D5 E5 C5 D5 B4 C5", "A3 F3 E3 F3 D3 E3 C3 D3"],
+  10: ["C3 A3 G3 F3 E3 F3 E3 F3", "B4 G5 F5 E5 D5 E5 D5 E5", "G5 B4 C5 D5 E5 D5 E5 D5", "A3 C3 D3 E3 F3 E3 F3 E3"],
+  11: ["C3 E3 A3 G3 A3 G3 F3 G3", "B4 D5 G5 F5 G5 F5 E5 F5", "G5 D5 B4 C5 B4 C5 D5 C5", "A3 E3 C3 D3 C3 D3 E3 D3"],
+  12: ["A3 C3 E3 D3 C3 D3 E3 C3", "G5 B4 D5 C5 B4 C5 D5 E5", "B4 G5 E5 F5 G5 F5 E5 G5", "C3 A3 F3 G3 A3 G3 F3 A3"],
+  13: ["E3 C3 F3 D3 G3 E3 F3 G3", "D5 B4 E5 C5 F5 D5 E5 F5", "E5 G5 D5 F5 E5 C5 D5 E5", "F3 A3 E3 G3 F3 D3 E3 F3"],
+  14: ["C3 D3 F3 E3 F3 E3 G3 F3", "B4 C5 E5 D5 E5 D5 F5 E5", "G5 F5 D5 E5 D5 E5 C5 D5", "A3 G3 E3 F3 E3 F3 D3 E3"],
+  15: ["C3 E3 D3 F3 E3 G3 F3 A3", "B4 D5 C5 E5 D5 F5 E5 F5", "G5 E5 F5 D5 E5 C5 D5 B4", "A3 F3 G3 E3 F3 D3 E3 D3"],
+  16: ["C3 E3 D3 E3 A3 G3 F3 G3", "B4 D5 C5 D5 G5 F5 E5 F5", "G5 D5 E5 D5 B4 C5 D5 C5", "A3 E3 F3 E3 C3 D3 E3 D3"],
+  17: ["C3 E3 A3 G3 B3 A3 G3 A3", "B4 D5 G5 F5 A5 G5 F5 E5", "G5 D5 B4 C5 A4 B4 C5 A4", "A3 E3 C3 D3 B2 C3 D3 B2"],
+  18: ["C3 D3 F3 E3 G3 F3 D3 E3", "B4 C5 E5 D5 F5 E5 C5 D5", "G5 F5 D5 E5 C5 D5 F5 E5", "A3 G3 E3 F3 D3 E3 G3 F3"],
+  19: ["C3 A3 F3 G3 A3 F3 E3 G3", "B4 G5 E5 F5 G5 E5 D5 F5", "G5 B4 D5 C5 B4 D5 E5 C5", "A3 C3 E3 D3 C3 E3 F3 D3"],
+  20: ["E3 G3 C4 E4 C4 B3 C4 A3", "E5 G5 C6 E6 C6 B5 C6 A5", "E6 C6 G5 E5 G5 F5 G5 E5", "E4 C4 G3 E3 G3 F3 G3 E3"]
+};
 let nHanon = 0;
 {
   const stepOf = n => n.octave * 7 + n.letter;
-  for (let no = 1; no <= 20; no++) for (const key of HANON_KEYS) for (const rhythm of HANON_RHYTHMS) {
-    const ex = buildHanon(no, key, rhythm), label = `哈農 ${no} ${key} ${rhythm}`, scalePcs = new Set(INTERVALS.major.map(iv => (pcOf(parseNote(key)) + iv) % 12));
+  const nm = n => "CDEFGAB"[n.letter] + n.octave;
+  for (let no = 1; no <= 20; no++) {
+    const ex = buildHanon(no, "C"), B = (ex.rh.length - 1) / 16;
+    [0, B - 1, B, 2 * B - 1].forEach((b, k) => ok(ex.rh.slice(b * 8, b * 8 + 8).map(nm).join(" ") === HANON_PRINTED[no][k], `哈農 ${no} 第 ${b + 1} 小節跟原譜不一樣:${ex.rh.slice(b * 8, b * 8 + 8).map(nm).join(" ")}`));
+  }
+  for (let no = 1; no <= 20; no++) for (const octaves of [2, 1]) for (const key of HANON_KEYS) for (const rhythm of HANON_RHYTHMS) {
+    const ex = buildHanon(no, key, rhythm, octaves), label = `哈農 ${no} ${key} ${rhythm} ${octaves}八度`, scalePcs = new Set(INTERVALS.major.map(iv => (pcOf(parseNote(key)) + iv) % 12));
+    const B = (ex.rh.length - 1) / 16, H = HANON[no], fixed = new Set((H.fix || []).filter(f => f.deg !== undefined).map(f => (f.at === "top" ? B - 1 : 2 * B - 1) * 8 + f.i));
     nHanon++;
+    ok(Number.isInteger(B) && B === (H.bars || 14) - (octaves === 1 ? 7 : 0), `${label}: 小節數 ${B}`);
     for (const h of ["rh", "lh"]) {
       const ns = ex[h];
-      ok(ns.length === 225, `${label} ${h}: 音數 ${ns.length}`);
-      for (let b = 1; b < 14; b++) for (let i = 0; i < 8; i++) {
-        ok(stepOf(ns[b * 8 + i]) - stepOf(ns[(b - 1) * 8 + i]) === 1, `${label} ${h}: 上行第 ${b + 1} 小節沒有整組往上一級`);
-        ok(stepOf(ns[112 + b * 8 + i]) - stepOf(ns[112 + (b - 1) * 8 + i]) === -1, `${label} ${h}: 下行第 ${b + 15} 小節沒有整組往下一級`);
+      for (let b = 1; b < B; b++) for (let i = 0; i < 8; i++) {
+        const u = b * 8 + i, d = B * 8 + b * 8 + i;
+        if (!fixed.has(u)) ok(stepOf(ns[u]) - stepOf(ns[u - 8]) === 1, `${label} ${h}: 上行第 ${b + 1} 小節沒有整組往上一級`);
+        if (!fixed.has(d) && !fixed.has(d - 8)) ok(stepOf(ns[d]) - stepOf(ns[d - 8]) === -1, `${label} ${h}: 下行第 ${b + 1} 小節沒有整組往下一級`);
       }
       ns.forEach((n, i) => {
         ok(scalePcs.has(pcOf(n)) && n.midi === midiOf(n), `${label} ${h} #${i}: 不是調內音`);
         ok(n.midi >= 21 && n.midi <= 108, `${label} ${h} #${i}: 超出鋼琴音域`);
         ok(n.finger >= 1 && n.finger <= 5, `${label} ${h} #${i}: 沒有指法`);
+        if (i > 0 && i < ns.length - 1) ok(n.midi !== ns[i - 1].midi || i % 8 !== 0, `${label} ${h} #${i}: 轉折處同一個音連彈兩次`);
       });
     }
-    for (let i = 0; i < 224; i++) ok(stepOf(ex.rh[i]) - stepOf(ex.lh[i]) === 7, `${label} #${i}: 兩手不是相隔八度`);
+    for (let i = 0; i < ex.rh.length - 1; i++) ok(stepOf(ex.rh[i]) - stepOf(ex.lh[i]) === 7, `${label} #${i}: 兩手不是相隔八度`);
     for (const show of ["both", "rh", "lh"]) {
       const xml = exerciseToMusicXML(ex, { articulation: "legato" }, show);
-      ok((xml.match(/<measure /g) || []).length === 29, `${label} ${show}: 小節數不對`);
+      ok((xml.match(/<measure /g) || []).length === 2 * B + 1, `${label} ${show}: 小節數不對`);
       checkNotation(xml, `${label} ${show}`, 4);
     }
   }

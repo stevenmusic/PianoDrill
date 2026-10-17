@@ -41,6 +41,8 @@ const elements = {
   title: $('title'),
   countdown: $('countdown'),
   countdownValue: $('countdownValue'),
+  prepFloat: $('prepFloat'),
+  prepFloatValue: $('prepFloatValue'),
   meta: $('meta'),
   score: $('score'),
   playline: $('playline'),
@@ -685,7 +687,8 @@ function renderUnsupported() {
 }
 function renderSummary() {
   const keyText = elements.key.selectedOptions[0]?.textContent ?? t('randomKey');
-  elements.sum.textContent = (mode === 'exam' ? `ABRSM ${t('gradeN', { n: currentGrade() })}` : t('gradeN', { n: currentGrade() })) + ' · ' + keyText;
+  // 檢定模式:考試與級數已經寫在上面的考試設定卡(和頂欄標籤),這裡只說調性
+  elements.sum.textContent = mode === 'exam' ? keyText : t('gradeN', { n: currentGrade() }) + ' · ' + keyText;
 }
 
 /**
@@ -931,23 +934,44 @@ async function startCountdown() {
  * this countdown is simulating.
  */
 function scoreFitsViewport() {
-  const svg = elements.score.querySelector('svg');
-  return svg ? svg.getBoundingClientRect().bottom <= window.innerHeight : true;
+  // 樂譜卡捲到頂欄下時放不放得下(準備時會捲過去,所以看的是這個,不是現在的位置)
+  return renderedScoreHeight() <= availableScoreHeight();
+}
+
+/** 準備時把樂譜卡捲到頂欄下面:30 秒是用來看譜的,樂譜要在畫面上 */
+function bringScoreIntoView() {
+  const header = document.querySelector('header');
+  const top = header ? header.getBoundingClientRect().bottom : 0;
+  const card = $('scoreCard').getBoundingClientRect();
+  if (Math.abs(card.top - top - 8) < 4) return;
+  window.scrollTo({ top: Math.max(0, window.scrollY + card.top - top - 8), behavior: 'smooth' });
+}
+
+/** 右上角的浮動倒數:放在頂欄下面(手機橫放時頂欄比較矮,所以每次量) */
+function showPrepFloat(seconds) {
+  const header = document.querySelector('header');
+  elements.prepFloat.style.top = `${Math.round((header ? header.getBoundingClientRect().bottom : 0) + 8)}px`;
+  elements.prepFloatValue.textContent = String(seconds);
+  elements.prepFloat.classList.toggle('low', seconds <= 5);
+  elements.prepFloat.hidden = false;
 }
 
 function runPreparationCountdown() {
   let remaining = rules.exam.preparationSeconds;
   elements.countdownValue.textContent = String(remaining);
+  showPrepFloat(remaining);
   elements.countdown.className = 'countdown running';
   elements.checklist.hidden = false;
   elements.checklist.innerHTML = PREPARATION_STEP_KEYS
     .map((key) => `<li>${escapeHtml(t(key))}</li>`)
     .join('');
   say(scoreFitsViewport() ? 'prepFitsScreen' : 'prepScrolls');
+  bringScoreIntoView();
 
   countdownTimer = setInterval(() => {
     remaining -= 1;
     elements.countdownValue.textContent = String(Math.max(remaining, 0));
+    showPrepFloat(Math.max(remaining, 0));
     if (remaining <= 0) {
       stopCountdown();
       elements.countdown.className = 'countdown done';
@@ -964,6 +988,7 @@ function runPreparationCountdown() {
 function stopCountdown() {
   clearInterval(countdownTimer);
   countdownTimer = null;
+  elements.prepFloat.hidden = true;
 }
 
 function setPlayState(playing) {

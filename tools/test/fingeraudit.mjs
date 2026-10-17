@@ -62,6 +62,6 @@ for (const oct of [1, 2, 3, 4]) {
 for (const k of MAJ) T({ type: "broken", tonic: k, quality: "major", octaves: 1, sub: 3 });
 for (const k of MIN) T({ type: "broken", tonic: k, quality: "minor", octaves: 1, sub: 3 });
 let nh = 0;
-for (let no = 1; no <= 20; no++) for (const key of HANON_KEYS) { const ex = buildHanon(no, key, "even"); nh++; for (const h of ["rh", "lh"]) audit(ex[h], h, `哈農 ${no} ${key}`, new Set([111])); }
+for (let no = 1; no <= 20; no++) for (const oc of [2, 1]) for (const key of HANON_KEYS) { const ex = buildHanon(no, key, "even", oc); nh++; const top = (ex.rh.length - 1) / 2 - 1; for (const h of ["rh", "lh"]) audit(ex[h], h, `哈農 ${no} ${key} ${oc}八度`, new Set([top])); }
 console.log(`${items} 題 + 哈農 ${nh} 首次、${pairs} 對相鄰音:${bad ? "✗ " + bad + " 處有問題" : "✓ 全部沒問題"}`);
 process.exit(bad ? 1 : 0);

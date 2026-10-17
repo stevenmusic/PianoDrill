@@ -20,42 +20,50 @@
  * walk has no notion that it *should* be, so it wandered into weak motion far
  * more than real practice does.
  *
- * Every chord is reachable from every other (nothing here is impossible),
- * but `iii` is a weak destination from everywhere it can be reached at all:
- * real practice uses it almost exclusively as a passing chord on the way
- * from I or vi to IV, not as a harmony to arrive on and linger over. `V`'s
- * entry has no IV or ii at all — not a filter bolted on afterward, but the
- * plain absence of the one progression real harmony treats as a mistake:
- * V-IV undoes the tension the dominant just built, which is why every
- * textbook calls it a retrogression. An unweighted pick produced it in 3-4%
- * of chord changes once a bar could split into two chords (Grade 5+).
+ * The tables follow the functional order of classical harmony: tonic (I,
+ * vi) → pre-dominant (IV, ii) → dominant (V) → tonic. Nothing moves backwards
+ * against that flow — ii never returns to I, IV or vi; IV never goes to vi;
+ * vi never falls back to I; V never falls to IV or ii (a retrogression). And
+ * there is no iii at all: ABRSM's specimen tests are built on I, IV, V with ii
+ * and vi from the middle grades, and classical writing uses iii only in a few
+ * set places (a descending bass I–iii–IV, a circle of fifths) that a
+ * bar-by-bar chord walk cannot place idiomatically. It came out as I–iii–ii–V,
+ * which no textbook or test would write.
  */
 const FOLLOWS = {
-  I: [{ chord: 'IV', weight: 4 }, { chord: 'V', weight: 4 }, { chord: 'ii', weight: 3 }, { chord: 'vi', weight: 3 }, { chord: 'iii', weight: 1 }],
-  ii: [{ chord: 'V', weight: 5 }, { chord: 'IV', weight: 1 }, { chord: 'vi', weight: 1 }, { chord: 'I', weight: 1 }],
-  iii: [{ chord: 'vi', weight: 4 }, { chord: 'IV', weight: 3 }, { chord: 'I', weight: 1 }, { chord: 'ii', weight: 1 }],
-  IV: [{ chord: 'V', weight: 4 }, { chord: 'I', weight: 3 }, { chord: 'ii', weight: 3 }, { chord: 'vi', weight: 1 }],
-  V: [{ chord: 'I', weight: 3 }, { chord: 'vi', weight: 2 }],
-  vi: [{ chord: 'IV', weight: 3 }, { chord: 'ii', weight: 3 }, { chord: 'V', weight: 3 }, { chord: 'I', weight: 1 }, { chord: 'iii', weight: 1 }],
+  I: [{ chord: 'IV', weight: 4 }, { chord: 'V', weight: 3 }, { chord: 'ii', weight: 2.5 }, { chord: 'vi', weight: 2.5 }],
+  ii: [{ chord: 'V', weight: 1 }],
+  IV: [{ chord: 'V', weight: 4 }, { chord: 'ii', weight: 3 }, { chord: 'I', weight: 2 }],
+  V: [{ chord: 'I', weight: 3 }, { chord: 'vi', weight: 0.6 }],
+  vi: [{ chord: 'ii', weight: 4 }, { chord: 'IV', weight: 3 }, { chord: 'V', weight: 1.5 }],
 };
 
-/** Grade <=3: no ii/iii at all, so only the primary-chord relationships apply. */
+/** Grade <=3: primary chords plus vi — no ii yet. */
 const FOLLOWS_SIMPLE = {
-  I: [{ chord: 'V', weight: 4 }, { chord: 'IV', weight: 3 }, { chord: 'vi', weight: 2 }],
-  IV: [{ chord: 'V', weight: 4 }, { chord: 'I', weight: 3 }, { chord: 'vi', weight: 1 }],
-  V: [{ chord: 'I', weight: 3 }, { chord: 'vi', weight: 2 }],
-  vi: [{ chord: 'IV', weight: 3 }, { chord: 'V', weight: 2 }, { chord: 'I', weight: 1 }],
+  I: [{ chord: 'V', weight: 4 }, { chord: 'IV', weight: 3 }, { chord: 'vi', weight: 1.5 }],
+  IV: [{ chord: 'V', weight: 4 }, { chord: 'I', weight: 3 }],
+  V: [{ chord: 'I', weight: 3 }, { chord: 'vi', weight: 1 }],
+  vi: [{ chord: 'IV', weight: 3 }, { chord: 'V', weight: 1 }],
 };
+
+/*
+ * Minor keys are written as harmonic minor, so iii would be the augmented
+ * triad, and ii is diminished — in root position that is a bare tritone over
+ * the bass, which this idiom avoids. iv is the minor-key pre-dominant here.
+ */
+const usable = (chord, minor) => !(minor && chord === 'ii');
+
+/** Whether `to` may follow `from` (a held chord always may). */
+export function mayMove(table, from, to, minor = false) {
+  if (from === to) return true;
+  return usable(to, minor) && (table[from] ?? []).some((entry) => entry.chord === to);
+}
 
 /** Weighted candidates for what may follow `previous`, excluding an immediate repeat. */
 function mayFollow(table, previous, minor = false) {
-  // Minor keys are written as harmonic minor, so iii (3-5-7) is the augmented
-  // triad III+ — not a chord these tests use. Never offer it in minor.
-  const candidates = (table[previous] ?? []).filter((entry) => entry.chord !== previous && !(minor && entry.chord === 'iii'));
+  const candidates = (table[previous] ?? []).filter((entry) => entry.chord !== previous && usable(entry.chord, minor));
   if (candidates.length) return candidates;
-  return Object.keys(table)
-    .filter((chord) => chord !== previous && !(minor && chord === 'iii'))
-    .map((chord) => ({ chord, weight: 1 }));
+  return [{ chord: 'V', weight: 1 }];
 }
 
 /**
@@ -101,6 +109,7 @@ export function buildProgression(rng, barCount, options = {}) {
   // How many bars running the harmony has already sat on `previous`,
   // counting the opening bar itself — see the prolongation comment below.
   let sameChordRun = 1;
+  let deceptive = false;
   for (let bar = 1; bar < barCount - 2; bar++) {
     if (bar === half) {
       progression[bar] = 'V';
@@ -134,15 +143,19 @@ export function buildProgression(rng, barCount, options = {}) {
     }
     sameChordRun = 1;
 
-    const first = rng.weighted(mayFollow(table, previous, options.minor)).chord;
+    // A deceptive cadence (V-vi) is an event, not a habit: once per test at most.
+    const follow = (from) => mayFollow(table, from, options.minor).filter((e) => !(from === 'V' && e.chord === 'vi' && deceptive));
+    const first = rng.weighted(follow(previous)).chord;
     if (twoChordBarChance > 0 && rng.chance(twoChordBarChance)) {
-      const second = rng.weighted(mayFollow(table, first, options.minor)).chord;
+      const second = rng.weighted(follow(first)).chord;
       progression[bar] = [first, second];
       previous = second;
     } else {
       progression[bar] = first;
       previous = first;
     }
+    const entry = progression[bar];
+    if ((Array.isArray(entry) ? entry : [entry]).some((c, i, all) => c === 'vi' && (i ? all[i - 1] : lastChord(progression[bar - 1])) === 'V')) deceptive = true;
   }
 
   /*
@@ -171,21 +184,35 @@ export function buildProgression(rng, barCount, options = {}) {
     // one in: at Grade 1 this bar is where the first hand ends its half on the
     // tonic, and a held tonic under ii is a non-chord bass.
     progression[barCount - 3] = rng.weighted([
-      { chord: 'ii', weight: options.simple ? 0 : 3 }, { chord: 'IV', weight: 3 }, { chord: 'vi', weight: 1 }, { chord: 'I', weight: 1 },
+      { chord: 'ii', weight: options.simple || options.minor ? 0 : 3 }, { chord: 'IV', weight: 3 }, { chord: 'vi', weight: 1 }, { chord: 'I', weight: 1 },
     ]).chord;
   }
   /*
-   * The overwrites above (consequent copying the opening, the pre-cadence
-   * fallback) never re-check what they now follow, so V could fall back to IV
-   * or ii — a retrogression in ~10% of Grade 7-8 tests. Repair any bar that
-   * follows V with IV/ii: vi (deceptive) or I instead. The half cadence, the
-   * consequent's restart and the closing V-I are V or I already and untouched.
+   * The overwrites above (the consequent copying the opening, the
+   * pre-cadence fallback) never re-check what they now follow or lead into,
+   * so a copied bar could sit after a chord it may not follow (V–IV, ii–I).
+   * Every free bar is re-checked against both neighbours and, where either
+   * join breaks the functional order, replaced by the likeliest chord that
+   * fits between them. The opening I, the half cadence, the consequent's
+   * restart and the closing V–I are fixed.
    */
+  const fixed = new Set([0, barCount - 2, barCount - 1]);
+  if (half !== null) { fixed.add(half); fixed.add(half + 1); }
+  const minor = options.minor ?? false;
+  const fits = (entry, before, after) => {
+    const chords = Array.isArray(entry) ? entry : [entry];
+    if (before !== undefined && !mayMove(table, lastChord(before), chords[0], minor)) return false;
+    for (let i = 1; i < chords.length; i++) if (!mayMove(table, chords[i - 1], chords[i], minor)) return false;
+    if (after !== undefined && !mayMove(table, chords[chords.length - 1], firstChord(after), minor)) return false;
+    return chords.every((chord) => chord === 'I' || usable(chord, minor) && table[chord]);
+  };
   for (let bar = 1; bar < barCount - 1; bar++) {
-    if (lastChord(progression[bar - 1]) !== 'V') continue;
-    const here = firstChord(progression[bar]);
-    if (here !== 'IV' && here !== 'ii') continue;
-    progression[bar] = bar === barCount - 2 ? 'V' : rng.weighted([{ chord: 'vi', weight: 2 }, { chord: 'I', weight: 1 }]).chord;
+    if (fixed.has(bar) || fits(progression[bar], progression[bar - 1], progression[bar + 1])) continue;
+    const before = lastChord(progression[bar - 1]);
+    const options2 = Object.keys(table)
+      .filter((chord) => fits(chord, progression[bar - 1], progression[bar + 1]))
+      .map((chord) => ({ chord, weight: (table[before] ?? []).find((e) => e.chord === chord)?.weight ?? 0.5 }));
+    progression[bar] = options2.length ? rng.weighted(options2).chord : before;
   }
   return progression;
 }

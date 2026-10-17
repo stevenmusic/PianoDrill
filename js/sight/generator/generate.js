@@ -77,10 +77,31 @@ export function generateTest(rulesTable, options) {
     score = generateOnce(rulesTable, attempt
       ? { ...options, seed: (seed * 31 + attempt * 7919) >>> 0, tonic: score.key.tonic, mode: score.key.mode }   // same key, new draw
       : { ...options, seed });
-    if (!naturalSeventhOverDominant(score)) break;
+    if (!naturalSeventhOverDominant(score) && !cadenceOffRoot(score, rulesTable.grades[String(options.grade)])) break;
   }
   score.seed = seed;
   return score;
+}
+
+/**
+ * Whether a cadence (the final V, or the half cadence) opens its bar with
+ * something other than V's root in the bass — V6/4-I, which a teacher marks.
+ * The walk asks for the root there, but an accompaniment figure or a held
+ * note can still bring the fifth in first. Grade 1's turn-taking left hand is
+ * a tune, not a bass, and is not judged.
+ */
+function cadenceOffRoot(score, rules) {
+  if (rules.texture.handsPlayTogether === false) return false;
+  const bars = [score.barCount - 2, halfCadenceBar(score.barCount)].filter((b) => b !== null);
+  for (const b of bars) {
+    if (lastChord(score.progression[b]) !== 'V' || firstChord(score.progression[b]) !== 'V') continue;
+    const key = createKey(score.keyChange && b >= score.keyChange.barIndex ? score.keyChange : score.key);
+    const first = score.staves[2][b].events.find((e) => !e.rest && e.pitch);
+    if (!first) continue;
+    const lowest = [first.pitch, ...(first.chord ?? [])].reduce((a, c) => (c.midi < a.midi ? c : a));
+    if (degreeOf(lowest.dstep ?? first.dstep, key) !== 4) return true;
+  }
+  return false;
 }
 
 /** Whether a minor-key test sounds the 7th unraised over V (outside a descending passing note). */

@@ -200,6 +200,7 @@ function auditHarmony(grade, tests) {
     const used = score.staves[2].flatMap((bar) => notesOfBar(bar)).map((e) => e.dstep);
     const low = used.length ? Math.min(...used) : 0;
     const high = used.length ? Math.max(...used) : 0;
+    const opening = key;
     const rootReachable = (root) => {
       for (let d = low; d <= high; d++) if (degreeOf(d, key) === root) return true;
       return false;
@@ -207,6 +208,8 @@ function auditHarmony(grade, tests) {
     score.staves[2].forEach((bar, barIndex) => {
       const notes = notesOfBar(bar);
       if (!notes.length) return;
+      // A modulating Grade 8 test is judged in the key each bar is actually in.
+      const key = score.keyChange && barIndex >= score.keyChange.barIndex ? createKey(score.keyChange) : opening;
       const chord = firstChord(score.progression[barIndex] ?? 'I');
       const root = chordDegrees(chord)[0];
       // The bass note is the lowest pitch sounding at the bar's downbeat.
@@ -279,7 +282,9 @@ function auditHarmony(grade, tests) {
   // Grade 1-2 cap the bass at a 4th-to-5th leap inside a five-note position,
   // so the dominant root is not always both reachable and playable from the
   // note before it; the upper grades have no such excuse.
-  const cadFloor = rules.grades[String(grade)].texture.fiveFingerPosition ? 60 : 85;
+  // generateTest now redraws any test whose cadence opens off the root, so
+  // anything short of all of them is a regression.
+  const cadFloor = 98;
   lines.push(bassCheck('cadential V has its root in the bass', `${fixed(cadRate)}%`,
     cadRate >= cadFloor, `>=${cadFloor}% (a V-I cadence needs the dominant root)`));
   lines.push(check('harmony', grade, 'final bass note is the tonic', `${fixed(pct(finalTonicBass, tests0))}%`,

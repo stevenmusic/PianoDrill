@@ -1777,7 +1777,7 @@ function addChromaticGroup(rng, score) {
  */
 function addModulation(rng, rules, score) {
   if (score.key.mode !== 'major') return false;
-  if (!rng.chance(0.35)) return false;
+  if (!rng.chance(0.75)) return false;   // most candidates fail the checks below
 
   const startBar = halfCadenceBar(score.barCount);
   if (startBar === null) return false;
@@ -1801,8 +1801,14 @@ function addModulation(rng, rules, score) {
   // which stays in the home key.
   const endBar = score.barCount - 2;
   if (endBar - pivotBar < 2) return false;
-  // The span's last chord leads into the home dominant: its vi would be the home iii.
-  if (lastChord(score.progression[endBar - 1]) === 'vi') return false;
+  /*
+   * The span has to hand back to the home key, not close in the new one: its
+   * last bar is the new key's IV or ii, which *are* the home I and vi, so
+   * the closing V-I is heard as home. Ending on the new key's I (or vi, the
+   * home iii) left the final "V-I" sounding as I-IV in the dominant
+   * (28% of modulating tests).
+   */
+  if (!['IV', 'ii'].includes(lastChord(score.progression[endBar - 1]))) return false;
   const inSpan = (barIndex) => barIndex >= pivotBar && barIndex < endBar;
   const flat = (staffNumber) => score.staves[staffNumber].flatMap((bar, barIndex) => bar.events
     .filter((event) => !event.rest && event.pitch).map((event) => ({ event, barIndex })));
@@ -1816,6 +1822,8 @@ function addModulation(rng, rules, score) {
   // around Bb5-F6, a fourth down could drop it under the bass staff.
   const outside = flat(1).filter(({ barIndex }) => !inSpan(barIndex)).map(({ event }) => event.pitch.midi);
   const tuneLow = Math.min(60, ...outside), tuneHigh = Math.max(84, ...outside);
+  // Nor the bass sink below where it goes elsewhere (Db2 in a Presto growls).
+  const bassLow = Math.min(40, ...flat(2).filter(({ barIndex }) => !inSpan(barIndex)).map(({ event }) => event.pitch.midi));
   let best = null;
   for (const shift of [4, -3]) {
     const moved = (pitch) => pitchAt(pitch.dstep + shift, newKey);
@@ -1831,6 +1839,7 @@ function addModulation(rng, rules, score) {
             const midi = moved(pitch).midi;
             if (midi < minMidi || midi > maxMidi || (hand === 'leftHand' && midi > 64)) ok = false;
             if (hand === 'rightHand' && pitch === event.pitch && (midi < tuneLow || midi > tuneHigh)) ok = false;
+            if (hand === 'leftHand' && midi < bassLow) ok = false;
           }
         }
         const next = notes[i + 1];

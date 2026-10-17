@@ -1124,6 +1124,21 @@ function auditVoiceLeading(grade, tests) {
   lines.push(check('voiceleading', grade, 'natural 7th over V (minor)',
     `${fixed(pct(naturalOverV, minorTests))}%`, naturalOverV === 0, '0% of minor tests (the dominant takes the leading note)'));
 
+  // A modulation hands back before the cadence: the span ends on the new
+  // key's IV or ii (the home I or vi) and the piece closes on the home tonic.
+  const modulating = tests.filter((score) => score.keyChange);
+  if (modulating.length) {
+    const home = modulating.filter((score) => {
+      const end = score.keyChange.endBarIndex;
+      const key = createKey(score.key);
+      const last = score.staves[2].at(-1).events.filter((e) => !e.rest).at(-1);
+      return end !== undefined && ['IV', 'ii'].includes(lastChord(score.progression[end - 1]))
+        && last && degreeOf(last.dstep, key) === 0;
+    }).length;
+    lines.push(check('voiceleading', grade, `modulation hands back home (n=${modulating.length})`,
+      `${fixed(pct(home, modulating.length))}%`, home === modulating.length, '100% (a closed piece ends in its own key)'));
+  }
+
   lines.push(check('voiceleading', grade, 'V falling back to IV/ii',
     `${fixed(pct(retrogressions, progressions))}%`,
     pct(retrogressions, progressions) <= 2, '<=2% of chord changes'));

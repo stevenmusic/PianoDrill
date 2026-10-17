@@ -200,6 +200,8 @@ Seventh review round: a natural 7th sounding over V in minor (a v-i cadence) had
 
 Eighth review round: the cadential and half-cadence V still opened on the fifth in 1-2% of Grade 3-6 tests (an accompaniment figure or held note bringing V6/4 in ahead of the root). `generateTest` treats it like the natural 7th — `cadenceOffRoot` triggers the same same-key redraw — so it is now 0%; the audit's floor for "cadential V has its root in the bass" is 98%, and its harmony checks judge a modulating Grade 8 bar in the key it is in (the 91% Grade 8 used to show was the modulating tests read in their opening key).
 
+Ninth review round: the tune had gone still — a third of Grade 3-4 tests held one note in 40% of the melody's bars, under Leggiero or Scherzando as often as not. The opening bar drew a semibreve and every return of the form copied it. A melody bar that the form brings back later is never one held note, and once a seventh of the bars have been, ordinary melody bars play at least two (40%-held tests: 11-15% → 0-2%). A lively tempo word (`MOVING_WORDS`) is not chosen over a tune averaging under 0.75 notes a crotchet or holding in 40% of its bars. Both are audited in the `rhythm` section. A slow tune over a moving accompaniment (the left hand busier than the right) is left alone: that is an ordinary texture.
+
 ### Phrase structure, motif restatement and cadence
 
 These three are what stop a test reading as separately-invented bars laid end to end. They interlock — the harmony is arranged so the melody's restatement is legal by construction — so changing one without the others mostly undoes it.

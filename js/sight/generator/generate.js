@@ -246,8 +246,14 @@ function generateOnce(rulesTable, options) {
   // A singing word over 32nds or a melody full of mid-bar rests contradicts itself.
   const midRests = rightHand.reduce((n, bar) => n + bar.events.filter((e, i) => e.rest && i > 0 && i < bar.events.length - 1).length, 0);
   const choppy = midRests >= 3 || [...leftHand, ...rightHand].some((bar) => bar.events.some((e) => !e.rest && e.type === '32nd'));
+  // A lively word (Leggiero, Scherzando, Allegro…) needs a tune that moves:
+  // under fewer than three notes a 4/4 bar it read like a misprint.
+  const quarters = (barCount * meter.barDuration) / DIVISIONS;
+  const sluggish = rightHand.reduce((n, bar) => n + bar.events.filter((e) => !e.rest).length, 0) / quarters < 0.75
+    || rightHand.filter((bar) => bar.events.filter((e) => !e.rest).length === 1).length >= 0.4 * barCount;
   const fitting = rules.tempoTerms.filter((term) => termFitsMetre(term, meter.text) && !(busy && (TEMPO_BPM[term] ?? 96) <= 66)
-    && !sadInMajor(term) && !(choppy && (CANTABILE_WORDS.test(term) || /andante/i.test(term))));
+    && !sadInMajor(term) && !(choppy && (CANTABILE_WORDS.test(term) || /andante/i.test(term)))
+    && !(sluggish && MOVING_WORDS.test(term)));
   const tempoTerm = rng.pick(fitting.length ? fitting : rules.tempoTerms);
   const score = {
     seed,
@@ -555,6 +561,18 @@ function buildRhythm({ rng, rules, meter, barCount, hand, progression, silentBar
       const options = { restBudget: restsLeft, maxFast, activity: isLeft ? activity * 0.7 : activity,
         // Grade 1-2: an ordinary bar carries at least two notes (four dotted minims is not a tune).
         minNotes: rules.grade <= 2 ? (meter.cellBeats >= 3 ? 3 : 2) : 1 };
+      /*
+       * The tune carries the motion. Bars of one held note belong at phrase
+       * ends; drawn freely they piled up (a third of Grade 3-4 tests held a
+       * single note in 40% of the melody's bars, under Leggiero or Scherzando
+       * as often as not). Once a seventh of the bars have been one note, an
+       * ordinary melody bar plays at least two.
+       */
+      const heldBars = bars.filter((bar) => bar.events.filter((e) => !e.rest).length === 1).length;
+      // A bar the form brings back later (the opening above all) is never
+      // one held note: copied, it held the tune still in half the test.
+      const isSource = form.some((plan) => plan?.source === barIndex);
+      if (!isLeft && (isSource || heldBars >= Math.max(1, Math.floor(barCount / 7)))) options.minNotes = Math.max(options.minNotes, 2);
       // The phrase's accompaniment figure (Grade 4 up): set by the first fresh bar of each phrase.
       if (isLeft && phraseEnd !== null && barIndex === phraseEnd + 1) figure = null;
       // The figure may sound twice running, then breaks (like the Grade 2-3 ostinato).
@@ -1365,6 +1383,7 @@ function termFitsMetre(term, metre) {
 }
 
 /** How a tempo/character word sounds: 'cantabile' (singing, slow), 'lively', or 'neutral'. */
+const MOVING_WORDS = /allegr|vivace|vivo|presto|leggiero|scherz|giocoso|playful|lively|dancing|capriccioso|brillante|con brio|spiritoso|animato|agitato|happily|bright|jolly|cheerful/i;
 const CANTABILE_WORDS = /adagio|largo|lento|grave|cantabile|espressivo|sostenuto|tranquillo|dolce|mesto|sadly|gently|smoothly|tenderly|lullaby|flowing|slowly|valse lente/i;
 const LIVELY_WORDS = /leggiero|scherzando|giocoso|vivace|presto|playfully|sprightly|staccato|capriccioso|ritmico|rhythmically|march|marcia|brio|happily|lively/i;
 export function tempoCharacter(term, bpm) {

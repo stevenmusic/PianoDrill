@@ -557,6 +557,29 @@ function auditRhythm(grade, tests) {
     .sort((a, b) => (b[1].over / b[1].n) - (a[1].over / a[1].n))
     .map(([m, v]) => `${m} ${fixed(pct(v.over, v.n), 0)}%`).join('  ');
   if (metres) lines.push(`       accompaniment dominated by one figure, by metre: ${metres}`);
+  /*
+   * The tune carries the motion: a melody that holds one note through 40% of
+   * its bars reads as a Grade 1 test whatever its grade (a third of Grade 3-4
+   * tests did, once the opening bar's semibreve was copied by every return),
+   * and a lively word over such a tune contradicts the page.
+   */
+  const MOVING = /allegr|vivace|vivo|presto|leggiero|scherz|giocoso|playful|lively|dancing|capriccioso|brillante|con brio|spiritoso|animato|agitato|happily|bright|jolly|cheerful/i;
+  let staticTunes = 0, movingOverStatic = 0;
+  for (const score of tests) {
+    const bars = score.staves[1];
+    const held = bars.filter((bar) => bar.events.filter((e) => !e.rest).length === 1).length;
+    const notes = bars.reduce((n, bar) => n + bar.events.filter((e) => !e.rest).length, 0);
+    const quarters = bars.reduce((n, bar) => n + bar.events.reduce((d, e) => d + e.dur, 0), 0) / 24;
+    const isStatic = held >= 0.4 * score.barCount;
+    if (isStatic) staticTunes += 1;
+    if (MOVING.test(score.tempoTerm) && (isStatic || notes / quarters < 0.75)) movingOverStatic += 1;
+  }
+  if (grade >= 3) {
+    lines.push(check('rhythm', grade, 'melody holding one note in >=40% of bars', `${fixed(pct(staticTunes, tests.length))}%`,
+      pct(staticTunes, tests.length) <= 4, '<=4% of tests (the tune carries the motion)'));
+  }
+  lines.push(check('rhythm', grade, 'lively tempo word over a static tune', `${fixed(pct(movingOverStatic, tests.length))}%`,
+    movingOverStatic === 0, '0% (Leggiero over semibreves contradicts the page)'));
   return lines;
 }
 

@@ -226,6 +226,21 @@ export function buildProgression(rng, barCount, options = {}) {
       .map((chord) => ({ chord, weight: (table[before] ?? []).find((e) => e.chord === chord)?.weight ?? 0.5 }));
     progression[bar] = options2.length ? rng.weighted(options2).chord : before;
   }
+  /*
+   * Harmonic rhythm stays steady: the same chord for three bars running
+   * (I V V V, ii ii ii into the cadence) stalls the phrase. The copies and the
+   * repairs above can line up a third bar of the same chord after the walk's
+   * own two-bar cap, so runs are broken here, last of all.
+   */
+  const sameAs = (a, b) => !Array.isArray(a) && !Array.isArray(b) && a === b;
+  for (let bar = 2; bar < barCount; bar++) {
+    if (!sameAs(progression[bar], progression[bar - 1]) || !sameAs(progression[bar - 1], progression[bar - 2])) continue;
+    const middle = bar - 1;
+    if (fixed.has(middle)) continue;
+    const choices = Object.keys(table).filter((chord) => chord !== progression[middle]
+      && fits(chord, progression[middle - 1], progression[middle + 1]));
+    if (choices.length) progression[middle] = rng.pick(choices);
+  }
   return progression;
 }
 

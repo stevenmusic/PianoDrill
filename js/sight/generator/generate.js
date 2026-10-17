@@ -164,7 +164,11 @@ export function generateTest(rulesTable, options) {
   const busy = fastBars > 0.25 * 2 * barCount;
   // "Sadly", "Mesto", "Lamentoso" describe a minor-key piece.
   const sadInMajor = (term) => key.mode === 'major' && /sad|mesto|lament|dolente|doloroso/i.test(term);
-  const fitting = rules.tempoTerms.filter((term) => termFitsMetre(term, meter.text) && !(busy && (TEMPO_BPM[term] ?? 96) <= 66) && !sadInMajor(term));
+  // A singing word over 32nds or a melody full of mid-bar rests contradicts itself.
+  const midRests = rightHand.reduce((n, bar) => n + bar.events.filter((e, i) => e.rest && i > 0 && i < bar.events.length - 1).length, 0);
+  const choppy = midRests >= 3 || [...leftHand, ...rightHand].some((bar) => bar.events.some((e) => !e.rest && e.type === '32nd'));
+  const fitting = rules.tempoTerms.filter((term) => termFitsMetre(term, meter.text) && !(busy && (TEMPO_BPM[term] ?? 96) <= 66)
+    && !sadInMajor(term) && !(choppy && (CANTABILE_WORDS.test(term) || /andante/i.test(term))));
   const tempoTerm = rng.pick(fitting.length ? fitting : rules.tempoTerms);
   const score = {
     seed,
@@ -475,7 +479,8 @@ function buildRhythm({ rng, rules, meter, barCount, hand, progression, silentBar
       // The figure may sound twice running, then breaks (like the Grade 2-3 ostinato).
       const sigOf = (b) => (bars[b] ? rhythmSignature(bars[b].events) : null);
       const figureRun = figure && sigOf(barIndex - 1) === rhythmSignature(figure) && sigOf(barIndex - 2) === rhythmSignature(figure);
-      if (isLeft && rules.grade >= 4 && figure && !figureRun) { options.figure = rhythmSignature(figure); options.figureEvents = figure; }
+      const figureBars = figure ? bars.filter((bar) => rhythmSignature(bar.events) === rhythmSignature(figure)).length : 0;
+      if (isLeft && rules.grade >= 4 && figure && !figureRun && figureBars < barCount * 0.45) { options.figure = rhythmSignature(figure); options.figureEvents = figure; }
       const avoid = [bars[barIndex - 1]?.events, bars[barIndex - 2]?.events, ostinato];
       events = isLeft && partner
         ? drawComplementaryBar(rng, cells, meter, options, avoid, partner[barIndex]?.events ?? [],
@@ -532,7 +537,9 @@ function pitchStaff(bars, { rng, rules, meter, hand, progression, key, against =
    * low occasionally later. Window starts are weighted toward `center`, and the
    * left hand's working span is capped at about an octave and a half.
    */
-  const center = isLeft ? 23 : null;   // E3 as a dstep: the window's middle
+  // Window centres: the bass around E3, the tune around B4 (a tune sitting in
+  // G3-E4 over the bass is a tenor line, not a treble melody).
+  const center = isLeft ? 23 : rules.texture.fiveFingerPosition ? null : 34;
   // The accompaniment stays on the bass staff's side of middle C (D4 at most,
   // through Grade 5): reaching F4-G4 under a tune that sits around C5 put the
   // hands within a tone of each other at 7-14% of attacks.
@@ -635,6 +642,8 @@ function drawContrastingBar(rng, cells, cellBeats, options, avoid) {
   for (let attempt = 0; attempt < 24; attempt++) {
     const { events } = fillBar(rng, cells, cellBeats, options);
     if (events.filter((e) => !e.rest).length < (options.minNotes ?? 1) && attempt < 20) continue;
+    // More than three different note values in one bar is a rhythm puzzle, not a tune.
+    if (new Set(events.map((e) => `${e.dur}`)).size > 3 && attempt < 20) continue;
     if (first === null) first = events;
     if (!unwanted.has(rhythmSignature(events))) return events;
   }
@@ -695,7 +704,8 @@ function drawComplementaryBar(rng, cells, meter, options, avoid, partnerEvents, 
     }
     if (splitAt !== null && !left.some((a) => a.at === splitAt)) value -= 5;     // the bass states the new chord
     value -= 1.5 * events.filter((event) => !event.rest && event.dur <= beat / 4).length / 4;   // fast notes belong to the tune
-    if (crossRhythm(events)) value -= 20;                                         // never 3 against 2
+    if (crossRhythm(events)) value -= 1000;                                       // never 3 against 2
+    if (events.filter((e) => !e.rest).length < (options.minNotes ?? 1)) value -= 10;   // Grade 1-2 bars carry notes
     // Both hands silent on the same off-beat is a hiccup in the texture.
     {
       let o = 0; const rests = [];

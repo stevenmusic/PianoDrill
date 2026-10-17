@@ -555,6 +555,8 @@ export function assignPitches({ rng, key, bars, progression, window, options, ag
           shortNote: event.dur <= bar.beatDuration / 4 ? 'sixteenth' : event.dur <= bar.beatDuration / 2 ? 'eighth' : null,
           pull: melodyPlan && !chordToneOnly ? 0.45 : 0.12,
           arrival: chordToneOnly && harmonyArrives,
+          // A cadence (half or full) arrives on a root-position dominant.
+          rootOnly: chordToneOnly && (isCadentialBar || barIndex === halfBar) && chordHere === 'V',
         });
       }
 
@@ -951,7 +953,7 @@ function pickWeighted(ctx) {
     rng, key, allSteps, previous, previousLeap, repeatRun, runDirection, runLength, tones,
     arpeggioDirection, arpeggioLength, onBeat, isDownbeat, centre, stepwiseBias, maxLeapSemitones,
     chordToneOnly, sounding, previousWasChordTone, previousWasLeadingNote, previousBass, preferred = null,
-    bassDecoration = 0, fastLeapLimit = 99, beforePrevious = null, shortNote = null, pull = 0.12, arrival = false,
+    bassDecoration = 0, fastLeapLimit = 99, beforePrevious = null, shortNote = null, pull = 0.12, arrival = false, rootOnly = false,
   } = ctx;
   const bass = sounding.length ? Math.min(...sounding) : null;
   // On a planned line, which way the bar's goal lies (0 when already close):
@@ -1221,6 +1223,15 @@ function pickWeighted(ctx) {
   }
   // The weight above only matters inside a category, and the category is drawn
   // first: take the fifth out entirely wherever anything else is playable.
+  if (rootOnly) {
+    // Every bass note of a cadential dominant bar is its root or fifth, never the leading note.
+    const isRoot = (c) => degreeOf(c.dstep, key) !== tones[1] && (!arrival || degreeOf(c.dstep, key) === tones[0]);
+    if ([...steps, ...leaps, ...repeats].some(isRoot)) {
+      for (const list of [steps, leaps, repeats]) {
+        const keep = list.filter(isRoot); list.length = 0; list.push(...keep);
+      }
+    }
+  }
   if (arrival) {
     const notFifth = (c) => degreeOf(c.dstep, key) !== tones[2];
     if ([...steps, ...leaps, ...repeats].some(notFifth)) {
@@ -1751,6 +1762,9 @@ export function stackChordTones({
          * note can land a semitone from it.
          */
         if (clashesWith(pitch.midi, sounding)) continue;
+        // A note stacked under the tune stays a third clear of the accompaniment
+        // (most remaining hand collisions were the melody's own chord notes).
+        if (!bassVoicing && ceiling !== null && pitch.midi < ceiling + 3) continue;
         /*
          * Low thirds are mud. Below C3 the two lowest notes of a chord must be
          * at least a fifth apart (fifth, sixth, octave) — close position only

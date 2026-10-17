@@ -190,6 +190,8 @@ Third review round (300 seeds/grade, before → after):
 - **Choppy tunes**: once about a third of the melody's bars have a rest, its remaining ordinary bars play through; both hands resting on the same off-beat costs the left-hand bar; a pitch struck four or more times in one bar costs `scoreBar`.
 - **Deceptive cadence twice** (the consequent copied it back): only the first V-vi survives. Small fixes: no lone staccato dot in an otherwise plain bar, no grace note on the pitch just played, no "Sadly"/"Mesto" in a major key.
 
+Fourth review round: a chord held three bars running (I V V V, ii ii ii into the cadence; 5-10% of tests) is broken last thing in `buildProgression` (0-1%); every bass note of a cadential or half-cadence V bar is its root or fifth, the downbeat the root (`rootOnly`; leading note in the half-cadence bass 10-18% → 1-11%, the rest at Grade 2's five-finger position); the tune's window centres on B4 (a melody in G3-E4 over the bass is a tenor line); notes stacked under the melody stay a third clear of the accompaniment (they were most of the remaining hand collisions: 4-8% → 0-1%); 3 against 2 is a hard rejection; at most three note values in a melody bar; no singing word (Cantabile, Andante…) over 32nds or a melody with three or more mid-bar rests; the accompaniment figure takes at most 45% of the bars.
+
 ### Phrase structure, motif restatement and cadence
 
 These three are what stop a test reading as separately-invented bars laid end to end. They interlock — the harmony is arranged so the melody's restatement is legal by construction — so changing one without the others mostly undoes it.

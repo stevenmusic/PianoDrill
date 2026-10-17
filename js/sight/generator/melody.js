@@ -260,6 +260,9 @@ export function assignPitches({ rng, key, bars, progression, window, options, ag
     melodyPlan = null,
     // The antecedent's half-cadence bar (harmony.js halfCadenceBar), or null.
     halfBar = null,
+    // Whether the last bar's downbeat must be the root (a bass, not Grade 1's
+    // left-hand tune, which may close 3-2-1).
+    closingRoot = true,
   } = options;
 
   const centre = (window.low + window.high) / 2;
@@ -520,6 +523,16 @@ export function assignPitches({ rng, key, bars, progression, window, options, ag
           chosen = leastDistant(openings.length ? openings : allSteps, target);
         }
       } else {
+        const fast = event.dur <= bar.beatDuration / 2 || (previousDur !== null && previousDur <= bar.beatDuration / 2);
+        const cadenceRoot = ((isCadentialBar || barIndex === halfBar) && chordHere === 'V') || (closingRoot && isClosingBar && isDownbeat);
+        let widen = 0;
+        if (chordToneOnly && harmonyArrives && previous !== null) {
+          const limit = Math.min(maxLeapSemitones, fast ? fastLeapSemitones : 99);
+          const from = soundingMidi(previous, key);
+          const wanted = cadenceRoot ? [tones[0]] : [tones[0], tones[1]];
+          const reachable = allSteps.some((d) => wanted.includes(degreeOf(d, key)) && Math.abs(soundingMidi(d, key) - from) <= limit);
+          if (!reachable) widen = cadenceRoot ? 12 : 7;
+        }
         chosen = pickWeighted({
           rng,
           key,
@@ -539,14 +552,16 @@ export function assignPitches({ rng, key, bars, progression, window, options, ag
           isDownbeat,
           centre: target,
           stepwiseBias,
-          // The cadential V's bass may leap a fifth to reach its root even in a
-          // five-finger position (otherwise it opened on the fifth, a 6/4).
-          maxLeapSemitones: chordToneOnly && isCadentialBar && harmonyArrives ? Math.max(maxLeapSemitones, 7) : maxLeapSemitones,
+          // Where the harmony arrives and the bass cannot reach a root or third
+          // within its usual leap, it may leap a fifth (I-V is 1 up to 5 inside
+          // a five-finger hand) rather than open on the fifth, a 6/4. A
+          // cadence's dominant and the closing tonic may leap up to an octave
+          // for the root.
+          maxLeapSemitones: widen ? Math.max(maxLeapSemitones, widen) : maxLeapSemitones,
           // Moving the hand a long way between short notes is the hardest
           // thing in sight-reading: cap how far a leap may go when either
           // note is an eighth or shorter, by grade.
-          fastLeapLimit: event.dur <= bar.beatDuration / 2 || (previousDur !== null && previousDur <= bar.beatDuration / 2)
-            ? fastLeapSemitones : 99,
+          fastLeapLimit: fast ? (widen ? Math.max(fastLeapSemitones, 7) : fastLeapSemitones) : 99,
           chordToneOnly,
           bassDecoration,
           sounding,
@@ -556,7 +571,7 @@ export function assignPitches({ rng, key, bars, progression, window, options, ag
           pull: melodyPlan && !chordToneOnly ? 0.45 : 0.12,
           arrival: chordToneOnly && harmonyArrives,
           // A cadence (half or full) arrives on a root-position dominant.
-          rootOnly: chordToneOnly && (isCadentialBar || barIndex === halfBar) && chordHere === 'V',
+          rootOnly: chordToneOnly && cadenceRoot,
         });
       }
 
@@ -983,6 +998,7 @@ function pickWeighted(ctx) {
   const leaps = [];
   const tight = [];
   let preferredCandidate = null;
+  let heldBass = null;
 
   for (const dstep of allSteps) {
     const interval = dstep - previous;
@@ -1059,7 +1075,12 @@ function pickWeighted(ctx) {
     // A non-chord note on a strong beat is only allowed as a passing step.
     if (onBeat && !isChordTone && distance !== 1) continue;
     if (isDownbeat && !isChordTone) continue;
-    if (distance === 0 && repeatRun >= 1) continue;
+    if (distance === 0 && repeatRun >= 1) {
+      // A bass may still hold its note under a new chord (I to vi6) when the
+      // only other way in is the fifth, a 6/4 — readmitted below if so.
+      if (chordToneOnly && arrival && isChordTone) heldBass = { dstep, weight: 1, clash: false };
+      continue;
+    }
 
     /*
      * Consecutive fifths and octaves against the other hand. Two voices moving
@@ -1236,6 +1257,10 @@ function pickWeighted(ctx) {
   }
   if (arrival) {
     const notFifth = (c) => degreeOf(c.dstep, key) !== tones[2];
+    if (heldBass && notFifth(heldBass) && ![...steps, ...leaps, ...repeats].some(notFifth)) {
+      repeats.push(heldBass);
+      if (heldBass.dstep === preferred) preferredCandidate = heldBass;
+    }
     if ([...steps, ...leaps, ...repeats].some(notFifth)) {
       for (const list of [steps, leaps, repeats]) {
         const keep = list.filter(notFifth); list.length = 0; list.push(...keep);

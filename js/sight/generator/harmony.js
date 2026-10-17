@@ -238,10 +238,14 @@ export function buildProgression(rng, barCount, options = {}) {
     if (Array.isArray(progression[middle])) continue;
     const c = progression[middle];
     if (lastChord(progression[middle - 1]) !== c || firstChord(progression[bar]) !== c) continue;
-    if (fixed.has(middle)) continue;
-    const choices = Object.keys(table).filter((chord) => chord !== progression[middle]
-      && fits(chord, progression[middle - 1], progression[middle + 1]));
-    if (choices.length) progression[middle] = rng.pick(choices);
+    // The middle bar first; when nothing fits there (ii | ? | ii — only V
+    // follows ii, and V cannot lead back to it) the run's first or last bar.
+    for (const at of [middle, middle - 1, bar]) {
+      if (fixed.has(at) || at < 1 || at >= barCount - 1 || Array.isArray(progression[at])) continue;
+      const choices = Object.keys(table).filter((chord) => chord !== c
+        && fits(chord, progression[at - 1], progression[at + 1]));
+      if (choices.length) { progression[at] = rng.pick(choices); break; }
+    }
   }
   return progression;
 }

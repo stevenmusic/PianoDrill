@@ -409,7 +409,7 @@ function buildRhythm({ rng, rules, meter, barCount, hand, progression, silentBar
        */
       // The tune is heard arriving at its half cadence, not silent through it.
       for (let attempt = 0; !isLeft && !events.some((e) => !e.rest) && attempt < 12; attempt++) events = draw();
-      const endsResting = (drawn) => drawn[drawn.length - 1]?.rest === true;
+      const endsResting = (drawn) => drawn[drawn.length - 1]?.rest === true && drawn.some((e) => !e.rest);
       if (rules.grade >= 3 && !isAccompaniment && !endsResting(events) && rng.chance(0.5)) {
         for (let attempt = 0; attempt < 6; attempt++) {
           const candidate = draw();
@@ -639,6 +639,7 @@ function pitchStaff(bars, { rng, rules, meter, hand, progression, key, against =
       bassPlan,
       melodyPlan,
       halfBar: halfCadenceBar(bars.length),
+      closingRoot: rules.texture.handsPlayTogether !== false,
       stepwiseBias: rules.generatorHints.stepwiseBiasPercent / 100,
       // Largest leap between short notes (hand has no time to travel): a
       // fourth through Grade 4, a fifth at 5-6, a sixth from 7.

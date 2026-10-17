@@ -18,7 +18,8 @@ export function expectedOnsets(score) {
     let offset = 0;
     for (const bar of score.staves[staff]) {
       for (const event of bar.events) {
-        if (!event.rest) times.push((offset / score.divisions) * quarterSeconds);
+        // A tied continuation is not a new attack.
+        if (!event.rest && event.tie !== 'stop' && event.tie !== 'both') times.push((offset / score.divisions) * quarterSeconds);
         offset += event.dur;
       }
     }

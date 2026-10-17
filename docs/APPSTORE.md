@@ -9,6 +9,7 @@
 |---|---|
 | iOS 外殼設定(Capacitor 8) | `app/capacitor.config.json`、`app/package.json`(Bundle ID `io.github.stevenmusic.pianodrill`) |
 | 把網頁複製成 App 內容 | `node tools/build/app-www.mjs` → `app/www/`(網頁本身仍然沒有 build step) |
+| 鋼琴取樣打包進 App | `app-www.mjs` 會一起執行 `tools/build/app-samples.mjs` → `app/www/samples/`(5 層力度 × 30 個音 + 拍點,約 35MB;第一次要連網下載到 `tools/build/samples/`,有 ffmpeg 會截成 6.5 秒) |
 | App 圖示 | `icons/icon-1024.png`(預設,金底)、`icon-1024-dark.png`(深色模式)、`icon-1024-tinted.png`(著色模式);`cd tools/test && node icons.mjs` 重新產生 |
 | 隱私權政策(中英) | `privacy.html` → 上線後 `https://stevenmusic.github.io/PianoDrill/privacy.html` |
 | 商店截圖(中文,五張)| `app/screenshots/`:iPhone 1290×2796(6.9 / 6.7 吋欄位都能用)、iPad 13 吋 2064×2752;`cd tools/test && node appshots.mjs` 重新產生 |
@@ -59,7 +60,7 @@ Xcode 裡:
 - 「考級」只放在關鍵字(有人這樣搜尋),App 內一律用「檢定」「考試」。
 
 ## 審核備註(4.2 最低功能)可以寫
-- 離線可用(樂譜引擎、出題規則、資料都在 App 裡;鋼琴取樣第一次下載後存在裝置上,之後沒網路也有聲音)
+- 離線可用(樂譜引擎、出題規則、資料、鋼琴取樣都在 App 裡;第一次打開、沒網路也有聲音)
 - 題目即時產生:依官方大綱產生音階琶音考題、依規則產生視奏題(不是靜態圖片)、聽力題的旋律/和聲/終止式/轉調即時產生並自動批改
 - 取樣鋼琴示範、播放軸、速度階梯、練習紀錄、正確率統計、模擬考
 - 若還是被以 4.2 退件,可再加原生功能:每日練習提醒(@capacitor/local-notifications)、觸覺回饋(@capacitor/haptics)

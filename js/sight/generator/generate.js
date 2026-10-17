@@ -1163,7 +1163,17 @@ function mergeFinalStutter(bars, rules, barDuration, octaveDrop = true) {
   if (!sounding.every((e) => e.pitch && e.pitch.midi === sounding[0].pitch.midi)) return;
   const held = noteOfDuration(barDuration, rules);
   if (held) { bar.events = [{ ...sounding[sounding.length - 1], ...held, rest: false }]; return; }
-  if (!octaveDrop) return;
+  if (!octaveDrop) {
+    // No single note value fills the bar (5/4, 7/8…): tie the notes into one
+    // held note, as engraving does (F5q~F5w), instead of striking it again.
+    const first = bar.events.indexOf(sounding[0]);
+    if (bar.events.slice(first, first + sounding.length).some((e) => e.rest)) return;
+    sounding.forEach((event, i) => {
+      event.tie = i === 0 ? 'start' : i === sounding.length - 1 ? 'stop' : 'both';
+      if (i > 0) { delete event.articulations; delete event.chord; }
+    });
+    return;
+  }
   // No single note value fills the bar (5/4, 7/8…): make it an octave drop
   // into the final note instead, the earlier notes an octave up.
   const up = (p) => ({ ...p, octave: p.octave + 1, dstep: p.dstep + 7, midi: p.midi + 12 });

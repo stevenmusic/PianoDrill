@@ -3,3 +3,4 @@ tools/test/samplecache/
 tools/test/out/
 app/www/
 app/node_modules/
+tools/build/samples/

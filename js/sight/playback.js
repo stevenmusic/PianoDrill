@@ -190,7 +190,10 @@ function layOutStaff(bars, barDuration) {
       if (!event.rest) {
         const number = event.slurNumber ?? 1;
         if (event.slur === 'start') slurStarts[number] = offset;
-        notes.push({ event, offset, dur: event.dur });
+        // A tied note is one sound: lengthen the note it continues instead of striking again.
+        const last = notes[notes.length - 1];
+        if ((event.tie === 'stop' || event.tie === 'both') && last && last.event.pitch?.midi === event.pitch?.midi) last.dur += event.dur;
+        else notes.push({ event, offset, dur: event.dur });
         if (event.slur === 'stop' && slurStarts[number] !== undefined) {
           slurRanges.push({ start: slurStarts[number], end: offset + event.dur });
           delete slurStarts[number];

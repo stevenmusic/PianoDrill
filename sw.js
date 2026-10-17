@@ -3,7 +3,8 @@
    - 同網域的 css / js / data / vendor:網址都帶 ?v=內容指紋(tools/build/stamp.mjs),同一個網址內容不會變 → 先用快取;
      存了新版本就刪掉同一個檔案的舊版本
    - Google 字型:先用快取
-   - 鋼琴取樣(raw.githubusercontent)由 js/shared/audio.js 自己存在 pianodrill-samples-* 快取,這裡不管
+   - 鋼琴取樣(raw.githubusercontent)由 js/shared/audio.js 自己存在 pianodrill-samples-* 快取,這裡不管;
+     App 版打包在 App 裡的取樣(samples/)本來就在裝置上,也不再存一份
    第一次連網打開時會把用到的檔案都存起來,之後沒網路也能開 */
 const CACHE = "pianodrill-app-v1";
 self.addEventListener("install", e => {
@@ -42,6 +43,7 @@ self.addEventListener("fetch", e => {
   if (req.method !== "GET") return;
   const u = new URL(req.url);
   if (u.origin === location.origin) {
+    if (u.pathname.includes("/samples/")) return;
     if (req.mode === "navigate" || u.pathname.endsWith("/") || u.pathname.endsWith("/index.html")) e.respondWith(networkFirst(req));
     else e.respondWith(cacheFirst(req));
   } else if (/fonts\.(googleapis|gstatic)\.com$/.test(u.hostname)) {

@@ -797,3 +797,13 @@ test('the antecedent phrase arrives on a longer note at its half cadence', () =>
   // clear of both rather than shaving one of them.
   assert.ok(ratio >= 1.2, `half-cadence bar ends on a note only ${ratio.toFixed(2)}x an ordinary bar's`);
 });
+
+test('the tune\'s final note is held, not struck again (tied where no single value fills the bar)', () => {
+  eachTest((score, gradeRules, context) => {
+    if (gradeRules.texture.handsPlayTogether === false) return;
+    const notes = score.staves[1].at(-1).events.filter((event) => !event.rest);
+    if (notes.length < 2 || !notes.every((event) => event.pitch.midi === notes[0].pitch.midi)) return;
+    notes.forEach((event, i) => assert.equal(event.tie, i === 0 ? 'start' : i === notes.length - 1 ? 'stop' : 'both',
+      `grade ${context.grade} seed ${context.seed}: final note re-struck instead of tied`));
+  });
+});

@@ -192,6 +192,7 @@ function sampleCache(){
   return sampleCachePromise;
 }
 async function fetchSample(url){
+  if (BUNDLED) return fetch(url);   // App 裡的檔案,不用快取
   const cache = await sampleCache();
   if (cache) { try { const hit = await cache.match(url); if (hit) return hit; } catch (e) {} }
   // 網路卡住時不要永遠等(以前會一直停在「準備中」):25 秒沒下載完就算失敗,再按一次重試
@@ -204,7 +205,9 @@ async function fetchSample(url){
   return res;
 }
 const SAMPLE_FETCH_CONCURRENCY = (/iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1) || (navigator.deviceMemory && navigator.deviceMemory <= 4)) ? 6 : 12;
-const SAMPLE_ROOT = "https://raw.githubusercontent.com/stevenmusic/ScrollScore/main/";   // 音色直接讀 ScrollScore 的取樣(公開 repo,可跨網域)
+// App 版(Capacitor)把取樣打包在 App 裡(tools/build/app-samples.mjs → samples/):第一次打開、沒網路也有聲音,不連 GitHub
+const BUNDLED = typeof window !== "undefined" && !!window.Capacitor?.isNativePlatform?.();
+const SAMPLE_ROOT = BUNDLED ? "samples/" : "https://raw.githubusercontent.com/stevenmusic/ScrollScore/main/";   // 網頁版直接讀 ScrollScore 的取樣(公開 repo,可跨網域)
 
 /* ── 鋼琴:Salamander Grand Piano V3(ScrollScore piano/,48k FLAC)──
    30 個取樣音(每 3 個半音一個:A0、C1、D♯1…)× 16 層力度;只載入用得到的(音 × 力度層),截短到需要的長度 */
@@ -218,8 +221,12 @@ function pianoNoteName(m){ return PIANO_NOTE_NAMES[((m % 12) + 12) % 12] + (Math
 function pianoCenterFor(m){ return Math.max(21, Math.min(108, 21 + 3 * Math.round((m - 21) / 3))); }
 function pianoLayerFor(vel){
   const r = pianoMan ? pianoMan.velRanges : [[1, 127]];
-  for (let i = 0; i < r.length; i++) if (vel <= r[i][1] + 0.5) return i + 1;
-  return r.length;
+  let layer = r.length;
+  for (let i = 0; i < r.length; i++) if (vel <= r[i][1] + 0.5) { layer = i + 1; break; }
+  // App 只帶了幾層力度(manifest.bundledLayers):用最近的一層
+  const have = pianoMan && pianoMan.bundledLayers;
+  if (have && have.length) layer = have.reduce((a, b) => (Math.abs(b - layer) < Math.abs(a - layer) ? b : a));
+  return layer;
 }
 // 音量 = 0.015 + 0.985 ×(力度/127)²(原廠 amp_veltrack 98.5;各層錄音已校正成一樣大聲)
 function pianoVelGain(vel){ const v = Math.max(1, Math.min(127, vel)) / 127; return 0.015 + 0.985 * v * v; }

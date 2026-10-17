@@ -25,7 +25,7 @@ const ev = e => {
 for (let k = 0; k < count; k++) {
   const seed = seed0 === null ? Math.floor(Math.random() * 1e6) : Number(seed0) + k;
   const s = generateTest(rules, { grade, seed });
-  console.log(`== Grade ${grade} seed ${seed} · ${s.key.tonic} ${s.key.mode} · ${s.timeSignature.beats}/${s.timeSignature.beatType} · ${s.barCount} bars · ${s.tempoTerm}${s.keyChange ? ' · modulates at bar ' + (s.keyChange.barIndex + 1) : ''}`);
+  console.log(`== Grade ${grade} seed ${seed} · ${s.key.tonic} ${s.key.mode} · ${s.timeSignature.beats}/${s.timeSignature.beatType} · ${s.barCount} bars · ${s.tempoTerm}${s.keyChange ? ' · modulates to ' + s.keyChange.tonic + ' at bar ' + (s.keyChange.barIndex + 1) + ', home at bar ' + (s.keyChange.endBarIndex + 1) : ''}`);
   for (let b = 0; b < s.barCount; b++) {
     const chord = Array.isArray(s.progression[b]) ? s.progression[b].join('/') : s.progression[b];
     console.log(`${String(b + 1).padStart(2)} ${String(chord).padEnd(7)}| RH ${s.staves[1][b].events.map(ev).join(' ').padEnd(46)}| LH ${s.staves[2][b].events.map(ev).join(' ')}`);

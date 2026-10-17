@@ -23,7 +23,7 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
-import { generateTest } from '../../js/sight/generator/generate.js';
+import { generateTest, keyOfBar } from '../../js/sight/generator/generate.js';
 import { createKey, degreeOf, chordDegrees, pitchAt } from '../../js/sight/generator/theory.js';
 import { firstChord, lastChord, chordAt, halfCadenceBar } from '../../js/sight/generator/harmony.js';
 
@@ -140,7 +140,7 @@ function auditHarmony(grade, tests) {
      * music does.
      */
     const bassKeyAt = (barIndex) => (
-      score.keyChange && barIndex >= score.keyChange.barIndex ? createKey(score.keyChange) : key
+      createKey(keyOfBar(score, barIndex))
     );
     /*
      * A hand's own last sounding note is forced onto the tonic (`endOnTonic`),
@@ -189,7 +189,7 @@ function auditHarmony(grade, tests) {
     const closingBar = score.staves[2][score.barCount - 1];
     const closingNote = closingBar ? notesOfBar(closingBar)[0] : null;
     if (closingNote) {
-      const closingKey = score.keyChange ? createKey(score.keyChange) : key;
+      const closingKey = createKey(keyOfBar(score, score.barCount - 1));
       const closingRootDegree = chordDegrees(firstChord(score.progression[score.barCount - 1] ?? 'I'))[0];
       const lowest = [closingNote.pitch, ...(closingNote.chord ?? [])]
         .reduce((low, pitch) => (pitch.dstep < low.dstep ? pitch : low));
@@ -209,7 +209,7 @@ function auditHarmony(grade, tests) {
       const notes = notesOfBar(bar);
       if (!notes.length) return;
       // A modulating Grade 8 test is judged in the key each bar is actually in.
-      const key = score.keyChange && barIndex >= score.keyChange.barIndex ? createKey(score.keyChange) : opening;
+      const key = createKey(keyOfBar(score, barIndex));
       const chord = firstChord(score.progression[barIndex] ?? 'I');
       const root = chordDegrees(chord)[0];
       // The bass note is the lowest pitch sounding at the bar's downbeat.
@@ -240,7 +240,7 @@ function auditHarmony(grade, tests) {
      * check has to judge the ending against whichever key is actually
      * sounding there.
      */
-    const finalKey = score.keyChange ? createKey(score.keyChange) : key;
+    const finalKey = createKey(keyOfBar(score, score.barCount - 1));
     for (const staffNumber of [2, 1]) {
       const lastNotes = notesOfBar(score.staves[staffNumber][score.barCount - 1]);
       if (!lastNotes.length) continue;

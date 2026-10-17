@@ -62,7 +62,8 @@ test('attributes and clefs are declared once in the first measure, plus exactly 
      * modulating tests and nothing else. The block carries <key> and no
      * <clef>, so the sign counts below are untouched by it.
      */
-    const keyChanges = score.keyChange ? 1 : 0;
+    // ...and a second one where it comes home for the closing cadence.
+    const keyChanges = score.keyChange ? 1 + (score.keyChange.endBarIndex !== undefined ? 1 : 0) : 0;
     assert.equal(countMatches(xml, /<attributes>/g), 1 + clefChanges.length + keyChanges);
     assert.equal(
       countMatches(xml, /<sign>G<\/sign>/g),

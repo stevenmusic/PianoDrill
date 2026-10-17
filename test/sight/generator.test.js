@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { generateTest } from '../../js/sight/generator/generate.js';
+import { generateTest, keyOfBar } from '../../js/sight/generator/generate.js';
 import { fingerprintOf, createHistory, generateUnique } from '../../js/sight/generator/fingerprint.js';
 import { firstChord, lastChord, chordAt, halfCadenceBar } from '../../js/sight/generator/harmony.js';
 import { createKey, degreeOf, chordDegrees } from '../../js/sight/generator/theory.js';
@@ -169,11 +169,9 @@ test('Grade 2 plays hands together but stays in a five-finger position', () => {
 
 test('every test cadences on the tonic', () => {
   // A modulating test (generate.js's addModulation, Grade 8's "曲中轉調")
-  // genuinely ends in the new key, not the printed opening key — that is
-  // what modulation means. score.keyChange carries the destination tonic
-  // for exactly this: cadence checks after it should use the new key.
+  // comes home for its closing cadence: a closed piece ends in its own key.
   eachTest((score, gradeRules, context) => {
-    const tonicPitchClass = tonicPitchClassOf(score.keyChange ?? score.key);
+    const tonicPitchClass = tonicPitchClassOf(score.key);
     // Where the hands alternate (Grade 1) only the hand still playing at the
     // end carries the cadence; the other one has already dropped out.
     const staves = gradeRules.texture.handsPlayTogether === false
@@ -700,7 +698,6 @@ test('a bass decoration is off the beat, stepped into, and never doubled', () =>
     // Grade 1's hands take turns: its left hand is a tune, not a bass.
     if (gradeRules.texture.handsPlayTogether === false) return;
     const opening = createKey(score.key);
-    const destination = score.keyChange ? createKey(score.keyChange) : opening;
     const bassFinal = score.staves[2]
       .flatMap((bar) => bar.events.filter((event) => !event.rest && event.dstep !== undefined))
       .at(-1) ?? null;
@@ -708,7 +705,7 @@ test('a bass decoration is off the beat, stepped into, and never doubled', () =>
     let previous = null;
     let previousWasChordTone = true;
     score.staves[2].forEach((bar, barIndex) => {
-      const key = score.keyChange && barIndex >= score.keyChange.barIndex ? destination : opening;
+      const key = createKey(keyOfBar(score, barIndex));
       const barDuration = bar.events.reduce((sum, event) => sum + event.dur, 0);
       let offset = 0;
       for (const event of bar.events) {

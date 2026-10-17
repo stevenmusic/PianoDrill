@@ -237,7 +237,7 @@ test('printed accidentals agree with the key signature', () => {
     for (let i = 0; i < measures.length; i += 2) {
       const barIndex = Number(measures[i]) - 1;
       const expected = modulatedAlters && barIndex >= score.keyChange.barIndex
-        ? modulatedAlters : originalAlters;
+        && barIndex < (score.keyChange.endBarIndex ?? Infinity) ? modulatedAlters : originalAlters;
       /*
        * An accidental holds for the rest of the bar, on its own staff, for
        * the line or space it is written on — so this has to be judged per

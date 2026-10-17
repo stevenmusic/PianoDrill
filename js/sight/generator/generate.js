@@ -95,13 +95,19 @@ function cadenceOffRoot(score, rules) {
   const bars = [score.barCount - 2, halfCadenceBar(score.barCount)].filter((b) => b !== null);
   for (const b of bars) {
     if (lastChord(score.progression[b]) !== 'V' || firstChord(score.progression[b]) !== 'V') continue;
-    const key = createKey(score.keyChange && b >= score.keyChange.barIndex ? score.keyChange : score.key);
+    const key = createKey(keyOfBar(score, b));
     const first = score.staves[2][b].events.find((e) => !e.rest && e.pitch);
     if (!first) continue;
     const lowest = [first.pitch, ...(first.chord ?? [])].reduce((a, c) => (c.midi < a.midi ? c : a));
     if (degreeOf(lowest.dstep ?? first.dstep, key) !== 4) return true;
   }
   return false;
+}
+
+/** The key a bar is written in: a Grade 8 modulation's span, or the home key. */
+export function keyOfBar(score, barIndex) {
+  const change = score.keyChange;
+  return change && barIndex >= change.barIndex && barIndex < (change.endBarIndex ?? Infinity) ? change : score.key;
 }
 
 /** Whether a minor-key test sounds the 7th unraised over V (outside a descending passing note). */
@@ -1742,7 +1748,11 @@ function addChromaticGroup(rng, score) {
  * Grade 8's declared "曲中轉調" (mid-piece modulation): the consequent
  * phrase (from the period's half cadence onward, `halfCadenceBar` — the
  * same split point the period structure already uses) moves to the
- * dominant major key for the rest of the piece.
+ * dominant major key, and comes home for the closing V-I: a closed piece
+ * ends in its own key (every modulating test used to end in the dominant,
+ * which an examiner marks). The excursion is moved up a fifth or down a
+ * fourth, whichever joins its neighbours more smoothly (always a fifth up
+ * left eight bars sitting around Bb5-F6).
  *
  * This does not generate a second phrase in a second key — the whole piece
  * is built once, in one key, by the ordinary unmodified pipeline, and this
@@ -1787,28 +1797,58 @@ function addModulation(rng, rules, score) {
     + (dominantInOriginalKey.alter === 1 ? '#' : dominantInOriginalKey.alter === -1 ? 'b' : '');
   const newKey = createKey({ tonic: newTonic, mode: 'major', fifths: newFifths });
 
-  const transposePitch = (pitch) => pitchAt(pitch.dstep + 4, newKey);
+  // The excursion: from the consequent's restart up to the closing V-I,
+  // which stays in the home key.
+  const endBar = score.barCount - 2;
+  if (endBar - pivotBar < 2) return false;
+  // The span's last chord leads into the home dominant: its vi would be the home iii.
+  if (lastChord(score.progression[endBar - 1]) === 'vi') return false;
+  const inSpan = (barIndex) => barIndex >= pivotBar && barIndex < endBar;
+  const flat = (staffNumber) => score.staves[staffNumber].flatMap((bar, barIndex) => bar.events
+    .filter((event) => !event.rest && event.pitch).map((event) => ({ event, barIndex })));
 
-  // A transposed note can walk past the grade's declared range even though
-  // the untransposed original never did — checked before touching anything,
-  // since this is a dry run over the same events the mutation pass below
-  // would otherwise commit regardless.
-  for (const hand of ['rightHand', 'leftHand']) {
-    const staffNumber = hand === 'rightHand' ? 1 : 2;
-    const { minMidi, maxMidi } = rules.range[hand];
-    for (let barIndex = pivotBar; barIndex < score.barCount; barIndex++) {
-      for (const event of score.staves[staffNumber][barIndex].events) {
-        if (event.rest || !event.pitch) continue;
-        const midi = transposePitch(event.pitch).midi;
-        if (midi < minMidi || midi > maxMidi) return false;
-        // Up a fifth must not lift the bass out of the bass register.
-        if (hand === 'leftHand' && midi > 64) return false;
+  // Dry run for each way of moving the span: every transposed note must stay
+  // in the grade's range (and the bass in the bass register), and where the
+  // span meets the home-key bars on either side each hand may move by no
+  // more than a sixth and never by an augmented or diminished interval.
+  // The tune keeps its register: no lower than it goes elsewhere (or middle
+  // C), no higher than it goes elsewhere (or C6) — the old fifth-up span sat
+  // around Bb5-F6, a fourth down could drop it under the bass staff.
+  const outside = flat(1).filter(({ barIndex }) => !inSpan(barIndex)).map(({ event }) => event.pitch.midi);
+  const tuneLow = Math.min(60, ...outside), tuneHigh = Math.max(84, ...outside);
+  let best = null;
+  for (const shift of [4, -3]) {
+    const moved = (pitch) => pitchAt(pitch.dstep + shift, newKey);
+    let cost = 0;
+    let ok = true;
+    for (const [hand, staffNumber] of [['rightHand', 1], ['leftHand', 2]]) {
+      const { minMidi, maxMidi } = rules.range[hand];
+      const notes = flat(staffNumber);
+      for (let i = 0; ok && i < notes.length; i++) {
+        const { event, barIndex } = notes[i];
+        if (inSpan(barIndex)) {
+          for (const pitch of [event.pitch, ...(event.chord ?? [])]) {
+            const midi = moved(pitch).midi;
+            if (midi < minMidi || midi > maxMidi || (hand === 'leftHand' && midi > 64)) ok = false;
+            if (hand === 'rightHand' && pitch === event.pitch && (midi < tuneLow || midi > tuneHigh)) ok = false;
+          }
+        }
+        const next = notes[i + 1];
+        if (!next || inSpan(barIndex) === inSpan(next.barIndex)) continue;
+        const from = inSpan(barIndex) ? moved(event.pitch) : event.pitch;
+        const to = inSpan(next.barIndex) ? moved(next.event.pitch) : next.event.pitch;
+        const semitones = Math.abs(to.midi - from.midi);
+        if (semitones > 9 || semitones === 6 || alteredInterval(from.dstep, from.midi, to.dstep, to.midi)) ok = false;
+        cost += semitones;
       }
     }
+    if (ok && (!best || cost < best.cost)) best = { shift, cost };
   }
+  if (!best) return false;
+  const transposePitch = (pitch) => pitchAt(pitch.dstep + best.shift, newKey);
 
   for (const staffNumber of [1, 2]) {
-    for (let barIndex = pivotBar; barIndex < score.barCount; barIndex++) {
+    for (let barIndex = pivotBar; barIndex < endBar; barIndex++) {
       for (const event of score.staves[staffNumber][barIndex].events) {
         if (event.grace) event.grace.pitch = transposePitch(event.grace.pitch);
         if (event.rest || !event.pitch) continue;
@@ -1822,7 +1862,7 @@ function addModulation(rng, rules, score) {
 
   // A key-signature change is part-wide (one <key> for both staves), unlike
   // a clef change — stored at the score level rather than per-staff bar.
-  score.keyChange = { barIndex: pivotBar, fifths: newFifths, mode: 'major', tonic: newKey.tonic };
+  score.keyChange = { barIndex: pivotBar, endBarIndex: endBar, fifths: newFifths, mode: 'major', tonic: newKey.tonic };
   return true;
 }
 

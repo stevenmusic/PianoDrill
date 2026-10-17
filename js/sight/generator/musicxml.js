@@ -36,7 +36,8 @@ export function toMusicXml(score, options = {}) {
   // genuine accidental goes unmarked) against the old one.
   const modulatedKeyAlters = score.keyChange ? keyAlterations(score.keyChange.fifths) : null;
   const keyAltersAt = (barIndex) => (
-    modulatedKeyAlters && barIndex >= score.keyChange.barIndex ? modulatedKeyAlters : keyAlters
+    modulatedKeyAlters && barIndex >= score.keyChange.barIndex && barIndex < (score.keyChange.endBarIndex ?? Infinity)
+      ? modulatedKeyAlters : keyAlters
   );
   const lines = [];
 
@@ -83,6 +84,12 @@ export function toMusicXml(score, options = {}) {
     if (score.keyChange && score.keyChange.barIndex === barIndex) {
       lines.push('      <attributes>');
       lines.push(`        <key><fifths>${score.keyChange.fifths}</fifths><mode>${score.keyChange.mode}</mode></key>`);
+      lines.push('      </attributes>');
+    }
+    // ...and back home for the closing cadence.
+    if (score.keyChange && score.keyChange.endBarIndex === barIndex) {
+      lines.push('      <attributes>');
+      lines.push(`        <key><fifths>${score.key.fifths}</fifths><mode>${score.key.mode}</mode></key>`);
       lines.push('      </attributes>');
     }
 

@@ -23,7 +23,8 @@ export function serve(){
 }
 export async function open(opts = {}){
   const { srv, url } = await serve();
-  const browser = await chromium.launch({ args: ["--autoplay-policy=no-user-gesture-required"] });
+  // opts.args:另外的瀏覽器參數(mic-check 的假麥克風 --use-fake-device-for-media-stream 等)
+  const browser = await chromium.launch({ args: ["--autoplay-policy=no-user-gesture-required", ...(opts.args || [])] });
   const ctx = await browser.newContext({ viewport: opts.viewport || { width: 1400, height: 900 }, deviceScaleFactor: opts.dpr || 1, isMobile: !!opts.mobile, hasTouch: !!opts.mobile });
   const page = await ctx.newPage();
   const errors = [];

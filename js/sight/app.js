@@ -3,7 +3,7 @@ import { toMusicXml } from './generator/musicxml.js';
 import { createHistory, generateUnique } from './generator/fingerprint.js';
 import { createKey, pitchAt } from './generator/theory.js';
 import { createPlayer } from './playback.js';
-import { createRecorder } from './mic.js';
+import { createRecorder } from '../shared/mic.js';
 import { expectedOnsets, detectOnsets, scoreRhythm } from './scoring.js';
 import { createStage, barTimings } from './stage.js';
 import { t, applySightStatic } from './i18n.js';

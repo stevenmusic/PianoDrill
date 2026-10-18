@@ -139,6 +139,7 @@ WebKit 把它對應到 `AVAudioSessionCategoryPlayback`(沒有 mixWithOthers),�
   錄音時不混音(沒有 `.mixWithOthers`):正在放的音樂會暫停,不然會被收進去。
 - 用完(錄完、取消、打開失敗):切回第 3 節的 `.playback` + `.mixWithOthers`。
 - 開麥克風時 `AudioContext` 可能短暫變成 interrupted:網頁已處理(`js/shared/micrhythm.js` 的 `bumped`,DrumDrill),實機第 8 節第 18 項確認。
+  錄完切回 `.playback` 時也可能再打斷一次:錄完之後 `SETTLE_MS`(1.5 秒)內的打斷當作自己造成的(`shielded`,模擬考不中止;DrumDrill)。
 
 新增 `app/ios/App/App/AudioSessionPlugin.swift`(File ▸ New ▸ File from Template ▸ Swift File,Target 勾 App):
 
@@ -222,7 +223,7 @@ iPad 要支援分割畫面與視窗縮放(網頁版面本來就跟著寬度變,`
 | App | 英文(`en`,Info.plist 也用這句) | 繁體中文(`zh-Hant`) |
 |---|---|---|
 | PianoDrill | Listens to when you play each note to score your rhythm. Audio is analysed on the device only — never recorded or uploaded. | 用麥克風聽你彈的起音時間來評分節奏;聲音只在裝置上分析,不錄音、不上傳。 |
-| DrumDrill | Listens to when each stroke lands to score your rhythm (optional). Audio is analysed on the device only — never recorded or uploaded. | 用麥克風聽你打每一下的時間來評分節奏(選用);聲音只在裝置上分析,不錄音、不上傳。 |
+| DrumDrill | Listens to your drum strokes to score your rhythm (optional). Audio is analysed on the device only — never recorded or uploaded. | 用麥克風聽你打每一下的時間來評分節奏(選用);聲音只在裝置上分析,不錄音、不上傳。 |
 
 **InfoPlist.strings**(權限說明、App 名稱的中英文):
 1. Project ▸ App ▸ Info ▸ Localizations:按 + 加入 **Chinese, Traditional (zh-Hant)**。
@@ -330,7 +331,7 @@ npm run open                              # = npx cap open ios
 | 15 | 長時間播放 | 循環播放 10 分鐘 | 不爆音、不延遲變大、不發燙到降速 |
 | 16 | 頁尾連結 | 點「授權與出處」「隱私權政策」「支援」,再按返回 | 三頁都打得開、返回回到 App;支援頁的「在 GitHub 回報」會開 Safari。返回是回到上一頁(`history.back()`,沒有歷史才開 `index.html`),但 App 會**重新載入**(WebView 一般不保留上一頁的狀態):分頁與設定(存在 localStorage)還在,**正在做的題目狀態會重置**,這是預期行為 |
 | 17 | 麥克風權限 | DrumDrill:視奏「正式打」/ 聽力「回打」勾「用麥克風評分節奏」;PianoDrill:視奏「跟著彈」勾麥克風 → 第一次按開始;再刪掉 App 重裝,這次按「不允許」 | 跳出系統的權限視窗,說明是第 4 節的字串、語言跟系統一樣;不允許 → 畫面說明原因(DrumDrill:這一次照觸控鼓墊評分),其他功能照常、不會一直問;到 設定 ▸ `<App>` ▸ 麥克風 打開後再試可以用 |
-| 18 | 錄音時的聲音路線(第 3b 節) | 開著 Apple Music 放歌,勾麥克風後正式打 / 回打一次;打完再按一般的播放;再把靜音開關打開按播放 | 預備拍從**喇叭**出來(不是聽筒)、音量正常,而且真的有開始(開麥克風時 AudioContext 被打斷也照樣開始);錄音時音樂暫停是預期的;打完切回 `.playback` + `.mixWithOthers`:第 1、2 項(靜音開關有聲音、可以跟音樂混音)照樣成立;沒裝外掛(第 3b 節)時記下差在哪 |
+| 18 | 錄音時的聲音路線(第 3b 節) | 開著 Apple Music 放歌,勾麥克風後正式打 / 回打一次;打完再按一般的播放;再把靜音開關打開按播放 | 預備拍從**喇叭**出來(不是聽筒)、音量正常,而且真的有開始(開麥克風時 AudioContext 被打斷也照樣開始);錄完後模擬考要能繼續(DrumDrill:檢定頁的聽力 RSL 模擬考勾麥克風回打 Fill,打完要能選譜、接著做 Groove,不會跳出「模擬考已中止」);錄音時音樂暫停是預期的;打完切回 `.playback` + `.mixWithOthers`:第 1、2 項(靜音開關有聲音、可以跟音樂混音)照樣成立;沒裝外掛(第 3b 節)時記下差在哪 |
 | 19 | 麥克風評分準不準 | iPhone 放在鼓 / 鋼琴旁 1–2 公尺,DrumDrill 用真的鼓或打擊板:照譜打一次、故意整段晚一點一次、亂打一次;小鼓(RSL 0–3)與整組鼓(RSL 4–5)各一題 | 準時分數高;整段晚只寫「整體慢約 … 毫秒(已先扣掉)」不扣分;亂打分數低;記下整體延遲幾毫秒、漏 / 多幾下(DrumDrill 整組鼓:crash 在響時輕的 hi-hat 可能漏,`js/shared/timing.js` 的門檻要用實機錄音再調) |
 | 20 | 麥克風 + AirPods | 連著 AirPods 勾麥克風打一次 | 聲音從 AirPods 出來(`.allowBluetoothA2DP`)、麥克風用 iPhone 本身的;不當機;記下整體延遲(藍牙輸出延遲會讓「整體慢約」變大,已先扣掉、不扣分) |
 

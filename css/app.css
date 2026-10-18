@@ -298,6 +298,8 @@ details.card[open] > summary .chev{transform:rotate(180deg)}
 
 footer{max-width:1400px;width:100%;margin:0 auto;padding:6px 16px 28px;font-size:var(--fs-xs);line-height:1.8;color:var(--muted)}
 footer a{color:var(--muted-bright)}
+footer p{margin:0}
+footer .foot-links a{display:inline-flex;align-items:center;min-height:32px}   /* 授權、隱私連結:點擊區域夠高 */
 body{background:
   radial-gradient(ellipse 70% 45% at 0% 100%, rgba(242,185,75,.075), transparent 70%),
   radial-gradient(ellipse 60% 40% at 100% 100%, rgba(63,191,174,.06), transparent 70%),

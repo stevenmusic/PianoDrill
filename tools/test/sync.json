@@ -2,6 +2,7 @@
   ["css/app.css", "css/app.css", "same"],
   ["js/shared/i18n.js", "js/shared/i18n.js", "markers"],
   ["js/shared/audio.js", "js/shared/audio.js", "markers"],
+  ["js/shared/onsets.js", "js/shared/onsets.js", "same"],
   ["js/main.js", "js/main.js", "markers"],
   ["sw.js", "sw.js", "markers"],
   ["tools/build/stamp.mjs", "tools/build/stamp.mjs", "same"],

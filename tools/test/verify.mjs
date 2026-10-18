@@ -3,6 +3,7 @@
    2. data/fingerings.json 結構(長度、手指 1~5、循環一致)
    3. 大綱裡每一題 + 「所有調 × 所有題型 × 1~4 個八度」:音高、拼法、音型、音域、指法完整與可彈性
    4. MusicXML:每小節每個譜表的時值 = 4 拍、指法數 = 音數、記譜規則(另外寫的檢查,不沿用產生器)
+   5. 版本指紋、兩個 App 的共用檔案(sync.mjs);可選 APPWWW=1:App 打包檢查(tools/test/app-www.mjs)
    用法:node tools/test/verify.mjs */
 import fs from "node:fs";
 import { buildExercise } from "../../js/tech/exercise.js";
@@ -434,6 +435,11 @@ console.log(`哈農 ${nHanon} 種組合`);
   const { execFileSync } = await import("node:child_process");
   try { execFileSync("node", [new URL("../build/stamp.mjs", import.meta.url).pathname, "--check"], { stdio: "pipe" }); checks++; }
   catch (e) { fail((e.stdout || "").toString().trim() || "index.html 的版本指紋不是最新的:執行 node tools/build/stamp.mjs"); }
+  // 可選:APPWWW=1 時跑 App 打包檢查(tools/test/app-www.mjs:先跑 app-www 再檢查 app/www 完整;要下載取樣,所以預設不跑)
+  if (process.env.APPWWW) {
+    try { console.log(execFileSync("node", [new URL("./app-www.mjs", import.meta.url).pathname], { stdio: "pipe" }).toString().trim().split("\n").pop()); checks++; }
+    catch (e) { fail((e.stdout || "").toString().trim() || "app/www 不完整"); }
+  }
   // 兩個 App 的共用檔案(DRUMDRILL=…;找不到 DrumDrill 就略過)
   try { console.log(execFileSync("node", [new URL("./sync.mjs", import.meta.url).pathname], { stdio: "pipe" }).toString().trim()); checks++; }
   catch (e) { fail((e.stdout || "").toString().trim() || "兩個 App 的共用檔案不一致"); }

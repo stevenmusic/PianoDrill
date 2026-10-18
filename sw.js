@@ -1,7 +1,7 @@
 /* 離線使用(Service Worker)
-   - 安裝時先把整份 App(首頁、manifest、圖示、授權與隱私頁、css、js、data、vendor;清單 PRECACHE 由 tools/build/stamp.mjs 寫入)存好,
+   - 安裝時先把整份 App(首頁、manifest、圖示、授權 / 隱私 / 支援頁、css、js、data、vendor;清單 PRECACHE 由 tools/build/stamp.mjs 寫入)存好,
      第一次打開之後就算沒網路、沒點過的分頁也能用;快取名稱帶「清單 + 沒有 ?v= 的檔案內容」的雜湊,版本一變就換一個快取,舊的在新版啟用時刪掉
-   - 頁面(首頁、授權、隱私):先上網拿最新的,沒網路才用快取 → 有更新時一定拿到新版
+   - 頁面(首頁、授權、隱私、支援):先上網拿最新的,沒網路才用快取 → 有更新時一定拿到新版
    - 同網域的 css / js / data / vendor:網址都帶 ?v=內容指紋(tools/build/stamp.mjs),同一個網址內容不會變 → 先用快取;
      存了新版本就刪掉同一個檔案的舊版本
    - Google 字型:先用快取
@@ -12,7 +12,7 @@
 const APP = "pianodrill";
 // @app-end
 /*@precache-begin*/
-const CACHE = APP + "-app-26be1118";
+const CACHE = APP + "-app-61d04d03";
 const PRECACHE = [
   "./",
   "manifest.webmanifest",
@@ -23,6 +23,7 @@ const PRECACHE = [
   "icons/icon-maskable-512.png",
   "licenses.html",
   "privacy.html",
+  "support.html",
   "css/app.css?v=9f6af68d07",
   "css/sight.css?v=0ba194fd2a",
   "vendor/opensheetmusicdisplay.min.js?v=4bfeb3d01c",
@@ -34,7 +35,7 @@ const PRECACHE = [
   "js/ear/strings.js?v=eaf7382b0f",
   "js/main.js?v=89881b6625",
   "js/shared/audio.js?v=364bf972e9",
-  "js/shared/i18n.js?v=f6de467b70",
+  "js/shared/i18n.js?v=724197974e",
   "js/shared/onsets.js?v=d8df0b9ef2",
   "js/sight/app.js?v=d6d9ca5123",
   "js/sight/generator/fingerprint.js?v=9c9903e4f3",
@@ -77,7 +78,7 @@ self.addEventListener("activate", e => {
 });
 async function networkFirst(req){
   const c = await caches.open(CACHE);
-  // 首頁存在 "./";其他頁面(licenses.html、privacy.html)各存各的(不帶 ?query),不能蓋掉首頁
+  // 首頁存在 "./";其他頁面(licenses.html、privacy.html、support.html)各存各的(不帶 ?query),不能蓋掉首頁
   const u = new URL(req.url);
   const key = /\/(index\.html)?$/.test(u.pathname) ? "./" : u.origin + u.pathname;
   try {

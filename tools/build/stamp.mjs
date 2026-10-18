@@ -4,7 +4,7 @@
    - <script type="importmap">:js/ 底下(含子資料夾)每個模組 → 帶 ?v= 的網址(模組彼此 import 的相對路徑也會被換掉)
    - <script type="application/json" id="pdVersions">:data/*.json 的版本(各模組 fetch 時帶上)
    - sw.js 的預快取區段(@precache-begin … @precache-end 註解之間):離線要用的完整檔案清單(帶 ?v=)與快取名稱(APP + "-app-" + 雜湊前 8 碼),
-     Service Worker 安裝時整份先存好;雜湊 = 清單 + 沒有 ?v= 的檔案(首頁、manifest、圖示、licenses.html、privacy.html)的內容,
+     Service Worker 安裝時整份先存好;雜湊 = 清單 + 沒有 ?v= 的檔案(首頁、manifest、圖示、licenses.html、privacy.html、support.html)的內容,
      清單或這些檔案一變快取名稱就變,舊快取在新版啟用時刪掉;清單裡每個檔案都要存在,缺檔就失敗
    改了任何 css/js/data 之後執行:node tools/build/stamp.mjs;node tools/build/stamp.mjs --check 只檢查(verify.mjs 會跑)
    PianoDrill / DrumDrill 兩邊這個檔案一模一樣(tools/test/sync.mjs 檢查) */
@@ -24,12 +24,12 @@ html = html.replace(/src="vendor\/opensheetmusicdisplay\.min\.js(\?v=[^"]*)?"/, 
 html = html.replace(/<script type="module" src="js\/main\.js(\?v=[^"]*)?"><\/script>/, `<script type="module" src="js/main.js?v=${h("js/main.js")}"></script>`);
 html = html.replace(/<script type="importmap">.*?<\/script>/s, `<script type="importmap">${JSON.stringify(imap)}</script>`);
 html = html.replace(/<script type="application\/json" id="pdVersions">.*?<\/script>/s, `<script type="application/json" id="pdVersions">${JSON.stringify(dv)}</script>`);
-// sw.js 預快取清單:首頁、manifest、圖示、授權與隱私頁、css、vendor、js、data(都跟 index.html 實際用的網址一樣)
+// sw.js 預快取清單:首頁、manifest、圖示、授權 / 隱私 / 支援頁、css、vendor、js、data(都跟 index.html 實際用的網址一樣)
 let sw = fs.readFileSync(root + "sw.js", "utf8");
 const swOrig = sw;
 const manifest = JSON.parse(fs.readFileSync(root + "manifest.webmanifest", "utf8"));
 const icons = [...new Set([...(manifest.icons || []).map(i => i.src), ...[...html.matchAll(/<link rel="[\w-]*icon" href="([^"?]+)"/g)].map(m => m[1])])].sort();
-const pre = ["./", "manifest.webmanifest", ...icons, "licenses.html", "privacy.html",
+const pre = ["./", "manifest.webmanifest", ...icons, "licenses.html", "privacy.html", "support.html",
   ...[...html.matchAll(/href="(css\/[^"]+)"/g)].map(m => m[1]),
   ...[...html.matchAll(/src="(vendor\/[^"]+)"/g)].map(m => m[1]),
   ...Object.values(imap.imports).map(u => u.replace(/^\.\//, "")),

@@ -6,6 +6,8 @@
   ["js/main.js", "js/main.js", "markers"],
   ["sw.js", "sw.js", "markers"],
   ["tools/build/stamp.mjs", "tools/build/stamp.mjs", "same"],
+  ["tools/build/app-www.mjs", "tools/build/app-www.mjs", "markers"],
+  ["tools/test/app-www.mjs", "tools/test/app-www.mjs", "markers"],
   ["tools/test/harness.mjs", "tools/test/harness.mjs", "same"],
   ["tools/test/sync.mjs", "tools/test/sync.mjs", "same"],
   ["tools/test/sync.json", "tools/test/sync.json", "same"],

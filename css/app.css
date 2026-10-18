@@ -324,9 +324,11 @@ body{background:
 .tabbar button:focus-visible{outline-offset:-3px}
 /* 動態字級:控制項(分段鈕、chip、選項、按鈕、分頁列)的字最多放大到 1.3 倍(內文最多 2 倍);
    跟 iOS 一樣:分頁列、分段控制不跟著系統字級一直變大,一排放不下就破版 */
-.seg,.chips,.chip,.opts,.opt,.btn,.mbtn,.play-opts,.tabbar{
+.seg,.chips,.chip,.opts,.opt,.btn,.mbtn,.play-opts{
   --fs-2xs:min(calc(11rem / 17), 14.3px);--fs-xs:min(calc(12rem / 17), 15.6px);--fs-sm:min(calc(13rem / 17), 16.9px);
   --fs-md:min(calc(14rem / 17), 18.2px);--fs-lg:min(calc(16rem / 17), 20.8px);--fs-xl:min(calc(19rem / 17), 24.7px)}
+/* 分頁列的字不跟著放大(跟 iOS 的分頁列一樣;放大了會換行、變高,蓋住內容的最後一段) */
+.tabbar{--fs-2xs:11px;--fs-xs:12px;--fs-sm:13px;--fs-md:14px}
 @media (max-width:600px){
   main{padding:10px;gap:10px}
   .card{padding:12px}

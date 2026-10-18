@@ -93,6 +93,11 @@ document.addEventListener("click", e => {
   card.classList.toggle("open", open); btn.setAttribute("aria-expanded", String(open));
 });
 
+/* 無障礙:重畫一排按鈕(innerHTML)時,原本聚焦在裡面的按鈕換成新的同一顆(不然焦點掉回 <body>,鍵盤使用者要從頭 Tab) */
+function keepFocus(box, attr){
+  const a = document.activeElement, v = a && box.contains(a) ? a.getAttribute(attr) : null;
+  return () => { if (v != null) { const b = box.querySelector(`[${attr}="${v}"]`); if (b) b.focus({ preventScroll: true }); } };
+}
 /* ══ 分頁 ══ */
 let curMod = null;
 function renderSubnav(){
@@ -100,8 +105,10 @@ function renderSubnav(){
   $("subnav").hidden = !opts.length;
   document.body.classList.toggle("no-subnav", !opts.length);
   // 視奏的子項目是級數:按鈕上只有數字,aria-label 寫完整級名
+  const keep = keepFocus($("subSeg"), "data-v");
   $("subSeg").innerHTML = opts.map(([v, t]) => `<button data-v="${v}" aria-pressed="${S.sub[S.view] === v}"${S.view === "sight" ? ` aria-label="${gradeLabel(Number(v))}"` : ""}>${t}</button>`).join("");
   $("subSeg").setAttribute("aria-label", SUB_LABEL()[S.view] || "");
+  keep();
 }
 $("subSeg").onclick = e => {
   const b = e.target.closest("button[data-v]"); if (!b) return;
@@ -177,11 +184,13 @@ function renderExamCard(){
   syncSystemSeg(); fillGrades($("selGrade"), ex.grade, ex.system);
   $("examSum").textContent = S.exam ? `${SYSTEMS[ex.system]} · ${gradeLabel(ex.grade)}` : tr("還沒選考試 · 點這裡選考試和級數", "No exam chosen · tap to pick one");
   // 三個項目的進度(各模組自己算),點一下切到那一項
+  const keep = keepFocus($("examParts"), "data-part");
   $("examParts").innerHTML = Object.keys(MODS).map(name => {
     const st = MODS[name].examStatus() || "";
     const label = PART_LABEL()[name];
     return `<button class="part" data-part="${name}" aria-pressed="${S.view === "exam" && S.sub.exam === name}"><b>${label}</b><small>${st}</small></button>`;
   }).join("");
+  keep();
 }
 $("examParts").onclick = e => {
   const b = e.target.closest("[data-part]"); if (!b) return;
@@ -191,12 +200,13 @@ $("examParts").onclick = e => {
 export function examChanged(){ if (S.view === "exam") renderExamCard(); }
 
 /* ══ 第一次打開:在準備考試嗎? ══
-   無障礙:對話框打開時焦點移進去(第一個按鈕)、Tab 只在對話框裡轉、Esc = 「不考試,自由練習」;
-   背景(頂欄、內容、分頁列)設 inert;關掉時焦點回到打開前的地方(沒有就回到選到的分頁) */
+   無障礙:對話框打開時焦點移進去(第一個按鈕)、Tab 只在對話框 + 頂欄右邊的主題 / 語言鈕之間轉(頂欄在對話框上面,可以邊選邊換語言)、
+   Esc = 「不考試,自由練習」;背景(內容、分頁列)設 inert;關掉時焦點回到打開前的地方(沒有就回到選到的分頁) */
 const ob = { ...DEFAULT_EXAM };
 let obReturn = null;
-const OB_BG = () => [document.querySelector("header"), MAIN, $("tabbar")].filter(Boolean);
-function obFocusables(){ return [...$("onboard").querySelectorAll("button, select, [href], input, [tabindex]:not([tabindex='-1'])")].filter(el => !el.disabled && el.offsetParent !== null); }
+const OB_BG = () => [MAIN, $("tabbar")].filter(Boolean);
+const OB_SEL = "button, select, [href], input, [tabindex]:not([tabindex='-1'])";
+function obFocusables(){ return [...document.querySelectorAll(".header-right button"), ...$("onboard").querySelectorAll(OB_SEL)].filter(el => !el.disabled && !el.hidden && el.offsetParent !== null); }
 function openOnboard(){
   obReturn = document.activeElement && document.activeElement !== document.body ? document.activeElement : null;
   $("onboard").hidden = false;
@@ -211,13 +221,14 @@ function closeOnboard(){
   obReturn = null;
   if (back) back.focus({ preventScroll: true });
 }
-$("onboard").addEventListener("keydown", e => {
+document.addEventListener("keydown", e => {
+  if ($("onboard").hidden) return;
   if (e.key === "Escape") { e.preventDefault(); $("obNo").click(); return; }
   if (e.key !== "Tab") return;
   const f = obFocusables(); if (!f.length) return;
   const i = f.indexOf(document.activeElement);
-  if (e.shiftKey && i <= 0) { e.preventDefault(); f[f.length - 1].focus(); }
-  else if (!e.shiftKey && i === f.length - 1) { e.preventDefault(); f[0].focus(); }
+  e.preventDefault();   // 每一下都自己移(頂欄右邊的鈕跟對話框在 DOM 裡不相鄰,交給瀏覽器會跑到子項目分段鈕)
+  f[i < 0 ? 0 : (i + (e.shiftKey ? -1 : 1) + f.length) % f.length].focus();
 });
 function showOnboard(){
   const syncSys = segBind("obSystem", () => ob.system, v => { ob.system = v; fillGrades($("obGrade"), Number($("obGrade").value), v); });

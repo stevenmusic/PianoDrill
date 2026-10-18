@@ -2,7 +2,7 @@
    外框(js/main.js)負責頂欄、分頁、考試系統與級數;這裡的元素 id 都加 "e-" 前綴 */
 import * as store from "./store.js";
 import { ALL_ITEMS, itemLabel, makeQuestion, pcName, isBlack, setSolfege, noteName } from "./ear.js";
-import { makeDrill, drillName, judgeTaps, judgeKeys } from "./aural.js";
+import { makeDrill, drillName, judgeTaps, judgeKeys, lazy } from "./aural.js";
 import { tr, scoped, getLang, pairText } from "../shared/i18n.js";
 import * as audio from "../shared/audio.js";
 import "./strings.js";
@@ -20,19 +20,21 @@ let A = null;                      // 作答狀態:{ step, results, done, keys: 
 let examDrill = null;              // 檢定:目前練的 { test, drill, idx }
 
 /* 語言切換(外框通知):只重寫文字(不停止播放、不換題、作答狀態不變;照 DrumDrill 技巧的 relabel)——
-   選擇器、檢定清單、題目與選項、按鈕、暫時訊息、正確率、紀錄卡 */
+   選擇器、檢定清單、題目與選項、按鈕、暫時訊息、正確率、紀錄卡。
+   題目上的文字(標題、標籤、問題、選項、答案說明、拍子批改訊息)出題時就寫成 getter(aural.js、ear.js),
+   每次畫都照目前的語言 → 這裡只要重畫目前的題目;其他分頁存著的題目(tabCur)回到畫面時 setQuestion 會重畫。
+   模組不在畫面上時不碰題目卡(enter → switchTab 會整個重畫) */
 export function relang(){
   if (!SY) return;
   if (S.exam) renderExam();
+  remsg();
   if (active) {
     if (PRACTICE.includes(S.tab)) renderPicker(S.tab);
-    if (cur) {
-      relabel(cur); renderQuestion();
-      if (play && cur.tap && cur.tap.kind === "pulse" && !A.done) $("feedback").textContent = tr("跟著拍子按「拍」", "Tap along");
-    } else if (lastMock) showMockText();
+    if (cur) renderQuestion();
+    else if (lastMock) showMockText();
     else if ($("qTitle").classList.contains("empty")) emptyText();
     $("playLabel").textContent = play ? T("stop") : starting ? tr("準備中…", "Preparing…") : cur && A && A.played ? T("replay") : T("play");
-    remsg(); renderStats();
+    renderStats();
   }
   renderLog();
 }
@@ -40,16 +42,6 @@ export function relang(){
 const msgs = {};
 function setMsg(id, fn){ msgs[id] = fn || null; $(id).textContent = fn ? fn() : ""; }
 function remsg(){ for (const id in msgs) if (msgs[id]) $(id).textContent = msgs[id](); }
-/* 換語言:同一題重新產生文字(選項標籤),音不變 */
-function relabel(q){
-  if (q.tab && PRACTICE.includes(q.tab)) {
-    const fresh = makeQuestion(q.tab, S.pick[q.tab], S.stats, false, null);
-    if (fresh && q.steps && fresh.steps) q.steps = q.steps.map((s, i) => ({ ...s, q: fresh.steps[i] ? fresh.steps[i].q : s.q,
-      choices: s.choices.map(c => { const it = ALL_ITEMS[q.tab].find(x => x.id === c.id); return it ? { ...c, label: itemLabel(q.tab, it) } : c; }) }));
-    if (fresh) q.label = fresh.label;
-  } else if (q.examRef) q.label = (q.mockI != null ? tr(`模擬考 ${q.mockI + 1}/${q.mockN} · `, `Mock ${q.mockI + 1}/${q.mockN} · `) : "") + `${q.examRef.test.id} · ${drillName(q.examRef.drill.type)}`;
-  return q;
-}
 
 function segBind(el, get, set){
   const seg = typeof el === "string" ? $(el) : el;
@@ -173,8 +165,9 @@ $("testsList").onclick = e => {
 function loadDrill(d){
   examDrill = d;
   const q = makeDrill(d.drill, { system: S.exam.system, key: examKey(d.test, d.drill) });
-  q.examRef = d;   // 換語言時重寫標題用
-  q.label = `${d.test.id} · ${drillName(d.drill.type)}`;
+  q.examRef = d;
+  // 標題跟著語言(模擬考加「模擬考 i/n · 」;mockI、mockN 由 loadMock 設)
+  lazy(q, "label", () => (q.mockI != null ? tr(`模擬考 ${q.mockI + 1}/${q.mockN} · `, `Mock ${q.mockI + 1}/${q.mockN} · `) : "") + `${d.test.id} · ${drillName(d.drill.type)}`);
   setQuestion(q, "exam");
   renderExam(); renderStats();
 }
@@ -197,8 +190,7 @@ $("mockBtn").onclick = () => {
 function loadMock(){
   const d = mock.queue[mock.i], m = mock;
   loadDrill(d); mock = m;
-  cur.mockI = m.i; cur.mockN = m.queue.length;
-  cur.label = tr(`模擬考 ${m.i + 1}/${m.queue.length} · `, `Mock ${m.i + 1}/${m.queue.length} · `) + cur.label;
+  cur.mockI = m.i; cur.mockN = m.queue.length;   // 標題的「模擬考 i/n」(loadDrill 的 label getter)
   renderQuestion();
 }
 let lastMock = null;   // 模擬考結果畫面(換語言時重寫)
@@ -310,7 +302,7 @@ function renderAnswers(){
     syncTap();
   }
   if (A.done) showResult();
-  else $("feedback").textContent = A.played ? "" : tr("先按 ▶ 聽題目", "Press ▶ to listen");
+  else $("feedback").textContent = !A.played ? tr("先按 ▶ 聽題目", "Press ▶ to listen") : A.hint ? A.hint() : "";
 }
 
 /* ── 選擇題 ── */
@@ -400,7 +392,7 @@ $("answers").addEventListener("pointerdown", e => {
 function judgeTapNow(){
   if (A.done) return;
   const r = judgeTaps(cur.tap, A.taps);
-  A.tapMsg = r.msg;
+  A.tapRes = r;   // r.msg 是 getter(換語言時跟著變)
   finish(r.ok);
 }
 
@@ -435,7 +427,7 @@ function showResult(){
   const fb = $("feedback");
   fb.className = "feedback " + (A.ok ? "ok" : "no");
   const ans = cur.steps ? cur.steps.map(s => s.choices.find(c => c.id === s.answer).label).join(" → ") : "";
-  const extra = [A.tapMsg, cur.reveal].filter(Boolean).join(" · ");
+  const extra = [A.tapRes && A.tapRes.msg, cur.reveal].filter(Boolean).join(" · ");
   fb.textContent = (A.ok ? tr("✓ 正確", "✓ Correct") : A.revealed ? tr("答案:", "Answer: ") + (ans || "") : tr("✗ 答案是 ", "✗ Answer: ") + (ans || ""))
     + (extra ? (ans || A.ok ? " · " : "") + extra : "") + (A.done && cur.compare ? tr("(點選項可以比較)", " (tap options to compare)") : "");
 }
@@ -523,7 +515,9 @@ async function startPlayback(){
   play = { t0, dur: cur.play.dur, raf: 0 };
   A.played = true;
   if (cur.tap) { A.taps = []; syncTap(); A.tapStart = t0; A.tapEnd = t0 + cur.play.dur; }
-  if (!A.done) $("feedback").textContent = cur.tap && cur.tap.kind === "pulse" ? tr("跟著拍子按「拍」", "Tap along") : "";
+  // 作答提示記成函式(A.hint),換語言、切走再回來時 renderAnswers 照目前的語言重寫
+  A.hint = cur.tap && cur.tap.kind === "pulse" ? () => tr("跟著拍子按「拍」", "Tap along") : null;
+  if (!A.done) $("feedback").textContent = A.hint ? A.hint() : "";
   $("playIcon").innerHTML = '<rect x="6" y="6" width="12" height="12" rx="1.5"/>';
   $("playLabel").textContent = T("stop");
   const tick = () => {
@@ -540,7 +534,13 @@ function stopPlayback(natural){
     if (!natural) audio.stopAll();
     // 跟著打拍子:播完就批改
     if (natural && cur && cur.tap && cur.tap.kind === "pulse" && !A.done) judgeTapNow();
-    if (natural && cur && cur.tap && cur.tap.kind === "rhythm" && !A.done) $("feedback").textContent = tr(`現在按出節奏(${cur.tap.n} 下)`, `Now tap the rhythm (${cur.tap.n} taps)`);
+    if (A) A.hint = null;   // 「跟著拍子按」只在播放中(手動停止就拿掉,不然留著過時的提示)
+    if (!natural && cur && A && !A.done) $("feedback").textContent = "";
+    if (natural && cur && cur.tap && cur.tap.kind === "rhythm" && !A.done) {
+      const n = cur.tap.n;
+      A.hint = () => tr(`現在按出節奏(${n} 下)`, `Now tap the rhythm (${n} taps)`);
+      $("feedback").textContent = A.hint();
+    }
   }
   $("playIcon").innerHTML = '<path d="M7 4v16l13-8z"/>';
   $("playLabel").textContent = cur && A && A.played ? T("replay") : T("play");

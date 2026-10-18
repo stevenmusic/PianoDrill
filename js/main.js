@@ -49,6 +49,8 @@ const SUBS = {
   exam: () => [["tech", tr("音階琶音", "Scales")], ["sight", tr("視奏", "Sight-reading")], ["ear", tr("聽力", "Aural")]]
 };
 const PART_LABEL = () => ({ tech: tr("音階琶音", "Scales & arpeggios"), sight: tr("視奏", "Sight-reading"), ear: tr("聽力測驗", "Aural tests") });
+/* 子項目分段鈕的群組名稱(無障礙:role="group" 的 aria-label) */
+const SUB_LABEL = () => ({ tech: tr("技巧項目", "Technique"), sight: tr("級數", "Grade"), ear: tr("題型", "Question type"), exam: tr("檢定項目", "Exam section") });
 /* 外框另外給模組的東西(ctx 裡;DrumDrill 用來給考試資料):PianoDrill 的模組自己讀資料,這裡沒有 */
 const appCtx = async () => ({});
 // @app-end
@@ -71,7 +73,7 @@ applyTheme();
 applyStatic();
 $("langToggle").onclick = () => setLang(getLang() === "zh" ? "en" : "zh");
 onLang(() => {
-  renderSubnav(); renderExamCard();
+  renderSubnav(); renderExamCard(); tabbarLabel();
   if (!$("onboard").hidden) fillGrades($("obGrade"), Number($("obGrade").value), ob.system);
   for (const m of Object.values(MODS)) m.relang();
 });
@@ -99,7 +101,7 @@ function renderSubnav(){
   document.body.classList.toggle("no-subnav", !opts.length);
   // 視奏的子項目是級數:按鈕上只有數字,aria-label 寫完整級名
   $("subSeg").innerHTML = opts.map(([v, t]) => `<button data-v="${v}" aria-pressed="${S.sub[S.view] === v}"${S.view === "sight" ? ` aria-label="${gradeLabel(Number(v))}"` : ""}>${t}</button>`).join("");
-  $("subSeg").setAttribute("aria-label", S.view === "sight" ? tr("級數", "Grade") : "");
+  $("subSeg").setAttribute("aria-label", SUB_LABEL()[S.view] || "");
 }
 $("subSeg").onclick = e => {
   const b = e.target.closest("button[data-v]"); if (!b) return;
@@ -114,7 +116,8 @@ const tabOf = view => (view === "exam" ? "exam" : S.sub[view] || "");
 function showView(view, sub){
   if (sub != null) S.sub[view] = String(sub);
   S.view = view; save();
-  document.querySelectorAll("#tabbar button").forEach(b => b.setAttribute("aria-selected", String(b.dataset.view === view)));
+  document.querySelectorAll("#tabbar button").forEach(b => { const on = b.dataset.view === view; b.setAttribute("aria-selected", String(on)); b.tabIndex = on ? 0 : -1; });
+  MAIN.setAttribute("aria-labelledby", "tab-" + view);
   const exam = view === "exam";
   const modName = modOf(view);
   const tab = tabOf(view);
@@ -130,6 +133,23 @@ function showView(view, sub){
   MODS[modName].enter(tab);
 }
 $("tabbar").onclick = e => { const b = e.target.closest("button[data-view]"); if (b) showView(b.dataset.view); };
+/* 無障礙:分頁列 = tablist,<main> = tabpanel(aria-labelledby = 目前的分頁);只有選到的分頁 tabindex=0,
+   ← → ↑ ↓(直式在底部、手機橫式在左邊的直欄,兩個方向都可以)、Home / End 換分頁(選到就切過去) */
+const MAIN = document.querySelector("main");
+MAIN.id = MAIN.id || "panel";
+MAIN.setAttribute("role", "tabpanel");
+const TABS = [...document.querySelectorAll("#tabbar button[data-view]")];
+for (const b of TABS) { b.id = "tab-" + b.dataset.view; b.setAttribute("aria-controls", MAIN.id); }
+$("tabbar").addEventListener("keydown", e => {
+  const i = TABS.indexOf(e.target.closest("button[data-view]")); if (i < 0) return;
+  const k = { ArrowRight: i + 1, ArrowDown: i + 1, ArrowLeft: i - 1, ArrowUp: i - 1, Home: 0, End: TABS.length - 1 }[e.key];
+  if (k == null) return;
+  e.preventDefault(); e.stopPropagation();   // 不要轉給模組的快捷鍵(技巧的 ↑ ↓ = 速度)
+  const b = TABS[(k + TABS.length) % TABS.length];
+  showView(b.dataset.view); b.focus();
+});
+const tabbarLabel = () => $("tabbar").setAttribute("aria-label", tr("練習項目", "Sections"));
+tabbarLabel();
 $("examChip").onclick = () => showView("exam");
 
 /* ══ 考試設定卡 ══ */
@@ -170,18 +190,46 @@ $("examParts").onclick = e => {
 /* 模組裡的進度改變了(標記通過、答題):重畫進度 */
 export function examChanged(){ if (S.view === "exam") renderExamCard(); }
 
-/* ══ 第一次打開:在準備考試嗎? ══ */
+/* ══ 第一次打開:在準備考試嗎? ══
+   無障礙:對話框打開時焦點移進去(第一個按鈕)、Tab 只在對話框裡轉、Esc = 「不考試,自由練習」;
+   背景(頂欄、內容、分頁列)設 inert;關掉時焦點回到打開前的地方(沒有就回到選到的分頁) */
 const ob = { ...DEFAULT_EXAM };
+let obReturn = null;
+const OB_BG = () => [document.querySelector("header"), MAIN, $("tabbar")].filter(Boolean);
+function obFocusables(){ return [...$("onboard").querySelectorAll("button, select, [href], input, [tabindex]:not([tabindex='-1'])")].filter(el => !el.disabled && el.offsetParent !== null); }
+function openOnboard(){
+  obReturn = document.activeElement && document.activeElement !== document.body ? document.activeElement : null;
+  $("onboard").hidden = false;
+  for (const el of OB_BG()) el.inert = true;
+  const first = $("onboard").querySelector("#obSystem button[aria-pressed=true]") || obFocusables()[0];
+  if (first) first.focus();
+}
+function closeOnboard(){
+  $("onboard").hidden = true;
+  for (const el of OB_BG()) el.inert = false;
+  const back = obReturn && obReturn.isConnected && !obReturn.closest("[hidden]") ? obReturn : document.querySelector('#tabbar [aria-selected="true"]');
+  obReturn = null;
+  if (back) back.focus({ preventScroll: true });
+}
+$("onboard").addEventListener("keydown", e => {
+  if (e.key === "Escape") { e.preventDefault(); $("obNo").click(); return; }
+  if (e.key !== "Tab") return;
+  const f = obFocusables(); if (!f.length) return;
+  const i = f.indexOf(document.activeElement);
+  if (e.shiftKey && i <= 0) { e.preventDefault(); f[f.length - 1].focus(); }
+  else if (!e.shiftKey && i === f.length - 1) { e.preventDefault(); f[0].focus(); }
+});
 function showOnboard(){
   const syncSys = segBind("obSystem", () => ob.system, v => { ob.system = v; fillGrades($("obGrade"), Number($("obGrade").value), v); });
   fillGrades($("obGrade"), ob.grade, ob.system); syncSys();
   $("obGrade").onchange = () => ob.grade = Number($("obGrade").value);
-  $("onboard").hidden = false;
+  openOnboard();
   $("obYes").onclick = () => {
-    S.onboarded = true; $("onboard").hidden = true;
+    S.onboarded = true;
     setExam(ob.system, Number($("obGrade").value)); showView("exam");
+    closeOnboard();
   };
-  $("obNo").onclick = () => { S.exam = null; S.onboarded = true; save(); $("onboard").hidden = true; pushExam(); showView("tech"); };
+  $("obNo").onclick = () => { S.exam = null; S.onboarded = true; save(); pushExam(); showView("tech"); closeOnboard(); };
 }
 
 /* ══ 全部模組共用的觸控、音訊、螢幕 ══ */
@@ -232,6 +280,8 @@ audio.onInterrupt(() => {
 /* 桌機快捷鍵交給目前的模組 */
 document.addEventListener("keydown", e => {
   if (!$("onboard").hidden || e.target.closest("input, select, textarea") || e.metaKey || e.ctrlKey || e.altKey) return;
+  // 無障礙:用鍵盤(Tab)聚焦在按鈕、連結上時,Space / Enter 是按那個按鈕,不轉給模組(滑鼠點過的按鈕不算,空白鍵照樣是播放)
+  if ((e.code === "Space" || e.key === "Enter") && e.target.closest && e.target.closest("button, a, [role=tab]") && e.target.matches(":focus-visible")) return;
   if (curMod) MODS[curMod].onKey(e);
 });
 

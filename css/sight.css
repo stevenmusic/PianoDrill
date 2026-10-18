@@ -33,7 +33,7 @@
   background:linear-gradient(to bottom,transparent,#B8860B 12%,#B8860B 88%,transparent);box-shadow:0 0 14px 2px rgba(184,134,11,.45);
   opacity:.5;pointer-events:none;z-index:5;transition:transform .12s linear}
 #mod-sight .playline::before{content:"";position:absolute;top:-2px;left:50%;transform:translateX(-50%);border:7px solid transparent;border-top:10px solid #B8860B}
-#mod-sight .score{position:relative;z-index:1;min-height:10rem;color:#16130D;opacity:1;transform:translateY(0);transition:opacity .22s ease-out, transform .22s ease-out}
+#mod-sight .score{position:relative;z-index:1;min-height:160px;color:#16130D;opacity:1;transform:translateY(0);transition:opacity .22s ease-out, transform .22s ease-out}
 #mod-sight .score.entering{opacity:0;transform:translateY(4px);transition:none}
 @media (prefers-reduced-motion:reduce){ #mod-sight .score{transition:none} }
 #s-confidence{padding:0 4px}

@@ -16,7 +16,7 @@
   --teal:#3FBFAE;
   --teal-bright:#8FFFF0;
   --ivory:#F4ECDA;
-  --muted:#8A7D5F;
+  --muted:#938566;         /* 小字對比 ≥ 4.5:1(卡片頂端的淡色漸層上也是;原本 #8A7D5F 只有 4.3) */
   --muted-bright:#B6A576;
   --line:#2A2415;
   --shadow-sm:0 4px 14px rgba(0,0,0,.35);
@@ -26,13 +26,15 @@
   --radius-md:14px;
   --radius-lg:18px;
   --radius-pill:999px;
-  --fs-2xs:11px;
-  --fs-xs:12px;
-  --fs-sm:13px;
-  --fs-md:14px;
-  --fs-lg:16px;
-  --fs-xl:19px;
-  --fs-2xl:26px;
+  /* 字級跟著系統的動態字級(無障礙):根字級 = 17px(預設;iOS 用 -apple-system-body,使用者調大就跟著大),
+     代幣 = n/17 rem → 預設跟原本的 px 一模一樣;最多放大到 2 倍(min),版面不破 */
+  --fs-2xs:min(calc(11rem / 17), 22px);
+  --fs-xs:min(calc(12rem / 17), 24px);
+  --fs-sm:min(calc(13rem / 17), 26px);
+  --fs-md:min(calc(14rem / 17), 28px);
+  --fs-lg:min(calc(16rem / 17), 32px);
+  --fs-xl:min(calc(19rem / 17), 38px);
+  --fs-2xl:min(calc(26rem / 17), 52px);
   --surface-glass:rgba(32,26,15,.88);
   --surface-inset:rgba(22,18,9,.55);
   --card-tint:rgba(255,255,255,.035);
@@ -46,7 +48,7 @@
   --bg:#FBF7EE;
   --panel:#F4EEE0;
   --panel-2:#EDE6D4;
-  --gold:#856418;
+  --gold:#7A5C16;          /* 小字對比 ≥ 4.5:1(選到的分頁底色上;原本 #856418 只有 4.2) */
   --gold-bright:#6B5115;
   --brand-gold:#856418;
   --teal:#0F5F56;
@@ -66,9 +68,12 @@
 }
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
 button,[role="button"],.seg,.chips,.dg-wrap{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
-html{height:100%}
+html{height:100%;font-size:106.25%;-webkit-text-size-adjust:100%;text-size-adjust:100%}   /* 17px;手機橫放時不要自己放大字 */
+/* iOS(Safari / App 的 WKWebView):根字級跟著「設定 → 顯示與亮度 → 文字大小」(預設 17px,跟上面一樣) */
+@supports (font: -apple-system-body) and (-webkit-touch-callout: none) { html{font:-apple-system-body} }
 body{
   min-height:100%;
+  font-size:min(calc(16rem / 17), 32px);   /* 沒有自己設字級的元素:預設 16px,跟著動態字級 */
   background:var(--bg);color:var(--ivory);
   font-family:"Noto Sans TC",sans-serif;
   line-height:1.4;   /* 固定行高:中文、英文字型的預設行高不同,固定後兩種語言版面一樣高 */
@@ -143,12 +148,12 @@ main{
 
 /* 分段按鈕(照 HarmonyHands) */
 .seg{display:flex;gap:0;border:1px solid var(--gold);border-radius:var(--radius-pill);overflow:hidden}
-.seg button{flex:1 1 0;min-width:0;height:36px;border:0;background:transparent;color:var(--gold);font-family:inherit;
+.seg button{flex:1 1 0;min-width:0;min-height:36px;border:0;background:transparent;color:var(--gold);font-family:inherit;
   font-size:var(--fs-md);font-weight:500;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;padding:0 8px;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:background .15s,color .15s}
+  overflow:hidden;overflow-wrap:anywhere;text-align:center;transition:background .15s,color .15s}   /* 平常一行放得下;動態字級很大又很窄(折疊機)時換行,不截字(高度用 min-height) */
 .seg button + button{border-left:1px solid var(--gold)}
 .seg button[aria-pressed="true"]{background:var(--gold-fill);color:var(--on-fill);font-weight:700}
-.seg.small button{height:30px;font-size:var(--fs-sm)}
+.seg.small button{min-height:30px;font-size:var(--fs-sm)}
 
 /* ── 設定 ── */
 .setup{padding:10px 14px 12px}
@@ -162,6 +167,7 @@ main{
   background:var(--surface-inset);color:var(--ivory);font-family:inherit;font-size:var(--fs-md);padding:0 10px;
 }
 .field select:focus{outline:none;border-color:var(--gold)}
+.field select:focus-visible{outline:2px solid var(--gold-bright);outline-offset:2px}
 .chips{display:flex;flex-wrap:wrap;gap:6px}
 #t-catChips{display:grid;grid-template-columns:repeat(auto-fill, minmax(124px, 1fr))}   /* 固定格子:中英文排法一樣 */
 .chip{height:32px;padding:0 12px;border-radius:var(--radius-pill);border:1px solid var(--line);background:var(--surface-inset);
@@ -267,7 +273,7 @@ main{
 /* 窄螢幕:模擬考只留圖示(跟官方大綱標記、隨機抽考放同一列會擠出去) */
 @media (max-width:380px){ .q-actions #t-mockBtn .btn-label{display:none !important} #t-mockBtn{padding:0 9px} .quiz-top #t-verifyBadge{display:none} }
 .play-opts{grid-column:1 / -1;display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
-.play-opts .chip{justify-content:center;min-height:34px;padding:0 6px;white-space:nowrap}
+.play-opts .chip{justify-content:center;min-height:34px;height:auto;padding:0 6px;text-align:center}   /* 動態字級很大時換行(平常一行) */
 .play-opts .chip:disabled{opacity:.35}
 .beats i{width:12px;height:12px;border-radius:50%;background:var(--line);transition:background .06s}
 .beats i.on{background:var(--gold)}
@@ -296,7 +302,7 @@ details.card[open] > summary .chev{transform:rotate(180deg)}
 .legend-row{display:flex;gap:14px;flex-wrap:wrap;font-size:var(--fs-xs);color:var(--muted-bright);margin-bottom:8px}
 .legend-row span{display:inline-flex;align-items:center;gap:6px}
 
-footer{max-width:1400px;width:100%;margin:0 auto;padding:6px 16px 28px;font-size:var(--fs-xs);line-height:1.8;color:var(--muted)}
+footer{max-width:1400px;width:100%;margin:0 auto;padding:6px 16px 28px;font-size:var(--fs-xs);line-height:1.8;color:var(--muted);overflow-wrap:anywhere}
 footer a{color:var(--muted-bright)}
 footer p{margin:0}
 footer .foot-links a{display:inline-flex;align-items:center;min-height:32px}   /* 授權、隱私連結:點擊區域夠高 */
@@ -313,6 +319,14 @@ body{background:
 .btn:active,.seg button:active,.chip:active,.mbtn:active{transform:scale(.95)}
 .btn:disabled{opacity:.45;pointer-events:none}
 @media (prefers-reduced-motion:reduce){ *{animation:none !important;transition:none !important} }
+/* 無障礙:鍵盤(Tab、iPad 外接鍵盤)聚焦的地方一定看得到;滑鼠、手指點的不顯示(:focus-visible) */
+:focus-visible{outline:2px solid var(--gold-bright);outline-offset:2px}
+.tabbar button:focus-visible{outline-offset:-3px}
+/* 動態字級:控制項(分段鈕、chip、選項、按鈕、分頁列)的字最多放大到 1.3 倍(內文最多 2 倍);
+   跟 iOS 一樣:分頁列、分段控制不跟著系統字級一直變大,一排放不下就破版 */
+.seg,.chips,.chip,.opts,.opt,.btn,.mbtn,.play-opts,.tabbar{
+  --fs-2xs:min(calc(11rem / 17), 14.3px);--fs-xs:min(calc(12rem / 17), 15.6px);--fs-sm:min(calc(13rem / 17), 16.9px);
+  --fs-md:min(calc(14rem / 17), 18.2px);--fs-lg:min(calc(16rem / 17), 20.8px);--fs-xl:min(calc(19rem / 17), 24.7px)}
 @media (max-width:600px){
   main{padding:10px;gap:10px}
   .card{padding:12px}
@@ -490,7 +504,7 @@ header{z-index:60}
   #mod-tech .play-round{grid-column:4;grid-row:2;width:44px;height:44px}
   #mod-tech .quiz .loading{top:2px}
   #t-scoreCard .card-title{margin-bottom:4px}
-  #t-scoreCard .seg button{height:28px}
+  #t-scoreCard .seg button{min-height:28px}
 }
 
 /* 手機橫放播放中:下方分頁列收起來,樂譜延伸到畫面底部(JS 依畫面高度放大樂譜,見 fitLandZoom) */
@@ -613,12 +627,12 @@ body.land-play #t-stage{flex:1;display:flex;flex-direction:column;justify-conten
 /* 子項目(音階/琶音/哈農、單音/音程/和弦、檢定的三個項目):跟頂欄一起固定在上方,佔滿一整列 */
 .subnav{flex:1 1 100%;order:3;display:flex;justify-content:center;padding:2px 0 0}
 .subnav .seg{width:min(560px, 100%)}
-.subnav .seg button{height:34px}
-@media (max-width:600px){ header{flex-wrap:wrap} .subnav .seg button{height:32px;padding:0 4px} }
+.subnav .seg button{min-height:34px}
+@media (max-width:600px){ header{flex-wrap:wrap} .subnav .seg button{min-height:32px;padding:0 4px} }
 @media (max-height:420px), (orientation:landscape) and (max-height:500px){
   .subnav{flex:0 1 420px;order:2;padding:0}
   header{flex-wrap:nowrap}
-  .subnav .seg button{height:28px;font-size:var(--fs-sm)}
+  .subnav .seg button{min-height:28px;font-size:var(--fs-sm)}
 }
 /* 內容寬度:技巧、聽音窄一點(按鈕、鍵盤不會又寬又扁);視奏的樂譜要寬 */
 @media (min-width:901px){ main,footer{max-width:900px} body.view-sight main,body.view-sight footer{max-width:1180px} }

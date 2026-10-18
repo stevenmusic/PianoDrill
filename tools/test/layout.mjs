@@ -89,7 +89,7 @@ async function audit(page, vp, state){
   });
   // 手機橫放(高度 ≤ 500):頂欄 + 兩條收起來的設定列就佔掉一半,放寬到 60%(題目標題仍在第一個畫面)
   const limit = quizTop && quizTop.H <= 500 ? 0.6 : 0.5;
-  if (quizTop && !/對話框|設定展開|選擇器/.test(state) && quizTop.top > quizTop.H * limit) report(vp, state, `題目卡太下面(${quizTop.top} > 畫面 ${Math.round(limit * 100)}% ${Math.round(quizTop.H * limit)})`);
+  if (quizTop && !/對話框|設定展開|選擇器|字級/.test(state) && quizTop.top > quizTop.H * limit) report(vp, state, `題目卡太下面(${quizTop.top} > 畫面 ${Math.round(limit * 100)}% ${Math.round(quizTop.H * limit)})`);
 }
 
 for (const [name, w, h, mobile] of VPS) {
@@ -138,6 +138,11 @@ for (const [name, w, h, mobile] of VPS) {
   await tab("ear"); await audit(page, name, "英文 聽音");
   await tab("exam"); await audit(page, name, "英文 檢定");
   // @app-end
+  // 動態字級 200%(無障礙;iOS「更大的文字」):根字級 17px → 34px(app.css 的字級代幣是 rem,最多 2 倍),每個分頁看一次:
+  // 沒有橫向捲動、元素不超出畫面、按鈕文字不被截斷(題目卡的位置不檢查:字大了本來就會往下)
+  await page.evaluate(() => { window.scrollTo(0, 0); document.documentElement.style.fontSize = "34px"; });
+  for (const v of ["tech", "sight", "ear", "exam"]) { await tab(v); await page.waitForTimeout(300); await audit(page, name, `字級 200% ${v}`); await shot(`font200-${v}`); }
+  await page.evaluate(() => { document.documentElement.style.fontSize = ""; });
   for (const e of errors) report(name, "console", e);
   await close();
 }

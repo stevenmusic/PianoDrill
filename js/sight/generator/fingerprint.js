@@ -5,6 +5,9 @@
  * marking still count as duplicates.
  */
 
+// @app-begin
+/* PianoDrill:題目 = 調性、拍號、小節數、兩行譜每一個音的音高與時值;DrumDrill 的版本在這一段看小鼓譜的時值與休止符
+   (兩邊這一段不同,其他相同;tools/test/sync.json 用 markers 比對) */
 export function fingerprintOf(score) {
   const parts = [
     score.grade,
@@ -22,6 +25,7 @@ export function fingerprintOf(score) {
   }
   return hash(parts.join('|'));
 }
+// @app-end
 
 /** FNV-1a, 32-bit, rendered as hex. */
 function hash(text) {

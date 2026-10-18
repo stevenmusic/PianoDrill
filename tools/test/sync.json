@@ -13,5 +13,8 @@
   ["tools/test/bilingual.mjs", "tools/test/bilingual.mjs", "markers"],
   ["tools/test/human.mjs", "tools/test/human.mjs", "markers"],
   ["tools/test/clip.mjs", "tools/test/clip.mjs", "markers"],
-  [".github/workflows/verify.yml", ".github/workflows/verify.yml", "same"]
+  [".github/workflows/verify.yml", ".github/workflows/verify.yml", "same"],
+  ["js/sight/stage.js", "js/sight/stage.js", "same"],
+  ["js/sight/random.js", "js/sight/generator/random.js", "same"],
+  ["js/sight/fingerprint.js", "js/sight/generator/fingerprint.js", "markers"]
 ]

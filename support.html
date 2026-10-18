@@ -20,7 +20,7 @@ pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:13px;line-height:1.55;
 </style>
 </head>
 <body><main>
-<a class="back" href="index.html">← 返回 Back</a>
+<a class="back" href="index.html" onclick="try{var w=window,r=new w.URL(w.document.referrer);if(w.history.length&gt;1&amp;&amp;r.protocol===w.location.protocol&amp;&amp;r.host===w.location.host){w.history.back();return false}}catch(e){}">← 返回 Back</a><!-- 從 App 內點進來(同網域、有上一頁)→ history.back() 回到原本的畫面;直接打開(沒有上一頁或從別的網站來)→ index.html。一律寫 window.…:inline handler 的作用域先找 document,URL 會變成 document.URL(字串) -->
 <h1>支援</h1><small>PianoDrill 鋼琴檢定特訓 · 最後更新 2026-10-18</small>
 <h2>回報問題、建議</h2>
 <p>到 GitHub 開一個 issue(需要 GitHub 帳號;內容是公開的)<span data-mail hidden>,或寄信給我們</span>。按下按鈕後會先打開表單或郵件,你可以先看過、修改,再自己決定要不要送出。</p>

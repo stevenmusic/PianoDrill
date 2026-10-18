@@ -155,8 +155,11 @@ function buildMaster(){
     } catch (e) { console.warn("母帶限幅器載入失敗,使用備援:", e); return false; }
   })();
 }
-/* iPhone 側邊靜音開關打開時,網頁的 Web Audio 預設會被靜音(看起來像按播放沒反應);設成 playback 就照樣有聲音(Safari 17+) */
-try { if (navigator.audioSession) navigator.audioSession.type = "playback"; } catch (e) {}
+/* iPhone 側邊靜音開關打開時,網頁的 Web Audio 預設會被靜音(看起來像按播放沒反應);設成 playback 就照樣有聲音(Safari 17+)。
+   只在網頁版設:App 版(Capacitor 原生)交給原生的 AVAudioSession(.playback + .mixWithOthers,AppDelegate 的 configureAudioSession;docs/IOS.md §3),
+   在 WKWebView 裡設 audioSession.type 會把原生設好的 category 蓋掉(混音失效)。這裡直接判斷 window.Capacitor,
+   不能用下面的 BUNDLED(const 還沒初始化,TDZ 會丟錯) */
+try { if (navigator.audioSession && !window.Capacitor?.isNativePlatform?.()) navigator.audioSession.type = "playback"; } catch (e) {}
 /* 在使用者手勢裡呼叫:讓 AudioContext 開始跑(iOS 要在手勢裡 resume + 播一個無聲的音才算解鎖) */
 export function unlockAudio(){
   if (!audioCtx) { try { ensureAudio(); } catch (e) { return; } }

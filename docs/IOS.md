@@ -71,7 +71,15 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         let center = NotificationCenter.default, session = AVAudioSession.sharedInstance()
         center.addObserver(self, selector: #selector(audioInterrupted(_:)), name: AVAudioSession.interruptionNotification, object: session)
         center.addObserver(self, selector: #selector(mediaServicesReset(_:)), name: AVAudioSession.mediaServicesWereResetNotification, object: session)
+        center.addObserver(self, selector: #selector(didBecomeActive(_:)), name: UIApplication.didBecomeActiveNotification, object: nil)
         return true
+    }
+
+    /// 每次回到前景(becomes active)都重設一次:在背景時 category 可能被別的 App 或系統改掉。
+    /// 範本是 SceneDelegate 架構,UIKit **不會**呼叫 AppDelegate 的 applicationDidBecomeActive(_:)(Apple 文件:支援 scene 的 App 改呼叫 sceneDidBecomeActive),
+    /// 所以用 didBecomeActiveNotification(有沒有 scene 都會發);範本裡空的 applicationDidBecomeActive 保持不動。
+    @objc private func didBecomeActive(_ note: Notification) {
+        configureAudioSession()
     }
 
     /// 靜音開關打開也出聲(.playback)、不打斷別的 App 正在放的音樂(.mixWithOthers)
@@ -86,12 +94,15 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     }
 
     /// 來電、Siri、鬧鐘打斷:開始時系統已經停掉聲音(網頁的 AudioContext 變成 interrupted,
-    /// js/main.js 的 audio.onInterrupt 會停止播放、按鈕回到「播放」);結束時重新啟用 session。
+    /// js/main.js 的 audio.onInterrupt 會停止播放、按鈕回到「播放」);結束時系統帶 .shouldResume 才重新啟用 session
+    /// (沒帶表示對方還在用音訊,例如接聽中,先不搶;回到前景時 didBecomeActive 會再設一次)。
     /// 不自動續播:使用者下一次點畫面時 js/shared/audio.js 的 unlockAudio() 會 resume AudioContext。
     @objc private func audioInterrupted(_ note: Notification) {
-        guard let raw = note.userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt,
-              let type = AVAudioSession.InterruptionType(rawValue: raw) else { return }
-        if type == .ended {
+        guard let info = note.userInfo,
+              let raw = info[AVAudioSessionInterruptionTypeKey] as? UInt,
+              let type = AVAudioSession.InterruptionType(rawValue: raw), type == .ended else { return }
+        let opts = AVAudioSession.InterruptionOptions(rawValue: info[AVAudioSessionInterruptionOptionKey] as? UInt ?? 0)
+        if opts.contains(.shouldResume) {
             try? AVAudioSession.sharedInstance().setActive(true)
         }
     }
@@ -106,12 +117,16 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 }
 ```
 
-**要在實機確認的一點(還沒解決)**:網頁端 `js/shared/audio.js` 在 Safari 17+ / iOS 17+ 會設 `navigator.audioSession.type = "playback"`(Audio Session API)。
-依 W3C 規格,`playback` 是「不跟其他音訊混音」的類型,WebKit 把它對應到 `AVAudioSessionCategoryPlayback`(沒有 mixWithOthers),
-所以網頁一開始出聲時,**有可能把 AppDelegate 設的 `.mixWithOthers` 蓋掉、讓背景音樂停下來**。實機清單第 2 項就是測這個:
-- 音樂不會停 → 不用改。
-- 音樂會停 → App 版不要設 `navigator.audioSession.type`(只靠原生的 AVAudioSession),網頁版照舊。這要改 `js/shared/audio.js`(兩個 App 的共用檔案,要兩邊同步),先回報再改。
-- iOS 15、16 沒有 `navigator.audioSession`,只有原生設定有效;靜音開關要在這兩版的實機上也測一次。
+**網頁端的 Audio Session API:已改為 App 版不設**。依 W3C 規格,`navigator.audioSession.type = "playback"` 是「不跟其他音訊混音」的類型,
+WebKit 把它對應到 `AVAudioSessionCategoryPlayback`(沒有 mixWithOthers),在 App 裡設會把 AppDelegate 的 `.mixWithOthers` 蓋掉、讓背景音樂停下來。
+所以 `js/shared/audio.js`(兩個 App 的共用檔案,兩邊同步)現在只在**網頁版**(Safari 17+)設 `playback`(讓靜音開關打開也有聲音);
+**App 版(`window.Capacitor.isNativePlatform()`)不設**,靜音開關與混音都交給原生的 AVAudioSession(上面的 `.playback` + `.mixWithOthers`)。
+- **實機要在這個版本上同時測**第 8 節第 1 項(靜音開關打開有聲音)與第 2 項(背景音樂不停、混在一起)。
+- 若有一項失效(例如 WKWebView 出聲時把 category 改回去),備案依序:
+  1. 回到前景時重設 category(上面的 `didBecomeActive`,已經有)→ 先確認切走再回來是否恢復;
+  2. 還不夠就寫一個小的 Capacitor 外掛(例如 `AudioSession.configure()`),網頁每次 `unlockAudio()` 時呼叫,由原生重設 `.playback` + `.mixWithOthers`。
+  做備案前先回報;改 `js/shared/audio.js` 要兩邊同步。
+- iOS 15、16 沒有 `navigator.audioSession`,本來就只有原生設定有效;靜音開關要在這兩版的實機上也測一次。
 
 ## 4. Info.plist 與在地化
 
@@ -195,7 +210,8 @@ File ▸ New ▸ File from Template ▸ **App Privacy**,命名 `PrivacyInfo.xcpr
   - 已經有 `app/ios` 時,把 Xcode 專案的 `MARKETING_VERSION` 改成 `VERSION`,`CURRENT_PROJECT_VERSION`(build 號)改成 `git rev-list --count HEAD`(commit 數)。
 - Info.plist 的 `CFBundleShortVersionString` / `CFBundleVersion` 範本本來就是 `$(MARKETING_VERSION)` / `$(CURRENT_PROJECT_VERSION)`,不用改。
 - 同一個版本號重新上傳時 build 號一定要比上一次大:commit 數只會變多;沒有新 commit 卻要重傳,就先 commit(例如改 `VERSION` 旁邊的說明)或在 Xcode 手動把 build 號 +1。
-  **不要用 `--depth` 的淺複製**,commit 數會變小、上傳被拒。
+  **不要用 `--depth` 的淺複製**,commit 數會變小、上傳被拒。`app-www.mjs` 偵測到淺層 clone(`git rev-parse --is-shallow-repository` = `true`)時
+  **不寫 build 號、印出警告**(不中斷:網頁照常複製,方便在雲端的淺層 clone 測打包);要上傳前先 `git fetch --unshallow` 再跑一次。
 - 出新版:改 `VERSION`(1.0.0 → 1.0.1 修錯、1.1.0 加功能)→ commit → 照第 7 節。
 
 ## 7. 每次發佈的流程
@@ -230,7 +246,7 @@ npm run open                              # = npx cap open ios
 | # | 項目 | 怎麼測 | 預期 |
 |---|---|---|---|
 | 1 | 靜音開關 | 側邊開關切到靜音 → 播放示範 | 照樣有聲音 |
-| 2 | 邊放音樂邊練(`.mixWithOthers`) | Apple Music / Spotify 放歌 → 切到 App 按播放 → 停止 | 音樂**不會停**,兩個聲音混在一起;App 停止後音樂繼續(第 3 節的「要在實機確認的一點」) |
+| 2 | 邊放音樂邊練(`.mixWithOthers`) | Apple Music / Spotify 放歌 → 切到 App 按播放 → 停止 | 音樂**不會停**,兩個聲音混在一起;App 停止後音樂繼續(第 3 節:App 版不設 audioSession,要跟第 1 項在同一個版本一起測) |
 | 3 | 來電、FaceTime | 播放中用另一支手機打進來 → 拒接 / 接聽後掛斷 | 播放停止、按鈕回到「播放」;回來點一下畫面再按播放有聲音,題目還在 |
 | 4 | Siri、鬧鐘 | 播放中叫 Siri / 響鬧鐘 | 同第 3 項 |
 | 5 | 鎖螢幕、切到背景 | 播放中按側邊鍵鎖定 / 回主畫面,再回來 | 鎖定或切走就停止(不在背景播放);回來題目與設定都在、可以再播 |
@@ -244,7 +260,7 @@ npm run open                              # = npx cap open ios
 | 13 | 外接鍵盤(iPad) | 空白鍵播放 / 停止、Tab 移動焦點 | 有反應、焦點框看得到 |
 | 14 | 深色 / 淺色、動態字級 | 系統切淺色;設定 ▸ 輔助使用 ▸ 較大字體 | 主題按鈕照常;字級變大不破版(VoiceOver、動態字級的完整檢查在 S16 無障礙另做) |
 | 15 | 長時間播放 | 循環播放 10 分鐘 | 不爆音、不延遲變大、不發燙到降速 |
-| 16 | 頁尾連結 | 點「授權與出處」「隱私權政策」「支援」,再按返回 | 三頁都打得開、返回回到 App;支援頁的「在 GitHub 回報」會開 Safari |
+| 16 | 頁尾連結 | 點「授權與出處」「隱私權政策」「支援」,再按返回 | 三頁都打得開、返回回到 App;支援頁的「在 GitHub 回報」會開 Safari。返回是回到上一頁(`history.back()`,沒有歷史才開 `index.html`),但 App 會**重新載入**(WebView 一般不保留上一頁的狀態):分頁與設定(存在 localStorage)還在,**正在做的題目狀態會重置**,這是預期行為 |
 
 ## 9. Android:不做,用 PWA
 
@@ -269,4 +285,5 @@ npm run open                              # = npx cap open ios
 - iPadOS 26 棄用 `UIRequiresFullScreen`:[Apple TN3192](https://developer.apple.com/documentation/technotes/tn3192-migrating-your-app-from-the-deprecated-uirequiresfullscreen-key)、[Apple 開發者論壇](https://developer.apple.com/forums/thread/793406)
 - Web Audio 與靜音開關、Audio Session API:[W3C Audio Session](https://www.w3.org/TR/audio-session/)、[MDN AudioSession.type](https://developer.mozilla.org/docs/Web/API/AudioSession/type)、
   [WebKit Bug 251532](https://bugs.webkit.org/show_bug.cgi?id=251532)、[Apple 論壇:WKWebView 與 AVAudioSession](https://developer.apple.com/forums/thread/71889)(WKWebView 是否照 App 的 AVAudioSession 混音,各版本回報不一 → 實機第 2 項)
+- 前景 / 打斷:[Apple:applicationDidBecomeActive(_:)](https://developer.apple.com/documentation/uikit/uiapplicationdelegate/applicationdidbecomeactive(_:))(支援 scene 的 App 不會呼叫,改用 `didBecomeActiveNotification`)、[Apple:Handling audio interruptions](https://developer.apple.com/documentation/avfaudio/handling-audio-interruptions)(`.ended` 檢查 `.shouldResume`)
 - 歐盟 DSA 交易者身分:[TechRepublic](https://www.techrepublic.com/article/eu-app-store-apple-digital-services-act/)、[Median:如何更新交易者身分](https://median.co/blog/how-to-update-apple-trader-status-app-store-connect)

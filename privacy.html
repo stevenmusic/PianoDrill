@@ -15,7 +15,7 @@ a{color:#F2B94B}.back{display:inline-flex;align-items:center;min-height:44px;mar
 </style>
 </head>
 <body><main>
-<a class="back" href="index.html">← 返回 Back</a>
+<a class="back" href="index.html" onclick="try{var w=window,r=new w.URL(w.document.referrer);if(w.history.length&gt;1&amp;&amp;r.protocol===w.location.protocol&amp;&amp;r.host===w.location.host){w.history.back();return false}}catch(e){}">← 返回 Back</a><!-- 從 App 內點進來(同網域、有上一頁)→ history.back() 回到原本的畫面;直接打開(沒有上一頁或從別的網站來)→ index.html。一律寫 window.…:inline handler 的作用域先找 document,URL 會變成 document.URL(字串) -->
 <h1>隱私權政策</h1><small>PianoDrill 鋼琴檢定特訓 · 最後更新 2026-10-18</small>
 <h2>我們不收集任何個人資料</h2>
 <p>PianoDrill 不需要註冊、不需要登入,沒有廣告、沒有分析追蹤,也不會把任何資料傳到我們的伺服器(我們沒有伺服器)。</p>

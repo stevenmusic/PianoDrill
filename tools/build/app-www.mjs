@@ -4,14 +4,17 @@
 //   網頁版的 index.html 不動(docs/STAGES.md §8 第 5 點)
 // - 版本號:repo 根目錄的 VERSION(例如 1.0.0)複製進 app/www(支援頁讀它,預填在回報問題的內容裡);
 //   已經有 app/ios(跑過 npx cap add ios)時,同時寫進 Xcode 專案的 MARKETING_VERSION,
-//   build 號 CURRENT_PROJECT_VERSION = git 的 commit 數(每次上傳 App Store Connect 都要比上一次大;拿不到 git 就不動)
+//   build 號 CURRENT_PROJECT_VERSION = git 的 commit 數(每次上傳 App Store Connect 都要比上一次大;拿不到 git 就不動;
+//   淺層 clone(git clone --depth)的 commit 數不完整、會比上一次小 → 不寫 build 號,印出警告(不中斷,網頁仍照常複製;docs/IOS.md)
 // - 最後把取樣打包進 App(app-samples.mjs,@app 區段)
 // 跑完用 node tools/test/app-www.mjs 檢查 app/www 完整(那支會先跑這支)。步驟見 docs/IOS.md
 // PianoDrill / DrumDrill 共用(tools/test/sync.mjs 檢查):@app 區段以外兩邊一模一樣
 import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { execFileSync } from "node:child_process";
 import { bundleSamples } from "./app-samples.mjs";
-const root = new URL("../../", import.meta.url).pathname, out = root + "app/www/";
+const root = fileURLToPath(new URL("../../", import.meta.url)), out = root + "app/www/";
 export const FILES = ["index.html", "licenses.html", "privacy.html", "support.html", "VERSION", "manifest.webmanifest", "sw.js", "css", "js", "data", "vendor", "icons"];
 // index.html 裡連到 Google Fonts 的整行 <link>(preconnect + 字型 CSS)
 export const FONT_LINK = /^[ \t]*<link[^>\n]*fonts\.(googleapis|gstatic)\.com[^>\n]*>[ \t]*\r?\n/gm;
@@ -27,12 +30,18 @@ export function buildWww(){
   const version = fs.readFileSync(root + "VERSION", "utf8").trim();
   const pbx = root + "app/ios/App/App.xcodeproj/project.pbxproj";
   if (fs.existsSync(pbx)) {
-    let p = fs.readFileSync(pbx, "utf8"), build = null;
-    try { build = execFileSync("git", ["rev-list", "--count", "HEAD"], { cwd: root }).toString().trim(); } catch (e) {}
+    let p = fs.readFileSync(pbx, "utf8"), build = null, shallow = false;
+    try { shallow = execFileSync("git", ["rev-parse", "--is-shallow-repository"], { cwd: root }).toString().trim() === "true"; } catch (e) {}
+    if (shallow) {
+      console.warn("\n【警告】這是淺層 clone(git clone --depth),commit 數不完整 → build 號(CURRENT_PROJECT_VERSION)這次不寫。\n" +
+        "    上傳 App Store Connect 前先 git fetch --unshallow 再跑一次(docs/IOS.md)\n");
+    } else {
+      try { build = execFileSync("git", ["rev-list", "--count", "HEAD"], { cwd: root }).toString().trim(); } catch (e) {}
+    }
     p = p.replace(/MARKETING_VERSION = [^;]+;/g, `MARKETING_VERSION = ${version};`);
     if (build) p = p.replace(/CURRENT_PROJECT_VERSION = [^;]+;/g, `CURRENT_PROJECT_VERSION = ${build};`);
     fs.writeFileSync(pbx, p);
-    console.log(`Xcode 專案:版本 ${version}${build ? "、build " + build : "(拿不到 git,build 號沒改)"}`);
+    console.log(`Xcode 專案:版本 ${version}${build ? "、build " + build : shallow ? "(淺層 clone,build 號沒改)" : "(拿不到 git,build 號沒改)"}`);
   }
 // @app-begin
   bundleSamples();   // 鋼琴取樣打包進 App:第一次打開、沒網路也有聲音
@@ -40,4 +49,5 @@ export function buildWww(){
   console.log(`app/www 已更新(版本 ${version})`);
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) buildWww();
+// 直接執行(node tools/build/app-www.mjs)才跑;被 import 時不跑。用 fileURLToPath 比對,路徑有空白、中文(URL 編碼)也對得上
+if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1])) buildWww();

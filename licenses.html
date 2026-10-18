@@ -15,7 +15,7 @@ pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:13px;line-height:1.55;
 </style>
 </head>
 <body><main>
-<a class="back" href="index.html">← 返回 Back</a>
+<a class="back" href="index.html" onclick="try{var w=window,r=new w.URL(w.document.referrer);if(w.history.length&gt;1&amp;&amp;r.protocol===w.location.protocol&amp;&amp;r.host===w.location.host){w.history.back();return false}}catch(e){}">← 返回 Back</a><!-- 從 App 內點進來(同網域、有上一頁)→ history.back() 回到原本的畫面;直接打開(沒有上一頁或從別的網站來)→ index.html。一律寫 window.…:inline handler 的作用域先找 document,URL 會變成 document.URL(字串) -->
 <h1>授權與出處</h1><small>PianoDrill 鋼琴檢定特訓</small>
 <h2>鋼琴音色</h2>
 <p>Accurate-Salamander Grand Piano V6.2,改編自 Alexander Holm 的 Salamander Grand Piano V3,以 <a href="https://creativecommons.org/licenses/by/3.0/">創用 CC 姓名標示 3.0(CC BY 3.0)</a>授權。</p>

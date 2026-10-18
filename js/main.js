@@ -4,7 +4,8 @@
    每個模組匯出同一組函式:start(ctx)、enter(tab)、leave()、setExam(exam)、relang()、examStatus()、onKey(e)
    - ctx = { exam, examChanged(), gradeLabel(g, sys), showView(view, sub) } + 各 App 自己的(@app 區段的 appCtx(),
      例如 DrumDrill 的 examData(sys));模組不能 import 這個檔案。appCtx 最多等 APP_CTX_MS(4 秒):逾時先不給
-     (模組要能處理 ctx 裡還沒有這些欄位),之後載好再補進同一個 ctx,並對每個模組 setExam() 一次讓它重畫
+     (模組要能處理 ctx 裡還沒有這些欄位),之後載好再補進同一個 ctx,通知每個模組重畫(onCtx(),沒有就 relang());
+     不呼叫 setExam:考試沒變,不能把進行中的題目、模擬考洗掉
    - leave() 停止播放與計時(題目保留);enter(tab) 有題目就不重新出題
    - 切到背景(visibilitychange / pagehide)或聲音被系統打斷:目前的模組 leave() + 全部停止;回到前景再 enter() */
 import { tr, T, applyStatic, setLang, getLang, onLang } from "./shared/i18n.js";
@@ -239,12 +240,17 @@ async function init(){
   fillGrades($("selGrade"), examNow().grade);
   // 各模組讀自己的資料;一個失敗不影響其他兩個
   // App 自己的資料(@app 區段的 appCtx;讀不到不影響啟動)。網路慢、離線又沒快取時最多等 4 秒,不擋住模組啟動:
-  // 逾時(null)先用沒有這些欄位的 ctx 啟動,之後載好再補進同一個 ctx(模組拿的是同一個物件),pushExam() 讓模組重畫
+  // 逾時(null)先用沒有這些欄位的 ctx 啟動,之後載好再補進同一個 ctx(模組拿的是同一個物件),只通知模組重畫
+  // (onCtx(),沒有就 relang():只重寫畫面;不走 setExam / pushExam,考試沒變,進行中的題目與模擬考要保留)
   const ctx = { exam: examNow(), examChanged, gradeLabel, showView };
   const extraJob = appCtx().catch(e => (console.error("appCtx", e), {}));
   const extra = await Promise.race([extraJob, new Promise(r => setTimeout(() => r(null), APP_CTX_MS))]);
   if (extra) Object.assign(ctx, extra);
-  else extraJob.then(x => { Object.assign(ctx, x); pushExam(); });
+  else extraJob.then(x => {
+    Object.assign(ctx, x);
+    for (const [name, m] of Object.entries(MODS)) { try { (m.onCtx || m.relang)(); } catch (e) { console.error(name, e); } }
+    renderExamCard();
+  });
   await Promise.all(Object.entries(MODS).map(([name, m]) => m.start(ctx).catch(e => console.error(name, e))));
   renderChip(); renderExamCard();
   window.__shell = { S, showView, setExam, MODS };

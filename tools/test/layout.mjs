@@ -63,7 +63,11 @@ async function audit(page, vp, state){
   for (const m of [...new Set(r)]) report(vp, state, m);
   // 捲到底:最後的內容不被底部分頁列蓋住
   const cover = await page.evaluate(async () => {
-    window.scrollTo(0, document.documentElement.scrollHeight); await new Promise(r => setTimeout(r, 120));
+    // 播放中譜面會自己捲(stage.js 換行時平滑捲動):量的時候要真的在最底下,不在就再捲一次(最多 8 次)
+    for (let k = 0; k < 8; k++) {
+      window.scrollTo(0, document.documentElement.scrollHeight); await new Promise(r => setTimeout(r, 120));
+      if (scrollY + innerHeight >= document.documentElement.scrollHeight - 2) break;
+    }
     const tb = document.getElementById("tabbar").getBoundingClientRect();
     const items = [...document.querySelectorAll("main .card, main > footer")].filter(e => !e.closest("[hidden]") && e.getBoundingClientRect().height > 0);
     const lastBottom = Math.max(...items.map(e => e.getBoundingClientRect().bottom));

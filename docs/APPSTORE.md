@@ -71,7 +71,7 @@
 ## 5. 關鍵字(100 字元,逗號分隔、不重複名稱裡的字)
 
 - **繁體中文**:`音階,琶音,哈農,視奏,聽音,聽力,練耳,音程,和弦,指法,考級,樂理,練琴,節拍器,scales,sight reading`(63 字)
-- **English**:`scales,arpeggios,hanon,sight reading,ear training,aural,intervals,chords,fingering,grade,exam`(93 字)
+- **English**:`scales,arpeggios,hanon,sight reading,ear training,aural,intervals,chords,fingering,grade,theory`(95 字)
 - **不放考試機構與其他組織的名稱**:ABRSM、Trinity、英國皇家、RSL、Rockschool(審核 2.3.7:關鍵字不能放別人的商標;本 App 與它們無關,放了容易被當成冒用而退件)。舊版關鍵字有 ABRSM、Trinity、英國皇家,已經拿掉。
 
 ## 6. 審核備註(App Review Information ▸ Notes,貼英文)

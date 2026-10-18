@@ -1,7 +1,7 @@
 /* 離線使用(Service Worker)
-   - 安裝時先把整份 App(首頁、manifest、圖示、css、js、data、vendor;清單 PRECACHE 由 tools/build/stamp.mjs 寫入)存好,
-     第一次打開之後就算沒網路、沒點過的分頁也能用;快取名稱帶清單的雜湊,版本一變就換一個快取,舊的在新版啟用時刪掉
-   - 首頁(index.html):先上網拿最新的,沒網路才用快取 → 有更新時一定拿到新版
+   - 安裝時先把整份 App(首頁、manifest、圖示、授權與隱私頁、css、js、data、vendor;清單 PRECACHE 由 tools/build/stamp.mjs 寫入)存好,
+     第一次打開之後就算沒網路、沒點過的分頁也能用;快取名稱帶「清單 + 沒有 ?v= 的檔案內容」的雜湊,版本一變就換一個快取,舊的在新版啟用時刪掉
+   - 頁面(首頁、授權、隱私):先上網拿最新的,沒網路才用快取 → 有更新時一定拿到新版
    - 同網域的 css / js / data / vendor:網址都帶 ?v=內容指紋(tools/build/stamp.mjs),同一個網址內容不會變 → 先用快取;
      存了新版本就刪掉同一個檔案的舊版本
    - Google 字型:先用快取
@@ -12,7 +12,7 @@
 const APP = "pianodrill";
 // @app-end
 /*@precache-begin*/
-const CACHE = APP + "-app-76513893";
+const CACHE = APP + "-app-ee7bc359";
 const PRECACHE = [
   "./",
   "manifest.webmanifest",
@@ -21,10 +21,12 @@ const PRECACHE = [
   "icons/icon-192.png",
   "icons/icon-512.png",
   "icons/icon-maskable-512.png",
+  "licenses.html",
+  "privacy.html",
   "css/app.css?v=9f6af68d07",
   "css/sight.css?v=0ba194fd2a",
   "vendor/opensheetmusicdisplay.min.js?v=4bfeb3d01c",
-  "js/ear/app.js?v=26fa94ab2b",
+  "js/ear/app.js?v=36b905d81b",
   "js/ear/aural.js?v=2db3b73955",
   "js/ear/ear.js?v=ad307c1316",
   "js/ear/music.js?v=28644129ec",
@@ -49,7 +51,7 @@ const PRECACHE = [
   "js/sight/playback.js?v=2f4f886ed6",
   "js/sight/scoring.js?v=ccc19f9486",
   "js/sight/stage.js?v=9ca7fb07ed",
-  "js/tech/app.js?v=5465ab32c2",
+  "js/tech/app.js?v=406ea9f99b",
   "js/tech/exercise.js?v=254ed7b2c1",
   "js/tech/fingering.js?v=eabf64c8e1",
   "js/tech/hanon.js?v=be2621dd7a",
@@ -74,12 +76,15 @@ self.addEventListener("activate", e => {
 });
 async function networkFirst(req){
   const c = await caches.open(CACHE);
+  // 首頁存在 "./";其他頁面(licenses.html、privacy.html)各存各的(不帶 ?query),不能蓋掉首頁
+  const u = new URL(req.url);
+  const key = /\/(index\.html)?$/.test(u.pathname) ? "./" : u.origin + u.pathname;
   try {
     const res = await fetch(req);
-    if (res.ok) c.put(req.mode === "navigate" ? "./" : req, res.clone());
+    if (res.ok) c.put(key, res.clone());
     return res;
   } catch (e) {
-    return (await c.match(req.mode === "navigate" ? "./" : req)) || (await c.match("./")) || Response.error();
+    return (await c.match(key)) || (await c.match("./")) || Response.error();
   }
 }
 async function cacheFirst(req){

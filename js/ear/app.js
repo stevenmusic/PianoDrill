@@ -19,13 +19,27 @@ let cur = null;                    // 目前的題目(格式見 aural.js 開頭)
 let A = null;                      // 作答狀態:{ step, results, done, keys: [], taps: [] }
 let examDrill = null;              // 檢定:目前練的 { test, drill, idx }
 
-/* 語言切換(外框通知):選擇器、清單、題目重畫(題目內容不變,只換文字) */
+/* 語言切換(外框通知):只重寫文字(不停止播放、不換題、作答狀態不變;照 DrumDrill 技巧的 relabel)——
+   選擇器、檢定清單、題目與選項、按鈕、暫時訊息、正確率、紀錄卡 */
 export function relang(){
   if (!SY) return;
-  const keep = cur, keepA = A, tab = S.tab;
-  if (active) { switchTab(tab, true); if (keep) { cur = relabel(keep); A = keepA; renderQuestion(); } }
+  if (S.exam) renderExam();
+  if (active) {
+    if (PRACTICE.includes(S.tab)) renderPicker(S.tab);
+    if (cur) {
+      relabel(cur); renderQuestion();
+      if (play && cur.tap && cur.tap.kind === "pulse" && !A.done) $("feedback").textContent = tr("跟著拍子按「拍」", "Tap along");
+    } else if (lastMock) showMockText();
+    else if ($("qTitle").classList.contains("empty")) emptyText();
+    $("playLabel").textContent = play ? T("stop") : starting ? tr("準備中…", "Preparing…") : cur && A && A.played ? T("replay") : T("play");
+    remsg(); renderStats();
+  }
   renderLog();
 }
+/* 暫時訊息(載入中、載入失敗):記住產生文字的函式,換語言時重寫 */
+const msgs = {};
+function setMsg(id, fn){ msgs[id] = fn || null; $(id).textContent = fn ? fn() : ""; }
+function remsg(){ for (const id in msgs) if (msgs[id]) $(id).textContent = msgs[id](); }
 /* 換語言:同一題重新產生文字(選項標籤),音不變 */
 function relabel(q){
   if (q.tab && PRACTICE.includes(q.tab)) {
@@ -33,7 +47,7 @@ function relabel(q){
     if (fresh && q.steps && fresh.steps) q.steps = q.steps.map((s, i) => ({ ...s, q: fresh.steps[i] ? fresh.steps[i].q : s.q,
       choices: s.choices.map(c => { const it = ALL_ITEMS[q.tab].find(x => x.id === c.id); return it ? { ...c, label: itemLabel(q.tab, it) } : c; }) }));
     if (fresh) q.label = fresh.label;
-  }
+  } else if (q.examRef) q.label = (q.mockI != null ? tr(`模擬考 ${q.mockI + 1}/${q.mockN} · `, `Mock ${q.mockI + 1}/${q.mockN} · `) : "") + `${q.examRef.test.id} · ${drillName(q.examRef.drill.type)}`;
   return q;
 }
 
@@ -120,7 +134,6 @@ function newPractice(tab){
 }
 
 /* ══ 檢定 ══ */
-const gradeLabel = g => g === 0 ? tr("初級", "Initial") : tr(g + " 級", "Grade " + g);
 function gradeOf(system, grade){ return SY.systems[system].grades.find(g => g.grade === grade); }
 function ensureExam(){ if (!S.exam) S.exam = { system: "abrsm", grade: 1, auto: true }; }
 const examKey = (t, d) => `exam|${S.exam.system}|${S.exam.grade}|${t.id}|${d.type}`;
@@ -160,6 +173,7 @@ $("testsList").onclick = e => {
 function loadDrill(d){
   examDrill = d;
   const q = makeDrill(d.drill, { system: S.exam.system, key: examKey(d.test, d.drill) });
+  q.examRef = d;   // 換語言時重寫標題用
   q.label = `${d.test.id} · ${drillName(d.drill.type)}`;
   setQuestion(q, "exam");
   renderExam(); renderStats();
@@ -183,13 +197,20 @@ $("mockBtn").onclick = () => {
 function loadMock(){
   const d = mock.queue[mock.i], m = mock;
   loadDrill(d); mock = m;
+  cur.mockI = m.i; cur.mockN = m.queue.length;
   cur.label = tr(`模擬考 ${m.i + 1}/${m.queue.length} · `, `Mock ${m.i + 1}/${m.queue.length} · `) + cur.label;
   renderQuestion();
 }
+let lastMock = null;   // 模擬考結果畫面(換語言時重寫)
 function showMockResult(){
   stopPlayback();
   const m = mock; mock = null; cur = null; A = null;
-  const ok = m.res.filter(Boolean).length;
+  lastMock = m;
+  showMockText();
+  $("playBtn").disabled = true; $("revealBtn").hidden = true; $("nextBtn").disabled = false;   // 下一題 = 再考一次
+}
+function showMockText(){
+  const m = lastMock, ok = m.res.filter(Boolean).length;
   $("qTitle").classList.remove("empty");
   $("qTitle").textContent = tr(`模擬考結果 ${ok}/${m.queue.length}`, `Mock result ${ok}/${m.queue.length}`);
   $("qTags").innerHTML = ""; $("stepQ").textContent = "";
@@ -199,7 +220,6 @@ function showMockResult(){
   const fb = $("feedback");
   fb.className = "feedback " + (ok === m.queue.length ? "ok" : "");
   fb.textContent = ok === m.queue.length ? tr("全部答對!", "All correct!") : tr("錯的項目可以從下方清單再練", "Practise the missed ones from the list below");
-  $("playBtn").disabled = true; $("revealBtn").hidden = true; $("nextBtn").disabled = false;   // 下一題 = 再考一次
 }
 /* 外框改了考試系統/級數(exam.auto = 還沒選考試,只是點進檢定分頁看看) */
 export function setExam(ex){
@@ -230,13 +250,14 @@ export function leave(){ active = false; stopPlayback(); }
 /* ══ 題目卡 ══ */
 function showEmpty(){
   stopPlayback();
-  cur = null; A = null;
+  cur = null; A = null; lastMock = null;
   $("qTitle").classList.add("empty");
-  pairText($("qTitle"), () => tr("按「隨機抽一題」,或從下方清單選一種題型", "Tap Random, or pick a drill from the list below"));
+  emptyText();
   $("qTags").innerHTML = ""; $("stepQ").textContent = ""; $("answers").innerHTML = ""; $("feedback").textContent = ""; $("feedback").className = "feedback";
   $("playBtn").disabled = true; $("nextBtn").disabled = true; $("revealBtn").hidden = true;
   syncScoreLine();
 }
+function emptyText(){ pairText($("qTitle"), () => tr("按「隨機抽一題」,或從下方清單選一種題型", "Tap Random, or pick a drill from the list below")); }
 const session = {};   // 每個分頁這一輪:{ n, ok, streak }
 function syncScoreLine(){
   const s = session[S.tab];
@@ -245,7 +266,7 @@ function syncScoreLine(){
 function setQuestion(q, tab, restore){
   stopPlayback();
   if (!q) { showEmpty(); return; }
-  cur = q; tabCur[tab] = q;
+  cur = q; tabCur[tab] = q; lastMock = null;
   if (!restore || !q._A) q._A = { step: 0, results: [], done: false, keys: [], taps: [], played: false };
   A = q._A;
   renderQuestion();
@@ -460,12 +481,12 @@ function preloadSamples(){
   job.p = (async () => {
     try {
       setRing(null);
-      await audio.loadPianoFor(neededNotes(cur), 4, p => { if (preloadJob === job) { setRing(p * 0.95); $("loadingMsg").textContent = tr("載入鋼琴取樣… ", "Loading piano… ") + Math.round(p * 100) + "%"; } });
+      await audio.loadPianoFor(neededNotes(cur), 4, p => { if (preloadJob === job) { setRing(p * 0.95); setMsg("loadingMsg", () => tr("載入鋼琴取樣… ", "Loading piano… ") + Math.round(p * 100) + "%"); } });
       if (cur.play.clicks && cur.play.clicks.length) await audio.loadClick().catch(() => {});
-      if (preloadJob === job) { setRing(1); $("loadingMsg").textContent = ""; }
+      if (preloadJob === job) { setRing(1); setMsg("loadingMsg", null); }
       return true;
     } catch (e) {
-      if (preloadJob === job) { preloadJob = null; $("loadingMsg").textContent = tr("鋼琴取樣載入失敗,再按一次播放重試(第一次需要網路)", "Could not load piano samples — tap play to retry (needs internet once)"); }
+      if (preloadJob === job) { preloadJob = null; setMsg("loadingMsg", () => tr("鋼琴取樣載入失敗,再按一次播放重試(第一次需要網路)", "Could not load piano samples — tap play to retry (needs internet once)")); }
       return false;
     }
   })();

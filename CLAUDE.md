@@ -63,5 +63,6 @@ FingerDrill(技巧)、SightDrill(視奏)、EarDrill(聽音)三個工具合併成
   - `node tools/test/human.mjs 150 3`(模擬真人隨機操作;換幾個種子)
   - `node tools/test/clip.mjs [尺寸]`(文字被切掉:g j p y 下伸部、上方重音超出 overflow 的範圍;所有分頁 × 中英 × 8 種尺寸)
   - `node tools/test/notation.mjs`(大綱 443 題實際用 OSMD 畫出來比對)
+  - `node tools/test/playback.mjs`(技巧、聽音、視奏播放中換語言:不停播,只換文字)
   - `node tools/sight/smoke.js`、`engraving-check.js`、`highlight-check.js`、`staff-metrics.js`、`mic-check.js`(視奏的繪譜、重疊、播放色塊、麥克風評分)
 - 上架:`docs/APPSTORE.md`

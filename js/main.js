@@ -2,7 +2,8 @@
    頂欄、子項目分段鈕、底部分頁、共用的考試設定(系統 + 級數設一次,三個模組都照這一級)、主題、語言、第一次打開的問題。
    三個模組(js/tech、js/sight、js/ear)各自負責自己的卡片;外框只告訴它們「現在顯示哪一頁、考哪一級、語言換了」。
    每個模組匯出同一組函式:start(ctx)、enter(tab)、leave()、setExam(exam)、relang()、examStatus()、onKey(e)
-   - ctx = { exam, examChanged(), gradeLabel(g, sys), showView(view, sub) };模組不能 import 這個檔案
+   - ctx = { exam, examChanged(), gradeLabel(g, sys), showView(view, sub) } + 各 App 自己的(@app 區段的 appCtx(),
+     例如 DrumDrill 的 examData(sys));模組不能 import 這個檔案
    - leave() 停止播放與計時(題目保留);enter(tab) 有題目就不重新出題
    - 切到背景(visibilitychange / pagehide)或聲音被系統打斷:目前的模組 leave() + 全部停止;回到前景再 enter() */
 import { tr, T, applyStatic, setLang, getLang, onLang } from "./shared/i18n.js";
@@ -46,6 +47,8 @@ const SUBS = {
   exam: () => [["tech", tr("音階琶音", "Scales")], ["sight", tr("視奏", "Sight-reading")], ["ear", tr("聽力", "Aural")]]
 };
 const PART_LABEL = () => ({ tech: tr("音階琶音", "Scales & arpeggios"), sight: tr("視奏", "Sight-reading"), ear: tr("聽力測驗", "Aural tests") });
+/* 外框另外給模組的東西(ctx 裡;DrumDrill 用來給考試資料):PianoDrill 的模組自己讀資料,這裡沒有 */
+const appCtx = async () => ({});
 // @app-end
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
 const GRADES = [0, 1, 2, 3, 4, 5, 6, 7, 8];
@@ -233,7 +236,9 @@ document.addEventListener("keydown", e => {
 async function init(){
   fillGrades($("selGrade"), examNow().grade);
   // 各模組讀自己的資料;一個失敗不影響其他兩個
-  const ctx = { exam: examNow(), examChanged, gradeLabel, showView };
+  // App 自己的資料(@app 區段的 appCtx;讀不到不影響啟動)
+  const extra = await appCtx().catch(e => (console.error("appCtx", e), {}));
+  const ctx = { exam: examNow(), examChanged, gradeLabel, showView, ...extra };
   await Promise.all(Object.entries(MODS).map(([name, m]) => m.start(ctx).catch(e => console.error(name, e))));
   renderChip(); renderExamCard();
   window.__shell = { S, showView, setExam, MODS };

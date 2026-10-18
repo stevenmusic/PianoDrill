@@ -49,6 +49,10 @@ FingerDrill(技巧)、SightDrill(視奏)、EarDrill(聽音)三個工具合併成
 - **視奏譜面要像印出來的考卷**(使用者要求,取代 SightDrill 原本「譜表大小固定、放不下就一小節一行」的規則):
   先決定每行幾小節(目標 4;整除優先、不留單獨一小節,太密才退到 3、2),再縮放到放得下寬度;整份要在「樂譜卡捲到頂欄下」時一眼看完,
   放不下再縮,但不小於 0.55(口袋總譜大小;每行 2 小節的最後手段 0.45)。同形狀的題目沿用同一個排法與大小(只縮不放大)。`js/sight/app.js` 的 fitScore
+- **無障礙**(跟 DrumDrill 共用的部分,2026-10):`app.css` 的 `:focus-visible` 焦點框;字級代幣是 rem(根字級 17px,iOS 用 `-apple-system-body` 跟著系統文字大小;
+  預設跟原本 px 一樣,內文最多 2 倍、控制項最多 1.3 倍;新的字級用 `var(--fs-…)`,控制項高度用 `min-height`、放不下換行不截字);小字對比 ≥ 4.5:1(深淺兩種主題);
+  外框(main.js 共用部分)的分頁列 tablist / tab + `<main>` tabpanel、方向鍵換分頁、第一次的問題焦點管理與 Esc、子項目分段鈕的群組名稱(@app 的 `SUB_LABEL`);
+  `layout.mjs` 有「字級 200%」的狀態。DrumDrill 另外有鼓譜的文字說明與 `#srLive` 播報區(`js/shared/a11y.js`、`tools/test/a11y.mjs`)
 - 快取:改了 css/js/data 一定要跑 `node tools/build/stamp.mjs`(index.html 的 importmap 與 ?v= 版本指紋;verify 會檢查),不然手機會拿到新舊混雜的檔案
 
 ## 工作方式(省 token)

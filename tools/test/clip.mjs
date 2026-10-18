@@ -23,7 +23,7 @@ const scan = page => page.evaluate(() => {
   for (let n; (n = w.nextNode());) {
     if (!n.textContent.trim()) continue;
     const el = n.parentElement, s = getComputedStyle(el);
-    if (s.visibility === "hidden" || el.closest("[hidden]") || el.closest("svg") || el.closest(".stage") || el.closest("#t-osmd")) continue;
+    if (s.visibility === "hidden" || el.closest("[hidden]") || el.closest("svg") || el.closest(".stage") || el.closest("#t-osmd") || el.closest(".sr")) continue;   // .sr = 只給螢幕閱讀器(故意 1px、裁切)
     const rg = document.createRange(); rg.selectNodeContents(n);
     const rects = [...rg.getClientRects()].filter(r => r.width > 0 && r.height > 0);
     if (!rects.length) continue;

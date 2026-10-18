@@ -155,6 +155,11 @@ $("tabbar").addEventListener("keydown", e => {
   const b = TABS[(k + TABS.length) % TABS.length];
   showView(b.dataset.view); b.focus();
 });
+// 手機橫式(app.css 的 orientation:landscape 且高度 ≤ 500)分頁列是左邊的直欄:aria-orientation = vertical
+const TAB_VERT = matchMedia("(orientation:landscape) and (max-height:500px)");
+const tabOrient = () => $("tabbar").setAttribute("aria-orientation", TAB_VERT.matches ? "vertical" : "horizontal");
+tabOrient();
+if (TAB_VERT.addEventListener) TAB_VERT.addEventListener("change", tabOrient); else if (TAB_VERT.addListener) TAB_VERT.addListener(tabOrient);
 const tabbarLabel = () => $("tabbar").setAttribute("aria-label", tr("練習項目", "Sections"));
 tabbarLabel();
 $("examChip").onclick = () => showView("exam");
@@ -201,12 +206,12 @@ export function examChanged(){ if (S.view === "exam") renderExamCard(); }
 
 /* ══ 第一次打開:在準備考試嗎? ══
    無障礙:對話框打開時焦點移進去(第一個按鈕)、Tab 只在對話框 + 頂欄右邊的主題 / 語言鈕之間轉(頂欄在對話框上面,可以邊選邊換語言)、
-   Esc = 「不考試,自由練習」;背景(內容、分頁列)設 inert;關掉時焦點回到打開前的地方(沒有就回到選到的分頁) */
+   Esc = 「不考試,自由練習」;背景(內容、分頁列、子項目分段鈕、頂欄的考試標籤)設 inert;關掉時焦點回到打開前的地方(沒有就回到選到的分頁) */
 const ob = { ...DEFAULT_EXAM };
 let obReturn = null;
-const OB_BG = () => [MAIN, $("tabbar")].filter(Boolean);
+const OB_BG = () => [MAIN, $("tabbar"), $("subnav"), $("examChip")].filter(Boolean);
 const OB_SEL = "button, select, [href], input, [tabindex]:not([tabindex='-1'])";
-function obFocusables(){ return [...document.querySelectorAll(".header-right button"), ...$("onboard").querySelectorAll(OB_SEL)].filter(el => !el.disabled && !el.hidden && el.offsetParent !== null); }
+function obFocusables(){ return [...document.querySelectorAll(".header-right button"), ...$("onboard").querySelectorAll(OB_SEL)].filter(el => !el.disabled && !el.hidden && !el.inert && el.offsetParent !== null); }
 function openOnboard(){
   obReturn = document.activeElement && document.activeElement !== document.body ? document.activeElement : null;
   $("onboard").hidden = false;

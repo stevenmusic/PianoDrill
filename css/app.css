@@ -546,7 +546,7 @@ body.land-play #t-stage{flex:1;display:flex;flex-direction:column;justify-conten
 .kbd .wk{flex:1 1 0;min-width:0;position:relative;cursor:pointer;border-radius:3px 3px 6px 6px;
   background:linear-gradient(180deg,#FFFDF6 0%,#DDD6C4 85%,#DDD6C4 100%);
   box-shadow:inset 0 0 0 1px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.5);
-  display:flex;align-items:flex-end;justify-content:center;padding-bottom:6px;font-size:var(--fs-2xs);color:#8a7d5f}
+  display:flex;align-items:flex-end;justify-content:center;padding-bottom:6px;font-size:var(--fs-2xs);color:#665A42}
 .kbd .bk{position:absolute;top:0;height:60%;z-index:2;cursor:pointer;border-radius:2px 2px 4px 4px;
   background:linear-gradient(180deg,#3a3a3a,#0a0a0a);box-shadow:0 3px 5px rgba(0,0,0,.45),0 1px 1px rgba(0,0,0,.6)}
 .kbd .bk::after{content:"";position:absolute;left:15%;top:2px;width:30%;height:35%;background:rgba(255,255,255,.18);border-radius:1px;pointer-events:none}

@@ -1,0 +1,13 @@
+# 每次 push 都跑不用瀏覽器的檢查(node tools/test/verify.mjs:資料、記譜、版本指紋與 sw.js 預快取清單;
+# 兩個 App 的同步檢查在 CI 裡只有一個 repo,會印「略過」)。PianoDrill / DrumDrill 兩邊這個檔案一模一樣
+name: verify
+on: [push]
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node tools/test/verify.mjs

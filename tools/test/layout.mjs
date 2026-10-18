@@ -5,6 +5,7 @@
 //  4. 對話框放得進畫面(放不下時可以捲動)
 //  5. 樂譜不超出紙張
 // 每種尺寸存截圖到 out/layout-*.png
+// PianoDrill / DrumDrill 共用(tools/test/sync.mjs 檢查):檢查函式一模一樣,畫面狀態腳本放在 @app 區段
 import { open } from "./harness.mjs";
 import fs from "node:fs";
 const OUT = new URL("./out/", import.meta.url).pathname; fs.mkdirSync(OUT, { recursive: true });
@@ -82,7 +83,7 @@ async function audit(page, vp, state){
     if (opened || sideOpen) return null;
     return q ? { top: Math.round(q.getBoundingClientRect().top + scrollY), H: innerHeight } : null;
   });
-  // 手機橫放(高度 ≤ 500):頂欄 + 兩條收起來的設定列就佔掉一半,放寬到 60%(題目標題仍在第一個畫面;按 ▶ 會進入樂譜全螢幕的橫放播放模式)
+  // 手機橫放(高度 ≤ 500):頂欄 + 兩條收起來的設定列就佔掉一半,放寬到 60%(題目標題仍在第一個畫面)
   const limit = quizTop && quizTop.H <= 500 ? 0.6 : 0.5;
   if (quizTop && !/對話框|設定展開|選擇器/.test(state) && quizTop.top > quizTop.H * limit) report(vp, state, `題目卡太下面(${quizTop.top} > 畫面 ${Math.round(limit * 100)}% ${Math.round(quizTop.H * limit)})`);
 }
@@ -90,15 +91,16 @@ async function audit(page, vp, state){
 for (const [name, w, h, mobile] of VPS) {
   const { page, errors, close } = await open({ viewport: { width: w, height: h }, mobile, hasTouch: mobile, dpr: 1 });
   const shot = async st => page.screenshot({ path: `${OUT}layout-${name}-${st}.png` });
+  const tab = v => page.click(`#tabbar button[data-view="${v}"]`).then(() => page.waitForTimeout(400));
+  const sub = v => page.click(`#subSeg button[data-v="${v}"]`).then(() => page.waitForTimeout(500));
+  const expand = async sel => { if (await page.isVisible(sel + " .setup-summary")) await page.click(sel + " .setup-summary"); };
+  // @app-begin:各 App 的畫面狀態
   // 第一次打開:對話框
   await page.evaluate(() => { localStorage.clear(); localStorage.setItem("pianodrill-lang", "zh"); });
   await page.reload(); await page.waitForFunction(() => window.__stageReady >= 1);
   await audit(page, name, "對話框"); await shot("onboard");
   await page.selectOption("#obGrade", "8"); await page.click("#obYes");
   await page.waitForTimeout(300);
-  const tab = v => page.click(`#tabbar button[data-view="${v}"]`).then(() => page.waitForTimeout(400));
-  const sub = v => page.click(`#subSeg button[data-v="${v}"]`).then(() => page.waitForTimeout(400));
-  const expand = async sel => { if (await page.isVisible(sel + " .setup-summary")) await page.click(sel + " .setup-summary"); };
   // 檢定 · 音階琶音:ABRSM 8 級抽一題(四個八度,最寬的譜)
   const b = await page.evaluate(() => window.__scoreReady || 0);
   await page.click("#t-drawBtn"); await page.waitForFunction(b => (window.__scoreReady || 0) > b, b);
@@ -131,6 +133,7 @@ for (const [name, w, h, mobile] of VPS) {
   await tab("sight"); await page.waitForTimeout(800); await audit(page, name, "英文 視奏");
   await tab("ear"); await audit(page, name, "英文 聽音");
   await tab("exam"); await audit(page, name, "英文 檢定");
+  // @app-end
   for (const e of errors) report(name, "console", e);
   await close();
 }

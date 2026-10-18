@@ -223,7 +223,8 @@ function switchTab(tab, keepQuestion){
   if (!keepQuestion) window.scrollTo({ top: 0 });
 }
 /* 外框:顯示 / 離開這個模組 */
-export function enter(tab){ active = true; switchTab(tab); }
+/* 回到同一個子項目(切到背景再回來、從別的分頁回來):題目與作答照原樣(setQuestion restore),進行中的模擬考也保留 */
+export function enter(tab){ active = true; const m = tab === S.tab ? mock : null; switchTab(tab); if (m) mock = m; }
 export function leave(){ active = false; stopPlayback(); }
 
 /* ══ 題目卡 ══ */
@@ -479,7 +480,6 @@ function playSeq(seq){
   const t0 = ctx.currentTime + 0.12;
   for (const e of seq.ev) audio.playPianoNote(e.midi, t0 + e.t, t0 + e.t + e.dur, t0 + e.t + e.dur, Math.max(1, Math.min(127, Math.round(e.vel))), false);
   for (const c of seq.clicks || []) audio.playClick(t0 + c.t, c.strong);
-  audio.pruneScheduled();
   return t0;
 }
 function tapNote(m){

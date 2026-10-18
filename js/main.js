@@ -1,6 +1,10 @@
-/* PianoDrill 外框:頂欄、子項目分段鈕、底部分頁、共用的考試設定(系統 + 級數設一次,三個模組都照這一級)、主題、語言、第一次打開的問題。
+/* 外框(PianoDrill / DrumDrill 共用,`@app-begin … @app-end` 以外兩邊一模一樣,tools/test/sync.mjs 檢查):
+   頂欄、子項目分段鈕、底部分頁、共用的考試設定(系統 + 級數設一次,三個模組都照這一級)、主題、語言、第一次打開的問題。
    三個模組(js/tech、js/sight、js/ear)各自負責自己的卡片;外框只告訴它們「現在顯示哪一頁、考哪一級、語言換了」。
-   每個模組匯出同一組函式:start()、enter(tab)、leave()、setExam(exam)、relang()、examStatus()、onKey(e) */
+   每個模組匯出同一組函式:start(ctx)、enter(tab)、leave()、setExam(exam)、relang()、examStatus()、onKey(e)
+   - ctx = { exam, examChanged(), gradeLabel(g, sys), showView(view, sub) };模組不能 import 這個檔案
+   - leave() 停止播放與計時(題目保留);enter(tab) 有題目就不重新出題
+   - 切到背景(visibilitychange / pagehide)或聲音被系統打斷:目前的模組 leave() + 全部停止;回到前景再 enter() */
 import { tr, T, applyStatic, setLang, getLang, onLang } from "./shared/i18n.js";
 import * as audio from "./shared/audio.js";
 import * as tech from "./tech/app.js";
@@ -10,6 +14,7 @@ import * as ear from "./ear/app.js";
 const $ = id => document.getElementById(id);
 const MODS = { tech, sight, ear };
 
+// @app-begin
 /* ── 外框的設定(localStorage;讀不到就用預設值)── */
 const KEY = "pianodrill.v1";
 const S = (() => {
@@ -28,15 +33,23 @@ const S = (() => {
   return { view: "tech", sub: { tech: "scale", ear: "note", exam: "tech", sight: "1" }, exam: null, onboarded: false, theme: "dark", ...saved,
     sub: { tech: "scale", ear: "note", exam: "tech", sight: "1", ...(saved.sub || {}) } };
 })();
-const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
-
 /* ── 考試:兩個系統都是初級(0)到 8 級 ── */
 const SYSTEMS = { abrsm: "ABRSM", trinity: "Trinity" };
+const DEFAULT_EXAM = { system: "abrsm", grade: 1 };   // 第一次打開的問題、沒選考試時檢定分頁暫時看的(auto,不算在準備考試)
+export const gradeLabel = (g, sys) => g === 0 ? tr("初級", "Initial") : tr(g + " 級", "Grade " + g);
+/* 子項目分段鈕;檢定分頁三項的名稱 */
+const SUBS = {
+  tech: () => [["scale", tr("音階", "Scales")], ["arp", tr("琶音", "Arpeggios")], ["hanon", tr("哈農", "Hanon")]],
+  // 視奏:子項目列放級數(跟技巧的音階/琶音/哈農、聽音的單音/音程/和弦同一個位置)
+  sight: () => [1, 2, 3, 4, 5, 6, 7, 8].map(g => [String(g), String(g)]),
+  ear: () => [["note", tr("單音", "Notes")], ["interval", tr("音程", "Intervals")], ["chord", tr("和弦", "Chords")]],
+  exam: () => [["tech", tr("音階琶音", "Scales")], ["sight", tr("視奏", "Sight-reading")], ["ear", tr("聽力", "Aural")]]
+};
+const PART_LABEL = () => ({ tech: tr("音階琶音", "Scales & arpeggios"), sight: tr("視奏", "Sight-reading"), ear: tr("聽力測驗", "Aural tests") });
+// @app-end
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
 const GRADES = [0, 1, 2, 3, 4, 5, 6, 7, 8];
-export const gradeLabel = g => g === 0 ? tr("初級", "Initial") : tr(g + " 級", "Grade " + g);
-/* 模組拿到的考試:還沒選考試時給 ABRSM 1 級(auto,只是點進檢定分頁看看,不算在準備考試) */
-const effExam = () => S.exam ? { ...S.exam, auto: false } : { system: "abrsm", grade: 1, auto: true };
-let autoExam = { system: "abrsm", grade: 1 };   // 沒選考試時,檢定分頁暫時看的系統/級數
+let autoExam = { ...DEFAULT_EXAM };   // 沒選考試時,檢定分頁暫時看的系統/級數
 const examNow = () => S.exam ? { ...S.exam, auto: false } : { ...autoExam, auto: true };
 
 /* ── 主題 ── */
@@ -53,7 +66,7 @@ applyStatic();
 $("langToggle").onclick = () => setLang(getLang() === "zh" ? "en" : "zh");
 onLang(() => {
   renderSubnav(); renderExamCard();
-  if (!$("onboard").hidden) fillGrades($("obGrade"), Number($("obGrade").value));
+  if (!$("onboard").hidden) fillGrades($("obGrade"), Number($("obGrade").value), ob.system);
   for (const m of Object.values(MODS)) m.relang();
 });
 
@@ -73,18 +86,12 @@ document.addEventListener("click", e => {
 });
 
 /* ══ 分頁 ══ */
-const SUBS = {
-  tech: () => [["scale", tr("音階", "Scales")], ["arp", tr("琶音", "Arpeggios")], ["hanon", tr("哈農", "Hanon")]],
-  // 視奏:子項目列放級數(跟技巧的音階/琶音/哈農、聽音的單音/音程/和弦同一個位置)
-  sight: () => [1, 2, 3, 4, 5, 6, 7, 8].map(g => [String(g), String(g)]),
-  ear: () => [["note", tr("單音", "Notes")], ["interval", tr("音程", "Intervals")], ["chord", tr("和弦", "Chords")]],
-  exam: () => [["tech", tr("音階琶音", "Scales")], ["sight", tr("視奏", "Sight-reading")], ["ear", tr("聽力", "Aural")]]
-};
 let curMod = null;
 function renderSubnav(){
   const opts = SUBS[S.view]();
   $("subnav").hidden = !opts.length;
   document.body.classList.toggle("no-subnav", !opts.length);
+  // 視奏的子項目是級數:按鈕上只有數字,aria-label 寫完整級名
   $("subSeg").innerHTML = opts.map(([v, t]) => `<button data-v="${v}" aria-pressed="${S.sub[S.view] === v}"${S.view === "sight" ? ` aria-label="${gradeLabel(Number(v))}"` : ""}>${t}</button>`).join("");
   $("subSeg").setAttribute("aria-label", S.view === "sight" ? tr("級數", "Grade") : "");
 }
@@ -94,18 +101,23 @@ $("subSeg").onclick = e => {
   S.sub[S.view] = b.dataset.v; save();
   showView(S.view);
 };
-function showView(view){
+/* 目前分頁的模組與它的子項目(檢定分頁:模組 = 檢定的子項目,tab = "exam") */
+const modOf = view => (view === "exam" ? S.sub.exam : view);
+const tabOf = view => (view === "exam" ? "exam" : S.sub[view] || "");
+/* 切到某一頁;sub = 同時切到那一頁的某個子項目(模組要帶使用者去別的地方練時用,例如檢定清單 → 技巧的某一類) */
+function showView(view, sub){
+  if (sub != null) S.sub[view] = String(sub);
   S.view = view; save();
   document.querySelectorAll("#tabbar button").forEach(b => b.setAttribute("aria-selected", String(b.dataset.view === view)));
   const exam = view === "exam";
-  const modName = exam ? S.sub.exam : view;
-  const tab = exam ? "exam" : S.sub[modName];
+  const modName = modOf(view);
+  const tab = tabOf(view);
   $("examSetup").hidden = !exam;
   if (curMod && curMod !== modName) MODS[curMod].leave();
   for (const [name, m] of Object.entries(MODS)) $("mod-" + name).hidden = name !== modName;
   curMod = modName;
-  document.body.classList.toggle("view-sight", modName === "sight");
   document.body.classList.toggle("view-exam", exam);
+  document.body.classList.toggle("view-sight", modName === "sight");
   renderSubnav();
   if (exam) renderExamCard();
   window.scrollTo({ top: 0 });
@@ -115,8 +127,8 @@ $("tabbar").onclick = e => { const b = e.target.closest("button[data-view]"); if
 $("examChip").onclick = () => showView("exam");
 
 /* ══ 考試設定卡 ══ */
-function fillGrades(sel, grade){
-  sel.innerHTML = GRADES.map(g => `<option value="${g}">${gradeLabel(g)}</option>`).join("");
+function fillGrades(sel, grade, sys){
+  sel.innerHTML = GRADES.map(g => `<option value="${g}">${gradeLabel(g, sys)}</option>`).join("");
   sel.value = String(GRADES.includes(grade) ? grade : 1);
 }
 function setExam(system, grade){
@@ -136,12 +148,12 @@ function renderChip(){
 }
 function renderExamCard(){
   const ex = examNow();
-  syncSystemSeg(); fillGrades($("selGrade"), ex.grade);
+  syncSystemSeg(); fillGrades($("selGrade"), ex.grade, ex.system);
   $("examSum").textContent = S.exam ? `${SYSTEMS[ex.system]} · ${gradeLabel(ex.grade)}` : tr("還沒選考試 · 點這裡選考試和級數", "No exam chosen · tap to pick one");
   // 三個項目的進度(各模組自己算),點一下切到那一項
   $("examParts").innerHTML = Object.keys(MODS).map(name => {
     const st = MODS[name].examStatus() || "";
-    const label = { tech: tr("音階琶音", "Scales & arpeggios"), sight: tr("視奏", "Sight-reading"), ear: tr("聽力測驗", "Aural tests") }[name];
+    const label = PART_LABEL()[name];
     return `<button class="part" data-part="${name}" aria-pressed="${S.view === "exam" && S.sub.exam === name}"><b>${label}</b><small>${st}</small></button>`;
   }).join("");
 }
@@ -153,10 +165,10 @@ $("examParts").onclick = e => {
 export function examChanged(){ if (S.view === "exam") renderExamCard(); }
 
 /* ══ 第一次打開:在準備考試嗎? ══ */
+const ob = { ...DEFAULT_EXAM };
 function showOnboard(){
-  const ob = { system: "abrsm", grade: 1 };
-  const syncSys = segBind("obSystem", () => ob.system, v => { ob.system = v; });
-  fillGrades($("obGrade"), ob.grade); syncSys();
+  const syncSys = segBind("obSystem", () => ob.system, v => { ob.system = v; fillGrades($("obGrade"), Number($("obGrade").value), v); });
+  fillGrades($("obGrade"), ob.grade, ob.system); syncSys();
   $("obGrade").onchange = () => ob.grade = Number($("obGrade").value);
   $("onboard").hidden = false;
   $("obYes").onclick = () => {
@@ -184,6 +196,33 @@ async function keepAwake(){
 }
 document.addEventListener("visibilitychange", keepAwake);
 document.addEventListener("pointerdown", keepAwake, { once: true });
+/* 切到背景(換 App、鎖屏、關分頁):目前的模組停止播放與計時、全部的聲音停掉;回到前景再進來(題目保留,不會自己開始播) */
+let inBackground = false;
+function toBackground(){
+  if (inBackground) return;
+  inBackground = true;
+  if (curMod) MODS[curMod].leave();
+  audio.stopAll();
+}
+function reenter(){
+  if (!curMod) return;
+  const y = window.scrollY;
+  MODS[curMod].enter(tabOf(S.view));
+  window.scrollTo(0, y);   // 回到原本看的位置(enter 有的會捲回頂端)
+}
+function toForeground(){
+  if (!inBackground) return;
+  inBackground = false;
+  reenter();
+}
+document.addEventListener("visibilitychange", () => (document.visibilityState === "hidden" ? toBackground() : toForeground()));
+window.addEventListener("pagehide", toBackground);
+window.addEventListener("pageshow", () => { if (document.visibilityState !== "hidden") toForeground(); });
+/* 聲音被系統打斷(來電、Siri;AudioContext 變成 interrupted / suspended)但畫面還在前景:同樣停掉,按鈕回到「播放」 */
+audio.onInterrupt(() => {
+  if (inBackground || !curMod) return;
+  MODS[curMod].leave(); audio.stopAll(); reenter();
+});
 /* 桌機快捷鍵交給目前的模組 */
 document.addEventListener("keydown", e => {
   if (!$("onboard").hidden || e.target.closest("input, select, textarea") || e.metaKey || e.ctrlKey || e.altKey) return;
@@ -194,7 +233,8 @@ document.addEventListener("keydown", e => {
 async function init(){
   fillGrades($("selGrade"), examNow().grade);
   // 各模組讀自己的資料;一個失敗不影響其他兩個
-  await Promise.all(Object.entries(MODS).map(([name, m]) => m.start({ exam: examNow(), examChanged }).catch(e => console.error(name, e))));
+  const ctx = { exam: examNow(), examChanged, gradeLabel, showView };
+  await Promise.all(Object.entries(MODS).map(([name, m]) => m.start(ctx).catch(e => console.error(name, e))));
   renderChip(); renderExamCard();
   window.__shell = { S, showView, setExam, MODS };
   if (!S.onboarded) { showView("tech"); showOnboard(); }

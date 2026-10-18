@@ -433,7 +433,10 @@ console.log(`哈農 ${nHanon} 種組合`);
 {
   const { execFileSync } = await import("node:child_process");
   try { execFileSync("node", [new URL("../build/stamp.mjs", import.meta.url).pathname, "--check"], { stdio: "pipe" }); checks++; }
-  catch (e) { fail("index.html 的版本指紋不是最新的:執行 node tools/build/stamp.mjs"); }
+  catch (e) { fail((e.stdout || "").toString().trim() || "index.html 的版本指紋不是最新的:執行 node tools/build/stamp.mjs"); }
+  // 兩個 App 的共用檔案(DRUMDRILL=…;找不到 DrumDrill 就略過)
+  try { console.log(execFileSync("node", [new URL("./sync.mjs", import.meta.url).pathname], { stdio: "pipe" }).toString().trim()); checks++; }
+  catch (e) { fail((e.stdout || "").toString().trim() || "兩個 App 的共用檔案不一致"); }
 }
 console.log(`最多加線 ${maxLedger} 條`);
 console.log(`\n大綱題目 ${nSyl} 題、全部組合 ${nAll} 題,共 ${checks} 項檢查。`);

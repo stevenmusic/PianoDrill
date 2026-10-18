@@ -1,5 +1,6 @@
 // 中英文版面一致:同一個畫面狀態,中文、英文各量一次每個可見元素的位置與高度,
 // 高度或上緣不同(= 英文換行、多一行、被擠下去)就列出來。各尺寸 × 各分頁 × 對話框
+// PianoDrill / DrumDrill 共用(tools/test/sync.mjs 檢查):檢查函式一模一樣,畫面狀態腳本放在 @app 區段
 import { open } from "./harness.mjs";
 const ALL = [
   ["fold-280", 280, 653, true], ["se1-320", 320, 568, true], ["iphone-390", 390, 844, true], ["promax-430", 430, 932, true],
@@ -12,7 +13,7 @@ let bad = 0; const issues = [];
 const snap = page => page.evaluate(() => {
   const vis = e => { const s = getComputedStyle(e); if (s.display === "none" || s.visibility === "hidden" || e.closest("[hidden]")) return false; const r = e.getBoundingClientRect(); return r.width > 0 && r.height > 0; };
   return [...document.querySelectorAll("body *")].map(e => {
-    if (!vis(e) || e.closest(".quick .opt span") || e.closest("#t-osmd") || e.id === "t-playline" || e.closest("#s-score") || e.closest(".stage")) return null;
+    if (!vis(e) || e.closest(".opt.rud span") || e.closest(".quick .opt span") || e.closest("#t-osmd") || e.id === "t-playline" || e.closest("#s-score") || e.closest(".stage")) return null;
     const r = e.getBoundingClientRect();
     return { t: Math.round(r.top + scrollY), h: Math.round(r.height), w: Math.round(r.width), l: Math.round(r.left), name: e.tagName.toLowerCase() + (e.id ? "#" + e.id : "") + (e.classList.length ? "." + [...e.classList].join(".") : ""), txt: e.textContent.trim().replace(/\s+/g, " ").slice(0, 40) };
   }).filter(Boolean);   // 只比看得到的元素(看不到的 <option> 等數量不同時,不會讓後面全部錯位)
@@ -38,11 +39,12 @@ async function compare(page, vp, state){
 }
 for (const [name, w, h, mobile] of VPS) {
   const { page, errors, close } = await open({ viewport: { width: w, height: h }, mobile, dpr: 1 });
+  const tab = v => page.click(`#tabbar button[data-view="${v}"]`).then(() => page.waitForTimeout(400));
+  const sub = v => page.click(`#subSeg button[data-v="${v}"]`).then(() => page.waitForTimeout(500));
+  const expand = async sel => { if (await page.isVisible(sel + " .setup-summary")) { await page.click(sel + " .setup-summary"); await page.waitForTimeout(200); } };
+  // @app-begin:各 App 的畫面狀態;最後把題目與標籤的中英行數差異放進 diff
   await page.evaluate(() => { localStorage.clear(); localStorage.setItem("pianodrill-lang", "zh"); });
   await page.reload(); await page.waitForFunction(() => window.__stageReady >= 1);
-  const tab = v => page.click(`#tabbar button[data-view="${v}"]`).then(() => page.waitForTimeout(400));
-  const sub = v => page.click(`#subSeg button[data-v="${v}"]`).then(() => page.waitForTimeout(400));
-  const expand = async sel => { if (await page.isVisible(sel + " .setup-summary")) { await page.click(sel + " .setup-summary"); await page.waitForTimeout(200); } };
   await compare(page, name, "對話框");
   await page.selectOption("#obGrade", "5"); await page.click("#obYes"); await page.waitForTimeout(300);
   await compare(page, name, "檢定 收合");
@@ -77,6 +79,7 @@ for (const [name, w, h, mobile] of VPS) {
     setLang("zh");
     return out;
   });
+  // @app-end
   for (const d of [...new Set(diff)]) { issues.push(`${name} ${d}`); bad++; }
   for (const e of errors) { issues.push(`${name} console: ${e}`); bad++; }
   await close();

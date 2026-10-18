@@ -1,7 +1,12 @@
+// @app-begin
 /* 音訊:取樣鋼琴(ScrollScore 的 Salamander Grand,直接讀 ScrollScore repo)+ 母帶鏈路,照 HarmonyHands / ScrollScore 的引擎。
    不用 Tone.js 單層鋼琴、不用合成音色。 */
+const APP_ID = "pianodrill";
+// @app-end
+/* PianoDrill / DrumDrill 共用(tools/test/sync.mjs 檢查):`@app-begin … @app-end` 以外兩邊一模一樣,樂器專屬的放在 @app 區段。
+   已排程的音訊節點放在 scheduled(Set):每個節點播完(onended)自己移除,stopAll() 全部停掉、cancelFrom(t) 停掉 t 之後的 */
 /* ══ 音訊:母帶鏈路照 ScrollScore ══════════════════════════════════
-   鋼琴/吉他 → 各自 EQ(+ 殘響)→ masterGain → 響度壓縮 → makeup → masterBus → 真峰值限幅器(AudioWorklet)→ masterOut
+   樂器(@app 區段:鼓組匯流排 + 鼓房殘響 / 鋼琴 EQ + 殘響)→ masterGain → 響度壓縮 → makeup → masterBus → 真峰值限幅器(AudioWorklet)→ masterOut
    限幅器上限 −1.3dBFS(4 倍超取樣量),真峰值 ≤ −1dBTP */
 const MASTER = {
   compThreshold: -18, compKnee: 8, compRatio: 3, compAttack: 0.008, compRelease: 0.18, makeup: 1.82,
@@ -113,10 +118,10 @@ function buildCeilingCurve(){
 }
 
 let audioCtx = null, masterGain = null, masterBus = null, masterOut = null, masterLimiterNode = null, masterReady = Promise.resolve(false);
-let scheduled = [];     // 已排程的 audio nodes,停止時關閉
+let scheduled = new Set();   // 已排程的 audio nodes:播完自己移除,停止時全部關閉
 const REVERB_AMOUNT = 0.3;   // ScrollScore 殘響滑桿的預設值(30)
 function buildMaster(){
-  /* 鋼琴/吉他的總和先降到 0.48 留動態餘裕,再壓縮 + makeup(照 ScrollScore) */
+  /* 樂器的總和先降到 0.48 留動態餘裕,再壓縮 + makeup(照 ScrollScore) */
   masterGain = audioCtx.createGain();
   masterGain.gain.value = 0.48;
   const comp = audioCtx.createDynamicsCompressor();
@@ -175,6 +180,7 @@ export function ensureAudio(){
   const AC = window.AudioContext || window.webkitAudioContext;
   audioCtx = new AC({ latencyHint: "interactive" });
   buildMaster();
+  watchState(audioCtx);
   return audioCtx;
 }
 async function runLimited(jobs, limit){
@@ -183,11 +189,11 @@ async function runLimited(jobs, limit){
   await Promise.all(workers);
 }
 /* 取樣檔快取(Cache Storage):第一次下載後存在裝置上,之後直接從本機讀 */
-export const SAMPLE_CACHE = "pianodrill-samples-v1";
+export const SAMPLE_CACHE = APP_ID + "-samples-v1";
 let sampleCachePromise = null;
 function sampleCache(){
   if (!sampleCachePromise) sampleCachePromise = (typeof caches !== "undefined" && window.isSecureContext)
-    ? caches.open(SAMPLE_CACHE).then(async c => { for (const k of await caches.keys()) if (k.startsWith("pianodrill-samples-") && k !== SAMPLE_CACHE) caches.delete(k); return c; }).catch(() => null)
+    ? caches.open(SAMPLE_CACHE).then(async c => { for (const k of await caches.keys()) if (k.startsWith(APP_ID + "-samples-") && k !== SAMPLE_CACHE) caches.delete(k); return c; }).catch(() => null)
     : Promise.resolve(null);
   return sampleCachePromise;
 }
@@ -209,6 +215,7 @@ const SAMPLE_FETCH_CONCURRENCY = (/iP(hone|ad|od)/.test(navigator.userAgent) || 
 const BUNDLED = typeof window !== "undefined" && !!window.Capacitor?.isNativePlatform?.();
 const SAMPLE_ROOT = BUNDLED ? "samples/" : "https://raw.githubusercontent.com/stevenmusic/ScrollScore/main/";   // 網頁版直接讀 ScrollScore 的取樣(公開 repo,可跨網域)
 
+// @app-begin
 /* ── 鋼琴:Salamander Grand Piano V3(ScrollScore piano/,48k FLAC)──
    30 個取樣音(每 3 個半音一個:A0、C1、D♯1…)× 16 層力度;只載入用得到的(音 × 力度層),截短到需要的長度 */
 const PIANO_BASE = SAMPLE_ROOT + "piano/";
@@ -393,10 +400,19 @@ export function playPianoNote(m, when, keyUp, damperAt, vel, pedal){
   src.connect(g);
   pianoConnect(g, PIANO_VERB_SEND * (pedal ? 1.7 : 1));
   src.start(when); src.stop(end + 0.05);
-  src._at = when; scheduled.push(src);
+  track(src, when);
   pianoLastByKey[m] = { src, g, end, at: when };
   return true;
 }
+/* stopAll()、cancelFrom(t) 時樂器自己要清的東西:還在響的鋼琴音淡出、同一個鍵的「上一個音」紀錄 */
+function appStop(now){
+  for (const k of Object.keys(pianoLastByKey)) { const v = pianoLastByKey[k]; try { v.g.gain.cancelScheduledValues(now); v.g.gain.setTargetAtTime(0, now, 0.03); } catch (e) {} }
+  pianoLastByKey = {};
+}
+function appCancel(t){
+  for (const k of Object.keys(pianoLastByKey)) if (pianoLastByKey[k].at >= t) delete pianoLastByKey[k];
+}
+// @app-end
 
 /* ── 節拍器:真的鼓棒敲鼓框(Naked Drums xstick,ScrollScore drums/,CC-BY 4.0),重拍大聲一點 ── */
 const CLICK_FILES = ["nk-xstick-L1.01.flac", "nk-xstick-L1.02.flac", "nk-xstick-L1.03.flac"];
@@ -425,27 +441,40 @@ export function playClick(when, strong){
   src.connect(g); g.connect(clickBus);
   src.start(Math.max(when, audioCtx.currentTime));
   src.stop(Math.max(when, audioCtx.currentTime) + 0.4);
-  src._at = when; scheduled.push(src);
+  track(src, when);
   return true;
 }
 
+/* 排程一個節點:記下開始時間(cancelFrom 用),播完(或被 stop)時自己從清單移除,清單不會一直變長 */
+function track(src, when){
+  src._at = when; scheduled.add(src);
+  src.onended = () => scheduled.delete(src);
+}
 export function audioNow(){ return audioCtx ? audioCtx.currentTime : 0; }
 export function getCtx(){ return audioCtx; }
 export function stopAll(){
   const now = audioCtx ? audioCtx.currentTime : 0;
   for (const s of scheduled) { try { s.stop(now + 0.02); } catch (e) {} }
-  scheduled = [];
-  for (const k of Object.keys(pianoLastByKey)) { const v = pianoLastByKey[k]; try { v.g.gain.cancelScheduledValues(now); v.g.gain.setTargetAtTime(0, now, 0.03); } catch (e) {} }
-  pianoLastByKey = {};
+  scheduled.clear();
+  appStop(now);
 }
 /* 播放中改速度:把還沒開始的音與拍點取消(正在響的不動),再照新速度重排 */
 export function cancelFrom(t){
-  for (const s of scheduled) if (s._at >= t) { try { s.stop(); } catch (e) {} }
-  scheduled = scheduled.filter(s => s._at < t);
-  for (const k of Object.keys(pianoLastByKey)) if (pianoLastByKey[k].at >= t) delete pianoLastByKey[k];
+  for (const s of scheduled) if (s._at >= t) { try { s.stop(); } catch (e) {} scheduled.delete(s); }
+  appCancel(t);
 }
-/* 排程過的節點會一直累積:超過一定數量時把已經結束的清掉 */
-export function pruneScheduled(){ if (scheduled.length > 400) scheduled = scheduled.slice(-200); }
 export { masterReady };
-/* 測試用:目前排程中的音訊節點數(連點播放不會變兩份) */
-export function scheduledCount(){ return scheduled.length; }
+/* 測試用:目前排程中的音訊節點數(連點播放不會變兩份;播完的會自己移除) */
+export function scheduledCount(){ return scheduled.size; }
+/* 聲音被系統打斷(iOS 來電、Siri、其他 App 搶走音訊):AudioContext 變成 interrupted / suspended,而且畫面還在前景時通知外框
+   (外框讓目前的模組 leave() + enter(),停掉播放、按鈕回到「播放」;切到背景由外框的 visibilitychange 處理) */
+const interruptFns = [];
+export function onInterrupt(fn){ interruptFns.push(fn); }
+function watchState(ctx){
+  try {
+    ctx.addEventListener("statechange", () => {
+      if ((ctx.state === "interrupted" || ctx.state === "suspended") && document.visibilityState === "visible")
+        for (const fn of interruptFns) { try { fn(ctx.state); } catch (e) { console.error(e); } }
+    });
+  } catch (e) {}
+}

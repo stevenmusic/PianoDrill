@@ -742,3 +742,5 @@ body.land-play #t-stage{flex:1;display:flex;flex-direction:column;justify-conten
 #mod-tech .picker .opts[data-k="no"]{display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:4px}
 #mod-tech .picker .opts[data-k="no"] .opt{min-width:0;padding:0;font-variant-numeric:tabular-nums}
 @media (max-width:374px){ #mod-tech .picker .opts[data-k="no"]{grid-template-columns:repeat(5,minmax(0,1fr))} }
+/* 折疊機 280:對話框標題字小一級,英文才不會換行(中英文版面一樣) */
+@media (max-width:300px){ .modal-card h2{font-size:var(--fs-lg)} }

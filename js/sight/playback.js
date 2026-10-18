@@ -157,7 +157,6 @@ export function createPlayer({ onStatus } = {}) {
           end = Math.max(end, at + duration);
         }
       }
-      audio.pruneScheduled();
 
       stopTimer = setTimeout(() => {
         playingUntil = 0;

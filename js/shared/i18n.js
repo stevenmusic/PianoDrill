@@ -2,10 +2,13 @@
    頂欄最右邊的語言按鈕(中文時顯示 EN、英文時顯示 中),選擇存在 localStorage,第一次一律英文(使用者要求)。
    靜態文字:HTML 上的 data-i18n="key"(文字)/ data-i18n-attr="aria-label:key,title:key";
    程式產生的文字:tr("中文", "English")。
-   三個模組(技巧 tech / 聽音 ear / 視奏 sight)各自的字串用前綴分開:"tech.play"、"ear.play"(同一個字在不同模組意思不同),
-   模組裡用 scoped("tech") 拿到只查自己那一組的 T。視奏模組沿用自己的字典(js/sight/i18n.js),語言跟這裡同步。 */
+   模組各自的字串用前綴分開:"tech.play"、"ear.play"(同一個字在不同模組意思不同),模組裡用 scoped("tech") 拿到只查自己那一組的 T。
+   PianoDrill / DrumDrill 共用(tools/test/sync.mjs 檢查):@app 區段(LANG_KEY、OLD_KEYS、STR)以外兩邊一模一樣 */
+// @app-begin
+/* PianoDrill:技巧、聽音的字串在 js/tech/strings.js、js/ear/strings.js(前綴 tech.、ear.);視奏模組沿用自己的字典(js/sight/i18n.js),語言跟這裡同步 */
 const LANG_KEY = "pianodrill-lang";
 const OLD_KEYS = ["fingerdrill-lang", "eardrill-lang"];   // 同一個網域上的舊工具選過的語言,第一次打開沿用
+// @app-end
 let LANG = (() => {
   try {
     for (const k of [LANG_KEY, ...OLD_KEYS]) { const v = localStorage.getItem(k); if (v === "en" || v === "zh") return v; }
@@ -15,6 +18,7 @@ let LANG = (() => {
 export const getLang = () => LANG;
 export const tr = (zh, en) => LANG === "en" ? en : zh;
 
+// @app-begin
 const STR = {
   pageTitle: ["PianoDrill 鋼琴檢定特訓", "PianoDrill — piano exam trainer"],
   tagline: ["鋼琴檢定特訓", "Piano exam trainer"],
@@ -34,6 +38,7 @@ const STR = {
     "Pick a board and grade: Exams opens with scales, sight-reading and aural set to that grade. Change any time in Exams."],
   obYes: ["開始準備考試", "Start exam prep"], obNo: ["不考試,自由練習", "No exam — free practice"]
 };
+// @app-end
 /* 模組的字串:addStrings("tech", { play: ["播放示範", "Play"] }) → "tech.play" */
 export function addStrings(ns, dict){ for (const [k, v] of Object.entries(dict)) STR[ns + "." + k] = v; }
 export const T = key => (STR[key] ? STR[key][LANG === "en" ? 1 : 0] : key);

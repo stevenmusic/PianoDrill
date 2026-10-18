@@ -19,7 +19,7 @@
 | 隱私權政策(中英) | `privacy.html` → `https://stevenmusic.github.io/PianoDrill/privacy.html` |
 | 支援頁(中英) | `support.html` → `https://stevenmusic.github.io/PianoDrill/support.html`(常見問題、GitHub 回報;支援信箱設好才顯示寄信) |
 | 授權與出處(中英) | `licenses.html`(Salamander CC BY 3.0、Naked Drums CC BY 4.0 + 修改說明、OSMD BSD-3 全文、檢定要求出處、商標聲明) |
-| 麥克風 | 視奏「跟著彈」可選用:**要加** `NSMicrophoneUsageDescription` 與中英文 InfoPlist.strings(`docs/IOS.md` 第 4 節) |
+| 麥克風 | 視奏「跟著彈」可選用:**要加** `NSMicrophoneUsageDescription` 與中英文 InfoPlist.strings(`docs/IOS.md` 第 4 節)、AudioSession 外掛(第 3b 節) |
 | 商店截圖(中文,五張) | `app/screenshots/`:iPhone 1290×2796、iPad 13 吋 2064×2752;`cd tools/test && node appshots.mjs` 重新產生(英文版還沒有,第 7 節) |
 
 ### 圖示為什麼這樣設計
@@ -154,17 +154,16 @@
 
 ## 14. 實機測試結果
 
-照 `docs/IOS.md` 第 8 節的 16 項,用 TestFlight 版測完把結果填在這裡(✓ / ✗ + 備註)。另外加測:視奏「跟著彈」第一次用麥克風會跳出權限視窗、文字是對的語言;拒絕後 App 照常、不再一直問。
+照 `docs/IOS.md` 第 8 節的 20 項(第 17–20 項是麥克風:權限視窗的語言、拒絕後照常、錄音時從喇叭出聲、用完切回混音),用 TestFlight 版測完把結果填在這裡(✓ / ✗ + 備註)。
 
 | # | iPhone SE | 一般 iPhone | iPad | 備註 |
 |---|---|---|---|---|
-| 1–16 | 未測 | 未測 | 未測 | |
-| 麥克風 | 未測 | 未測 | 未測 | |
+| 1–20 | 未測 | 未測 | 未測 | |
 
 ## 15. 需要你自己做或決定的
 
 1. Apple Developer Program 帳號、App Store Connect 的 App 記錄、DSA 交易者身分。
-2. 在 Mac 上照 `docs/IOS.md` 做:`cap add ios`、AppDelegate、Info.plist(含麥克風)、InfoPlist.strings、PrivacyInfo.xcprivacy、圖示、Archive、TestFlight。
+2. 在 Mac 上照 `docs/IOS.md` 做:`cap add ios`、AppDelegate、AudioSession 外掛(第 3b 節)、Info.plist(含麥克風)、InfoPlist.strings、PrivacyInfo.xcprivacy、圖示、Archive、TestFlight。
 3. 實機測試(第 14 節),特別是「邊放音樂邊練」(`docs/IOS.md` 第 3 節還沒解決的那一點)。
 4. 支援信箱:要不要公開一個 Email?要的話填在 `support.html` 的 `APP.EMAIL`(空白時只顯示 GitHub 回報)。
 5. 英文截圖(第 7 節)、英文名稱是否被用掉(第 3 節)、中國大陸是否上架(第 12 節)。

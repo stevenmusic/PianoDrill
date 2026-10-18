@@ -19,7 +19,7 @@
  *   while recording and put back to what it was afterwards.
  * - App (Capacitor native): the page never touches navigator.audioSession (it
  *   would override the native category, docs/IOS.md §3). If the app registers the
- *   native AudioSession plugin (docs/IOS.md §4b) it is asked to switch to
+ *   native AudioSession plugin (docs/IOS.md §3b) it is asked to switch to
  *   .playAndRecord and back to .playback + .mixWithOthers; without the plugin
  *   WebKit switches the category for the capture by itself.
  */

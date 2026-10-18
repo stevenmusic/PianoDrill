@@ -12,7 +12,7 @@
 | `<BundleID>` | `io.github.stevenmusic.pianodrill` | `io.github.stevenmusic.drumdrill` |
 | `<repo>` | `stevenmusic/PianoDrill` | `stevenmusic/DrumDrill` |
 | 打包進 App 的取樣(`tools/build/app-samples.mjs`) | 鋼琴 30 個音 × 5 層力度(有 ffmpeg 就截成 6.5 秒)+ 拍點 xstick 3 個:153 個檔、約 35 MB | 小鼓 5 層 × 6 個 + 整組鼓 12 個鼓件(鼓皮每層 3 個、鈸每層 2 個)+ 拍點 + 鼓房殘響:104 個檔、約 10.9 MB |
-| 麥克風(`NSMicrophoneUsageDescription`) | **要加**(視奏「跟著彈」可選用麥克風評節奏) | **先不要加**:S15 加入麥克風時才需要(沒用到麥克風卻宣告,審核會問) |
+| 麥克風(`NSMicrophoneUsageDescription`、第 3b 節的 AudioSession 外掛) | **要加**(視奏「跟著彈」可選用麥克風評節奏) | **要加**(S15:視奏「正式打」、聽力「回打」可選用麥克風評節奏) |
 | 記憶體要特別測的 | 鋼琴取樣(5 層 × 30 音) | 整組鼓(視奏 RSL 4–5、聽力 Groove、Trinity Playback 會載入 12 個鼓件) |
 
 ## 1. 準備(只做一次)
@@ -128,6 +128,70 @@ WebKit 把它對應到 `AVAudioSessionCategoryPlayback`(沒有 mixWithOthers),�
   做備案前先回報;改 `js/shared/audio.js` 要兩邊同步。
 - iOS 15、16 沒有 `navigator.audioSession`,本來就只有原生設定有效;靜音開關要在這兩版的實機上也測一次。
 
+## 3b. 開麥克風時切換 AVAudioSession(AudioSession 外掛;兩個 App 都要)
+
+麥克風收音(`js/shared/mic.js`,兩個 App 同一份):
+- **網頁版**(Safari 17+):開麥克風前 `navigator.audioSession.type = "play-and-record"`,錄完還原成原本的值。
+- **App 版**:網頁不碰 `navigator.audioSession`(會蓋掉第 3 節的原生設定),改呼叫原生外掛 `AudioSession.setMode({ mode: "record" | "playback" })`
+  (網頁端 `Capacitor.registerPlugin("AudioSession")`)。外掛沒裝時呼叫會失敗(網頁接住、照樣錄音),由 WebKit 自己切 category,
+  但不一定有 `.defaultToSpeaker`(拍點、鼓聲可能從**聽筒**出來、很小聲),錄完也不一定切回 `.mixWithOthers` → **要裝外掛**。
+- 開麥克風:`.playAndRecord` + `.defaultToSpeaker`(聲音照樣從喇叭出來)+ `.allowBluetoothA2DP`(戴 AirPods 照樣從耳機聽,麥克風改用 iPhone 本身的)。
+  錄音時不混音(沒有 `.mixWithOthers`):正在放的音樂會暫停,不然會被收進去。
+- 用完(錄完、取消、打開失敗):切回第 3 節的 `.playback` + `.mixWithOthers`。
+- 開麥克風時 `AudioContext` 可能短暫變成 interrupted:網頁已處理(`js/shared/micrhythm.js` 的 `bumped`,DrumDrill),實機第 8 節第 18 項確認。
+
+新增 `app/ios/App/App/AudioSessionPlugin.swift`(File ▸ New ▸ File from Template ▸ Swift File,Target 勾 App):
+
+```swift
+import Foundation
+import AVFoundation
+import Capacitor
+
+/// 網頁的 js/shared/mic.js 呼叫:AudioSession.setMode({ mode: "record" | "playback" })
+@objc(AudioSessionPlugin)
+public class AudioSessionPlugin: CAPPlugin, CAPBridgedPlugin {
+    public let identifier = "AudioSessionPlugin"
+    public let jsName = "AudioSession"
+    public let pluginMethods: [CAPPluginMethod] = [
+        CAPPluginMethod(name: "setMode", returnType: CAPPluginReturnPromise)
+    ]
+
+    @objc func setMode(_ call: CAPPluginCall) {
+        let record = call.getString("mode") == "record"
+        let session = AVAudioSession.sharedInstance()
+        do {
+            if record {
+                // 開麥克風:錄音 + 播放,聲音從喇叭(不是聽筒)出來,AirPods 照樣能聽
+                try session.setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker, .allowBluetoothA2DP])
+            } else {
+                // 用完:回到第 3 節的設定(靜音開關也有聲音、跟其他 App 的音樂混音)
+                try session.setCategory(.playback, mode: .default, options: [.mixWithOthers])
+            }
+            try session.setActive(true)
+            call.resolve()
+        } catch {
+            call.reject("AVAudioSession 切換失敗:\(error.localizedDescription)")
+        }
+    }
+}
+```
+
+App 裡自己的外掛要手動註冊(Capacitor 只會自動註冊 npm 套件的外掛):新增 `app/ios/App/App/MainViewController.swift`,
+
+```swift
+import UIKit
+import Capacitor
+
+class MainViewController: CAPBridgeViewController {
+    override open func capacitorDidLoad() {
+        bridge?.registerPluginInstance(AudioSessionPlugin())
+    }
+}
+```
+
+再打開 `Main.storyboard` ▸ 選 Bridge View Controller ▸ Identity inspector:**Class 改成 `MainViewController`**、Module 選 `App`(或勾 Inherit Module From Target)。
+- 第 3 節 AppDelegate 回到前景時的 `configureAudioSession()` 會設回 `.playback` + `.mixWithOthers`:切到背景時網頁本來就會停止錄音(模組 `leave()`),不衝突。
+
 ## 4. Info.plist 與在地化
 
 `app/ios/App/App/Info.plist` 範本已經有:`CFBundleDevelopmentRegion = en`、`CFBundleDisplayName = <App>`、版本號用 `$(MARKETING_VERSION)` / `$(CURRENT_PROJECT_VERSION)`、
@@ -148,12 +212,17 @@ iPad 要支援分割畫面與視窗縮放(網頁版面本來就跟著寬度變,`
 </array>
 ```
 
-**麥克風**(第 0 節的表):PianoDrill 現在就要加;DrumDrill **S15 加入麥克風時才需要**,現在不要加。
+**麥克風**(第 0 節的表):兩個 App 都要加(DrumDrill 從 S15 起)。Info.plist 放英文(開發語言 en),中文放 InfoPlist.strings:
 
 ```xml
 <key>NSMicrophoneUsageDescription</key>
-<string>Listens to when you play each note to score your rhythm. Audio is analysed on the device only — never recorded or uploaded.</string>
+<string><App 的英文字串(下表)></string>
 ```
+
+| App | 英文(`en`,Info.plist 也用這句) | 繁體中文(`zh-Hant`) |
+|---|---|---|
+| PianoDrill | Listens to when you play each note to score your rhythm. Audio is analysed on the device only — never recorded or uploaded. | 用麥克風聽你彈的起音時間來評分節奏;聲音只在裝置上分析,不錄音、不上傳。 |
+| DrumDrill | Listens to when each stroke lands to score your rhythm (optional). Audio is analysed on the device only — never recorded or uploaded. | 用麥克風聽你打每一下的時間來評分節奏(選用);聲音只在裝置上分析,不錄音、不上傳。 |
 
 **InfoPlist.strings**(權限說明、App 名稱的中英文):
 1. Project ▸ App ▸ Info ▸ Localizations:按 + 加入 **Chinese, Traditional (zh-Hant)**。
@@ -164,15 +233,14 @@ iPad 要支援分割畫面與視窗縮放(網頁版面本來就跟著寬度變,`
 ```text
 /* en.lproj/InfoPlist.strings */
 "CFBundleDisplayName" = "<App>";
-"NSMicrophoneUsageDescription" = "Listens to when you play each note to score your rhythm. Audio is analysed on the device only — never recorded or uploaded.";
+"NSMicrophoneUsageDescription" = "<App 的英文字串(上表)>";
 
 /* zh-Hant.lproj/InfoPlist.strings */
 "CFBundleDisplayName" = "<App>";
-"NSMicrophoneUsageDescription" = "用麥克風聽你彈(打)的起音時間來評分節奏;聲音只在裝置上分析,不錄音、不上傳。";
+"NSMicrophoneUsageDescription" = "<App 的中文字串(上表)>";
 ```
 
-- 麥克風那一行只有 Info.plist 有 `NSMicrophoneUsageDescription` 時才放(DrumDrill 在 S15 之前兩個檔案都只放 `CFBundleDisplayName`)。
-- 中文字串照各 App 改:PianoDrill「聽你彈的」、DrumDrill「聽你打的每一下」。
+- 兩個 App 都放麥克風那一行(字串照上表,不要寫成另一個 App 的「彈」/「打」)。
 
 ## 5. PrivacyInfo.xcprivacy(隱私清單)
 
@@ -261,6 +329,10 @@ npm run open                              # = npx cap open ios
 | 14 | 深色 / 淺色、動態字級 | 系統切淺色;設定 ▸ 輔助使用 ▸ 較大字體 | 主題按鈕照常;字級變大不破版(VoiceOver、動態字級的完整檢查在 S16 無障礙另做) |
 | 15 | 長時間播放 | 循環播放 10 分鐘 | 不爆音、不延遲變大、不發燙到降速 |
 | 16 | 頁尾連結 | 點「授權與出處」「隱私權政策」「支援」,再按返回 | 三頁都打得開、返回回到 App;支援頁的「在 GitHub 回報」會開 Safari。返回是回到上一頁(`history.back()`,沒有歷史才開 `index.html`),但 App 會**重新載入**(WebView 一般不保留上一頁的狀態):分頁與設定(存在 localStorage)還在,**正在做的題目狀態會重置**,這是預期行為 |
+| 17 | 麥克風權限 | DrumDrill:視奏「正式打」/ 聽力「回打」勾「用麥克風評分節奏」;PianoDrill:視奏「跟著彈」勾麥克風 → 第一次按開始;再刪掉 App 重裝,這次按「不允許」 | 跳出系統的權限視窗,說明是第 4 節的字串、語言跟系統一樣;不允許 → 畫面說明原因(DrumDrill:這一次照觸控鼓墊評分),其他功能照常、不會一直問;到 設定 ▸ `<App>` ▸ 麥克風 打開後再試可以用 |
+| 18 | 錄音時的聲音路線(第 3b 節) | 開著 Apple Music 放歌,勾麥克風後正式打 / 回打一次;打完再按一般的播放;再把靜音開關打開按播放 | 預備拍從**喇叭**出來(不是聽筒)、音量正常,而且真的有開始(開麥克風時 AudioContext 被打斷也照樣開始);錄音時音樂暫停是預期的;打完切回 `.playback` + `.mixWithOthers`:第 1、2 項(靜音開關有聲音、可以跟音樂混音)照樣成立;沒裝外掛(第 3b 節)時記下差在哪 |
+| 19 | 麥克風評分準不準 | iPhone 放在鼓 / 鋼琴旁 1–2 公尺,DrumDrill 用真的鼓或打擊板:照譜打一次、故意整段晚一點一次、亂打一次;小鼓(RSL 0–3)與整組鼓(RSL 4–5)各一題 | 準時分數高;整段晚只寫「整體慢約 … 毫秒(已先扣掉)」不扣分;亂打分數低;記下整體延遲幾毫秒、漏 / 多幾下(DrumDrill 整組鼓:crash 在響時輕的 hi-hat 可能漏,`js/shared/timing.js` 的門檻要用實機錄音再調) |
+| 20 | 麥克風 + AirPods | 連著 AirPods 勾麥克風打一次 | 聲音從 AirPods 出來(`.allowBluetoothA2DP`)、麥克風用 iPhone 本身的;不當機;記下整體延遲(藍牙輸出延遲會讓「整體慢約」變大,已先扣掉、不扣分) |
 
 ## 9. Android:不做,用 PWA
 
@@ -285,5 +357,6 @@ npm run open                              # = npx cap open ios
 - iPadOS 26 棄用 `UIRequiresFullScreen`:[Apple TN3192](https://developer.apple.com/documentation/technotes/tn3192-migrating-your-app-from-the-deprecated-uirequiresfullscreen-key)、[Apple 開發者論壇](https://developer.apple.com/forums/thread/793406)
 - Web Audio 與靜音開關、Audio Session API:[W3C Audio Session](https://www.w3.org/TR/audio-session/)、[MDN AudioSession.type](https://developer.mozilla.org/docs/Web/API/AudioSession/type)、
   [WebKit Bug 251532](https://bugs.webkit.org/show_bug.cgi?id=251532)、[Apple 論壇:WKWebView 與 AVAudioSession](https://developer.apple.com/forums/thread/71889)(WKWebView 是否照 App 的 AVAudioSession 混音,各版本回報不一 → 實機第 2 項)
+- 自己的外掛、AVAudioSession 選項:[Capacitor:Custom Native iOS Code](https://capacitorjs.com/docs/ios/custom-code)(`CAPBridgedPlugin`、`registerPluginInstance`、換 storyboard 的 view controller)、[Apple:AVAudioSession.CategoryOptions](https://developer.apple.com/documentation/avfaudio/avaudiosession/categoryoptions-swift.struct)(`.defaultToSpeaker`、`.allowBluetoothA2DP`)
 - 前景 / 打斷:[Apple:applicationDidBecomeActive(_:)](https://developer.apple.com/documentation/uikit/uiapplicationdelegate/applicationdidbecomeactive(_:))(支援 scene 的 App 不會呼叫,改用 `didBecomeActiveNotification`)、[Apple:Handling audio interruptions](https://developer.apple.com/documentation/avfaudio/handling-audio-interruptions)(`.ended` 檢查 `.shouldResume`)
 - 歐盟 DSA 交易者身分:[TechRepublic](https://www.techrepublic.com/article/eu-app-store-apple-digital-services-act/)、[Median:如何更新交易者身分](https://median.co/blog/how-to-update-apple-trader-status-app-store-connect)

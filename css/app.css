@@ -785,6 +785,25 @@ body.land-play #t-stage{flex:1;display:flex;flex-direction:column;justify-conten
   #mod-sight .q-foot{grid-column:1 / -1}
   #mod-sight .q-tag{font-size:14px;padding:0 8px;line-height:26px}
 }
+/* PianoDrill 技巧(精簡 2026-10):選單的選項固定格子平分(調 6 欄 × 2 行、進行 3 欄、種類 4 欄;折疊機種類 2 欄),每格一行;
+   檢定頁還沒選題目:藏起譜卡與速度卡,本級要求展開放在題目卡正下方(js/tech/app.js 的 exam-empty) */
+#t-paneScale .opts[data-k="key"],#t-paneArp .opts[data-k="key"]{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px}
+#t-paneScale .opts[data-k="motion"]{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+#t-paneScale .opts[data-k="kind"]{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+#t-paneArp .opts[data-k="kind"]{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+#t-paneScale .opts:is([data-k="key"],[data-k="motion"],[data-k="kind"]) .opt,#t-paneArp .opts:is([data-k="key"],[data-k="kind"]) .opt{min-width:0;padding:0 2px;justify-content:center;white-space:nowrap}
+@media (max-width:340px){
+  #t-paneScale .opts[data-k="key"],#t-paneArp .opts[data-k="key"]{gap:4px}
+  #t-paneScale .opts[data-k="kind"],#t-paneArp .opts[data-k="kind"]{grid-template-columns:repeat(2,minmax(0,1fr))}
+  #t-paneScale .opts[data-k="motion"] .opt{font-size:var(--fs-xs)}
+}
+#mod-tech.exam-empty #t-scoreCard,#mod-tech.exam-empty #t-metroCard{display:none}
+#mod-tech.exam-empty #t-listCard{order:3}
+/* PianoDrill 聽音(精簡 2026-10):參考音三顆一排;琴鍵最寬 900px、置中(桌機);檢定頁還沒有題目時 ▶ 與「下一題」藏起來,那一列整列收掉 */
+#e-paneNote .opts[data-k="ref"]{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+#e-paneNote .opts[data-k="ref"] .opt{min-width:0;padding:0 4px;justify-content:center}
+#e-answers .kbd-wrap{width:100%;max-width:900px;margin-inline:auto}
+#e-quizCard:has(#e-quizTop) .q-foot:not(:has(> button:not([hidden]))){display:none}
 /* 哈農曲目:1–10 一排、11–20 一排(使用者要求);太窄(< 375)放不下 10 個 28px 的鈕 → 每排 5 個,仍是 1–10、11–20 分組 */
 #mod-tech .picker .opts[data-k="no"]{display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:4px}
 #mod-tech .picker .opts[data-k="no"] .opt{min-width:0;padding:0;font-variant-numeric:tabular-nums}

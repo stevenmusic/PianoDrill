@@ -128,7 +128,7 @@ export function createReading({ $, store, save, onAnswered = () => {} }) {
     const id = drill.pick(list, setting(), Math.random, last);
     last = id; q = { id, ...parse(id) }; t0 = performance.now();
     // 譜和琴鍵之間這一行不空著:平常寫題目,答了寫對錯
-    say(() => tr('這是什麼音?點琴鍵作答', 'Which note? Tap a key'));
+    say(() => tr('什麼音?', 'Which note?'));
     paintKeys();
     draw();
   }
@@ -199,7 +199,7 @@ export function createReading({ $, store, save, onAnswered = () => {} }) {
     $('rdLo').textContent = midiName(R.lo); $('rdHi').textContent = midiName(R.hi);
     pairText($('rdLedger'), () => (ledgers() ? tr(`最多 ${ledgers()} 條加線`, `Up to ${ledgers()} ledger line${ledgers() > 1 ? 's' : ''}`) : tr('沒有加線', 'No ledger lines')));
     for (const [id, zh, en] of [['rdQuickLbl', '範圍', 'Range'], ['rdClefLbl', '譜號', 'Clef'], ['rdPosLbl', '位置', 'Notes on'], ['rdAccLbl', '升降', 'Sharps/flats'], ['rdModeLbl', '模式', 'Mode'], ['rdSpanLbl', '音域', 'Span']]) $(id).textContent = tr(zh, en);
-    pairText($('rdNote'), () => tr('音域:用上下箭頭調最低音與最高音,按住可以連續移動。題目、範圍與最常錯的加倍出現都是 App 的練習設定。', 'Span: use the arrows to raise or lower the lowest and highest notes (hold to move fast). Ranges and doubled misses are App practice settings.'));
+    pairText($('rdNote'), () => tr('按住箭頭可以連續移動', 'Hold an arrow to keep moving'));
     for (const [id, zh, en] of [['rdLoDown', '最低音降低', 'Lower the lowest note'], ['rdLoUp', '最低音升高', 'Raise the lowest note'], ['rdHiDown', '最高音降低', 'Lower the highest note'], ['rdHiUp', '最高音升高', 'Raise the highest note']]) $(id).setAttribute('aria-label', tr(zh, en));
   }
   /* 題目卡上一行寫目前的設定(例如「高音譜表 C4–C5 · 只出線上」)+ 分數 */

@@ -157,13 +157,15 @@ function renderPicker(tab){
   const pane = paneOf(tab), p = S.pick[tab], cfg = PICKERS[tab];
   // 選項不再合法時退回第一個(改了一列可能影響其他列,跑兩次)
   for (let pass = 0; pass < 2; pass++) for (const [k, , opts] of cfg.rows(p)) if (!opts.some(o => String(o[0]) === String(p[k]))) p[k] = opts[0][0];
-  pane.querySelector(".rows").innerHTML = cfg.rows(p).map(([k, lbl, opts]) =>
+  // 「手」不放在選單:譜卡上的右手 / 左手 / 雙手直接換題目(syncHandSeg);這裡的列只用來決定哪幾隻手可以選
+  pane.querySelector(".rows").innerHTML = cfg.rows(p).filter(r => r[0] !== "hands").map(([k, lbl, opts]) =>
     `<div class="prow"><span class="lbl">${lbl}</span><div class="opts" data-k="${k}">` +
     opts.map(([v, t]) => `<button class="opt" data-v="${v}" aria-pressed="${String(v) === String(p[k])}">${t}</button>`).join("") + `</div></div>`).join("");
   // 收起來的一行只寫題目卡(標題、標籤)沒有的:題目名稱、手、範圍、奏法都已經在題目卡上 → 只寫「換題目」+ 拍點
   const pr = cfg.rows(p).find(r => r && r[0] === "pulse"), pv = pr && pr[2].find(o => o[0] === p.pulse);
   pane.querySelector(".sum").textContent = [tr("換題目", "Change"), pv ? tr("拍點 ", "Pulse ") + pv[1] : ""].filter(Boolean).join(" · ");
   renderQuick(tab);
+  syncHandAllowed();
 }
 for (const tab of ["scale", "arp", "hanon"]) {
   paneOf(tab).querySelector(".rows").onclick = e => {
@@ -227,6 +229,11 @@ function shortLabel(q){
 const setName = k => tr(k + " 組", "Set " + k);
 function sourceText(g){ return getLang() === "en" && g.sourceEn ? g.sourceEn : g.source;
 }
+/* 短出處:ABRSM 2025–2028 p.29 / Trinity 2023 p.31(頁碼從 sourceEn 取) */
+function shortSource(g){
+  const m = /p\. ?([\d–-]+)/.exec(g.sourceEn || "") || [], page = m[1] ? " p." + m[1] : "";
+  return (S.exam.system === "abrsm" ? "ABRSM 2025–2028" : "Trinity 2023") + page;
+}
 
 /* ══ 檢定分頁 ══ */
 function examGrade(){ return gradeOf(SY, S.exam.system, S.exam.grade); }
@@ -243,7 +250,7 @@ function renderExam(){
   const sys = SY.systems[S.exam.system], g = examGrade(), sets = sys.mode === "sets";
   syncSetSeg(); syncQualitySeg();
   $("fSet").hidden = !sets; $("fQuality").hidden = sets; $("fCats").hidden = sets;
-  $("selMinor").value = S.minorForm;
+  syncMinorSeg();
   const present = new Set(examQuestions().map(q => q.cat));
   // 新的分類(例如雙音音階)第一次出現時預設選上
   for (const c of present) if (!S.filter.cats.includes(c) && !(S.filter.seen || []).includes(c)) S.filter.cats.push(c);
@@ -251,10 +258,8 @@ function renderExam(){
   $("catChips").innerHTML = CATEGORIES.filter(c => present.has(c.id)).map(c =>
     `<button class="chip" data-cat="${c.id}" aria-pressed="${S.filter.cats.includes(c.id)}">${tr(c.zh, c.en)}</button>`).join("");
   $("excludeMastered").setAttribute("aria-pressed", String(S.filter.excludeMastered));
-  pairText($("verifyNote"), () => tr("資料來源:", "Source: ") + sourceText(g) + tr("。", ". ")
-    + (g.verified ? tr("已逐項核對官方大綱。", "Verified.") : tr("尚未核對。", "Not yet checked."))
-    + (sets ? tr(" Trinity:整組都要彈,每一項的手、力度、奏法固定。", " Trinity: play all of Set A or B; hands, dynamics and touch are fixed.")
-            : tr(" ABRSM:考官從清單點題,分手的項目會指定左手或右手。", " ABRSM: the examiner picks items and names the hand.")));
+  // 資料來源一行:「ABRSM 2025–2028 p.29 · 已逐項核對」(完整書名在 licenses.html)
+  pairText($("verifyNote"), () => shortSource(g) + " · " + (g.verified ? tr("已逐項核對", "verified") : tr("尚未核對", "not yet checked")));
   // 考試系統、級數在外框的檢定設定卡;這裡只寫抽考的設定(Trinity 哪一組、範圍有幾題)
   $("examSummary").textContent = tr("抽考設定", "Drill options") + (sets ? ` · ${setName(S.exam.set)}` : "") + " · " + tr(`${examPool().length} 題`, `${examPool().length} items`);
   renderList();
@@ -262,7 +267,7 @@ function renderExam(){
 }
 const syncSetSeg = segBind("setSeg", () => S.exam ? S.exam.set : "A", v => { ensureExam(); S.exam.set = v; store.save(); onExamChange(); });
 const syncQualitySeg = segBind("qualitySeg", () => S.filter.quality, v => { S.filter.quality = v; store.save(); renderExam(); });
-$("selMinor").onchange = () => { S.minorForm = $("selMinor").value; store.save(); onExamChange(true); };
+const syncMinorSeg = segBind("minorSeg", () => S.minorForm, v => { S.minorForm = v; store.save(); onExamChange(true); });   // 小調形式:三顆按鈕(不用下拉)
 $("catChips").onclick = e => {
   const b = e.target.closest("[data-cat]"); if (!b) return;
   const c = b.dataset.cat, on = S.filter.cats.includes(c);
@@ -369,6 +374,7 @@ export function leave(){ active = false; stopPlayback(); }
 
 /* 題目上方那一列(官方大綱標記、抽考範圍、抽考按鈕)沒東西就整列收掉;樂譜還沒畫就留一塊放提示字。用 JS 判斷,不靠 CSS :has */
 function syncQuizTop(){
+  ROOT.classList.toggle("exam-empty", S.tab === "exam" && !cur);   // 檢定頁還沒選題目:藏起譜卡與速度卡,本級要求放在題目卡正下方
   const top = ROOT.querySelector(".quiz-top");
   const empty = $("verifyBadge").hidden && !$("poolCount").textContent.trim() && [...top.querySelectorAll(".q-actions button")].every(b => b.hidden);
   top.classList.toggle("blank", empty);
@@ -395,14 +401,14 @@ function showEmpty(){
 function emptyText(){
   const sets = S.exam && SY.systems[S.exam.system].mode === "sets";
   pairText($("qTitle"), emptyTitle || (() => { const d = sets ? tr("隨機抽一項", "Random") : tr("隨機抽考", "Random"); return tr("按「" + d + "」,或從下方清單選一項", "Tap " + d + ", or pick from the list below"); }));
-  $("poolCount").textContent = S.exam ? tr(`抽考範圍 ${examPool().length} 題`, `${examPool().length} items in range`) : "";
+  $("poolCount").textContent = "";   // 「抽考範圍 n 題」不寫(本級要求就在下面)
 }
 function setQuestion(q, tab){
   stopPlayback();
   cur = q; lastKey = q.key; tabCur[tab] = q;
   ex = buildExercise(FG, q);
   show = q.hands === "RH" ? "rh" : q.hands === "LH" ? "lh" : "both";
-  syncHandSeg();
+  syncHandSeg(); syncHandAllowed();
   renderQText(q, tab);
   fitTitle();
   $("playBtn").disabled = false;
@@ -428,7 +434,7 @@ function renderQText(q, tab){
     $("verifyBadge").classList.toggle("ok", !!g.verified);
     $("verifyBadge").textContent = g.verified ? tr("官方大綱", "Official syllabus") : tr("大綱未核對", "Syllabus not checked");
     $("poolCount").textContent = mock && mock.list.includes(q) ? tr(`模擬考 ${mock.i + 1} / ${mock.list.length}`, `Mock ${mock.i + 1} / ${mock.list.length}`)
-      : tab === "exam" ? tr(`抽考範圍 ${examPool().length} 題`, `${examPool().length} items in range`) : `${SY.systems[S.exam.system].name} ${gradeLabel(g)}`;
+      : tab === "exam" ? "" : `${SY.systems[S.exam.system].name} ${gradeLabel(g)}`;
   } else { $("verifyBadge").hidden = true; $("poolCount").textContent = ""; }
   // 樂譜下方說明
   const notes = [], noteFns = notes;   // 每一則是函式:中英文各跑一次
@@ -476,7 +482,23 @@ ROOT.querySelectorAll(".mbtn").forEach(b => b.onclick = () => {
    比畫面短的樂譜置中(#osmd margin:auto),比畫面長的可以左右滑;播放時讓目前的音停在畫面 25%(到結尾才讓播放軸走完) */
 const PLAYLINE_RATIO = 0.25;
 let noteXs = [];
-const syncHandSeg = segBind("handSeg", () => show, v => { show = v; stopPlayback(); renderScore(); });
+/* 右手 / 左手 / 雙手:自由練習 = 換題目(選單沒有「手」那一列);檢定 = 照大綱指定的手,這裡只換顯示哪一手 */
+const HAND_OF = { rh: "RH", lh: "LH", both: "HT" };
+const freeTab = () => (cur && cur.free && PICKERS[S.tab] ? S.tab : null);
+const syncHandSeg = segBind("handSeg", () => show, v => {
+  const tab = freeTab();
+  if (tab) {
+    const row = PICKERS[tab].rows(S.pick[tab]).find(r => r && r[0] === "hands");
+    if (row && !row[2].some(o => o[0] === HAND_OF[v])) return;   // 這個題型沒有這隻手(例如反向只有雙手)
+    S.pick[tab].hands = HAND_OF[v]; store.save(); renderPicker(tab); loadFree(tab); return;
+  }
+  show = v; stopPlayback(); renderScore();
+});
+/* 自由練習:這個題型不能選的手停用(反向、相隔 = 雙手;三度、六度雙音 = 單手);檢定全部可以按(只換顯示) */
+function syncHandAllowed(){
+  const tab = freeTab(), row = tab && PICKERS[tab].rows(S.pick[tab]).find(r => r && r[0] === "hands");
+  $("handSeg").querySelectorAll("button").forEach(b => { b.disabled = !!row && !row[2].some(o => o[0] === HAND_OF[b.dataset.v]); });
+}
 let renderSeq = 0;
 // 兩欄(≥1100)時右欄很寬:譜放大一點,畫面才飽滿(比畫面長的照樣左右捲、播放軸停在 25%)
 const scoreZoom = () => landZoom || (window.innerWidth < 600 ? 0.85 : window.innerWidth < 1000 ? 0.95 : window.innerWidth < 1100 ? 1.05 : 1.25);
@@ -752,11 +774,11 @@ function syncTempoUI(){
       ? tr(`大綱 ${UNIT_SYM[u]} = ${examT.bpm}(每拍 ${NOTES_PER_UNIT[u]} 個八分音符)= 這裡的 ${unitSym(u)} = ${examT.bpm}`, `Syllabus ${UNIT_SYM[u]} = ${examT.bpm} (${NOTES_PER_UNIT[u]} quavers) = ${unitSym(u)} = ${examT.bpm} here`)
       : tr(`考試速度 ${UNIT_SYM[u]} = ${examT.bpm}(八分音符,每拍 ${NOTES_PER_UNIT[u]} 個${u === "q." ? ",三連音" : ""})`,
       `Exam tempo ${UNIT_SYM[u]} = ${examT.bpm} (${NOTES_PER_UNIT[u]} ${u === "q." ? "triplet " : ""}quavers per beat)`);
-  } else if (u === "e16") { $("bpmPct").textContent = ""; $("examTempo").textContent = tr("拍點打在 ♪(每 2 個音)· 原譜 ♩ 60–108 = ♪ 120–216", "Clicks on ♪ (every 2 notes) · Hanon ♩ 60–108 = ♪ 120–216"); }
+  } else if (u === "e16") { $("bpmPct").textContent = ""; $("examTempo").textContent = tr("原譜 ♩ 60–108 = ♪ 120–216", "Hanon ♩ 60–108 = ♪ 120–216"); }   // 拍點在選單上
   else if (u === "q.") { $("bpmPct").textContent = ""; $("examTempo").textContent = tr("三連音:每拍 3 個音", "Triplets: 3 notes per beat"); }
-  else if (u === "q16" && cur && cur.type !== "hanon") { $("bpmPct").textContent = ""; $("examTempo").textContent = tr("拍點 ♩ = 每 4 個音", "Click ♩ = every 4 notes"); }
+  else if (u === "q16" && cur && cur.type !== "hanon") { $("bpmPct").textContent = ""; $("examTempo").textContent = ""; }   // 拍點在選單上,不重複
   else if (u === "q16") { $("bpmPct").textContent = ""; $("examTempo").textContent = ex && ex.rhythm !== "even" ? tr("每拍 4 個音(附點節奏)· 原譜 60–108", "4 notes per beat (dotted) · Hanon: 60–108") : tr("每拍 4 個十六分音符 · 原譜 60–108", "4 semiquavers per beat · Hanon: 60–108"); }
-  else { $("bpmPct").textContent = ""; $("examTempo").textContent = ex && ex.timeHidden ? tr("拍點 ♪ = 每 2 個音", "Click ♪ = every 2 notes") : tr("每拍 2 個八分音符", "2 quavers per beat"); }
+  else { $("bpmPct").textContent = ""; $("examTempo").textContent = ex && ex.timeHidden ? "" : tr("每拍 2 個八分音符", "2 quavers per beat"); }   // 拍點 ♪ 在選單上,不重複
   $("beats").innerHTML = "<i class=\"first\"></i>" + "<i></i>".repeat(beatsPerBar() - 1);
 }
 /* ♪ 拍點時速度數字是 ♩ 的兩倍:上限 300(♪ = 300 等於 ♩ = 150) */
@@ -1063,7 +1085,7 @@ export async function start(c){
   const data = f => fetch(f + (ver[f] ? "?v=" + ver[f] : "")).then(r => r.json());
   const [sy, fg] = await Promise.all([data("data/syllabus.json"), data("data/fingerings.json")]);
   SY = sy; FG = fg;
-  if (window.innerWidth < 600) $("listCard").open = false;
+  // 本級要求一律展開(還沒選題目時放在題目卡正下方;精簡 2026-10)
   if (S.exam) renderExam();
   renderLog();
   window.__tech = { get cur(){ return cur; }, get ex(){ return ex; }, get osmd(){ return osmd; },

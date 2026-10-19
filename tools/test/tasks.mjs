@@ -32,7 +32,8 @@ const TASKS = [
       { sel: "#s-playAlongTop", say: "彈一遍(題目卡上)", wait: 500 },
       { run: async page => { await page.waitForFunction(() => /新題目|New test/.test(document.getElementById("s-message").textContent), null, { timeout: 60000 }); }, say: "(彈完)" }
     ],
-    check: async page => page.evaluate(() => (/右手 C4–G4/.test(document.getElementById("s-stageNote").textContent) ? null : "範圍不是右手 C4–G4:" + document.getElementById("s-stageNote").textContent)),
+    check: async page => page.evaluate(() => { const st = document.querySelector('#s-stageSeg [aria-pressed="true"]'), sub = document.querySelector('#subSeg [aria-pressed="true"]');
+      return sub && sub.dataset.v === "right" && st && /C4–G4/.test(st.textContent) ? null : "範圍不是右手 C4–G4:" + (st && st.textContent); }),
     next: { sel: "#s-message", words: ["新題目", "New test"] } },
   // 認音的第一個畫面:子項目列、譜框、琴鍵、最常用的設定(譜號 + 範圍快捷;音域那行盡量)
   { name: "想練高音譜表 C4–C5 認音", store: onboarded(), first: READ_FIRST, steps: [

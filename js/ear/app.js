@@ -64,22 +64,22 @@ const PRESET_NAME = () => ({ __white: tr("白鍵", "White keys"), __all: tr("全
 const OPTS = () => ["opts", tr("選項", "Options"), [["auto", tr("答對自動下一題", "Auto next")], ["adaptive", tr("加強弱項", "Focus weak")]], "toggle"];
 const PICKERS = {
   note: p => [
-    ["preset", tr("快速", "Quick"), Object.keys(PRESETS.note).map(k => [k, PRESET_NAME()[k]])],
+    ["preset", tr("常用", "Common"), Object.keys(PRESETS.note).map(k => [k, PRESET_NAME()[k]])],
     ["set", tr("出哪些音", "Notes"), ALL_ITEMS.note.map(it => [it.id, pcName(it.pc).replace("/", "/​")]), true],
     ["range", tr("音域", "Range"), [["1", tr("1 個八度", "1 oct.")], ["2", tr("2 個八度", "2 oct.")], ["4", tr("4 個八度", "4 oct.")]]],
-    ["ref", tr("參考音", "Reference"), [["C", tr("先聽 C", "C first")], ["A", tr("先聽 A", "A first")], ["none", tr("不給(絕對音感)", "None (absolute)")]]],
+    ["ref", tr("參考音", "Reference"), [["C", tr("先聽 C", "C first")], ["A", tr("先聽 A", "A first")], ["none", tr("不給", "None"), tr("不給參考音(絕對音感)", "No reference (absolute pitch)")]]],
     ["naming", tr("音名", "Names"), [["letter", "C D E"], ["solfege", tr("Do Re Mi(固定唱名)", "Do Re Mi (fixed do)")]]],
     OPTS()
   ],
   interval: p => [
-    ["preset", tr("快速", "Quick"), Object.keys(PRESETS.interval).map(k => [k, PRESET_NAME()[k]])],
+    ["preset", tr("常用", "Common"), Object.keys(PRESETS.interval).map(k => [k, PRESET_NAME()[k]])],
     ["set", tr("出哪些音程", "Intervals"), ALL_ITEMS.interval.map(it => [it.id, itemLabel("interval", it)]), true],
     ["dir", tr("方向", "Direction"), [["up", tr("上行", "Up")], ["down", tr("下行", "Down")], ["harm", tr("同時", "Harmonic")], ["mix", tr("混合", "Mixed")]]],
     ["root", tr("起音", "Root"), [["rand", tr("隨機", "Random")], ["C", tr("固定 C", "Always C")]]],
     OPTS()
   ],
   chord: p => [
-    ["preset", tr("快速", "Quick"), Object.keys(PRESETS.chord).map(k => [k, PRESET_NAME()[k]])],
+    ["preset", tr("常用", "Common"), Object.keys(PRESETS.chord).map(k => [k, PRESET_NAME()[k]])],
     ["set", tr("出哪些和弦", "Chords"), ALL_ITEMS.chord.map(it => [it.id, itemLabel("chord", it)]), true],
     ["inv", tr("轉位", "Inversions"), [["root", tr("原位", "Root only")], ["all", tr("含轉位", "Include")]]],
     ["style", tr("彈法", "Style"), [["block", tr("同時", "Block")], ["arp", tr("分解", "Broken")], ["both", tr("分解再同時", "Both")], ["mix", tr("混合", "Mixed")]]],
@@ -99,9 +99,9 @@ function renderPicker(tab){
   setSolfege(S.pick.note.naming === "solfege");
   pane.querySelector(".rows").innerHTML = PICKERS[tab](p).map(([k, lbl, opts, multi]) =>
     `<div class="prow"><span class="lbl">${lbl}</span><div class="opts" data-k="${k}"${multi === true ? ' data-multi="1"' : ""}>` +
-    opts.map(([v, t]) => {
+    opts.map(([v, t, ti]) => {
       const on = k === "opts" ? !!S[v] : k === "preset" ? PRESETS[tab][v].length === p.set.length && PRESETS[tab][v].every(x => p.set.includes(x)) : multi === true ? p.set.includes(v) : String(v) === String(p[k]);
-      return `<button class="opt" data-v="${v}" aria-pressed="${on}">${t}</button>`;
+      return `<button class="opt" data-v="${v}" aria-pressed="${on}"${ti ? ` title="${ti}" aria-label="${ti}"` : ""}>${t}</button>`;   // 縮短的選項(「不給」):完整說明放 title
     }).join("") + `</div></div>`).join("");
   pane.querySelector(".sum").textContent = pickSummary(tab);
 }
@@ -199,7 +199,7 @@ function showMockResult(){
   const m = mock; mock = null; cur = null; A = null;
   lastMock = m;
   showMockText();
-  $("playBtn").disabled = true; $("revealBtn").hidden = true; $("nextBtn").disabled = false;   // 下一題 = 再考一次
+  $("playBtn").disabled = true; $("revealBtn").hidden = true; $("nextBtn").disabled = false; $("nextBtn").hidden = false;   // 下一題 = 再考一次
 }
 function showMockText(){
   const m = lastMock, ok = m.res.filter(Boolean).length;
@@ -247,9 +247,10 @@ function showEmpty(){
   emptyText();
   $("qTags").innerHTML = ""; $("stepQ").textContent = ""; $("answers").innerHTML = ""; $("feedback").textContent = ""; $("feedback").className = "feedback";
   $("playBtn").disabled = true; $("nextBtn").disabled = true; $("revealBtn").hidden = true;
+  $("playBtn").hidden = $("nextBtn").hidden = true;   // 還沒有題目:▶ 與「下一題」先不出現
   syncScoreLine();
 }
-function emptyText(){ pairText($("qTitle"), () => tr("按「隨機抽一題」,或從下方清單選一種題型", "Tap Random, or pick a drill from the list below")); }
+function emptyText(){ pairText($("qTitle"), () => tr("選一種題型,或按「隨機抽一題」", "Pick a test type, or tap Random")); }
 const session = {};   // 每個分頁這一輪:{ n, ok, streak }
 function syncScoreLine(){
   const s = session[S.tab];
@@ -269,7 +270,7 @@ function renderQuestion(){
   $("qTitle").classList.remove("empty");
   $("qTitle").textContent = q.label || "";
   $("qTags").innerHTML = (q.tags || []).map(t => `<span class="q-tag">${t}</span>`).join("");
-  $("playBtn").disabled = false;
+  $("playBtn").disabled = false; $("playBtn").hidden = $("nextBtn").hidden = false;
   $("revealBtn").hidden = A.done || !A.played;   // 「顯示答案」聽過一次題目才出現,答完藏起來
   $("nextBtn").disabled = !A.done && !q.tap;
   renderAnswers();

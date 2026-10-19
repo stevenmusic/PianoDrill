@@ -655,7 +655,11 @@ export async function start(c) {
   elements.playAlong.addEventListener('click', togglePlayAlong);
   $('playAlongTop').addEventListener('click', togglePlayAlong);
   try { elements.alongMic.checked = readKey('pianodrill.sight.mic') === '1'; } catch { /* 沒有儲存空間就預設關 */ }
+  // 麥克風說明一行,開關打開時才出現(沒有結果時整張卡只有一行開關)
+  const micNote = () => { $('alongMicNote').hidden = !elements.alongMic.checked; };
+  micNote();
   elements.alongMic.addEventListener('change', () => {
+    micNote();
     try { localStorage.setItem('pianodrill.sight.mic', elements.alongMic.checked ? '1' : '0'); } catch { /* 不影響使用 */ }
   });
   setAlongLabel();
@@ -806,7 +810,9 @@ function renderStage() {
   const names = $('names');
   names.textContent = tr('顯示音名', 'Note names');
   names.setAttribute('aria-pressed', String(!!SS.names[cur]));
-  pairText($('stageNote'), () => `${rangeText()} · ${tr('範圍內的節奏與調性由 App 依階段套用(練習設定)', 'rhythm & keys set by the App (practice setting)')}`);
+  // 單手的範圍寫在按鈕上:這一行只寫「節奏與調性由 App 依範圍安排」;雙手 1–3 的按鈕只有數字,範圍寫在前面
+  const both = hand === 'both' && stageNow().n !== 4;
+  pairText($('stageNote'), () => (both ? `${rangeText()} · ` : '') + tr('節奏與調性由 App 依範圍安排', 'Rhythm & keys set by the App'));
 }
 function setupStage() {
   $('stageSeg').addEventListener('click', (e) => {
@@ -1149,7 +1155,7 @@ function showMeta(score) {
   const keyTemplate = score.key.mode === 'major' ? 'majorKey' : 'minorKey';
   elements.title.classList.remove('empty');
   elements.title.textContent = t(keyTemplate, { tonic: score.key.tonic });
-  elements.meta.innerHTML = [score.timeSignature.text, t('barsSuffix', { count: score.barCount }), `♩≈${score.tempoBpm}`]
+  elements.meta.innerHTML = [score.timeSignature.text, t('barsSuffix', { count: score.barCount }), `♩=${score.tempoBpm}`]
     .map((value) => `<span class="q-tag">${escapeHtml(value)}</span>`).join('');
 
   // 視奏分頁:範圍內的規則是 App 的練習設定,不寫「這一級」的推估說明(那是檢定頁的)

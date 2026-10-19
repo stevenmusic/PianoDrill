@@ -4,7 +4,7 @@
    音太密交錯成兩層、和弦一個音一層;字最小 minPx CSS px(預設 10);不寫進符頭(手機上符頭只有約 5px)。
    回傳 { need: 要幾排, crowded: 有沒有找不到空位 }(呼叫的人照這個多留空間再排一次) */
 const NOTE_LETTER = { 0: 'C', 2: 'D', 4: 'E', 5: 'F', 7: 'G', 9: 'A', 11: 'B' };
-export function paintNoteNames(svg, osmd, { cls = 'note-name', size: wantSize = null, minPx = 10, units = 1.3 } = {}) {
+export function paintNoteNames(svg, osmd, { cls = 'note-name', size: wantSize = null, minPx = 10, units = 1.3, skip = null } = {}) {
   svg.querySelectorAll('.' + cls).forEach((el) => el.remove());
   if (!osmd || !osmd.GraphicSheet) return null;
   // 位置用畫面座標量,再換回 SVG 自己的座標(OSMD 的 SVG 有 viewBox 縮放;SVG 座標 = VexFlow 座標,一個譜線間距 = 10)
@@ -31,6 +31,7 @@ export function paintNoteNames(svg, osmd, { cls = 'note-name', size: wantSize = 
       const row = rows.get(key);
       for (const se of m.staffEntries) {
         for (const gve of se.graphicalVoiceEntries) {
+          if (skip && skip(gve)) continue;   // 呼叫的人不要寫的(例如有和弦表時的柱式和弦、按住的音)
           for (const gn of gve.notes) {
             const src = gn.sourceNote;
             if (!src || src.isRest() || !src.Pitch || src.IsGraceNote) continue;

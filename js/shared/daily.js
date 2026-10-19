@@ -1,12 +1,12 @@
 /* 今日練習的引擎(PianoDrill / DrumDrill 共用,兩邊逐位元組相同;tools/test/sync.json same)。
    純邏輯:不碰 DOM、不 import 任何東西(node 可以直接測:tools/test/checks/daily.mjs)。畫面在 js/shared/dailycard.js,關卡內容在各 App 的資料。
-   全部數字都是 App 的練習設定(不是考試要求);關卡、路線可以覆寫(up / down / need / click / vary)。
+   全部數字都是 App 的練習設定(不是考試要求);關卡、路線可以覆寫(need / click / vary;舊的 up / down 不再用)。
 
    ── 一關怎麼「學」(照專業練習的做法)──
    - 慢練優先:新的一關從起始速度(start)開始,不能直接跳到目標速度(target);
      快速通道例外:上一關從頭到過關每一次都穩(一次失手都沒有)→ 路線的 fast 打開,下一關從目標速度開始;任何一次不穩 → fast 關掉
-   - 速度階梯:穩一次 → 加 up(預設 8,資料可以寫 4–8),到目標為止;太快了(slow)→ 馬上慢 down(預設 4);差一點(near)同一個速度,連續兩次不穩才慢 down;
-     最慢 = max(MIN_BPM, start − down)
+   - 速度階梯 = 傳統節拍器刻度(METRO:40 42 44 … 60 63 66 … 208):穩一次 → 往上一格,到目標為止(目標不在刻度上:最後一步直接到目標);
+     太快了(slow)→ 馬上退一格;差一點(near)同一個速度,連續兩次不穩才退一格;最慢 = 起始速度的下一格(不低於 MIN_BPM);刻度以上(> 208)每格 8
    - 連續穩定:到了目標速度,要連續 need 次(預設 3)都穩才過關;中間失手就重算
    - 同一個速度連續 4 次不穩 → 建議回上一關(只建議,不自動退)
    - 一次嘗試的結果:鼓墊 / 評分 score ≥ PASS = 穩、≥ NEAR = 差一點、其他 = 太快了;自評 self "ok" = 穩、"again" = 差一點
@@ -22,8 +22,13 @@
    - 隔 WELCOME_DAYS(7)天以上回來:每條路線目前那一關從起始速度開始(關卡、複習盒都不變:沒練的日子不扣分)
    ── 拍點模式(clickPlays)── every 每拍、two-four 只響 2、4 拍(鼓)、one-three 只響 1、3 拍(鋼琴)、one 只響每小節第 1 拍、gap 中途消失 2 小節再回來 */
 export const DAILY_V = 1;
-export const STEP_UP = 8, STEP_DOWN = 4, NEED = 3, PASS_SCORE = 85, NEAR_SCORE = 60, MIN_BPM = 40, MAX_BPM = 300;
+export const NEED = 3, PASS_SCORE = 85, NEAR_SCORE = 60, MIN_BPM = 40, MAX_BPM = 300;
 export const SUGGEST_AFTER = 4, CONT_SEC = 60;
+/* 傳統節拍器刻度(Maelzel):速度階梯一格一格走 */
+export const METRO = [40, 42, 44, 46, 48, 50, 52, 54, 56, 58, 60, 63, 66, 69, 72, 76, 80, 84, 88, 92, 96, 100, 104, 108, 112, 116, 120, 126, 132, 138, 144, 152, 160, 168, 176, 184, 192, 200, 208];
+/* 往上一格 / 往下一格(不在刻度上的速度:往上 = 比它快的第一格、往下 = 比它慢的第一格) */
+export const tempoUp = b => { const n = METRO.find(m => m > b); return Math.min(MAX_BPM, n != null ? n : b + 8); };
+export const tempoDown = b => { if (b > METRO[METRO.length - 1]) return Math.max(METRO[METRO.length - 1], b - 8); for (let i = METRO.length - 1; i >= 0; i--) if (METRO[i] < b) return METRO[i]; return Math.max(MIN_BPM, Math.min(b, METRO[0])); };
 export const REVIEW_GAPS = [1, 3, 7, 14, 30], RETIRE_GAP = 60, WELCOME_DAYS = 7, MAX_BOX = REVIEW_GAPS.length + 1;
 export const SEG_SEC = { warm: 90, route: 180, review: 120 };
 export const CLICK_MODES = ["every", "two-four", "one-three", "one", "gap"];
@@ -171,7 +176,7 @@ export function createDaily({ routes, load = () => null, save = () => {}, now = 
     const i = R.levels.findIndex(l => l.id === id); if (i < 0) return null;
     return { ...R.levels[i], n: i + 1, of: R.levels.length, route: R };
   }
-  const floorOf = (R, L) => Math.max(MIN_BPM, L.start - cfg(R, L, "down", STEP_DOWN));
+  const floorOf = (R, L) => Math.max(MIN_BPM, tempoDown(L.start));
   const varyOf = (R, L, box) => { const v = cfg(R, L, "vary", DEFAULT_VARY); return v[Math.min(v.length, Math.max(1, box)) - 1] || {}; };
   /* 這一關現在的速度(學的時候);複習用 reviewBpm */
   function bpmFor(r, id){
@@ -182,7 +187,7 @@ export function createDaily({ routes, load = () => null, save = () => {}, now = 
   }
   function reviewBpm(r, id, box){
     const R = route(r), L = R.levels.find(l => l.id === id), v = varyOf(R, L, box), e = d.lv[keyOf(r, id)] || {};
-    return v.fast ? Math.min(MAX_BPM, Math.max(e.best || 0, L.target + cfg(R, L, "up", STEP_UP))) : L.target;
+    return v.fast ? Math.min(MAX_BPM, Math.max(e.best || 0, tempoUp(L.target))) : L.target;
   }
   function state(){
     const t = ensure();
@@ -229,18 +234,18 @@ export function createDaily({ routes, load = () => null, save = () => {}, now = 
       Object.assign(res, { box: e.box, due: e.due, counted: !s.extra && e.rev === day });
       put(); return res;
     }
-    const up = cfg(R, L, "up", STEP_UP), down = cfg(R, L, "down", STEP_DOWN), need = cfg(R, L, "need", NEED);
+    const need = cfg(R, L, "need", NEED);
     e.tries++;
     let next = bpm;
     if (steady) {
       e.unsteady = 0; e.same = 0; e.best = Math.max(e.best || 0, bpm);
-      if (bpm < L.target) { e.streak = 0; next = Math.min(L.target, bpm + up); }
+      if (bpm < L.target) { e.streak = 0; next = Math.min(L.target, tempoUp(bpm)); }
       else e.streak++;
     } else {
       e.miss++; e.streak = 0; d.prog[s.r].fast = false;
       e.same = e.lastBpm === bpm ? e.same + 1 : 1;
       e.unsteady++;
-      if (verdict === "slow" || e.unsteady >= 2) { next = Math.max(floorOf(R, L), bpm - down); e.unsteady = 0; }
+      if (verdict === "slow" || e.unsteady >= 2) { next = Math.max(floorOf(R, L), tempoDown(bpm)); e.unsteady = 0; }
     }
     e.lastBpm = bpm; e.bpm = next;
     res.nextBpm = next; res.streak = e.streak; res.need = need; res.suggestBack = e.same >= SUGGEST_AFTER;

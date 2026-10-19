@@ -13,6 +13,7 @@ import fs from "node:fs";
 import { ROUTES, WARM_LEVELS } from "../../../js/tech/routes.js";
 import { buildExercise } from "../../../js/tech/exercise.js";
 import { exerciseToMusicXML, playbackEvents } from "../../../js/tech/musicxml.js";
+import { chordName, keyInfo, barChords, chordTable, fingerMarks, sameBars, handPositions } from "../../../js/tech/patterns.js";
 
 const LP = [0, 2, 4, 5, 7, 9, 11];
 const MAJ = [0, 2, 4, 5, 7, 9, 11], HMIN = [0, 2, 3, 5, 7, 8, 11];
@@ -39,6 +40,7 @@ export default function check(ok, FG){
       const at = `${R.id}/${L.id}`;
       ok(!ids.has(L.id), `${at}:id 重複`); ids.add(L.id); lvIds.add(at);
       ok(Array.isArray(L.name) && L.name[0] && L.name[1] && L.name[1].length <= 40, `${at}:名稱中英都要有、英文 ≤ 40 字`);
+      ok(!/[((](四分|八分|十六分|三連音|二分|全音符)/.test(L.name[0]) && !/\((quarters?|eighths?|16ths?|triplets?)/i.test(L.name[1]), `${at}:名稱不放時值括號(時值在標籤):${L.name[0]}`);
       ok(L.start >= 40 && L.start < L.target && L.target <= 200, `${at}:速度 ${L.start} → ${L.target}`);
       ok(Array.isArray(L.check) && L.check.length >= 2 && L.check.length <= 3 && L.check.every(c => c[0] && c[1]), `${at}:重點要 2–3 項、中英都有`);
       ok(Array.isArray(L.vary) && L.vary.length >= 5, `${at}:複習變化至少 5 種`);
@@ -67,6 +69,28 @@ export default function check(ok, FG){
     try { const ex = buildExercise(FG, q); checkEx(ok, ex, q, W, `暖身 ${W.id} ${key}`); n++; ok(Math.min(...["rh", "lh"].flatMap(h => ex[h].filter(x => !x.rest).map(x => x.dur))) >= (W.id === "w5s" || W.id === "w5q" ? 12 : 6), `暖身 ${W.id}:初學從四分音符`); }
     catch (e) { ok(false, `暖身 ${W.id} ${key}:${e.message}`); }
   }
+  // ── 譜面標記(方法書的做法;patterns.js):和弦名(另外照樂理手抄一份核對)、和弦表、指法只標第一次、兩小節一樣縮成反覆 ──
+  const CHORDS = { C: { I: "C", IV: "F", V: "G", V7: "G7", vi: "Am" }, G: { I: "G", IV: "C", V7: "D7" }, F: { I: "F", IV: "B♭", V7: "C7" }, a: { i: "Am", iv: "Dm", V7: "E7" } };
+  for (const [k, m] of Object.entries(CHORDS)) for (const [ch, name] of Object.entries(m)) ok(chordName(keyInfo(k), ch) === name, `和弦名 ${k} ${ch} = ${name}(得到 ${chordName(keyInfo(k), ch)})`);
+  const A1 = buildExercise(FG, { type: "route", r: "accomp", id: "AA1", sub: 2 });
+  ok(barChords(A1).join() === "C,C,G7,C", "AA1 每小節的和弦名:" + barChords(A1));
+  const t1 = chordTable(A1);
+  ok(t1.length === 2 && t1[0].notes.join(" ") === "C E G" && t1[0].fingers.join("-") === "5-3-1" && t1[1].notes.join(" ") === "B F G" && t1[1].fingers.join("-") === "5-2-1", "AA1 和弦表 C = C E G(5-3-1)· G7 = B F G(5-2-1):" + JSON.stringify(t1));
+  fingerMarks(A1);
+  const lhC = A1.lh.filter(x => !x.rest);
+  ok(lhC[0].fshow && lhC[0].chord.every(c => c.fshow) && !lhC[1].fshow && lhC[1].chord.every(c => !c.fshow), "柱式和弦:同一個形狀只標第一次(和弦裡每個音一起)");
+  ok(lhC.filter(x => x.fshow).length === 2, "AA1:C、G7 各標一次:" + lhC.filter(x => x.fshow).length);
+  const B1 = buildExercise(FG, { type: "route", r: "finger", id: "PB1", sub: 2 }), sb = sameBars(B1);
+  ok(sb && sb.bars === 1 && sb.repeat === 2, "PB1 兩小節一樣 → 一小節 + 反覆");
+  ok(!sameBars(buildExercise(FG, { type: "route", r: "finger", id: "PA1", sub: 2 })), "PA1 兩小節不一樣 → 不縮");
+  const E1 = fingerMarks(buildExercise(FG, { type: "route", r: "finger", id: "PE1", sub: 2 })), e2 = E1.rh.filter(x => !x.rest).slice(8);
+  ok(e2.filter(x => x.fshow).map(x => x.finger).join() === "1,3", "PE1 第 2 小節只標拇指穿越與跨回去(1、3):" + e2.filter(x => x.fshow).map(x => x.finger));
+  const all = fingerMarks(buildExercise(FG, { type: "route", r: "finger", id: "PA1", sub: 2 }), { all: true });
+  ok(all.rh.filter(x => !x.rest).every(x => x.fshow), "A 組每個音都標");
+  const hp = handPositions(buildExercise(FG, { type: "route", r: "finger", id: "PB1", sub: 2 }));
+  ok(hp.length === 1 && hp[0].keys.map(k => k.name + k.finger).join() === "C1,D2,E3,F4,G5" && hp[0].mid, "PB1 手位圖 = C 位置(右手拇指在中央 C):" + JSON.stringify(hp));
+  const hpG = handPositions(buildExercise(FG, { type: "route", r: "finger", id: "PG2", sub: 2 }));
+  ok(hpG.length === 2 && hpG[0].keys.map(k => k.name).join() === "F,G,A,B♭,C", "PG2 手位圖 F 位置有 B♭:" + JSON.stringify(hpG.map(p => p.keys.map(k => k.name))));
   return n;
 }
 

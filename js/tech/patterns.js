@@ -4,7 +4,7 @@
    題目欄位 q:{ type: "route", r, id }(或 { warm })+ 這一次的變化 rkey(調)/ rhythm / touch / dyn(複習)。
    ex = { exact: true, div: 12, bar, time, fifths, sub: 2, bars, rh, lh, hold: { rh, lh }, dyn: { rh, lh }, lhSoft }
    音:{ letter, alter, octave, midi, finger, dur, chord?: [音…], rest?, stacc?, accent?, slur?: "start" | "stop", tie?: "start" | "stop" | "both" } */
-import { parseNote, spellScale, INTERVALS, midiOf, keyFifths } from "./theory.js";
+import { parseNote, spellScale, INTERVALS, midiOf, keyFifths, noteLabel, isBlack } from "./theory.js";
 import { scaleFingersFrom } from "./fingering.js";
 import { findLevel } from "./routes.js";
 
@@ -197,5 +197,127 @@ export function buildRoute(FG, q){
 export function allNotes(ex){
   const out = [];
   for (const h of ["rh", "lh"]) for (const arr of [ex[h], ex.hold ? ex.hold[h] || [] : []]) for (const n of arr) if (!n.rest) { out.push({ ...n, hand: h }); for (const c of n.chord || []) out.push({ ...c, hand: h, dur: n.dur }); }
+  return out;
+}
+
+/* ══ 譜面標記(方法書的寫法;app.js 畫、checks/routes.mjs 檢查)══ */
+/* 和弦的實際名字:C、F、G7、Am、E7、B♭(最近位置的轉位照寫根音,不寫 F/C) */
+export function chordName(K, ch){
+  const r = degNote(K, ROOT[ch], 4), minor = ch === ch.toLowerCase();
+  return noteLabel(r) + (minor ? "m" : "") + (/7$/.test(ch) ? "7" : "");
+}
+/* 這一關每一小節的和弦名(伴奏;不是伴奏 = null) */
+export function barChords(ex){
+  const L = ex.level; if (!L || !L.prog) return null;
+  const K = keyInfo(ex.key);
+  return L.prog.slice(0, ex.bars).map(ch => chordName(K, ch));
+}
+/* 和弦表:這一關用到的和弦(照出現順序)[{ name, notes: ["C","E","G"](低 → 高), fingers: [5,3,1] }];
+   彈和弦形狀的那隻手:右手柱式(chords4 / chords2 / c332)= 右手,其他 = 左手 */
+export function chordTable(ex){
+  const names = barChords(ex); if (!names) return null;
+  const h = /^(chords|c332)/.test(ex.level.rh || "") ? "rh" : "lh";
+  const out = [], seen = new Set();
+  let pos = 0;
+  const byBar = Array.from({ length: ex.bars }, () => []);
+  for (const n of ex[h]) { const b = Math.floor(pos / ex.bar); if (b < ex.bars && !n.rest) byBar[b].push(n); pos += n.dur; }
+  names.forEach((name, b) => {
+    if (seen.has(name)) return; seen.add(name);
+    const m = new Map();
+    for (const n of byBar[b]) for (const x of [n, ...(n.chord || [])]) if (!m.has(x.midi)) m.set(x.midi, x);
+    const xs = [...m.values()].sort((a, c) => a.midi - c.midi);
+    out.push({ name, notes: xs.map(noteLabel), fingers: xs.map(x => x.finger), hand: h });
+  });
+  return out;
+}
+/* 兩小節(或全部小節)一模一樣:畫一小節 + 反覆記號(播放照原本的長度重複)。回傳新的 ex(bars = 1、repeat = 原本的小節數)或 null */
+export function sameBars(ex){
+  if (!ex || !ex.exact || ex.bars < 2) return null;
+  const bar = arr => { const out = Array.from({ length: ex.bars }, () => []); let p = 0; for (const n of arr || []) { const b = Math.floor(p / ex.bar); if (b < ex.bars) out[b].push(n); p += n.dur; } return out; };
+  const sig = n => n.rest ? "r" + n.dur : [n.midi, ...(n.chord || []).map(c => c.midi)].join("+") + ":" + n.dur + ":" + n.finger + (n.stacc ? "." : "") + (n.accent ? ">" : "") + (n.slur || "") + (n.tie || "");
+  const parts = [ex.rh, ex.lh, ex.hold && ex.hold.rh, ex.hold && ex.hold.lh].map(bar);
+  const same = parts.every(bs => bs.every(b => b.map(sig).join(" ") === bs[0].map(sig).join(" ")));
+  if (!same) return null;
+  // 按住的音(連結線跨小節)不能縮成一小節
+  if (ex.hold && ((ex.hold.rh || []).length || (ex.hold.lh || []).length)) return null;
+  const one = bs => bs[0].map(n => ({ ...n, chord: n.chord ? n.chord.map(c => ({ ...c })) : undefined }));
+  return { ...ex, bars: 1, repeat: ex.bars, rh: one(parts[0]), lh: one(parts[1]) };
+}
+/* 指法要標哪些(方法書的做法;n.fshow = false 的不標):
+   - 和弦(柱式):每個和弦形狀在這份譜只標第一次
+   - 單音:第 1 小節每個音都標;之後只標「跟第 1 小節同一個位置的手指不同」、換位置(拇指穿越、跨指、移位)、休止超過 1 拍後的第一個音;
+     伴奏的分解和弦(Alberti 等):換到新的和弦形狀時那個形狀每個音第一次出現的地方
+   - all = true(手指路線 A 組、暖身):每個音都標 */
+const stepOf = n => n.octave * 7 + n.letter;
+const posOf = (n, h) => stepOf(n) - (h === "rh" ? n.finger - 1 : 5 - n.finger);
+export function fingerMarks(ex, { all = false } = {}){
+  const accomp = !!(ex.level && ex.level.prog);
+  // 和弦的音(chord)在同一小節的幾拍之間是同一個物件:先複製,才能每一拍分開標
+  for (const h of ["rh", "lh"]) ex[h] = (ex[h] || []).map(n => (n.chord ? { ...n, chord: n.chord.map(c => ({ ...c })) } : n));
+  for (const h of ["rh", "lh"]) {
+    const bars = Array.from({ length: ex.bars }, () => []);
+    let p = 0;
+    for (const n of ex[h] || []) { const b = Math.floor(p / ex.bar); if (b < ex.bars) bars[b].push(n); p += n.dur; }
+    const m1 = bars[0].filter(n => !n.rest && !n.chord);
+    const chordSeen = new Set(), shapeSeen = new Set();
+    let prev = null, restLen = 0;
+    bars.forEach((ns, b) => {
+      const real = ns.filter(n => !n.rest);
+      const shape = [...new Set(real.flatMap(n => [n, ...(n.chord || [])]).map(x => x.midi + ":" + x.finger))].sort().join();
+      const newShape = !shapeSeen.has(shape); shapeSeen.add(shape);
+      const firstPitch = new Set();
+      let i = 0;
+      for (const n of ns) {
+        if (n.rest) { restLen += n.dur; continue; }
+        if (n.chord) {
+          const key = [n, ...n.chord].map(x => x.midi + ":" + x.finger).sort().join();
+          const show = all || !chordSeen.has(key); chordSeen.add(key);
+          n.fshow = show; n.chord.forEach(c => { c.fshow = show; });
+        } else {
+          let show = all || b === 0;
+          if (!show) {
+            if (accomp) show = newShape && !firstPitch.has(n.midi);
+            else {
+              const ref = m1[i];
+              if (!ref || ref.finger !== n.finger) show = true;
+              if (prev && !prev.chord && posOf(prev, h) !== posOf(n, h)) show = true;
+              if (restLen > 12) show = true;
+            }
+          }
+          n.fshow = show; firstPitch.add(n.midi); i++;
+        }
+        restLen = 0; prev = n;
+      }
+    });
+    // 按住的音:只在第一小節標(後面是連結線)
+    for (const [k, n] of ((ex.hold && ex.hold[h]) || []).entries()) { n.fshow = k === 0; (n.chord || []).forEach(c => { c.fshow = n.fshow; }); }
+  }
+  return ex;
+}
+/* 手位圖:每隻手這一關放的五指位置(單音的關;伴奏看和弦表)[{ hand, keys: [{ midi, finger }](低 → 高), thumb(拇指的音名) }],
+   換位置的關最多兩個位置;音階(拇指穿越)不畫 */
+export function handPositions(ex){
+  if (!ex || !ex.exact || (ex.level && (ex.level.prog || ex.level.scale))) return [];
+  const out = [];
+  for (const h of ["rh", "lh"]) {
+    const list = [];
+    for (const n of [...(ex[h] || []), ...((ex.hold && ex.hold[h]) || [])]) if (!n.rest) for (const x of [n, ...(n.chord || [])]) {
+      const pos = posOf(x, h);
+      let P = list.find(q => q.pos === pos);
+      if (!P) { if (list.length >= 2) continue; P = { pos, keys: new Map() }; list.push(P); }
+      if (!P.keys.has(x.finger)) P.keys.set(x.finger, x);
+    }
+    for (const P of list) {
+      // 五個手指都放出來(沒彈到的手指照位置補:右手 1 在最低、左手 5 在最低)
+      const base = P.pos, K = keyInfo(ex.key);
+      const keys = [1, 2, 3, 4, 5].map(f => {
+        if (P.keys.has(f)) return { midi: P.keys.get(f).midi, finger: f, used: true, name: noteLabel(P.keys.get(f)) };
+        const st = base + (h === "rh" ? f - 1 : 5 - f), n = degNote(K, st - parseNote(K.tonic).letter, 0);   // 位置裡第 f 指的音(照調號)
+        return { midi: midiOf(n), finger: f, used: false, name: noteLabel(n) };
+      }).sort((a, b) => a.midi - b.midi);
+      const thumb = keys.find(k => k.finger === 1);
+      out.push({ hand: h, keys, thumb: thumb ? thumb.name : "", mid: !!thumb && thumb.midi === 60, low: keys[0].name });
+    }
+  }
   return out;
 }

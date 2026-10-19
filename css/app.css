@@ -924,3 +924,24 @@ body.view-exam #t-dailyCard,body.view-exam #t-dailyStep{display:none !important}
 #mod-tech.daily-on #t-metroCard .card-title{flex-wrap:nowrap}
 #mod-tech.daily-on #t-metroCard .card-title b{white-space:nowrap}
 @media (max-width:340px){ #mod-tech.daily-on #t-metroCard .beats{display:none} }
+/* PianoDrill 今日練習的譜面標記:手位圖(譜卡標題列;一行高)、和弦表(標題列下面一行) */
+.score-head .seg{margin-left:auto}
+.hand-pos{display:flex;align-items:center;gap:6px;min-width:0;flex:0 1 auto;flex-wrap:wrap}
+.hand-pos .hp-lbl{font-size:var(--fs-sm);color:var(--muted-bright);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.hand-pos .hp-lbl b{color:var(--gold);font-weight:700}
+@media (max-width:520px){ .hand-pos .hp-more{display:none} }
+.mini-kb{height:28px;width:auto;flex:none}
+.mini-kb rect{fill:#FBF7EE;stroke:#8a7a5a;stroke-width:1}
+.mini-kb rect.blk{fill:#2a241a;stroke:#2a241a}
+.mini-kb rect.on{fill:var(--gold-fill,#F2B94B);stroke:#8a6a1a}
+.mini-kb rect.soft{fill:#F6E7C2}
+.mini-kb rect.blk.on{fill:#B8860B}
+.mini-kb text{font-size:10px;font-weight:700;text-anchor:middle;fill:#16130D;font-family:inherit}
+.mini-kb text.bt{fill:#fff;font-size:8px}
+.chord-table{margin:0 0 6px;font-size:var(--fs-sm);color:var(--ivory);line-height:1.45;display:flex;flex-wrap:wrap;column-gap:2px}
+.chord-table span{white-space:nowrap}
+.chord-table b{color:var(--gold);font-weight:700}
+.chord-table small{color:var(--muted-bright);font-size:var(--fs-xs);margin-left:1px}
+.chord-table i{font-style:normal;color:var(--muted)}
+/* 折疊機:段落按鈕列(App 的文字鈕 + 還要練 + 主要按鈕)排得進一行 */
+@media (max-width:340px){ .daily-acts{gap:4px} .daily-acts .btn{min-width:0;padding:0 8px} .daily-acts .text-btn{padding-left:0;padding-right:0} }

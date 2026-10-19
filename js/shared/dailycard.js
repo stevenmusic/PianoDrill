@@ -135,7 +135,9 @@ export function createDailyCard({ $, daily, labels = {}, warmName = () => "", lo
     if (!s) { step.hidden = true; step.innerHTML = ""; step.appendChild(park); return; }
     lastStatus = status; lastOpts = { status, passedDone };
     step.hidden = false;
-    const warm = s.k === "warm", check = !warm && s.level.check && s.level.check.length ? s.level.check : null;
+    // 重點:關卡的 check(前面加關卡的 handsLine,例如「右手 Hi-hat、左手小鼓」);暖身 = 項目自己的 check
+    const warm = s.k === "warm", list = warm ? (s.item && s.item.check) || [] : [...(s.level.handsLine ? [s.level.handsLine] : []), ...(s.level.check || [])];
+    const check = list.length ? list : null;
     const vary = varyText(s);
     const primaryNext = warm || passedDone;
     step.innerHTML = `<p class="daily-status"></p>` + (vary ? `<p class="daily-vary"></p>` : "") + (check ? `<p class="daily-check"></p>` : "") +

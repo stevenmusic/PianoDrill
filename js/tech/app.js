@@ -13,6 +13,7 @@ import { createDaily, clickPlays } from "../shared/daily.js";
 import { createDailyCard } from "../shared/dailycard.js";
 import { ROUTES, WARM_LEVELS, warmFor, findLevel, KEYS } from "./routes.js";
 import { paintNoteNames } from "../shared/notenames.js";
+import { sameBars, fingerMarks, barChords, chordTable, handPositions } from "./patterns.js";
 import "./strings.js";
 const T = scoped("tech");
 
@@ -427,6 +428,7 @@ function setQuestion(q, tab){
   stopPlayback();
   cur = q; lastKey = q.key; tabCur[tab] = q;
   ex = buildExercise(FG, q); namesLines = 1;
+  if (ex && ex.exact && q.daily) dailyMarks();
   show = q.hands === "RH" ? "rh" : q.hands === "LH" ? "lh" : "both";
   syncHandSeg(); syncHandAllowed();
   renderQText(q, tab);
@@ -473,10 +475,22 @@ function renderQText(q, tab){
     const nm = dseg.k === "warm" ? warmName(dseg.item) : dseg.level.name;
     $("qTitle").textContent = Array.isArray(nm) ? tr(nm[0], nm[1]) : nm;
     const tags = dcard.segTags({ ...dseg, bpm: q.tempo.bpm });
-    if (q.type === "route" && dseg.k !== "warm") tags.splice(1, 0, questionText(q)[1]);   // [手指 第 n 關] [右手] [♩=50 → 84]
+    if (q.type === "route" && dseg.k !== "warm") tags.splice(1, 0, questionText(q)[1]);   // [手指 第 n 關] [右手] [八分音符] [♩=50 → 84]
+    const vt = valueTag(ex);   // 時值放在標籤(關卡名稱不放時值括號)
+    if (vt) tags.splice(dseg.k === "warm" ? 1 : 2, 0, tr(vt[0], vt[1]));
     $("qTags").innerHTML = tags.map(t => `<span class="q-tag">${t}</span>`).join("");
   }
   syncNamesBtn();
+}
+/* 今日練習關卡最短的音符(標籤):三連音 / 十六分 / 八分 / 四分 / 二分 / 全音符(ex.exact 的時值:四分音符 = 12) */
+function valueTag(e){
+  if (!e || !e.exact) return null;
+  let min = Infinity;
+  for (const h of ["rh", "lh"]) for (const n of e[h] || []) if (!n.rest && n.dur) min = Math.min(min, n.dur);
+  if (!isFinite(min)) return null;
+  if (min % 12 && min % 6 && min % 3 === 0 && min < 6) return ["十六分音符", "16th notes"];
+  if (min % 4 === 0 && min % 12 && min % 6) return ["三連音", "Triplets"];
+  return min <= 3 ? ["十六分音符", "16th notes"] : min <= 9 ? ["八分音符", "Eighth notes"] : min <= 18 ? ["四分音符", "Quarter notes"] : min <= 36 ? ["二分音符", "Half notes"] : ["全音符", "Whole notes"];
 }
 /* 第一次進來這個子項目的一行說明(題目卡標籤下):這個子項目播放過一次就不再出現(S.intro[子項目] = true) */
 const INTRO = {
@@ -603,7 +617,7 @@ function wrapFits(n, bars){
 function wrapRender(n, z){
   const R = osmd.EngravingRules;
   R.RenderSingleHorizontalStaffline = false; R.RenderXMeasuresPerLineAkaSystem = n;
-  osmd.zoom = z; nameSpace(namesOn() ? namesLines : 0); osmd.render();
+  osmd.zoom = z; nameSpace(namesOn() ? namesLines : 0); osmd.render();   // 只量寬度:多留的音名空間不影響每行幾小節
 }
 function wrapCands(bars){
   const big = [4, 3].filter(n => n < bars);
@@ -679,15 +693,19 @@ async function renderScore(){
 function renderOsmd(){
   // 今日練習的關卡:「音名」開著 → 譜表之間多留一排字的空間,畫完指法再畫音名(js/shared/notenames.js,跟視奏分頁同一套);
   // 字排不下(音太密要交錯、和弦、或跟指法擠在一起)就多留空間再排(最多再排兩次)
-  const on = namesOn();
+  // 有和弦表、又沒有單音的關(柱式和弦):音名不寫,也不留那一排的空間
+  const on = namesOn() && !(ex && ex.exact && barChords(ex) && !["rh", "lh"].some(h => (ex[h] || []).some(n => !n.rest && !n.chord)));
   for (let pass = 0; pass < 3; pass++) {
     nameSpace(on ? namesLines : 0);
     osmd.render();
     drawFingerings();
     const svg = $("osmd").querySelector("svg");
     if (!svg) return;
+    drawChordNames(svg);
     if (!on) { svg.querySelectorAll(".t-name").forEach(el => el.remove()); return; }
-    const r = paintNoteNames(svg, osmd, { cls: "t-name" });
+    // 有和弦表的關:柱式和弦不在譜下疊音名(和弦表寫了);按住的音(第二聲部)不放進音名那一行
+    const tbl = !!(ex && ex.exact && barChords(ex)), held = !!(ex && ex.hold && ((ex.hold.rh || []).length || (ex.hold.lh || []).length));
+    const r = paintNoteNames(svg, osmd, { cls: "t-name", skip: gve => (tbl && gve.notes.filter(n => n.sourceNote && !n.sourceNote.isRest()).length > 1) || (held && [2, 6].includes(gve.parentVoiceEntry && gve.parentVoiceEntry.ParentVoice && gve.parentVoiceEntry.ParentVoice.VoiceId)) });
     svg.querySelectorAll(".t-name").forEach(el => { el.setAttribute("fill", "#5a4a2a"); el.setAttribute("font-family", "Noto Sans TC, sans-serif"); el.setAttribute("font-weight", "500"); });
     if (!r || (!r.crowded && r.need <= namesLines) || namesLines >= 3) return;
     namesLines = Math.min(3, Math.max(r.need, namesLines + (r.crowded ? 1 : 0)));
@@ -700,7 +718,7 @@ function nameSpace(lines){
   if (!baseSpace) baseSpace = { sd: rules.StaffDistance, bsd: rules.BetweenStaffDistance, sys: rules.MinSkyBottomDistBetweenSystems };
   const add = lines ? (lines * Math.max(10 / (osmd.zoom || 1), 13) * 1.2 + 6) / 10 + 0.3 : 0;
   rules.StaffDistance = baseSpace.sd + add; rules.BetweenStaffDistance = baseSpace.bsd + add;
-  rules.MinSkyBottomDistBetweenSystems = baseSpace.sys + add;   // 換行排法:最下面那個譜表的音名跟下一行之間
+  rules.MinSkyBottomDistBetweenSystems = baseSpace.sys + add + (ex && ex.exact && barChords(ex) ? 2.6 : 0);   // 換行排法:最下面那個譜表的音名、下一行上方的和弦名
 }
 const keyVary = () => !!(dseg && dseg.k === "review" && dseg.vary && dseg.vary.q && dseg.vary.q.rkey);
 const namesRoute = () => (dseg && dseg.k !== "warm" ? dseg.r : "finger");
@@ -717,11 +735,101 @@ function namesOn(){
   const v = S.dnames[namesRoute()];
   return typeof v === "boolean" ? v : namesDefault();
 }
+/* ── 今日練習的譜面標記(方法書的做法;patterns.js)──
+   兩小節一樣 = 一小節 + 反覆記號 ×N;指法只標要標的(fingerMarks;手指 A 組、暖身每個音都標);
+   和弦名畫在最上面那個譜表上方(換和弦、每一行第一個);和弦表、手位圖在譜卡標題列下面(HTML) */
+function dailyMarks(){
+  const sb = sameBars(ex);
+  if (sb) { ex = sb; const dp = dailyPlay(); ex.times = dp ? dp.bars : 4; }
+  const L = dseg && dseg.level;
+  fingerMarks(ex, { all: !!dseg && (dseg.k === "warm" || (L && L.route && L.route.id === "finger" && L.g === "A")) });
+}
+const NOTE_ZH = s => s;   // 音名中英一樣(C、F♯)
+function renderMarksUI(){
+  const route = !!(cur && cur.daily && cur.type === "route" && dseg && ex && ex.exact);
+  const tbl = route ? chordTable(ex) : null, hp = route ? handPositions(ex) : [];
+  const ct = $("chordTable"), hpEl = $("handPos");
+  ct.hidden = !tbl || !tbl.length;
+  if (tbl && tbl.length) {
+    const on = namesOn();
+    // 「C = C E G(5-3-1)· G7 = B F G(5-2-1)」;音名關掉:「C(5-3-1)· G7(5-2-1)」
+    ct.innerHTML = tbl.map(c => `<span><b>${c.name}</b>${on ? " = " + c.notes.map(NOTE_ZH).join(" ") : ""}<small>(${c.fingers.join("-")})</small></span>`).join("<i aria-hidden=\"true\"> · </i>");
+    ct.setAttribute("aria-label", tr("這一關的和弦:", "Chords here: ") + tbl.map(c => `${c.name} ${c.notes.join(" ")} ${tr("指法", "fingers")} ${c.fingers.join(" ")}`).join(";"));
+  }
+  hpEl.hidden = !hp.length;
+  if (hp.length) {
+    const names = [...new Set(hp.map(p => p.keys[0].name))];
+    const say = hp.map(p => p.hand === "rh" ? tr(`右手拇指在${p.mid ? "中央 C" : p.thumb}`, `RH thumb on ${p.mid ? "middle C" : p.thumb}`) : tr(`左手小指在 ${p.low}`, `LH finger 5 on ${p.low}`));
+    const label = names.join(" → ") + tr(" 位置", " position");
+    hpEl.innerHTML = `<span class="hp-lbl"><b>${label}</b><span class="hp-more">${tr(":", ": ")}${[...new Set(say)].join(tr(",", ", "))}</span></span>` + hp.map(miniKeys).join("");
+    hpEl.setAttribute("title", label + tr(":", ": ") + [...new Set(say)].join(tr(",", ", ")));
+  }
+}
+/* 手位圖:一小段鍵盤(線稿),這個位置的 5 個鍵亮起來、寫手指號碼(高 28) */
+function miniKeys(p){
+  const lo = p.keys[0].midi - (isBlackKey(p.keys[0].midi) ? 1 : 0), hi = p.keys[4].midi + (isBlackKey(p.keys[4].midi) ? 1 : 0);
+  const whites = []; for (let m = lo; m <= hi; m++) if (!isBlackKey(m)) whites.push(m);
+  const W = 13, H = 28, fin = new Map(p.keys.map(k => [k.midi, k]));
+  let x = 0, body = "", blacks = "";
+  for (const m of whites) {
+    const k = fin.get(m);
+    body += `<rect x="${x + 0.5}" y="0.5" width="${W - 1}" height="${H - 1}" rx="2" class="${k ? (k.used ? "on" : "soft") : ""}"/>` + (k ? `<text x="${x + W / 2}" y="${H - 4}">${k.finger}</text>` : "");
+    if (isBlackKey(m + 1) && m + 1 <= hi + 1) {
+      const kb = fin.get(m + 1), bx = x + W - 4;
+      blacks += `<rect x="${bx}" y="0.5" width="8" height="16" rx="1.5" class="blk${kb ? (kb.used ? " on" : " soft") : ""}"/>` + (kb ? `<text x="${bx + 4}" y="12" class="bt">${kb.finger}</text>` : "");
+    }
+    x += W;
+  }
+  return `<svg class="mini-kb" viewBox="0 0 ${x} ${H}" width="${x}" height="${H}" aria-hidden="true">${body}${blacks}</svg>`;
+}
+const isBlackKey = m => [1, 3, 6, 8, 10].includes(((m % 12) + 12) % 12);
+/* 和弦名:最上面那個譜表上方、指法外側;換和弦的地方與每一行第一個和弦才寫 */
+function drawChordNames(svg){
+  svg.querySelectorAll(".t-chord").forEach(e => e.remove());
+  const names = ex && ex.exact ? barChords(ex) : null;
+  if (!names || !osmd.GraphicSheet) return;
+  const NS = "http://www.w3.org/2000/svg", frag = document.createDocumentFragment();
+  const ink = [...svg.querySelectorAll("path, rect, text, ellipse, line, polyline, polygon, use")].map(e => e.getBBox()).filter(b => b.width || b.height);
+  let lastSys = null;
+  const rows = new Map();
+  osmd.GraphicSheet.MeasureList.forEach((list, mi) => {
+    const gm = list && list[0]; if (!gm || !gm.getVFStave || mi >= names.length) return;
+    const sys = gm.ParentMusicSystem, first = sys !== lastSys; lastSys = sys;
+    if (!first && names[mi] === names[mi - 1]) return;
+    const se = gm.staffEntries[0], gn = se && se.graphicalVoiceEntries[0] && se.graphicalVoiceEntries[0].notes[0], g = gn && gn.getSVGGElement && gn.getSVGGElement();
+    const head = g && (g.querySelector(".vf-notehead") || g);
+    const x = head ? head.getBBox().x : gm.getVFStave().getNoteStartX() + 4;
+    const stave = gm.getVFStave(), sp = stave.getSpacingBetweenLines();
+    if (!rows.has(sys)) rows.set(sys, { top: stave.getYForLine(0), sp, border: (sys.PositionAndShape.AbsolutePosition.y + sys.PositionAndShape.BorderTop) * 10, items: [] });
+    rows.get(sys).items.push({ x, name: names[mi] });
+  });
+  for (const r of rows.values()) {
+    // 這一行最上面那個譜表上方的筆畫(音符、符桿、指法、圓滑線…)最高點;字放在它上面
+    let top = r.top;
+    for (const b of ink) if (b.y + b.height <= r.top + r.sp * 2 && b.y + b.height > r.border) top = Math.min(top, b.y);   // 只看這一行(上一行的筆畫在 border 上面)
+    const fs = r.sp * 1.7, y = top - r.sp * 0.6;
+    for (const it of r.items) {
+      const t = document.createElementNS(NS, "text");
+      t.setAttribute("x", it.x); t.setAttribute("y", y); t.setAttribute("class", "t-chord");
+      t.setAttribute("font-family", "Noto Serif TC, Times New Roman, serif"); t.setAttribute("font-weight", "700"); t.setAttribute("font-size", fs); t.setAttribute("fill", "#16130D");
+      t.textContent = it.name;
+      frag.appendChild(t);
+    }
+  }
+  svg.appendChild(frag);
+  const vb = svg.viewBox.baseVal, bb = svg.getBBox();
+  if (vb && vb.height && bb.y - 4 < vb.y) {
+    const k = parseFloat(svg.getAttribute("height")) / vb.height, y0 = bb.y - 4;
+    svg.setAttribute("viewBox", `${vb.x} ${y0} ${vb.width} ${vb.y + vb.height - y0}`);
+    svg.setAttribute("height", (vb.y + vb.height - y0) * k);
+  }
+}
 function syncNamesBtn(){
   const b = $("namesBtn"); if (!b) return;
   const route = !!(cur && cur.daily && cur.type === "route" && dseg);
   b.hidden = !route;
   b.setAttribute("aria-pressed", String(namesOn()));
+  renderMarksUI();
   // 今日練習的關卡:譜卡標題列 = [音名] …[右手|左手|雙手](標題「樂譜與指法」省掉,一行放得下);單手的關不放手的切換(只有那一手)
   $("scoreCard").querySelector(".card-title").hidden = route;
   $("handSeg").hidden = route && cur.hands !== "HT";
@@ -730,7 +838,7 @@ $("namesBtn").onclick = () => {
   const v = !namesOn();
   if (keyVary()) namesSeg = v; else { S.dnames[namesRoute()] = v; store.save(); }
   syncNamesBtn(); namesLines = 1;
-  if (osmd && cur) { renderOsmd(); measureNotes(); }
+  if (osmd && cur) { if (wrapMode()) fitWrap(); else renderOsmd(); measureNotes(); }
 };
 function drawFingerings(){
   const svg = $("osmd").querySelector("svg"); if (!svg) return;
@@ -779,9 +887,14 @@ function drawFingerings(){
       const above = list[0].n.sourceNote.Fingering.placement !== 1;
       if (above) list.sort((a, b) => b.h.y - a.h.y); else list.sort((a, b) => a.h.y - b.h.y);   // 靠近音符的先放
       let y = above ? Math.min(top, box.y) - gap : Math.max(bot, box.y + box.height) + gap + fs * 0.75;
+      // 整疊對齊同一欄:和弦裡有二度(符頭錯開到符桿另一邊)時,照多數符頭那一欄(一樣多 = 最低音那一欄),不跟著錯開的符頭跑
+      const cols = new Map();
+      for (const h of heads) { const k = Math.round(h.x + h.width / 2); cols.set(k, (cols.get(k) || 0) + 1); }
+      const colX = [...cols.entries()].sort((a, b) => b[1] - a[1] || 0)[0][0];
+      const xCol = cols.size > 1 ? (cols.get(Math.round(heads[0].x + heads[0].width / 2)) >= Math.max(...cols.values()) ? heads[0].x + heads[0].width / 2 : colX) : heads[0].x + heads[0].width / 2;
       for (const { n, h } of list) {
         const t = document.createElementNS(NS, "text");
-        t.setAttribute("x", h.x + h.width / 2); t.setAttribute("y", y); t.setAttribute("text-anchor", "middle");
+        t.setAttribute("x", xCol); t.setAttribute("y", y); t.setAttribute("text-anchor", "middle");
         t.setAttribute("font-family", "Times New Roman, Times, serif"); t.setAttribute("font-size", fs); t.setAttribute("class", "fd-finger");
         t.textContent = n.sourceNote.Fingering.value;
         frag.appendChild(t);
@@ -834,7 +947,8 @@ function measureNotes(){
     const x = xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : parseFloat(el.style.left) + (el.offsetWidth || el.width || 0) / 2;
     let sys = 0;
     if (wrapMode()) { const top = parseFloat(el.style.top) || 0; sys = sysTops.length ? sysTops.reduce((b, t, i) => (top + 2 >= t ? i : b), 0) : 0; }
-    noteXs.push({ beat: c.Iterator.currentTimeStamp.RealValue * 4, x, sys });
+    const beat = c.Iterator.currentTimeStamp.RealValue * 4;
+    if (!noteXs.length || beat > noteXs[noteXs.length - 1].beat + 1e-6) noteXs.push({ beat, x, sys });   // 反覆記號:游標跳回去的不算
     c.next();
   }
   c.reset(); c.hide();
@@ -1299,8 +1413,8 @@ const daily = createDaily({ routes: ROUTES, load: () => S.daily, save: d => { S.
 const dcard = createDailyCard({ $, daily,
   labels: { ok: ["做到了", "Got it"], again: ["還要練", "Not yet"],
     // 狀態一句短話(fold-280 不超過兩行);過關規則改成到了目標速度在標籤後面顯示「穩 ●○○」
-    hint: ["▶ 聽示範,跟著拍點彈;做到了按 ✓", "▶ for the demo; play along, then ✓"],
-    solo: ["▶ 只有拍點:自己彈,做到了按 ✓", "▶ is click only: play it, then ✓"] },
+    hint: ["▶ 聽示範,跟著拍點彈;做到了按 ✓", "▶ Demo; play along, then ✓"],
+    solo: ["▶ 只有拍點:自己彈,做到了按 ✓", "Click only: play it, then ✓"] },
   warmName, log: () => S.log,
   onStart: () => { dShow(daily.begin()); window.scrollTo({ top: 0 }); },
   onNext: () => dNext(), onMore: () => { const s = daily.addExtra(); if (s) dShow(s); },

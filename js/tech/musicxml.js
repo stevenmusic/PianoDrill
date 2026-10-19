@@ -340,9 +340,12 @@ function exactToMusicXML(ex, show){
   let body = "";
   for (let m = 0; m < ex.bars; m++) {
     body += `<measure number="${m + 1}">`;
+    // 一模一樣的小節縮成一小節 + 反覆記號,上面寫 ×N(patterns.js sameBars;跟 DrumDrill 打法一樣)
+    if (ex.repeat && m === 0) body += `<barline location="left"><bar-style>heavy-light</bar-style><repeat direction="forward"/></barline>`;
     if (m === 0) {
       body += `<attributes><divisions>${ex.div}</divisions><key><fifths>${ex.fifths}</fifths></key><time><beats>${ex.time[0]}</beats><beat-type>${ex.time[1]}</beat-type></time>` +
         (hands.length > 1 ? `<staves>${hands.length}</staves>` : "") + hands.map((h, i) => clefXml(h === "rh" ? "G" : "F", i + 1)).join("") + `</attributes>`;
+      if (ex.repeat) body += `<direction placement="above"><direction-type><words font-size="11">×${ex.times || ex.repeat}</words></direction-type><staff>1</staff></direction>`;
     }
     let first = true;
     hands.forEach((h, i) => {
@@ -399,7 +402,7 @@ function exactToMusicXML(ex, show){
               const arts = (e.stacc ? `<staccato placement="${stem === "up" ? "below" : "above"}"/>` : "") + (e.accent ? `<accent placement="${place === "above" ? "below" : "above"}"/>` : "");
               if (arts) nt += `<articulations>${arts}</articulations>`;
             }
-            if (x.finger) nt += `<technical><fingering placement="${place}">${x.finger}</fingering></technical>`;
+            if (x.finger && x.fshow !== false) nt += `<technical><fingering placement="${place}">${x.finger}</fingering></technical>`;   // 方法書的做法:重複的不標(patterns.js fingerMarks)
             if (nt) s += `<notations>${nt}</notations>`;
             return s + "</note>";
           };
@@ -409,7 +412,8 @@ function exactToMusicXML(ex, show){
         if (m === ex.bars - 1 && v === voices[i][0] && ex.dyn && ex.dyn[h] === "cresc" && !(sameDyn && i > 0)) body += `<direction placement="below"><direction-type><wedge type="stop"/></direction-type><staff>${staff}</staff></direction>`;
       });
     });
-    if (m === ex.bars - 1) body += `<barline location="right"><bar-style>light-heavy</bar-style></barline>`;
+    if (m === ex.bars - 1) body += ex.repeat ? `<barline location="right"><bar-style>light-heavy</bar-style><repeat direction="backward" times="${ex.times || ex.repeat}"/></barline>`
+      : `<barline location="right"><bar-style>light-heavy</bar-style></barline>`;
     body += "</measure>";
   }
   return `<?xml version="1.0" encoding="UTF-8"?>

@@ -69,32 +69,29 @@ const FINGER = [
     check: [C("兩手同時下去", "Hands exactly together"), C("兩手的手指號碼不一樣:先看清楚", "Different fingers: look first")] },
   { id: "PA5", g: "A", name: C("八分音符雙手", "Eighth notes, hands together"), hands: "HT", value: "e", rh: x2("1 2 3 4 5 4 3 2"), lh: x2("5 4 3 2 1 2 3 4"), start: 50, target: 84,
     check: [C("不要越彈越快", "Don't rush"), C("手腕不上下", "Quiet wrists")] },
+  // 兩音圓滑(審查定案 2026-10:A 組最後一關;方法書的「落下—抬起」)
+  { id: "PA6", g: "A", name: C("兩音圓滑:落下—抬起", "Two-note slurs: drop–lift"), hands: "RH", value: "q", rh: "1( 2) 3( 4) | 5( 4) 3( 2)", start: 56, target: 88,
+    check: [C("手腕放下彈第一個音", "Drop the wrist into the first note"), C("抬起放掉第二個音", "Lift off the second note")] },
   // B 弱指 4、5(八分音符)
   { id: "PB1", g: "B", name: C("右手 3-4-5-4", "RH 3-4-5-4"), hands: "RH", value: "e", rh: x2("3 4 5 4 3 4 5 4"), start: 50, target: 84,
     check: [C("4、5 指跟 3 指一樣大聲", "4 and 5 as loud as 3"), C("指尖站穩、第一指節不凹", "Firm tips, no caving joint")] },
   { id: "PB2", g: "B", name: C("左手 3-4-5-4", "LH 3-4-5-4"), hands: "LH", value: "e", lh: x2("3 4 5 4 3 4 5 4"), start: 50, target: 84,
     check: [C("4、5 指跟 3 指一樣大聲", "4 and 5 as loud as 3"), C("指尖站穩、第一指節不凹", "Firm tips, no caving joint")] },
-  { id: "PB3", g: "B", name: C("4、5 指交替(兩手輪流)", "Fingers 4–5, hands in turn"), hands: "HT", value: "e", rh: "4 5 4 5 4 5 4 5 | R", lh: "R | 4 5 4 5 4 5 4 5", start: 50, target: 80,
-    check: [C("慢慢抬、慢慢放", "Lift and drop evenly"), C("手不歪向小指", "Hand doesn't tip to 5")] },
+  { id: "PB3", g: "B", name: C("4、5 指交替(兩手輪流)", "Fingers 4–5, hands in turn"), hands: "HT", value: "e", rh: "4 5 4 5 4 5 4 5 | R", lh: "R | 4 5 4 5 4 5 4 5", start: 50, target: 72,
+    check: [C("慢慢抬、慢慢放", "Lift and drop evenly"), C("手不歪向小指", "Hand doesn't tip to 5"), C("累了就停 · 手腕跟著轉", "Stop if tired · wrist turns along")] },
   { id: "PB4", g: "B", name: C("跳一個指頭", "Skipping a finger"), hands: "HT", value: "e", rh: x2("1 3 2 4 3 5 4 2"), lh: x2("5 3 4 2 3 1 2 4"), start: 44, target: 80,
     check: [C("跳過去的手指不要先按下去", "Skipped finger stays up"), C("兩手同時下去", "Hands exactly together")] },
   { id: "PB5", g: "B", name: C("重音給 4 指", "Accent on finger 4"), hands: "HT", value: "e", rh: x2("4> 3 2 1 4> 3 2 1"), lh: x2("4> 3 2 1 4> 3 2 1"), start: 50, target: 84,
     check: [C("4 指重音清楚", "Clear accent on 4"), C("其他的音輕", "Other notes light")] },
   // C 按住一個音(手指獨立;原理:Cortot 第 1 章「按住不動的手指」,內容是 App 編的)
   { id: "PC1", g: "C", name: C("右手按住大拇指", "RH: hold the thumb"), hands: "RH", value: "e", hold: { rh: [1] }, rh: x2("2 3 4 5 4 3 2 3"), start: 50, target: 80,
-    check: [C("大拇指一直按著", "Thumb stays down"), C("每個音一樣大", "Every note even"), C("手腕放鬆", "Loose wrist")] },
-  { id: "PC2", g: "C", name: C("右手按住小指", "RH: hold finger 5"), hands: "RH", value: "e", hold: { rh: [5] }, rh: x2("4 3 2 1 2 3 4 3"), start: 50, target: 80,
-    check: [C("小指不放", "Finger 5 stays down"), C("大拇指不要用力壓", "Thumb doesn't press")] },
+    check: [C("大拇指按住 C:輕輕按、不壓到底", "Thumb holds C, lightly"), C("每個音一樣大", "Every note even"), C("手腕放鬆", "Loose wrist")] },
   { id: "PC3", g: "C", name: C("左手按住小指", "LH: hold finger 5"), hands: "LH", value: "e", hold: { lh: [5] }, lh: x2("4 3 2 1 2 3 4 3"), start: 50, target: 80,
-    check: [C("小指不放", "Finger 5 stays down"), C("大拇指不要用力壓", "Thumb doesn't press")] },
-  { id: "PC4", g: "C", name: C("左手按住大拇指", "LH: hold the thumb"), hands: "LH", value: "e", hold: { lh: [1] }, lh: x2("2 3 4 5 4 3 2 3"), start: 50, target: 80,
-    check: [C("大拇指一直按著", "Thumb stays down"), C("每個音一樣大", "Every note even"), C("手腕放鬆", "Loose wrist")] },
+    check: [C("小指按住 C:輕輕按、不壓到底", "Finger 5 holds C, lightly"), C("大拇指不要用力壓", "Thumb doesn't press")] },
   { id: "PC5", g: "C", name: C("右手按住 1 和 5", "RH: hold 1 and 5"), hands: "RH", value: "e", hold: { rh: [1, 5] }, rh: x2("2 3 4 3 2 3 4 3"), start: 44, target: 72,
-    check: [C("兩個音都不放", "Both stay down"), C("中間三指輪流、一樣大", "Middle three even")] },
-  { id: "PC6", g: "C", name: C("左手按住 1 和 5", "LH: hold 1 and 5"), hands: "LH", value: "e", hold: { lh: [1, 5] }, lh: x2("2 3 4 3 2 3 4 3"), start: 44, target: 72,
-    check: [C("兩個音都不放", "Both stay down"), C("中間三指輪流、一樣大", "Middle three even")] },
+    check: [C("1、5 按住 C、G:輕輕按、不壓到底", "1 and 5 hold C and G, lightly"), C("中間三指輪流、一樣大", "Middle three even")] },
   { id: "PC7", g: "C", name: C("右手按住 3 指", "RH: hold finger 3"), hands: "RH", value: "e", hold: { rh: [3] }, rh: x2("2 4 2 4 2 4 2 4"), start: 44, target: 72,
-    check: [C("3 指不放", "Finger 3 stays down"), C("2、4 指一樣大", "2 and 4 even")] },
+    check: [C("3 指按住 E:輕輕按、不壓到底", "Finger 3 holds E, lightly"), C("2、4 指一樣大", "2 and 4 even")] },
   // D 3、4 指(最後一關才有十六分音符)
   { id: "PD1", g: "D", name: C("右手 3、4 交替", "RH 3–4"), hands: "RH", value: "e", rh: x2("3 4 3 4 3 4 3 4"), start: 50, target: 88,
     check: [C("兩指一樣大", "Both fingers even"), C("4 指抬得起來", "Finger 4 lifts")] },
@@ -122,8 +119,9 @@ const FINGER = [
     check: [C("右手唱出來", "RH sings out"), C("左手像背景", "LH in the background")] },
   { id: "PF5", g: "F", name: C("右手在反拍", "RH on the off-beats"), hands: "HT", value: "e", lh: "@q 5 1 5 1 | 5 1 5 1", rh: "r 3 r 3 r 4 r 4 | r 5 r 5 r 4 r 4", start: 50, target: 84,
     check: [C("右手在「與」", "RH on the “and”"), C("不被左手拉走", "Don't follow the LH")] },
-  { id: "PF6", g: "F", name: C("兩對三", "Two against three"), hands: "HT", value: "e", lh: x2("5 1 5 1 5 1 5 1"), rh: x2("@t 1 2 3 4 5 4 3 2 1 2 3 2"), start: 40, target: 60,
-    check: [C("每拍第一個音兩手一起", "Hands meet on each beat"), C("三連音平均", "Triplets even")] },
+  // 兩對三移到之後再做(審查定案 2026-10);換成兩手輪流接句
+  { id: "PF6", g: "F", name: C("兩手輪流接句(右手接左手)", "Pass the phrase, LH to RH"), hands: "HT", value: "e", lh: "5 4 3 2 1 2 3 4 | R", rh: "R | 1 2 3 4 5 4 3 2", start: 56, target: 92,
+    check: [C("接的地方不停", "No gap at the hand-over"), C("兩手一樣大聲", "Hands equally loud")] },
   // G 換位置
   { id: "PG1", g: "G", name: C("G 位置", "G position"), key: "G", hands: "HT", value: "e", rh: x2("1 2 3 4 5 4 3 2"), lh: x2("5 4 3 2 1 2 3 4"), start: 56, target: 92,
     check: [C("看清楚新的位置再開始", "Find the new position first"), C("每個音一樣大", "Every note even")] },
@@ -137,7 +135,7 @@ const FINGER = [
 const I4 = ["I", "IV", "V7", "I"], LOUD = C("左手不要比右手大聲", "LH softer than RH");
 const ACCOMP = [
   // A 柱式和弦(四分音符起)
-  { id: "AA1", g: "A", name: C("主和弦和屬七和弦", "I and V7 chords"), prog: ["I", "I", "V7", "I"], lh: "block4", start: 60, target: 100,
+  { id: "AA1", g: "A", name: C("主和弦和屬七和弦", "I and V7 chords"), prog: ["I", "I", "V7", "I"], lh: "block2", start: 60, target: 88,
     check: [C("三個音同時下去", "All three notes together"), C("換和弦只動要動的手指", "Move only the fingers that must move")] },
   { id: "AA2", g: "A", name: C("加上下屬和弦", "Add the IV chord"), prog: I4, lh: "block4", start: 60, target: 100,
     check: [C("I 到 IV:小指不動", "I to IV: finger 5 stays"), C("手腕放鬆", "Loose wrist")] },
@@ -152,14 +150,14 @@ const ACCOMP = [
     check: [C("跳之前先看下一個位置", "Look before you jump"), C("根音比五音清楚", "Root clearer than the 5th")] },
   { id: "AB2", g: "B", name: C("低中高中", "Low–mid–high–mid"), prog: I4, lh: "broken", start: 56, target: 96,
     check: [C("低音清楚、其他輕", "Bass clear, the rest light"), C("每個音一樣長", "Notes even")] },
-  { id: "AB3", g: "B", name: C("Alberti 低高中高", "Alberti bass"), prog: I4, lh: "alberti", start: 56, target: 96,
+  { id: "AB3", g: "B", name: C("Alberti 低音(低高中高)", "Alberti bass"), prog: I4, lh: "alberti", start: 56, target: 96,
     check: [C("手腕左右轉", "Wrist rocks side to side"), C("不要每個手指都用力", "Don't press every finger")] },
   { id: "AB4", g: "B", name: C("Alberti 加右手", "Alberti with a right-hand note"), prog: I4, lh: "alberti", rh: "tones", start: 52, target: 88,
     check: [C("右手在上面唱、左手在背景", "RH sings, LH in the background"), LOUD] },
   { id: "AB5", g: "B", name: C("G 大調 Alberti", "Alberti in G"), key: "G", prog: I4, lh: "alberti", start: 56, target: 96,
     check: [C("新的調先慢", "New key: start slow"), C("V7 的 F♯ 用小指", "F♯ in V7 with finger 5")] },
   // C 華爾茲(3/4)
-  { id: "AC1", g: "C", name: C("根音加兩下和弦", "Bass, chord, chord"), time: [3, 4], prog: I4, lh: "waltz", start: 80, target: 132,
+  { id: "AC1", g: "C", name: C("華爾茲伴奏:低音、和弦、和弦", "Waltz: bass, chord, chord"), time: [3, 4], prog: I4, lh: "waltz", start: 80, target: 132,
     check: [C("第 1 拍重、後兩拍輕", "Beat 1 strong, 2 and 3 light"), C("和弦短一點、手輕輕彈起", "Light, lifted chords")] },
   { id: "AC2", g: "C", name: C("華爾茲加右手", "Waltz with a right-hand note"), time: [3, 4], prog: I4, lh: "waltz", rh: "tones", start: 80, target: 120,
     check: [C("一小節一個大拍的感覺", "Feel one big beat per bar"), LOUD] },
@@ -169,7 +167,7 @@ const ACCOMP = [
   { id: "AD1", g: "D", name: C("左手根音、右手和弦", "LH roots, RH chords"), prog: ["I", "V", "vi", "IV"], lh: "root", rh: "chords4", start: 60, target: 96,
     check: [C("右手換和弦只動最少的手指", "RH moves as few fingers as possible"), C("左手按滿四拍", "LH holds all four beats")] },
   { id: "AD2", g: "D", name: C("左手 1-5-8", "LH 1-5-8"), prog: ["I", "V", "vi", "IV"], lh: "r158", rh: "chords2", start: 52, target: 88,
-    check: [C("左手撐開時手腕放鬆", "Loose wrist on the stretch"), LOUD] },
+    check: [C("左手撐開時手腕放鬆", "Loose wrist on the stretch"), C("手小可以移過去,不必撐開", "Small hands: move, don't stretch"), LOUD] },
   { id: "AD3", g: "D", name: C("3+3+2 節奏", "3+3+2 rhythm"), prog: ["I", "V", "vi", "IV"], lh: "root", rh: "c332", start: 56, target: 88,
     check: [C("數 1-2-3 1-2-3 1-2", "Count 1-2-3 1-2-3 1-2"), C("左手按滿四拍", "LH holds all four beats")] },
   { id: "AD4", g: "D", name: C("a 小調", "In A minor"), key: "a", prog: ["i", "iv", "V7", "i"], lh: "block2", rh: "tones", start: 60, target: 96,
@@ -210,7 +208,7 @@ export const ROUTES = [
 export const WARM_LEVELS = {
   w5s: { id: "w5s", name: C("五指位置(兩手輪流)", "five fingers, hands in turn"), hands: "HT", value: "q", rh: "1 2 3 4 | 5 4 3 2 | R | R", lh: "R | R | 5 4 3 2 | 1 2 3 4" },
   w5q: { id: "w5q", name: C("五指位置(雙手)", "five fingers, hands together"), hands: "HT", value: "q", rh: "1 2 3 4 | 5 4 3 2", lh: "5 4 3 2 | 1 2 3 4" },
-  w5e: { id: "w5e", name: C("五指位置(八分音符)", "five fingers in eighths"), hands: "HT", value: "e", rh: x2("1 2 3 4 5 4 3 2"), lh: x2("5 4 3 2 1 2 3 4") },
+  w5e: { id: "w5e", name: C("五指位置(雙手)", "five fingers, hands together"), hands: "HT", value: "e", rh: x2("1 2 3 4 5 4 3 2"), lh: x2("5 4 3 2 1 2 3 4") },
   wsc: { id: "wsc", name: C("音階一個八度(雙手)", "scale, one octave"), hands: "HT", scale: true }
 };
 for (const W of Object.values(WARM_LEVELS)) W.q = { type: "route", warm: W.id, hands: W.hands };

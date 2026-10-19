@@ -1,12 +1,12 @@
 // 今日練習引擎(js/shared/daily.js)的檢查;兩個 App 同一份(sync.json same),verify.mjs 會呼叫;也可以單獨跑:node tools/test/checks/daily.mjs
 //   菜單(暖身第一、交錯、還沒開放的路線、到期複習一天一題)、慢練優先、速度階梯、連續 N 次穩才過關、失手重算、退速度、建議回上一關、
 //   快速通道(開 / 關)、回上一關、歡迎回來(≥ 7 天)、複習盒與變化(穩 → 下一盒、不穩 → 上一盒隔天)、拍點模式、跨午夜換日、消毒、沒練不扣分
-import { createDaily, cleanDaily, buildPlan, clickPlays, gapBars, verdictOf, addDays, dayNum, DEFAULT_VARY, REVIEW_GAPS, SEG_SEC } from "../../../js/shared/daily.js";
+import { createDaily, cleanDaily, buildPlan, clickPlays, gapBars, verdictOf, addDays, dayNum, DEFAULT_VARY, REVIEW_GAPS, SEG_SEC, METRO, tempoUp, tempoDown } from "../../../js/shared/daily.js";
 
 const ROUTES = [
   { id: "a", name: ["甲", "A"], levels: [
-    { id: "A1", name: ["一", "One"], start: 56, target: 72 },
-    { id: "A2", name: ["二", "Two"], start: 60, target: 80, up: 4, need: 2 },
+    { id: "A1", name: ["一", "One"], start: 60, target: 69 },
+    { id: "A2", name: ["二", "Two"], start: 60, target: 80, need: 2 },
     { id: "A3", name: ["三", "Three"], start: 60, target: 80, click: "one" }] },
   { id: "b", name: ["乙", "B"], unlock: { route: "a", passed: "A1" }, levels: [
     { id: "B1", name: ["一", "One"], start: 50, target: 66,
@@ -52,21 +52,22 @@ export default function check(ok){
   ok(d.attempt({ bpm: 60, self: "ok" }) === null, "暖身不過關");
   d.addSec(30); d.next();
   let s = d.seg();
-  ok(s.k === "route" && s.bpm === 56 && s.click === "every", "新的一關從起始速度開始(不是目標):" + s.bpm);
-  let r = d.attempt({ bpm: 56, self: "ok" });
-  ok(r.verdict === "steady" && r.nextBpm === 64 && !r.passed, "穩 → +8:" + r.nextBpm);
-  r = d.attempt({ bpm: 64, score: 90 }); ok(r.nextBpm === 72, "穩 → +8 到目標:" + r.nextBpm);
-  r = d.attempt({ bpm: 72, score: 90 }); ok(!r.passed && r.streak === 1 && r.need === 3, "到目標第 1 次穩:還沒過(要連續 3 次)");
-  r = d.attempt({ bpm: 72, score: 70 }); ok(r.verdict === "near" && r.nextBpm === 72 && r.streak === 0, "差一點 → 同速度、連續次數重算");
-  r = d.attempt({ bpm: 72, score: 70 }); ok(r.nextBpm === 68, "連續兩次不穩 → 慢 4:" + r.nextBpm);
-  r = d.attempt({ bpm: 68, score: 30 }); ok(r.verdict === "slow" && r.nextBpm === 64, "太快了 → 馬上慢 4:" + r.nextBpm);
+  ok(s.k === "route" && s.bpm === 60 && s.click === "every", "新的一關從起始速度開始(不是目標):" + s.bpm);
+  let r = d.attempt({ bpm: 60, self: "ok" });
+  ok(r.verdict === "steady" && r.nextBpm === 63 && !r.passed, "穩 → 節拍器刻度往上一格(60 → 63):" + r.nextBpm);
+  r = d.attempt({ bpm: 63, score: 90 }); ok(r.nextBpm === 66, "穩 → 下一格(63 → 66):" + r.nextBpm);
+  r = d.attempt({ bpm: 66, score: 90 }); ok(r.nextBpm === 69, "穩 → 下一格到目標(66 → 69):" + r.nextBpm);
+  r = d.attempt({ bpm: 69, score: 90 }); ok(!r.passed && r.streak === 1 && r.need === 3, "到目標第 1 次穩:還沒過(要連續 3 次)");
+  r = d.attempt({ bpm: 69, score: 70 }); ok(r.verdict === "near" && r.nextBpm === 69 && r.streak === 0, "差一點 → 同速度、連續次數重算");
+  r = d.attempt({ bpm: 69, score: 70 }); ok(r.nextBpm === 66, "連續兩次不穩 → 退一格(69 → 66):" + r.nextBpm);
+  r = d.attempt({ bpm: 66, score: 30 }); ok(r.verdict === "slow" && r.nextBpm === 63, "太快了 → 馬上退一格(66 → 63):" + r.nextBpm);
   ok(d.data.prog.a.fast === false, "失手過:快速通道關著");
-  d.attempt({ bpm: 64, self: "ok" });   // 64 → 72(到目標)
-  r = d.attempt({ bpm: 72, self: "ok" }); r = d.attempt({ bpm: 72, self: "ok" });
+  d.attempt({ bpm: 63, self: "ok" }); d.attempt({ bpm: 66, self: "ok" });   // 63 → 66 → 69(到目標)
+  r = d.attempt({ bpm: 69, self: "ok" }); r = d.attempt({ bpm: 69, self: "ok" });
   ok(!r.passed && r.streak === 2, "到目標連續 2 次:還沒過");
   // 這一段(360 秒)已經練了 320 秒,剩不到 60 秒 → 過關後不接下一關
   d.addSec(320);
-  r = d.attempt({ bpm: 72, self: "ok" });
+  r = d.attempt({ bpm: 69, self: "ok" });
   ok(r.passed && r.nextLevel === "A2" && !r.cont && r.box === 1 && r.due === "2026-10-20", "連續 3 次穩 → 過關、明天複習(盒 1):" + JSON.stringify(r));
   ok(d.data.prog.a.at === "A2" && d.data.prog.a.fast === false, "過關 → 路線往下一關;有失手過不開快速通道");
   ok(d.seg().lv === "A1", "時間不夠:這一段停在原本那一關");
@@ -96,22 +97,22 @@ export default function check(ok){
   d.begin();
   const iRev = d.plan().findIndex(p => p.k === "review");
   s = d.begin(iRev);
-  ok(s.k === "review" && s.bpm === 72 && s.click === "every" && eq(s.vary, {}), "複習盒 1:目標速度、原樣");
-  r = d.attempt({ bpm: 72, self: "ok" });
+  ok(s.k === "review" && s.bpm === 69 && s.click === "every" && eq(s.vary, {}), "複習盒 1:目標速度、原樣");
+  r = d.attempt({ bpm: 69, self: "ok" });
   ok(r.box === 2 && r.due === addDays("2026-10-20", 3), "複習穩 → 盒 2、3 天後:" + JSON.stringify(r));
-  r = d.attempt({ bpm: 72, self: "again" });
+  r = d.attempt({ bpm: 69, self: "again" });
   ok(r.box === 2 && r.due === addDays("2026-10-20", 3), "同一天的第二次不改排程");
 
   // ── 複習的變化:盒 2 = 只響 2、4;不穩 → 回上一盒、隔天 ──
   clock = new Date(2026, 9, 23, 10, 0);
   s = d.begin(d.plan().findIndex(p => p.k === "review"));
   ok(s && s.box === 2 && s.click === "two-four", "盒 2(第 3 天)= 拍點只響 2、4:" + JSON.stringify(s && { box: s.box, click: s.click }));
-  r = d.attempt({ bpm: 72, score: 40 });
+  r = d.attempt({ bpm: 69, score: 40 });
   ok(r.box === 1 && r.due === "2026-10-24", "複習不穩 → 退回上一個變化、隔天再來:" + JSON.stringify(r));
   // 直接把盒子推到 4、5:gap、gap + 最快
   d.data.lv["a/A1"].box = 4; d.data.lv["a/A1"].due = "2026-10-23"; d.data.lv["a/A1"].rev = null;
-  ok(eq(DEFAULT_VARY[3], { click: "gap" }) && d.reviewBpm("a", "A1", 4) === 72, "盒 4 = 中途消失、目標速度");
-  ok(d.reviewBpm("a", "A1", 5) === 80, "盒 5 = 中途消失 + 最快(目標 + 8):" + d.reviewBpm("a", "A1", 5));
+  ok(eq(DEFAULT_VARY[3], { click: "gap" }) && d.reviewBpm("a", "A1", 4) === 69, "盒 4 = 中途消失、目標速度");
+  ok(d.reviewBpm("a", "A1", 5) === 72, "盒 5 = 中途消失 + 最快(目標再上一格 69 → 72):" + d.reviewBpm("a", "A1", 5));
   // 關卡自己的變化清單(鋼琴:斷奏、換調…)
   const b1 = d.levelOf("b", "B1");
   ok(b1.n === 1 && b1.vary[1].q.articulation === "staccato", "關卡資料的變化清單");
@@ -119,35 +120,35 @@ export default function check(ok){
   // ── 快速通道:第一次就連續穩(一次都沒失手)→ 下一關從目標速度開始 ──
   ({ d } = mk(null, {}));
   d.begin();
-  for (const b of [56, 64, 72, 72, 72]) r = d.attempt({ bpm: b, self: "ok" });
+  for (const b of [60, 63, 66, 69, 69, 69]) r = d.attempt({ bpm: b, self: "ok" });
   ok(r.passed && d.data.prog.a.fast === true, "一次都沒失手過關 → 快速通道打開");
   s = d.seg();
   ok(s.lv === "A2" && r.cont && s.bpm === 80, "時間還夠:直接接下一關、從目標速度開始:" + JSON.stringify({ lv: s.lv, bpm: s.bpm, cont: r.cont }));
   r = d.attempt({ bpm: 80, self: "ok" }); ok(!r.passed && r.need === 2, "A2 只要連續 2 次(關卡覆寫 need)");
-  r = d.attempt({ bpm: 80, score: 10 }); ok(d.data.prog.a.fast === false && r.nextBpm === 76, "失手 → 快速通道關掉、慢 4:" + r.nextBpm);
-  r = d.attempt({ bpm: 76, self: "ok" }); ok(r.nextBpm === 80, "A2 的 up = 4:" + r.nextBpm);
+  r = d.attempt({ bpm: 80, score: 10 }); ok(d.data.prog.a.fast === false && r.nextBpm === 76, "失手 → 快速通道關掉、退一格(80 → 76):" + r.nextBpm);
+  r = d.attempt({ bpm: 76, self: "ok" }); ok(r.nextBpm === 80, "穩 → 上一格(76 → 80):" + r.nextBpm);
   // 建議回上一關:同一個速度連續 4 次不穩
   for (let i = 0; i < 4; i++) r = d.attempt({ bpm: 70, self: "again" });
   ok(r.suggestBack, "同一個速度連續 4 次不穩 → 建議回上一關");
-  // 最慢 = 起始速度 − 4
-  for (let i = 0; i < 6; i++) r = d.attempt({ bpm: Math.max(40, r.nextBpm), score: 0 });
-  ok(r.nextBpm === 56, "最慢 = 起始速度 − 4:" + r.nextBpm);
+  // 最慢 = 起始速度的下一格(60 → 58)
+  for (let i = 0; i < 12; i++) r = d.attempt({ bpm: Math.max(40, r.nextBpm), score: 0 });
+  ok(r.nextBpm === 58, "最慢 = 起始速度的下一格:" + r.nextBpm);
   // 回上一關
-  ok(d.canBack() && d.back() === "A1" && d.seg().lv === "A1" && d.data.prog.a.at === "A1" && d.data.lv["a/A2"].bpm === 56, "回上一關:原本那一關的速度保留");
+  ok(d.canBack() && d.back() === "A1" && d.seg().lv === "A1" && d.data.prog.a.at === "A1" && d.data.lv["a/A2"].bpm === 58, "回上一關:原本那一關的速度保留");
   ok(!d.canBack(), "第一關不能再回");
 
   // ── 歡迎回來(隔 ≥ 7 天):目前那一關從起始速度開始;關卡、盒號不變(沒練不扣分) ──
   clock = new Date(2026, 9, 19, 9, 0);
   ({ d } = mk(null, {}));
-  d.begin(); for (const b of [56, 64]) d.attempt({ bpm: b, self: "ok" });
-  ok(d.bpmFor("a", "A1") === 72, "練到 72");
+  d.begin(); for (const b of [60, 63]) d.attempt({ bpm: b, self: "ok" });
+  ok(d.bpmFor("a", "A1") === 66, "練到 66");
   const before = JSON.stringify({ prog: d.data.prog, box: d.data.lv["a/A1"].box });
   clock = new Date(2026, 9, 24, 9, 0);
-  ok(d.seg() && d.plan() && d.bpmFor("a", "A1") === 72 && !d.today().welcome, "5 天沒練:速度照舊");
+  ok(d.seg() && d.plan() && d.bpmFor("a", "A1") === 66 && !d.today().welcome, "5 天沒練:速度照舊");
   clock = new Date(2026, 10, 3, 9, 0);
   d.plan();
   s = d.begin();
-  ok(d.today().welcome && d.bpmFor("a", "A1") === 56 && s.welcome && JSON.stringify({ prog: d.data.prog, box: d.data.lv["a/A1"].box }) === before,
+  ok(d.today().welcome && d.bpmFor("a", "A1") === 60 && s.welcome && JSON.stringify({ prog: d.data.prog, box: d.data.lv["a/A1"].box }) === before,
     "隔 10 天回來:從起始速度開始、關卡不變、寫歡迎回來");
 
   // ── 一天只排一題複習(到期的累積也一樣;到期日早的優先) ──
@@ -172,11 +173,20 @@ export default function check(ok){
     ok(fine, "消毒:亂資料 " + JSON.stringify(junk));
   }
   // 存起來再讀回來一樣
-  const m = mk(null, {}); m.d.begin(); m.d.attempt({ bpm: 56, self: "ok" });
+  const m = mk(null, {}); m.d.begin(); m.d.attempt({ bpm: 60, self: "ok" });
   const again = createDaily({ routes: ROUTES, load: () => m.store, now });
-  ok(again.bpmFor("a", "A1") === 64 && again.state() === "run" && again.seg().lv === "A1", "存檔 → 讀回來接著練");
+  ok(again.bpmFor("a", "A1") === 63 && again.state() === "run" && again.seg().lv === "A1", "存檔 → 讀回來接著練");
   ok(dayNum("2026-10-20") - dayNum("2026-10-19") === 1 && addDays("2026-12-31", 1) === "2027-01-01" && addDays("2026-03-01", -1) === "2026-02-28", "日期換算");
   ok(REVIEW_GAPS.join() === "1,3,7,14,30", "複習間隔 1、3、7、14、30 天");
+  // 節拍器刻度:往上 / 往下一格;不在刻度上的速度、刻度以外
+  ok(METRO.length === 39 && METRO[0] === 40 && METRO[METRO.length - 1] === 208 && METRO.every((m, i) => !i || m > METRO[i - 1]), "節拍器刻度 40 … 208(39 格、遞增)");
+  ok(tempoUp(56) === 58 && tempoUp(60) === 63 && tempoUp(62) === 63 && tempoUp(116) === 120 && tempoUp(208) === 216, "往上一格(62 → 63、208 → 216):" + [tempoUp(62), tempoUp(208)]);
+  ok(tempoDown(63) === 60 && tempoDown(62) === 60 && tempoDown(42) === 40 && tempoDown(40) === 40 && tempoDown(216) === 208, "往下一格(62 → 60、40 不再低):" + [tempoDown(62), tempoDown(40)]);
+  // 目標不在刻度上:最後一步直接到目標
+  const offRoutes = [{ id: "o", name: ["丙", "C"], levels: [{ id: "O1", name: ["一", "One"], start: 60, target: 70 }] }];
+  const od = createDaily({ routes: offRoutes, load: () => null, now }); od.begin();
+  r = od.attempt({ bpm: 66, self: "ok" }); const r2 = od.attempt({ bpm: 69, self: "ok" });
+  ok(r.nextBpm === 69 && r2.nextBpm === 70, "目標 70 不在刻度上:66 → 69 → 70:" + [r.nextBpm, r2.nextBpm]);
 }
 
 if (process.argv[1] && import.meta.url.endsWith(process.argv[1].split("/").pop())) {

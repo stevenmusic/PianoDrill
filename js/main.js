@@ -40,6 +40,8 @@ const S = (() => {
 const SYSTEMS = { abrsm: "ABRSM", trinity: "Trinity" };
 const DEFAULT_EXAM = { system: "abrsm", grade: 1 };   // 第一次打開的問題、沒選考試時檢定分頁暫時看的(auto,不算在準備考試)
 export const gradeLabel = (g, sys) => g === 0 ? tr("初級", "Initial") : tr(g + " 級", "Grade " + g);
+/* 級數按鈕上的短名(檢定頁與第一次的問題的級數列):初級寫 I;aria-label 另外寫完整級名 */
+const gradeShort = g => (g === 0 ? "I" : String(g));
 /* 子項目分段鈕;檢定分頁三項的名稱 */
 const SUBS = {
   tech: () => [["scale", tr("音階", "Scales")], ["arp", tr("琶音", "Arpeggios")], ["hanon", tr("哈農", "Hanon")]],
@@ -56,6 +58,10 @@ const appCtx = async () => ({});
 // @app-end
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
 const GRADES = [0, 1, 2, 3, 4, 5, 6, 7, 8];
+/* 每個考試系統有哪幾級(現在兩個 App 的系統都是初級 0 到 8 級;PianoDrill 的 ABRSM 也有 Initial,見 data/syllabus.json)。
+   換系統時目前的級數在新系統沒有 → 改成最接近的那一級 */
+const gradesOf = sys => GRADES;
+const validGrade = (g, sys) => { const gs = gradesOf(sys); return gs.includes(g) ? g : gs.reduce((a, b) => (Math.abs(b - g) < Math.abs(a - g) ? b : a)); };
 const APP_CTX_MS = 4000;   // appCtx(App 自己的資料)最多等多久才先啟動模組
 let autoExam = { ...DEFAULT_EXAM };   // 沒選考試時,檢定分頁暫時看的系統/級數
 const examNow = () => S.exam ? { ...S.exam, auto: false } : { ...autoExam, auto: true };
@@ -74,7 +80,7 @@ applyStatic();
 $("langToggle").onclick = () => setLang(getLang() === "zh" ? "en" : "zh");
 onLang(() => {
   renderSubnav(); renderExamCard(); tabbarLabel();
-  if (!$("onboard").hidden) fillGrades($("obGrade"), Number($("obGrade").value), ob.system);
+  if (!$("onboard").hidden) fillGradeSeg($("obGradeSeg"), ob.grade, ob.system);
   for (const m of Object.values(MODS)) m.relang();
 });
 
@@ -86,7 +92,7 @@ function segBind(el, get, set){
   sync();
   return sync;
 }
-/* 手機:設定卡收成一行,點了展開(每個模組的設定卡都一樣,在這裡統一處理) */
+/* 手機:設定卡收成一行,點了展開(每個模組的設定卡都一樣,在這裡統一處理;檢定頁的考試卡不收起來) */
 document.addEventListener("click", e => {
   const btn = e.target.closest(".setup-summary"); if (!btn) return;
   const card = btn.closest(".card"), open = !card.classList.contains("open");
@@ -164,11 +170,15 @@ const tabbarLabel = () => $("tabbar").setAttribute("aria-label", tr("練習項�
 tabbarLabel();
 $("examChip").onclick = () => showView("exam");
 
-/* ══ 考試設定卡 ══ */
-function fillGrades(sel, grade, sys){
-  sel.innerHTML = GRADES.map(g => `<option value="${g}">${gradeLabel(g, sys)}</option>`).join("");
-  sel.value = String(GRADES.includes(grade) ? grade : 1);
+/* ══ 考試卡(檢定頁;不收起來):系統兩顆大鈕 + 級數一排,點一下就換 ══
+   級數列(#gradeSeg、第一次的問題的 #obGradeSeg):role="group",每顆 aria-pressed;按鈕上寫短名(gradeShort:0–8,第一格 I / D),
+   aria-label 寫完整級名(gradeLabel);重畫時焦點留在同一顆(keepFocus) */
+function fillGradeSeg(seg, grade, sys){
+  const keep = keepFocus(seg, "data-v");
+  seg.innerHTML = gradesOf(sys).map(g => `<button type="button" data-v="${g}" aria-pressed="${g === grade}" aria-label="${gradeLabel(g, sys)}">${gradeShort(g, sys)}</button>`).join("");
+  keep();
 }
+const gradeOfClick = e => { const b = e.target.closest("button[data-v]"); return b && !b.disabled ? Number(b.dataset.v) : null; };
 function setExam(system, grade){
   S.exam = { system, grade }; save();
   pushExam();
@@ -178,16 +188,16 @@ function pushExam(){
   for (const m of Object.values(MODS)) m.setExam(ex);
   renderExamCard(); renderChip();
 }
-const syncSystemSeg = segBind("systemSeg", () => examNow().system, v => setExam(v, examNow().grade));
-$("selGrade").onchange = () => setExam(examNow().system, Number($("selGrade").value));
+const syncSystemSeg = segBind("systemSeg", () => examNow().system, v => setExam(v, validGrade(examNow().grade, v)));
+$("gradeSeg").onclick = e => { const g = gradeOfClick(e); if (g != null) setExam(examNow().system, g); };
 function renderChip(){
   $("examChip").hidden = !S.exam;
   if (S.exam) $("examChip").textContent = `${SYSTEMS[S.exam.system]} ${gradeLabel(S.exam.grade)}`;
 }
 function renderExamCard(){
   const ex = examNow();
-  syncSystemSeg(); fillGrades($("selGrade"), ex.grade, ex.system);
-  $("examSum").textContent = S.exam ? `${SYSTEMS[ex.system]} · ${gradeLabel(ex.grade)}` : tr("還沒選考試 · 點這裡選考試和級數", "No exam chosen · tap to pick one");
+  syncSystemSeg(); fillGradeSeg($("gradeSeg"), ex.grade, ex.system);
+  $("examSum").textContent = S.exam ? `${SYSTEMS[ex.system]} · ${gradeLabel(ex.grade, ex.system)}` : tr("還沒選考試 · 請在下面選", "No exam yet · pick one below");
   // 三個項目的進度(各模組自己算),點一下切到那一項
   const keep = keepFocus($("examParts"), "data-part");
   $("examParts").innerHTML = Object.keys(MODS).map(name => {
@@ -236,13 +246,13 @@ document.addEventListener("keydown", e => {
   f[i < 0 ? 0 : (i + (e.shiftKey ? -1 : 1) + f.length) % f.length].focus();
 });
 function showOnboard(){
-  const syncSys = segBind("obSystem", () => ob.system, v => { ob.system = v; fillGrades($("obGrade"), Number($("obGrade").value), v); });
-  fillGrades($("obGrade"), ob.grade, ob.system); syncSys();
-  $("obGrade").onchange = () => ob.grade = Number($("obGrade").value);
+  const syncSys = segBind("obSystem", () => ob.system, v => { ob.system = v; ob.grade = validGrade(ob.grade, v); fillGradeSeg($("obGradeSeg"), ob.grade, v); });
+  fillGradeSeg($("obGradeSeg"), ob.grade, ob.system); syncSys();
+  $("obGradeSeg").onclick = e => { const g = gradeOfClick(e); if (g != null) { ob.grade = g; fillGradeSeg($("obGradeSeg"), g, ob.system); } };
   openOnboard();
   $("obYes").onclick = () => {
     S.onboarded = true;
-    setExam(ob.system, Number($("obGrade").value)); showView("exam");
+    setExam(ob.system, ob.grade); showView("exam");
     closeOnboard();
   };
   $("obNo").onclick = () => { S.exam = null; S.onboarded = true; save(); pushExam(); showView("tech"); closeOnboard(); };
@@ -303,7 +313,7 @@ document.addEventListener("keydown", e => {
 
 /* ── 啟動 ── */
 async function init(){
-  fillGrades($("selGrade"), examNow().grade);
+  fillGradeSeg($("gradeSeg"), examNow().grade, examNow().system);
   // 各模組讀自己的資料;一個失敗不影響其他兩個
   // App 自己的資料(@app 區段的 appCtx;讀不到不影響啟動)。網路慢、離線又沒快取時最多等 4 秒,不擋住模組啟動:
   // 逾時(null)先用沒有這些欄位的 ctx 啟動,之後載好再補進同一個 ctx(模組拿的是同一個物件),只通知模組重畫

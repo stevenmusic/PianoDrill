@@ -46,11 +46,11 @@ for (const [name, w, h, mobile] of VPS) {
   await page.evaluate(() => { localStorage.clear(); localStorage.setItem("pianodrill-lang", "zh"); });
   await page.reload(); await page.waitForFunction(() => window.__stageReady >= 1);
   await compare(page, name, "對話框");
-  await page.selectOption("#obGrade", "5"); await page.click("#obYes"); await page.waitForTimeout(300);
+  await page.click('#obGradeSeg button[data-v="5"]'); await page.click("#obYes"); await page.waitForTimeout(300);
   await compare(page, name, "檢定 收合");
   const b = await page.evaluate(() => window.__scoreReady || 0);
   await page.click("#t-drawBtn"); await page.waitForFunction(b => (window.__scoreReady || 0) > b, b);
-  await expand("#examSetup"); await expand("#t-paneExam");
+  await expand("#t-paneExam");
   await compare(page, name, "檢定 ABRSM");
   await page.click('#systemSeg button[data-v="trinity"]'); await page.waitForTimeout(300);
   await compare(page, name, "檢定 Trinity");

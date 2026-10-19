@@ -89,14 +89,14 @@ async function run(vpName, vp){
   // 開始:第一次打開
   await page.evaluate(k => { localStorage.clear(); localStorage.setItem(k, "zh"); }, APP + "-lang");
   await page.reload(); await page.waitForFunction(() => window.__stageReady >= 1);
-  if (rnd() < 0.5) { await tap(`#obSystem button[data-v="${pickOne(SYSTEMS)}"]`); await page.selectOption("#obGrade", String(Math.floor(rnd() * 9))); await tap("#obYes"); }
+  if (rnd() < 0.5) { await tap(`#obSystem button[data-v="${pickOne(SYSTEMS)}"]`); await tap(`#obGradeSeg button[data-v="${Math.floor(rnd() * 9)}"]`); await tap("#obYes"); }
   else await tap("#obNo");
   const ACTIONS = [
     // 外框
     [10, "切分頁", async () => tap(`#tabbar button[data-view="${pickOne(["tech", "sight", "ear", "exam"])}"]`)],
     [8, "切子項目", async () => tapAny("#subSeg button")],
     [3, "考試系統", async () => tapAny("#systemSeg button")],
-    [3, "級數", async () => { if (!(await page.isVisible("#selGrade"))) return false; await page.selectOption("#selGrade", String(Math.floor(rnd() * 9))); return true; }],
+    [3, "級數", async () => tap(`#gradeSeg button[data-v="${Math.floor(rnd() * 9)}"]`)],
     [2, "檢定三項", async () => tapAny("#examParts .part")],
     [3, "展開/收起設定", async () => tapAny(".setup-summary")],
     [3, "中英切換", async () => tap("#langToggle")],

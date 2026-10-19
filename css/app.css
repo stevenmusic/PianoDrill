@@ -647,7 +647,29 @@ body.land-play #t-stage{flex:1;display:flex;flex-direction:column;justify-conten
 .part[aria-pressed="true"]{border-color:var(--gold);background:rgba(242,185,75,.1)}
 :root.light .part[aria-pressed="true"]{background:rgba(133,100,24,.08)}
 @media (max-width:360px){ .exam-parts{grid-template-columns:1fr} .part{min-height:44px} .part small{min-height:0} }
-#examSetup .setup-summary svg:first-child{color:var(--gold)}
+/* 檢定頁的考試卡(不收起來,手機也一直展開;使用者:以前要展開、選系統、再拉下拉選單,很難用):
+   摘要一行 → 系統兩顆大鈕 → 級數一排(9 格,跟子項目的分段鈕同一個樣式;js/main.js 的 fillGradeSeg)。第一次的問題的級數列同一個樣式 */
+.exam-card{padding:10px 14px 12px}
+.exam-sum{display:flex;align-items:center;gap:8px;min-height:24px;font-size:var(--fs-sm);color:var(--ivory)}
+.exam-sum svg{flex:none;color:var(--gold)}
+.exam-sum .sum{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.exam-pick{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+.exam-pick #systemSeg button{min-height:40px}
+.exam-grades{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0, 1fr)}   /* 每格一樣寬(flex 的話第一格少一條框線,窄 1px) */
+.exam-grades button{padding:0;min-height:36px;font-variant-numeric:tabular-nums}
+@media (max-width:600px){ .exam-card{padding:8px 12px 10px} }
+/* 折疊機 280:9 格要 ≥ 28 寬,卡片、對話框的左右內距放不下 → 系統鈕、級數列往兩邊伸到內距裡(離卡片邊框 1px) */
+@media (max-width:300px){
+  #examSetup{--bleed:11px}
+  .modal{padding:8px}
+  .modal-card{padding:16px 12px;--bleed:11px}
+  #examSetup .exam-pick > .seg,.modal-card .seg{margin-inline:calc(-1 * var(--bleed, 0px))}   /* 系統鈕跟著一起伸,兩排對齊 */
+}
+@media (max-height:420px), (orientation:landscape) and (max-height:500px){
+  .exam-card{padding:6px 12px 8px}
+  .exam-pick{gap:6px;margin-top:6px}
+  .exam-pick .seg button,.exam-pick #systemSeg button{min-height:30px}
+}
 /* 模組:卡片之間的間距跟 main 一樣 */
 .mod{display:flex;flex-direction:column;gap:14px;min-width:0}
 @media (max-width:600px){ .mod{gap:10px} }
@@ -698,9 +720,8 @@ body.land-play #t-stage{flex:1;display:flex;flex-direction:column;justify-conten
   .mod-side,.mod-main{display:flex;flex-direction:column;gap:16px;min-width:0}
   .mod-side .prow{grid-template-columns:1fr;gap:4px}
   .mod-side .fields{grid-template-columns:1fr}   /* 左欄窄:欄位一個一行(以前四欄擠在一起,分段鈕的字被截斷) */
-  /* 檢定設定卡:系統、級數與三項進度排在同一列 */
-  #examSetup .setup-body{display:grid;grid-template-columns:minmax(0, 420px) minmax(0, 1fr);gap:16px;align-items:end}
-  #examSetup .fields{grid-template-columns:repeat(2, minmax(0, 1fr))}
+  /* 檢定頁的考試卡:系統、級數(左)與三項進度(右)排在同一列 */
+  #examSetup .exam-body{display:grid;grid-template-columns:minmax(0, 420px) minmax(0, 1fr);gap:16px;align-items:end}
   #examSetup .exam-parts{margin-top:0}
 }
 /* 兩欄的左欄比較窄:選擇器的選項改固定寬度格子(中英文每列個數一樣,換語言不會多一行;聽音各列另外有自己的寬度) */
@@ -729,9 +750,8 @@ body.land-play #t-stage{flex:1;display:flex;flex-direction:column;justify-conten
   .tagline,#examChip{display:none !important}
   .subnav{flex:1 1 auto;max-width:460px;margin-left:auto}
   .q-title.empty,#mod-ear .q-title.empty{font-size:var(--fs-lg)}
-  /* 檢定:兩條收起來的設定列並排(頁尾排最後:格子裡沒寫 order 的會被排到前面) */
+  /* 檢定:考試卡(左)與各模組的檢定說明(右)並排(頁尾排最後:格子裡沒寫 order 的會被排到前面) */
   body.view-exam footer{order:99}
-  body.view-exam #examSetup .fields{grid-template-columns:1fr}
   body.view-exam .mod .setup .fields{grid-template-columns:repeat(2, minmax(0, 1fr))}
   body.view-exam .exam-parts{grid-template-columns:1fr}
   body.view-exam .part{min-height:0;flex-direction:row;align-items:baseline;gap:8px}

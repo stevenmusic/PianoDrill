@@ -21,7 +21,6 @@ for (const [dev, w, h, dpr] of [["iphone", 430, 932, 3], ["ipad13", 1032, 1376, 
   };
   // 1 檢定:ABRSM 5 級,抽一題音階
   await go({ view: "exam", sub: { exam: "tech" } }, async () => {
-    if (await page.isVisible("#examSetup .setup-summary")) await page.click("#examSetup .setup-summary");
     await page.click("#t-drawBtn");
   });
   await page.screenshot({ path: `${OUT}${dev}-1-exam.png` });

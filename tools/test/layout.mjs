@@ -103,13 +103,13 @@ for (const [name, w, h, mobile] of VPS) {
   await page.evaluate(() => { localStorage.clear(); localStorage.setItem("pianodrill-lang", "zh"); });
   await page.reload(); await page.waitForFunction(() => window.__stageReady >= 1);
   await audit(page, name, "對話框"); await shot("onboard");
-  await page.selectOption("#obGrade", "8"); await page.click("#obYes");
+  await page.click('#obGradeSeg button[data-v="8"]'); await page.click("#obYes");
   await page.waitForTimeout(300);
   // 檢定 · 音階琶音:ABRSM 8 級抽一題(四個八度,最寬的譜)
   const b = await page.evaluate(() => window.__scoreReady || 0);
   await page.click("#t-drawBtn"); await page.waitForFunction(b => (window.__scoreReady || 0) > b, b);
   await audit(page, name, "檢定 音階琶音"); await shot("exam");
-  await expand("#examSetup"); await expand("#t-paneExam");
+  await page.click('#gradeSeg button[data-v="0"]'); await expand("#t-paneExam");
   await page.click('#systemSeg button[data-v="trinity"]'); await page.waitForTimeout(300);
   await audit(page, name, "檢定 Trinity 設定展開");
   // 檢定 · 視奏(Trinity 還沒有規則 → 說明)、聽力

@@ -192,20 +192,11 @@ export function createReading({ $, store, save, onAnswered = () => {} }) {
     $('rdPos').innerHTML = segHTML([['all', '全部', 'All'], ['line', '只線', 'Lines'], ['space', '只間', 'Spaces']], R.pos);
     $('rdAcc').innerHTML = segHTML([['w', '只有白鍵', 'White keys'], ['acc', '加升降', '♯ and ♭']], R.acc ? 'acc' : 'w');
     $('rdMode').innerHTML = segHTML([['practice', '練習', 'Practice'], ['time', '60 秒', '60 s'], ['streak', '連對', 'Streak']], R.mode);
-    // 小鍵盤 C1–C7:只用來顯示範圍(框起來的鍵上色)。手機上一個鍵只有幾 px 寬點不準,改用兩端的 ‹ › (按住連續移動)
-    const mini = $('rdMini');
-    if (!mini.children.length) {
-      let html = '';
-      for (let m = LOW; m <= HIGH; m++) if (!isBlack(m)) html += `<i data-m="${m}"${m % 12 === 0 ? ` data-c="${midiName(m)}"` : ''}></i>`;
-      mini.innerHTML = html;
-    }
-    for (const k of mini.children) { const m = Number(k.dataset.m); k.classList.toggle('in', m >= R.lo && m <= R.hi); k.classList.toggle('pend', m === pendingLo); }
     $('rdLo').textContent = midiName(R.lo); $('rdHi').textContent = midiName(R.hi);
     pairText($('rdLedger'), () => (ledgers() ? tr(`最多 ${ledgers()} 條加線`, `Up to ${ledgers()} ledger line${ledgers() > 1 ? 's' : ''}`) : tr('沒有加線', 'No ledger lines')));
-    for (const [id, zh, en] of [['rdQuickLbl', '範圍', 'Range'], ['rdClefLbl', '譜號', 'Clef'], ['rdPosLbl', '位置', 'Notes on'], ['rdAccLbl', '升降', 'Sharps/flats'], ['rdModeLbl', '模式', 'Mode'], ['rdCustomLbl', '自訂', 'Custom'], ['rdLoLbl', '最低音', 'Lowest'], ['rdHiLbl', '最高音', 'Highest']]) $(id).textContent = tr(zh, en);
+    for (const [id, zh, en] of [['rdQuickLbl', '範圍', 'Range'], ['rdClefLbl', '譜號', 'Clef'], ['rdPosLbl', '位置', 'Notes on'], ['rdAccLbl', '升降', 'Sharps/flats'], ['rdModeLbl', '模式', 'Mode'], ['rdLoLbl', '最低音', 'Lowest'], ['rdHiLbl', '最高音', 'Highest']]) $(id).textContent = tr(zh, en);
     pairText($('rdNote'), () => tr('用 ‹ › 調最低音與最高音,按住可以連續移動。題目、範圍與最常錯的加倍出現都是 App 的練習設定。', 'Set the lowest and highest notes with ‹ › (hold to move fast). Ranges and doubled misses are App practice settings.'));
     for (const [id, zh, en] of [['rdLoDown', '最低音降一個', 'Lowest down'], ['rdLoUp', '最低音升一個', 'Lowest up'], ['rdHiDown', '最高音降一個', 'Highest down'], ['rdHiUp', '最高音升一個', 'Highest up']]) $(id).setAttribute('aria-label', tr(zh, en));
-    $('rdMini').setAttribute('aria-label', tr(`範圍 ${midiName(R.lo)}–${midiName(R.hi)}`, `Range ${midiName(R.lo)}–${midiName(R.hi)}`));
   }
   /* 題目卡上一行寫目前的設定(例如「高音譜表 C4–C5 · 只出線上」)+ 分數 */
   function setText() {

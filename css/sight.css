@@ -110,12 +110,6 @@
 .rd-seg2{grid-template-columns:repeat(2,minmax(0,1fr))} .rd-seg3{grid-template-columns:repeat(3,minmax(0,1fr))} .rd-seg4{grid-template-columns:repeat(4,minmax(0,1fr))}
 .rd-seg .opt{min-width:0;min-height:44px;height:auto;padding:4px 6px;justify-content:center;text-align:center;white-space:normal;line-height:1.25}
 .rd-seg4 .opt{white-space:nowrap;font-size:var(--fs-sm);padding:4px 2px}   /* 範圍 / 快捷鈕每顆一行(「C3–G4」不拆成兩行) */
-.rd-mini{display:flex;height:34px;border-radius:4px;overflow:hidden;background:#0C0A07;gap:1px;padding:1px;pointer-events:none}
-.rd-mini i{flex:1 1 0;min-width:0;background:#DDD6C4;position:relative}
-.rd-mini i.in{background:var(--gold)}
-.rd-mini i.pend{background:var(--teal)}
-.rd-mini i[data-c]::after{content:"";position:absolute;left:0;bottom:0;width:100%;height:4px;background:rgba(0,0,0,.35)}
-.rd-mini{min-width:0}
 /* 自訂範圍的 ‹ ›:整個卡片寬度;「最低音 ‹ E1 ›」「最高音 ‹ G6 ›」放得下並排、放不下兩排(每排同樣的欄寬,上下對齊),不會有一顆鈕單獨掉下去 */
 .rd-ends{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,190px),1fr));gap:6px 16px;margin-top:8px}
 .rd-end{display:grid;grid-template-columns:4.6em 44px 3em 44px;justify-content:start;align-items:center;column-gap:8px}   /* 標籤欄跟上面幾排一樣寬:‹ 對齊上面的按鈕 */

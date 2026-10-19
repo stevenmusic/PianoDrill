@@ -181,7 +181,8 @@ function staffZoom() {
  * change how many bars fit on a line.
  */
 function layoutShapeKey(score) {
-  return `${score.grade}:${score.barCount}:${timeSignatureClass(score.timeSignature)}:${layoutWidthClass()}`;
+  // 顯示音名的譜比較高(每個譜表下面多一排字),排法與大小分開記
+  return `${score.grade}:${score.barCount}:${timeSignatureClass(score.timeSignature)}:${layoutWidthClass()}${namesShown() ? ':n' : ''}`;
 }
 
 let rules = null;
@@ -426,9 +427,11 @@ function removeDuplicateText() {
  */
 function applyFixedSpacing() {
   const rules = osmd.EngravingRules;
-  rules.StaffDistance = STAFF_GAP_UNITS;
-  rules.BetweenStaffDistance = STAFF_GAP_UNITS;
-  rules.MinimumDistanceBetweenSystems = SYSTEM_GAP_UNITS;
+  // 顯示音名(視奏分頁):每個譜表下面多一排字,譜表之間、行與行之間都多留那一排的高度(`drawNoteNames`)
+  const names = namesRowUnits();
+  rules.StaffDistance = STAFF_GAP_UNITS + names;
+  rules.BetweenStaffDistance = STAFF_GAP_UNITS + names;
+  rules.MinimumDistanceBetweenSystems = SYSTEM_GAP_UNITS + names;
   /*
    * These two are the clearance that keeps what hangs below one stave off
    * what rises toward the next — slurs, hairpins, dynamics, ledger lines.
@@ -437,8 +440,9 @@ function applyFixedSpacing() {
    * onto the notes. The staff distance above is what holds the layout still;
    * these are what stop it colliding, and they are not the same job.
    */
-  rules.MinSkyBottomDistBetweenStaves = MIN_CLEARANCE_UNITS;
-  rules.MinSkyBottomDistBetweenSystems = MIN_CLEARANCE_UNITS;
+  // 音名排不下(譜表之間的東西太多)才連「最少空隙」一起加大;平常只加固定距離,不然 OSMD 會把力度記號擺在加大後的正中間,空出一大片
+  rules.MinSkyBottomDistBetweenStaves = MIN_CLEARANCE_UNITS + (namesSky ? names : 0);
+  rules.MinSkyBottomDistBetweenSystems = MIN_CLEARANCE_UNITS + (namesSky ? names : 0);
   /*
    * Let a slur bend around what is already engraved rather than being placed
    * from the notes alone. Off by default in OSMD, and with two hands each
@@ -592,12 +596,22 @@ export async function start(c) {
     // every one of `fitScore`'s repeated renders gets the correction too.
     const rawRender = osmd.render.bind(osmd);
     osmd.render = (...args) => {
-      applyFixedSpacing();
-      rawRender(...args);
-      removeDuplicateText();
-      pinTempoTermPosition();
-      pinScoreTop();
-      drawNoteNames();
+      // 顯示音名:字排不下(音太密要交錯、和弦、或留的空間不夠)就多留空間再排(最多再排兩次;同一題之後都沿用)
+      const memoKey = `${osmd.EngravingRules.RenderXMeasuresPerLineAkaSystem}:${osmd.zoom}`;
+      ({ lines: namesLines, sky: namesSky } = namesMemo.get(memoKey) || { lines: 1, sky: false });
+      for (let pass = 0; pass < 3; pass++) {
+        applyFixedSpacing();
+        rawRender(...args);
+        removeDuplicateText();
+        pinTempoTermPosition();
+        pinScoreTop();
+        const r = drawNoteNames();
+        if (!r || (!r.crowded && r.need <= namesLines) || (namesSky && namesLines >= 4)) break;
+        if (r.crowded && namesSky) namesLines = Math.min(4, namesLines + 1);
+        if (r.crowded) namesSky = true;
+        namesLines = Math.min(4, Math.max(r.need, namesLines));
+        namesMemo.set(memoKey, { lines: namesLines, sky: namesSky });
+      }
     };
   } catch (error) {
     fail('failInitRenderer', error.message);
@@ -783,32 +797,57 @@ function setupStage() {
     const n = SS.stage[hand];
     SS.names[n] = !SS.names[n]; saveSS();
     renderStage();
-    drawNoteNames();
+    // 開關音名會改譜表之間的距離(多留一排字),要重新排版
+    if (current && active) renderCurrent(); else drawNoteNames();
   });
 }
 setupStage();
-/* 顯示音名(視奏分頁;每一階各自開關,階 1 預設開):譜上每個音下面(右手)/ 上面(左手)小字寫音名(字母,中英一樣),
-   畫在 OSMD 的 SVG 上(每次 render 之後重畫;換語言不用重畫)。檢定頁不畫 */
+/* 顯示音名(視奏分頁;每一階各自開關,階 1 預設開):每個譜表**下面**一排小字寫音名(字母,中英一樣;右手在高音譜表下、左手在低音譜表下,
+   單手也一樣),畫在 OSMD 的 SVG 上(每次 render 之後重畫;換語言不用重畫)。檢定頁不畫。
+   位置用實際畫出來的 SVG 量:同一行、同一個譜表的字母放在同一條水平線上(對齊各自的音),從譜表最下面那條線往下找
+   第一個「每個字母都不碰到任何筆畫」(符桿、符尾、符槓、加線、重音、跳音、連結線 / 圓滑線、力度、漸強漸弱、下一個譜表)的高度。
+   開音名時譜表之間、行與行之間多留字的空間(`namesRowUnits`,`applyFixedSpacing` 用);還是排不下就多留再排(`osmd.render` 的包裝)。
+   (寫進符頭裡試過:手機上符頭只有約 5px,看不清,不用。)*/
 const NOTE_LETTER = { 0: 'C', 2: 'D', 4: 'E', 5: 'F', 7: 'G', 9: 'A', 11: 'B' };
+/** 音名最小字級(CSS px;手機縮小譜面時也看得清楚)與相對譜表的大小(譜線間距的倍數) */
+const NAME_MIN_PX = 10, NAME_UNITS = 1.3;
+const namesShown = () => mode !== 'exam' && !!current && !!current.free && !!SS.names[SS.stage[hand]];
+/** 音名字級(SVG 座標;一個譜線間距 = 10) */
+const nameFontSvg = (zoom) => Math.max(NAME_MIN_PX / (zoom || 1), NAME_UNITS * 10);
+// 這一次排版要留幾排字(音很密交錯、和弦會多一排)、要不要連最少空隙一起加大。
+// 照「每行幾小節 + 縮放」分開記(fitScore 試排很擠的排法時算出來的不能帶到最後的排法),換題重來
+let namesLines = 1, namesSky = false, namesFor = null, namesMemo = new Map();
+/** 開音名時要多留的字的高度(譜線間距;namesLines 排 + 上下留白);關音名 = 0 */
+function namesRowUnits() {
+  return namesShown() && osmd ? (namesLines * nameFontSvg(osmd.zoom) * 1.2 + 2 * Math.max(3, 3 / (osmd.zoom || 1))) / 10 + 0.3 : 0;
+}
 function drawNoteNames() {
   const svg = elements.score.querySelector('svg');
   if (!svg) return;
   svg.querySelectorAll('.s-name').forEach((el) => el.remove());
-  if (mode === 'exam' || !current || !current.free || !SS.names[SS.stage[hand]] || !osmd || !osmd.GraphicSheet) return;
-  // 位置用畫面座標量,再換回 SVG 自己的座標(OSMD 的 SVG 有 viewBox 縮放)
+  if (!namesShown() || !osmd || !osmd.GraphicSheet) return;
+  // 位置用畫面座標量,再換回 SVG 自己的座標(OSMD 的 SVG 有 viewBox 縮放;SVG 座標 = VexFlow 座標,一個譜線間距 = 10)
   const ctm = svg.getScreenCTM();
-  if (!ctm) return;
-  const k = ctm.a || 1, toX = (cx) => (cx - ctm.e) / k, toY = (cy) => (cy - ctm.f) / (ctm.d || 1);
-  const NS = 'http://www.w3.org/2000/svg', unit = 10 * osmd.zoom / k, size = Math.max(8 / k, 1.25 * unit);
-  const solo = hand === 'right' ? 1 : hand === 'left' ? 2 : 0;
-  // 每一行、每一個譜表:右手(高音譜表)寫在全部符頭的最下面再往下一點、左手(低音譜表)寫在最上面再往上一點(同一行對齊)
+  if (!ctm || !ctm.a) return;
+  const k = ctm.a, toX = (cx) => (cx - ctm.e) / k, toY = (cy) => (cy - ctm.f) / (ctm.d || k);
+  const NS = 'http://www.w3.org/2000/svg', size = nameFontSvg(osmd.zoom), padX = Math.max(2.5, 2 / k), padY = Math.max(3, 3 / k), gapX = size * 0.35;   // 留白至少 2–3 CSS px
+  // 譜上所有筆畫的外框(SVG 座標)
+  const ink = [];
+  for (const el of svg.querySelectorAll('path, rect, text, ellipse, circle, line, polyline, polygon, use')) {
+    const b = el.getBoundingClientRect();
+    if (!b.width && !b.height) continue;
+    ink.push({ l: toX(b.left), r: toX(b.right), t: toY(b.top), b: toY(b.bottom) });
+  }
+  // 每一行、每一個譜表一排:{ top, bottom(譜表第一條、最後一條線), next(下面那個譜表的第一條線), items }
   const rows = new Map();
   for (const measures of osmd.GraphicSheet.MeasureList) {
     for (const m of measures) {
-      if (!m) continue;
-      const staffIndex = m.ParentStaff && m.ParentStaff.idInMusicSheet != null ? m.ParentStaff.idInMusicSheet : 0;
-      const isLeft = solo ? solo === 2 : staffIndex === 1;
+      if (!m || !m.getVFStave) continue;
       const line = m.ParentStaffLine;
+      const vf = m.getVFStave();
+      const key = `${line && line.PositionAndShape ? Math.round(line.PositionAndShape.AbsolutePosition.y * 10) : 0}`;
+      if (!rows.has(key)) rows.set(key, { key, top: vf.getYForLine(0), bottom: vf.getYForLine(4), items: [] });
+      const row = rows.get(key);
       for (const se of m.staffEntries) {
         for (const gve of se.graphicalVoiceEntries) {
           for (const gn of gve.notes) {
@@ -821,32 +860,88 @@ function drawNoteNames() {
             const box = nh.getBoundingClientRect();
             const p = src.Pitch, letter = NOTE_LETTER[p.FundamentalNote] ?? '';
             const acc = p.AccidentalHalfTones > 0 ? '♯' : p.AccidentalHalfTones < 0 ? '♭' : '';
-            const key = `${line && line.PositionAndShape ? Math.round(line.PositionAndShape.AbsolutePosition.y) : 0}:${staffIndex}`;
-            if (!rows.has(key)) rows.set(key, { isLeft, items: [], ext: isLeft ? Infinity : -Infinity });
-            const row = rows.get(key);
-            row.items.push({ x: toX(box.left + box.width / 2), text: letter + acc });
-            row.ext = isLeft ? Math.min(row.ext, toY(box.top)) : Math.max(row.ext, toY(box.bottom));
+            row.items.push({ x: toX(box.left + box.width / 2), y: toY(box.top + box.height / 2), text: letter + acc });
           }
         }
       }
     }
   }
-  for (const row of rows.values()) {
-    const y = row.isLeft ? row.ext - 0.6 * unit : row.ext + 0.6 * unit + size * 0.8;
-    const done = new Set();
-    for (const it of row.items) {
-      const k = `${Math.round(it.x)}:${it.text}`;
-      if (done.has(k)) continue;   // 和弦裡同一個位置同一個字只寫一次
-      done.add(k);
-      const el = document.createElementNS(NS, 'text');
-      el.setAttribute('class', 's-name');
-      el.setAttribute('x', String(it.x)); el.setAttribute('y', String(y));
-      el.setAttribute('text-anchor', 'middle'); el.setAttribute('font-size', String(size));
-      el.setAttribute('aria-hidden', 'true');
-      el.textContent = it.text;
-      svg.appendChild(el);
+  const list = [...rows.values()].sort((a, b) => a.top - b.top);
+  list.forEach((row, i) => { row.next = i + 1 < list.length ? list[i + 1].top : Infinity; });
+  let maxBottom = 0, need = 1, crowded = false;
+  for (const row of list) {
+    // 同一個位置的音(和弦)排成一欄:高的音在上面;同一個字只寫一次
+    const cols = [];
+    for (const it of row.items.sort((a, b) => a.x - b.x)) {
+      let col = cols.find((c) => Math.abs(c.x - it.x) < 4);
+      if (!col) { col = { x: it.x, notes: [] }; cols.push(col); }
+      col.notes.push(it);
+    }
+    for (const col of cols) col.texts = [...new Set(col.notes.sort((a, b) => a.y - b.y).map((it) => it.text))];
+    if (!cols.length) continue;
+    // 先畫出來量字的大小(基線到頂端的距離、寬度),再決定高度
+    let lineH = 0, ascent = 0;
+    for (const col of cols) {
+      col.els = col.texts.map((text) => {
+        const el = document.createElementNS(NS, 'text');
+        el.setAttribute('class', 's-name');
+        el.setAttribute('x', String(col.x)); el.setAttribute('y', '0');
+        el.setAttribute('text-anchor', 'middle'); el.setAttribute('font-size', String(size));
+        el.setAttribute('aria-hidden', 'true');
+        el.textContent = text;
+        svg.appendChild(el);
+        return el;
+      });
+      col.w = 0;
+      for (const el of col.els) { const bb = el.getBBox(); col.w = Math.max(col.w, bb.width); lineH = Math.max(lineH, bb.height); ascent = Math.max(ascent, -bb.y); }
+    }
+    // 音很密(十六分音符)時字比音距寬:相鄰的字會碰在一起的,下一個字往下一層(交錯);和弦一個音一層。
+    // 每一欄找最上面一個放得下(這幾層在這個寬度裡都還空著)的層
+    const levelRight = [];
+    for (const col of cols) {
+      const l = col.x - col.w / 2, n = col.els.length;
+      let base = 0;
+      while (Array.from({ length: n }, (_, j) => levelRight[base + j] ?? -Infinity).some((r) => r + gapX > l)) base++;
+      for (let j = 0; j < n; j++) levelRight[base + j] = col.x + col.w / 2;
+      col.base = base;
+      // 每一欄只看水平方向會碰到的筆畫
+      col.ink = ink.filter((b) => b.r > l - padX && b.l < col.x + col.w / 2 + padX);
+    }
+    const levels = levelRight.length;
+    need = Math.max(need, levels);
+    // 從譜表最下面那條線往下找第一個整排都不碰到筆畫的高度(字的頂端 = y)
+    const hits = (y) => {
+      let n = 0;
+      for (const col of cols) {
+        const t = y + col.base * lineH - padY, b = y + (col.base + col.els.length) * lineH + padY;
+        for (const box of col.ink) if (box.b > t && box.t < b) n++;
+      }
+      return n;
+    };
+    const start = row.bottom + 3, limit = Number.isFinite(row.next) ? row.next - levels * lineH - 2 : row.bottom + 400;
+    let best = start, bestHits = Infinity;
+    for (let y = start; y <= Math.max(start, limit); y += 1) {
+      const n = hits(y);
+      if (n < bestHits) { best = y; bestHits = n; }
+      if (!n) break;
+    }
+    if (bestHits) crowded = true;
+    for (const col of cols) {
+      col.els.forEach((el, j) => { el.setAttribute('y', String(best + ascent + (col.base + j) * lineH)); el.dataset.row = `${row.key}:${col.base + j}`; });
+      const top = best + col.base * lineH, bottom = top + lineH * col.els.length;
+      ink.push({ l: col.x - col.w / 2, r: col.x + col.w / 2, t: top, b: bottom });   // 下一排也要避開
+      maxBottom = Math.max(maxBottom, bottom);
     }
   }
+  // 最後一行的音名超出 SVG 的底:把 SVG 加高(不然會被切掉)
+  const vb = (svg.getAttribute('viewBox') || '').split(/[\s,]+/).map(Number);
+  if (vb.length === 4 && vb.every(Number.isFinite) && maxBottom + 6 > vb[1] + vb[3]) {
+    const extra = maxBottom + 6 - (vb[1] + vb[3]);
+    svg.setAttribute('viewBox', `${vb[0]} ${vb[1]} ${vb[2]} ${vb[3] + extra}`);
+    const h = parseFloat(svg.getAttribute('height'));
+    if (Number.isFinite(h)) svg.setAttribute('height', String(h + extra * k));
+  }
+  return { need, crowded };
 }
 function renderSummary() {
   const keyText = elements.key.querySelector('button[aria-pressed="true"]')?.textContent ?? t('randomKey');
@@ -975,6 +1070,7 @@ async function drawTest({ score, xml }, quiet = false) {
   // calls osmd.render() many times while measuring candidate layouts) and
   // only released once a final layout is settled — see the .entering rule.
   elements.score.classList.add('entering');
+  if (score !== namesFor) { namesFor = score; namesMemo = new Map(); }   // 音名要留幾排:每一題重新算
 
   if (!quiet) say('renderingStatus');
   try {

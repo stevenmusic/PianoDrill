@@ -2,7 +2,7 @@
 import { addStrings } from "../shared/i18n.js";
 addStrings("ear", {
   tabNote: ["單音", "Notes"], tabInterval: ["音程", "Intervals"], tabChord: ["和弦", "Chords"],
-  play: ["播放題目", "Play"], replay: ["再聽一次", "Replay"], stop: ["停止", "Stop"],
+  play: ["播放題目", "Play"], playCap: ["題目", "Question"], replay: ["再聽一次", "Replay"], stop: ["停止", "Stop"],
   next: ["下一題", "Next"], draw: ["隨機抽一題", "Random"], showAnswer: ["顯示答案", "Show answer"], clearKeys: ["重彈", "Clear"],
   tapBtn: ["拍", "Tap"], tapDone: ["完成", "Done"],
   optAuto: ["答對自動下一題", "Auto next"], mock: ["模擬考", "Mock exam"], optAdaptive: ["加強弱項", "Focus weak"],

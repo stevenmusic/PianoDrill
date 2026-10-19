@@ -2,7 +2,7 @@
    頂欄、子項目分段鈕、底部分頁、共用的考試設定(系統 + 級數設一次,三個模組都照這一級)、主題、語言、第一次打開的問題。
    三個模組(js/tech、js/sight、js/ear)各自負責自己的卡片;外框只告訴它們「現在顯示哪一頁、考哪一級、語言換了」。
    每個模組匯出同一組函式:start(ctx)、enter(tab)、leave()、setExam(exam)、relang()、examStatus()、onKey(e)
-   - ctx = { exam, examChanged(), gradeLabel(g, sys), showView(view, sub), setSubActive(on, view), subActive(view) } + 各 App 自己的(@app 區段的 appCtx(),
+   - ctx = { exam, examChanged(), gradeLabel(g, sys), showView(view, sub), setSubActive(on, view), subBar(el, view), subActive(view) } + 各 App 自己的(@app 區段的 appCtx(),
      例如 DrumDrill 的 examData(sys));模組不能 import 這個檔案。appCtx 最多等 APP_CTX_MS(4 秒):逾時先不給
      (模組要能處理 ctx 裡還沒有這些欄位),之後載好再補進同一個 ctx,通知每個模組重畫(onCtx(),沒有就 relang());
      不呼叫 setExam:考試沒變,不能把進行中的題目、模擬考洗掉
@@ -115,7 +115,14 @@ let curMod = null;
    點任何子項目 = 這一段暫停(模組 leave() 停播放、不清題目)、分段鈕亮回來;模組 enter(tab) 時看 ctx.subActive(view) 是 true 就離開段落 */
 const subOff = new Set();
 function setSubActive(on, view = S.view){
-  if (on) subOff.delete(view); else subOff.add(view);
+  if (on) { subOff.delete(view); delete subBars[view]; } else subOff.add(view);
+  if (view === S.view) renderSubnav();
+}
+/* 今日練習進行中:子項目列換成今日練習的那一行(進度、暫停、下一段;js/shared/dailycard.js 的 barHost 交給 ctx.subBar(el, view))。
+   每個分頁各自記;換到別的分頁照那一頁自己的子項目列,回來再換回這一行 */
+const subBars = {};
+function subBar(el, view = S.view){
+  if (el) subBars[view] = el; else delete subBars[view];
   if (view === S.view) renderSubnav();
 }
 function renderSubnav(){
@@ -127,6 +134,11 @@ function renderSubnav(){
   $("subSeg").innerHTML = opts.map(([v, t]) => `<button data-v="${v}" aria-pressed="${!subOff.has(S.view) && S.sub[S.view] === v}">${t}</button>`).join("");
   $("subSeg").setAttribute("aria-label", SUB_LABEL()[S.view] || "");
   keep();
+  const bar = opts.length && subOff.has(S.view) ? subBars[S.view] : null;
+  $("subnav").querySelectorAll(".sub-bar").forEach(x => { if (x !== bar) x.remove(); });
+  if (bar && bar.parentNode !== $("subnav")) { bar.classList.add("sub-bar"); $("subnav").appendChild(bar); }
+  $("subSeg").hidden = !!bar;
+  $("subnav").classList.toggle("has-bar", !!bar);
 }
 $("subSeg").onclick = e => {
   const b = e.target.closest("button[data-v]"); if (!b) return;
@@ -382,7 +394,7 @@ async function init(){
   // App 自己的資料(@app 區段的 appCtx;讀不到不影響啟動)。網路慢、離線又沒快取時最多等 4 秒,不擋住模組啟動:
   // 逾時(null)先用沒有這些欄位的 ctx 啟動,之後載好再補進同一個 ctx(模組拿的是同一個物件),只通知模組重畫
   // (onCtx(),沒有就 relang():只重寫畫面;不走 setExam / pushExam,考試沒變,進行中的題目與模擬考要保留)
-  const ctx = { exam: examNow(), examChanged, gradeLabel, showView, setSubActive, subActive: (view = S.view) => !subOff.has(view) };
+  const ctx = { exam: examNow(), examChanged, gradeLabel, showView, setSubActive, subBar, subActive: (view = S.view) => !subOff.has(view) };
   const extraJob = appCtx().catch(e => (console.error("appCtx", e), {}));
   const extra = await Promise.race([extraJob, new Promise(r => setTimeout(() => r(null), APP_CTX_MS))]);
   if (extra) Object.assign(ctx, extra);

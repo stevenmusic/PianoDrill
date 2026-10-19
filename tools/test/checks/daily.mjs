@@ -1,5 +1,5 @@
 // 今日練習引擎(js/shared/daily.js)的檢查;兩個 App 同一份(sync.json same),verify.mjs 會呼叫;也可以單獨跑:node tools/test/checks/daily.mjs
-//   菜單(暖身第一、交錯、還沒開放的路線、到期複習一天一題)、慢練優先、速度階梯、連續 N 次穩才過關、失手重算、退速度、建議回上一關、
+//   菜單(暖身第一、順序固定、還沒開放的路線、到期複習一天一題)、慢練優先、速度階梯、連續 N 次穩才過關、失手重算、退速度、建議回上一關、
 //   快速通道(開 / 關)、回上一關、歡迎回來(≥ 7 天)、複習盒與變化(穩 → 下一盒、不穩 → 上一盒隔天)、拍點模式、跨午夜換日、消毒、沒練不扣分
 import { createDaily, cleanDaily, buildPlan, clickPlays, gapBars, verdictOf, addDays, dayNum, DEFAULT_VARY, REVIEW_GAPS, SEG_SEC, METRO, tempoUp, tempoDown } from "../../../js/shared/daily.js";
 
@@ -93,7 +93,7 @@ export default function check(ok){
   ok(d.state() === "idle", "換日重排(還沒開始)");
   const orders = new Set();
   for (let i = 0; i < 6; i++) orders.add(buildPlan({ routes: ROUTES, daily: d.data, today: addDays("2026-10-20", i), extras: { warm: () => ({}) } }).map(p => p.k + (p.r || "")).join(","));
-  ok(orders.size === 3 && [...orders].every(o => o.startsWith("warm,")), "交錯:暖身固定第一,其他段每天輪換(3 種順序):" + [...orders].join(" | "));
+  ok(orders.size === 1 && [...orders][0] === "warm,routea,routeb,reviewa", "每天順序固定:暖身 → 主要路線 → 第二條路線 → 複習:" + [...orders].join(" | "));
   d.begin();
   const iRev = d.plan().findIndex(p => p.k === "review");
   s = d.begin(iRev);
@@ -116,6 +116,14 @@ export default function check(ok){
   // 關卡自己的變化清單(鋼琴:斷奏、換調…)
   const b1 = d.levelOf("b", "B1");
   ok(b1.n === 1 && b1.vary[1].q.articulation === "staccato", "關卡資料的變化清單");
+  // 變化只用學過的(extras.vary):還沒過 A2 → 斷奏拿掉、退回拍點模式
+  {
+    const ad = (v, { passed }) => (v.q && v.q.articulation && !passed("a", "A2") ? { click: "one" } : v);
+    const x = mk({ prog: { a: { at: "A2" }, b: { at: "B2" } }, lv: { "a/A1": { passed: "2026-10-01", box: 1, due: "2026-12-01" }, "b/B1": { passed: "2026-10-01", box: 2, due: "2026-10-02" } } },
+      { warm: () => null, vary: ad }).d;
+    const i = x.plan().findIndex(p => p.k === "review"), sv = i >= 0 ? x.begin(i) : null;
+    ok(sv && sv.lv === "B1" && sv.click === "one" && eq(sv.vary, { click: "one" }), "變化只用學過的:還沒學的換成拍點模式:" + JSON.stringify(sv && sv.vary));
+  }
 
   // ── 快速通道:第一次就連續穩(一次都沒失手)→ 下一關從目標速度開始 ──
   ({ d } = mk(null, {}));

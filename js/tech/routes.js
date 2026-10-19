@@ -1,5 +1,6 @@
 /* 今日練習的路線與關卡(PianoDrill;引擎 js/shared/daily.js、卡片 js/shared/dailycard.js、譜與指法 js/tech/patterns.js)。
-   兩條路線:手指(33 關)、左手伴奏(17 關)。全部是 App 編排的練習(不是哪一本教材的譜),速度、重點都是練習設定。
+   兩條路線:手指(33 關:第 0 組 2 + A–G 31)、左手伴奏(17 關;手指路線過了 PA5(A 組的基礎關)才開放)。
+   第 0 組(初學基礎,系統化 2026-10):「找到中央 C」(配手位圖)→「手指號碼」(看數字按對手指,右手四分);快速通道照舊可以快速跳過。全部是 App 編排的練習(不是哪一本教材的譜),速度、重點都是練習設定。
    原則(使用者 2026-10 確認):主要客群是完全初學 → 第 1 關從最基本;時值由慢到快(四分 → 八分 → 後面才十六分);熟手靠快速通道。
    start / target = 起始 / 目標速度(♩,一拍一下拍點);check = 檢查重點(2–3 項,看得見、聽得到的事)。
    names = 這一組預設顯示音名(手指 A–C 組、伴奏 A–B 組;之後難度上升才預設關;使用者切過就照他的,每條路線記住)。
@@ -58,6 +59,11 @@ const C = (zh, en) => [zh, en];
 
 /* ══ 手指路線(33 關)══ */
 const FINGER = [
+  // 0 初學基礎(右手、四分音符;C 位置)
+  { id: "P02", g: "0", name: C("找到中央 C", "Find middle C"), hands: "RH", value: "q", rh: "1 1 1 1 | 1 - - -", start: 50, target: 76,
+    check: [C("中央 C:兩個黑鍵左邊的白鍵", "Middle C: the white key left of the two black keys"), C("右手大拇指放在中央 C", "Right thumb on middle C")] },
+  { id: "P01", g: "0", name: C("手指號碼", "Finger numbers"), hands: "RH", value: "q", rh: "1 3 2 4 | 5 3 4 2", start: 50, target: 76,
+    check: [C("先看手指號碼再按", "Read the finger number first"), C("大拇指 = 1、小指 = 5", "Thumb = 1, little finger = 5")] },
   // A 五指位置(四分音符 → 最後一關八分音符)
   { id: "PA1", g: "A", name: C("右手五指上下", "RH: five fingers up and down"), hands: "RH", value: "q", rh: "1 2 3 4 | 5 4 3 2", start: 60, target: 100,
     check: [C("手指彎、用指尖", "Curved fingers, tips"), C("每個音一樣大", "Every note even"), C("前一個放開、下一個才按", "Lift one as the next goes down")] },
@@ -135,15 +141,15 @@ const FINGER = [
 const I4 = ["I", "IV", "V7", "I"], LOUD = C("左手不要比右手大聲", "LH softer than RH");
 const ACCOMP = [
   // A 柱式和弦(四分音符起)
-  { id: "AA1", g: "A", name: C("主和弦和屬七和弦", "I and V7 chords"), prog: ["I", "I", "V7", "I"], lh: "block2", start: 60, target: 88,
+  { id: "AA1", g: "A", chordName: true, name: C("主和弦和屬七和弦", "I and V7 chords"), prog: ["I", "I", "V7", "I"], lh: "block2", start: 60, target: 88,
     check: [C("三個音同時下去", "All three notes together"), C("換和弦只動要動的手指", "Move only the fingers that must move")] },
-  { id: "AA2", g: "A", name: C("加上下屬和弦", "Add the IV chord"), prog: I4, lh: "block4", start: 60, target: 100,
+  { id: "AA2", g: "A", chordName: true, name: C("加上下屬和弦", "Add the IV chord"), prog: I4, lh: "block4", start: 60, target: 100,
     check: [C("I 到 IV:小指不動", "I to IV: finger 5 stays"), C("手腕放鬆", "Loose wrist")] },
   { id: "AA3", g: "A", name: C("右手加長音", "Add a right-hand note"), prog: I4, lh: "block4", rh: "tones", start: 60, target: 100,
     check: [LOUD, C("右手按滿四拍", "RH holds all four beats")] },
-  { id: "AA4", g: "A", name: C("G 大調柱式和弦", "Block chords in G"), key: "G", prog: I4, lh: "block4", rh: "tones", start: 60, target: 100,
+  { id: "AA4", g: "A", chordName: true, name: C("G 大調柱式和弦", "Block chords in G"), key: "G", prog: I4, lh: "block4", rh: "tones", start: 60, target: 100,
     check: [C("新的形狀先看清楚", "Look at the new shapes first"), C("V7 最低音是 F♯", "V7 starts on F♯"), LOUD] },
-  { id: "AA5", g: "A", name: C("F 大調柱式和弦", "Block chords in F"), key: "F", prog: I4, lh: "block4", rh: "tones", start: 60, target: 100,
+  { id: "AA5", g: "A", chordName: true, name: C("F 大調柱式和弦", "Block chords in F"), key: "F", prog: I4, lh: "block4", rh: "tones", start: 60, target: 100,
     check: [C("IV 和弦的 B♭ 用 2 指", "B♭ in IV with finger 2"), C("V7 最低音是 E", "V7 starts on E"), LOUD] },
   // B 分解和弦與 Alberti(根音五音四分 → 八分)
   { id: "AB1", g: "B", name: C("根音和五音", "Root and fifth"), prog: I4, lh: "root5", start: 60, target: 100,
@@ -170,18 +176,19 @@ const ACCOMP = [
     check: [C("左手撐開時手腕放鬆", "Loose wrist on the stretch"), C("手小可以移過去,不必撐開", "Small hands: move, don't stretch"), LOUD] },
   { id: "AD3", g: "D", name: C("3+3+2 節奏", "3+3+2 rhythm"), prog: ["I", "V", "vi", "IV"], lh: "root", rh: "c332", start: 56, target: 88,
     check: [C("數 1-2-3 1-2-3 1-2", "Count 1-2-3 1-2-3 1-2"), C("左手按滿四拍", "LH holds all four beats")] },
-  { id: "AD4", g: "D", name: C("a 小調", "In A minor"), key: "a", prog: ["i", "iv", "V7", "i"], lh: "block2", rh: "tones", start: 60, target: 96,
+  { id: "AD4", g: "D", chordName: true, name: C("a 小調", "In A minor"), key: "a", prog: ["i", "iv", "V7", "i"], lh: "block2", rh: "tones", start: 60, target: 96,
     check: [C("V7 有 G♯", "V7 has G♯"), LOUD] }
 ];
 
 /* 每一關的題目欄位與變化(複習)、音名預設 */
-const NAMES_ON = { finger: ["A", "B", "C"], accomp: ["A", "B"] };
+const NAMES_ON = { finger: ["0", "A", "B", "C"], accomp: ["A", "B"] };
 function finish(route, list){
   list.forEach((L, k) => {
     const fixedKey = !!L.key && L.key !== "C";
     L.q = { type: "route", r: route, id: L.id, hands: route === "accomp" ? (L.rh ? "HT" : "LH") : L.hands };
     L.names = NAMES_ON[route].includes(L.g);
     if (L.vary) return;
+    if (L.g === "0") { L.vary = [V(), V({ dyn: "p" }), V({}, "one-three"), V({ dyn: "f" }, "one"), V({}, "gap")]; return; }   // 第 0 組:只有強弱與拍點模式
     if (route === "finger") {
       const o = {
         noRhythm: ["PB3", "PD4", "PF5", "PF6"].includes(L.id),
@@ -199,21 +206,41 @@ function finish(route, list){
 }
 export const ROUTES = [
   { id: "finger", name: ["手指", "Fingers"], levels: finish("finger", FINGER) },
-  { id: "accomp", name: ["伴奏", "Accomp."], levels: finish("accomp", ACCOMP) }
+  { id: "accomp", name: ["伴奏", "Accomp."], unlock: { route: "finger", passed: "PA5" }, levels: finish("accomp", ACCOMP) }
 ];
 
+/* ══ 複習的變化只用學過的(系統化規則;daily.js 的 extras.vary)══
+   附點 / 反附點:還沒有教的關 → 不用;斷奏:過了 PF3;換到 G / F:學過那個調(手指 PG1 / PG2 或伴奏 AA4 / AA5)。
+   拿掉以後什麼都不剩 → 退回拍點模式的變化(盒 2 只響 1、3 拍、盒 3 只響第 1 拍、之後中途消失) */
+const LEARNED_KEY = { G: p => p("finger", "PG1") || p("accomp", "AA4"), F: p => p("finger", "PG2") || p("accomp", "AA5"), a: p => p("accomp", "AD4"), C: () => true };
+export const keyLearned = (k, passed) => !!(LEARNED_KEY[k] && LEARNED_KEY[k](passed));
+const FALLBACK = ["one-three", "one", "gap"];
+export function adaptVary(v, { level, box, passed }){
+  if (!v || !v.q) return v;
+  const q = { ...v.q };
+  if (q.rhythm) delete q.rhythm;
+  if (q.touch === "stacc" && !passed("finger", "PF3")) delete q.touch;
+  if (q.rkey && q.rkey !== (level.key || "C") && !keyLearned(q.rkey, passed)) delete q.rkey;
+  if (JSON.stringify(q) === JSON.stringify(v.q)) return v;
+  const out = V(q, v.click || null);
+  if (!out.q && !out.click) out.click = FALLBACK[(Math.max(2, box) - 2) % FALLBACK.length];
+  return out;
+}
+
 /* ══ 暖身(不過關、只記時間):照手指路線的進度,初學從四分音符開始 ══
-   還沒過 PA4(雙手同方向)→ 五指位置兩手輪流(四分)→ 雙手(四分)→ 過了 PA5 → 雙手八分 → 過了 E 組 → 一個八度音階雙手八分。
+   只用已經過的關:過了第 0 組 → 手指號碼;過了 PA2 → 五指位置兩手輪流(四分);過了 PA4 → 雙手(四分);過了 PA5 → 雙手八分;過了 E 組 → 一個八度音階雙手八分。
    調 = 今天伴奏那一關的調(暖身跟今天的伴奏同一個調);名稱前面加調名(app.js 的 warmItem)*/
 export const WARM_LEVELS = {
+  w0: { id: "w0", name: C("手指號碼(右手)", "finger numbers, RH"), hands: "RH", value: "q", rh: "1 3 2 4 | 5 3 4 2" },
   w5s: { id: "w5s", name: C("五指位置(兩手輪流)", "five fingers, hands in turn"), hands: "HT", value: "q", rh: "1 2 3 4 | 5 4 3 2 | R | R", lh: "R | R | 5 4 3 2 | 1 2 3 4" },
   w5q: { id: "w5q", name: C("五指位置(雙手)", "five fingers, hands together"), hands: "HT", value: "q", rh: "1 2 3 4 | 5 4 3 2", lh: "5 4 3 2 | 1 2 3 4" },
   w5e: { id: "w5e", name: C("五指位置(雙手)", "five fingers, hands together"), hands: "HT", value: "e", rh: x2("1 2 3 4 5 4 3 2"), lh: x2("5 4 3 2 1 2 3 4") },
   wsc: { id: "wsc", name: C("音階一個八度(雙手)", "scale, one octave"), hands: "HT", scale: true }
 };
 for (const W of Object.values(WARM_LEVELS)) W.q = { type: "route", warm: W.id, hands: W.hands };
+/* 暖身只用已經過的關(系統化規則:不能等於目前或下一關);一關都還沒過(第一天)= 不排暖身,直接從第 0 組開始 */
 export function warmFor(passed){
-  return !passed("finger", "PA4") ? "w5s" : !passed("finger", "PA5") ? "w5q" : !passed("finger", "PE3") ? "w5e" : "wsc";
+  return passed("finger", "PE3") ? "wsc" : passed("finger", "PA5") ? "w5e" : passed("finger", "PA4") ? "w5q" : passed("finger", "PA2") ? "w5s" : passed("finger", "P01") ? "w0" : null;
 }
 export const KEYS = KEY_NAME;
 export function findLevel(q){

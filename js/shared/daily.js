@@ -14,9 +14,11 @@
    - 過關 → 複習盒 1,隔天複習;穩 → 下一盒(間隔 REVIEW_GAPS 1、3、7、14、30 天,盒 6 之後每 60 天一次);不穩 → 退回上一盒(上一個變化)、隔天再來
    - 每一盒用不同的變化練(vary[盒 − 1]):預設 DEFAULT_VARY = 原樣 → 拍點只響 2、4 拍 → 只響第 1 拍 → 中途消失 2 小節 → 中途消失 + 最快;
      各 App 的關卡資料可以換成自己的(鋼琴:附點、斷奏、強弱、換調;q = 題目要改的欄位,name = 顯示名稱 [中, 英])
+   - 變化只用學過的(系統化規則):extras.vary(v, { r, level, box, passed(r, id) }) → 這一次真的用的變化(還沒學的拿掉、退回拍點模式;各 App 自己判斷)
    - 一天只排一題複習(到期日早的優先,同一天盒號小的優先);沒練的日子到期的會累積,但每天還是一題
    ── 每天的菜單(buildPlan,同一天不變)──
-   - 暖身固定第一段(extras.warm 給項目;不過關、只記時間);其他段(每條開放的路線一段 + 到期的複習一段)照日子輪換順序(交錯)
+   - 每天順序固定(系統化規則):暖身 → 主要路線(路線表的第一條:最新、最難的在這裡學)→ 第二條路線 → 複習(不再每天輪換);
+     暖身 = extras.warm 給的項目(不過關、只記時間;各 App 只挑已經過的關或別種技能,沒有就不排暖身)
    - 還沒開放的路線(unlock = { route, passed: 關卡 id })不算一段,它的秒數加到第一條路線那一段;卡片另外寫一行什麼時候開放
    - 每段預計秒數 SEG_SEC(只算真的在練的時間);到了只提示,不強制換段;一段裡過了關、還剩 CONT_SEC 秒以上 → 直接接下一關
    - 隔 WELCOME_DAYS(7)天以上回來:每條路線目前那一關從起始速度開始(關卡、複習盒都不變:沒練的日子不扣分)
@@ -74,7 +76,7 @@ const findRoute = (routes, r) => routes.find(x => x.id === r) || null;
 const findLevel = (routes, r, id) => { const R = findRoute(routes, r); return R ? R.levels.find(l => l.id === id) || null : null; };
 export function cleanDaily(raw, routes, today = null){
   const src = raw && typeof raw === "object" && !Array.isArray(raw) ? raw : {};
-  const d = { v: DAILY_V, prog: {}, lv: {}, today: null, last: isDay(src.last) ? src.last : null, seen: src.seen === true };
+  const d = { v: DAILY_V, prog: {}, lv: {}, today: null, last: isDay(src.last) ? src.last : null, seen: src.seen === true, tip: src.tip === true };
   for (const R of routes) {
     const p = src.prog && src.prog[R.id] && typeof src.prog[R.id] === "object" ? src.prog[R.id] : {};
     const done = p.done === true;
@@ -130,7 +132,7 @@ export function pickReview(d, today, routes){
   const [r, lv] = best.k.split("/");
   return findLevel(routes, r, lv) ? { r, lv, box: best.e.box } : null;
 }
-/* 今天的菜單:暖身第一;其他段照日子輪換(交錯) */
+/* 今天的菜單:暖身 → 路線(照路線表的順序)→ 複習(順序固定) */
 export function buildPlan({ routes, daily: d, today, extras = {} }){
   const plan = [];
   const warm = extras.warm ? extras.warm(d, today) : null;
@@ -140,9 +142,7 @@ export function buildPlan({ routes, daily: d, today, extras = {} }){
   const rest = open.map((R, i) => ({ k: "route", r: R.id, lv: d.prog[R.id].at, sec: SEG_SEC.route + (i === 0 ? spare : 0) }));
   const rv = pickReview(d, today, routes);
   if (rv) rest.push({ k: "review", r: rv.r, lv: rv.lv, box: rv.box, sec: SEG_SEC.review });
-  const n = rest.length, shift = n ? ((dayNum(today) % n) + n) % n : 0;
-  for (let i = 0; i < n; i++) plan.push(rest[(i + shift) % n]);
-  return plan;
+  return plan.concat(rest);
 }
 
 /* ══ 引擎 ══
@@ -177,7 +177,11 @@ export function createDaily({ routes, load = () => null, save = () => {}, now = 
     return { ...R.levels[i], n: i + 1, of: R.levels.length, route: R };
   }
   const floorOf = (R, L) => Math.max(MIN_BPM, tempoDown(L.start));
-  const varyOf = (R, L, box) => { const v = cfg(R, L, "vary", DEFAULT_VARY); return v[Math.min(v.length, Math.max(1, box)) - 1] || {}; };
+  const passedLv = (r, id) => { const e = d.lv[keyOf(r, id)]; return !!(e && e.passed); };
+  const varyOf = (R, L, box) => {
+    const list = cfg(R, L, "vary", DEFAULT_VARY), v = list[Math.min(list.length, Math.max(1, box)) - 1] || {};
+    return extras.vary ? extras.vary(v, { r: R.id, level: L, box, passed: passedLv }) || {} : v;
+  };
   /* 這一關現在的速度(學的時候);複習用 reviewBpm */
   function bpmFor(r, id){
     const R = route(r), L = R && R.levels.find(l => l.id === id); if (!L) return null;
@@ -221,7 +225,7 @@ export function createDaily({ routes, load = () => null, save = () => {}, now = 
     const day = t.date, R = route(s.r), L = R.levels.find(l => l.id === s.lv), k = keyOf(s.r, s.lv), e = lvState(k);
     const verdict = verdictOf({ score, self }), steady = verdict === "steady";
     bpm = int(bpm, MIN_BPM, MAX_BPM, bpmFor(s.r, s.lv));
-    t.tries[t.i]++; d.last = day;
+    t.tries[t.i]++; d.last = day; d.tip = true;   // 速度的小字說明(「每分鐘 56 拍」)試過一次就不再出現
     const res = { verdict, passed: false, nextBpm: bpm, nextLevel: null, cont: false, suggestBack: false };
     if (s.k === "review") {
       // 一天只算第一次(之後可以再打,不改排程);加練的複習(extra)不改排程

@@ -10,7 +10,7 @@
    - 譜號固定時加線 ≤ 2 條;MusicXML:小節數、每段時值、音數 = 指法數、連桿 / 連結線成對、拍號、調號(換調時跟著換)
    - 播放:事件數、都在範圍內;暖身(4 種 × C / G / F / a)也產生得出來 */
 import fs from "node:fs";
-import { ROUTES, WARM_LEVELS } from "../../../js/tech/routes.js";
+import { ROUTES, WARM_LEVELS, warmFor, adaptVary } from "../../../js/tech/routes.js";
 import { buildExercise } from "../../../js/tech/exercise.js";
 import { exerciseToMusicXML, playbackEvents } from "../../../js/tech/musicxml.js";
 import { chordName, keyInfo, barChords, chordTable, fingerMarks, sameBars, handPositions } from "../../../js/tech/patterns.js";
@@ -69,6 +69,18 @@ export default function check(ok, FG){
     try { const ex = buildExercise(FG, q); checkEx(ok, ex, q, W, `暖身 ${W.id} ${key}`); n++; ok(Math.min(...["rh", "lh"].flatMap(h => ex[h].filter(x => !x.rest).map(x => x.dur))) >= (W.id === "w5s" || W.id === "w5q" ? 12 : 6), `暖身 ${W.id}:初學從四分音符`); }
     catch (e) { ok(false, `暖身 ${W.id} ${key}:${e.message}`); }
   }
+  // ── 系統化(2026-10):第 0 組在手指路線最前面、伴奏等手指 PA5 過了才開放、暖身只用已經過的關、複習的變化只用學過的 ──
+  const F0 = ROUTES[0].levels;
+  ok(ROUTES[0].id === "finger" && F0[0].id === "P02" && F0[1].id === "P01" && F0[0].g === "0" && F0[1].g === "0" && F0[2].id === "PA1", "第 0 組:找到中央 C、手指號碼(手指路線最前面)");
+  const acc = ROUTES.find(r => r.id === "accomp");
+  ok(acc.unlock && acc.unlock.route === "finger" && acc.unlock.passed === "PA5", "伴奏:手指路線過了 PA5 才開放");
+  const none = () => false, upTo = ids => (r, id) => ids.includes(id);
+  ok(warmFor(none) === null && warmFor(upTo(["P02", "P01"])) === "w0" && warmFor(upTo(["P02", "P01", "PA1", "PA2"])) === "w5s" && warmFor(upTo(["PA4", "PA5", "PE3"])) === "wsc", "暖身只用已經過的關(第一天不排暖身)");
+  const pb1 = F0.find(l => l.id === "PB1"), v2 = pb1.vary[1], v3 = pb1.vary[2], v4 = pb1.vary[3];
+  const a2 = adaptVary(v2, { level: pb1, box: 2, passed: none }), a3 = adaptVary(v3, { level: pb1, box: 3, passed: none }), a4 = adaptVary(v4, { level: pb1, box: 4, passed: none });
+  ok(v2.q.rhythm && !(a2.q && a2.q.rhythm) && (a2.click || (a2.q && Object.keys(a2.q).length)), "還沒教附點:附點拿掉(什麼都不剩就用拍點模式):" + JSON.stringify(a2));
+  ok(v3.q.touch === "stacc" && !(a3.q && a3.q.touch) && adaptVary(v3, { level: pb1, box: 3, passed: upTo(["PF3"]) }).q.touch === "stacc", "斷奏要過了 PF3 才用");
+  ok(v4.q.rkey === "G" && !(a4.q && a4.q.rkey) && a4.click && adaptVary(v4, { level: pb1, box: 4, passed: upTo(["PG1"]) }).q.rkey === "G", "換到 G 要學過 G(PG1 / AA4)");
   // ── 譜面標記(方法書的做法;patterns.js):和弦名(另外照樂理手抄一份核對)、和弦表、指法只標第一次、兩小節一樣縮成反覆 ──
   const CHORDS = { C: { I: "C", IV: "F", V: "G", V7: "G7", vi: "Am" }, G: { I: "G", IV: "C", V7: "D7" }, F: { I: "F", IV: "B♭", V7: "C7" }, a: { i: "Am", iv: "Dm", V7: "E7" } };
   for (const [k, m] of Object.entries(CHORDS)) for (const [ch, name] of Object.entries(m)) ok(chordName(keyInfo(k), ch) === name, `和弦名 ${k} ${ch} = ${name}(得到 ${chordName(keyInfo(k), ch)})`);

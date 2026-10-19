@@ -11,9 +11,9 @@ import * as audio from "../shared/audio.js";
 import { addLog, cleanLog, renderLog as paintLog, today, nextGoal, cleanGoal } from "../shared/practicelog.js";
 import { createDaily, clickPlays } from "../shared/daily.js";
 import { createDailyCard } from "../shared/dailycard.js";
-import { ROUTES, WARM_LEVELS, warmFor, findLevel, KEYS } from "./routes.js";
+import { ROUTES, WARM_LEVELS, warmFor, findLevel, KEYS, adaptVary, keyLearned } from "./routes.js";
 import { paintNoteNames } from "../shared/notenames.js";
-import { sameBars, fingerMarks, barChords, chordTable, handPositions } from "./patterns.js";
+import { sameBars, fingerMarks, barChords, chordTable, handPositions, chordName, keyInfo } from "./patterns.js";
 import "./strings.js";
 const T = scoped("tech");
 
@@ -472,7 +472,7 @@ function renderQText(q, tab){
   renderIntro(q.free && !q.daily ? tab : null);
   // 今日練習:標題 = 關卡(或暖身)的名稱,標籤 = 路線第幾關、速度 → 目標
   if (q.daily && dseg) {
-    const nm = dseg.k === "warm" ? warmName(dseg.item) : dseg.level.name;
+    const nm = dseg.k === "warm" ? warmName(dseg.item) : levelName(dseg);
     $("qTitle").textContent = Array.isArray(nm) ? tr(nm[0], nm[1]) : nm;
     const tags = dcard.segTags({ ...dseg, bpm: q.tempo.bpm });
     if (q.type === "route" && dseg.k !== "warm") tags.splice(1, 0, questionText(q)[1]);   // [手指 第 n 關] [右手] [八分音符] [♩=50 → 84]
@@ -480,7 +480,13 @@ function renderQText(q, tab){
     if (vt) tags.splice(dseg.k === "warm" ? 1 : 2, 0, tr(vt[0], vt[1]));
     $("qTags").innerHTML = tags.map(t => `<span class="q-tag">${t}</span>`).join("");
   }
+  syncPlayCap();
   syncNamesBtn();
+}
+/* ▶ 下面一行小字:示範 / 示範 + 拍點(今日練習的路線段)/ 拍點(只有拍點的時候) */
+function syncPlayCap(){
+  const solo = clickOnlyOn() || !!(dseg && dseg.k !== "warm" && dseg.click && dseg.click !== "every");
+  $("playBtn").dataset.cap = solo ? tr("拍點", "Click") : dseg && dseg.k !== "warm" ? tr("示範 + 拍點", "Demo + click") : tr("示範", "Demo");
 }
 /* 今日練習關卡最短的音符(標籤):三連音 / 十六分 / 八分 / 四分 / 二分 / 全音符(ex.exact 的時值:四分音符 = 12) */
 function valueTag(e){
@@ -1087,7 +1093,7 @@ function syncTempoUI(){
   else if (u === "q.") { $("bpmPct").textContent = ""; $("examTempo").textContent = tr("三連音:每拍 3 個音", "Triplets: 3 notes per beat"); }
   else if (u === "q16" && cur && cur.type !== "hanon") { $("bpmPct").textContent = ""; $("examTempo").textContent = ""; }   // 拍點在選單上,不重複
   else if (u === "q16") { $("bpmPct").textContent = ""; $("examTempo").textContent = ex && ex.rhythm !== "even" ? tr("每拍 4 個音(附點節奏)· 原譜 60–108", "4 notes per beat (dotted) · Hanon: 60–108") : tr("每拍 4 個十六分音符 · 原譜 60–108", "4 semiquavers per beat · Hanon: 60–108"); }
-  else if (cur && cur.daily) { $("bpmPct").textContent = ""; $("examTempo").textContent = tr("今日練習會自動調整", "Set by today's practice"); }   // 段落:速度卡縮成一行(− 60 +)
+  else if (cur && cur.daily) { $("bpmPct").textContent = ""; $("examTempo").textContent = tr("自動調整", "Auto"); }   // 段落:速度卡縮成一行(− 60 +)
   else { $("bpmPct").textContent = ""; $("examTempo").textContent = ex && (ex.timeHidden || ex.exact) ? "" : tr("每拍 2 個八分音符", "2 quavers per beat"); }   // 今日練習的關卡:拍號印在譜上,一拍一下拍點   // 拍點 ♪ 在選單上,不重複
   $("beats").innerHTML = "<i class=\"first\"></i>" + "<i></i>".repeat(beatsPerBar() - 1);
 }
@@ -1355,6 +1361,7 @@ function syncPlayOpts(){
   $("optRamp").setAttribute("aria-pressed", String(!!S.ramp));
   $("optRamp").hidden = !S.loop;   // 沒開循環播放時「每輪加快 4」沒有作用:藏起來(跟 DrumDrill 一樣)
   $("optClick").setAttribute("aria-pressed", String(!!S.clickOnly));
+  if (cur) syncPlayCap();
 }
 for (const [id, k] of [["optLoop", "loop"], ["optRamp", "ramp"], ["optClick", "clickOnly"]]) $(id).onclick = () => { S[k] = !S[k]; store.save(); syncPlayOpts(); };
 syncPlayOpts();
@@ -1405,19 +1412,31 @@ function warmItem(d, today){
     const all = examPool(); let pool = all.filter(q => S.mastery[q.key] !== "good"); if (!pool.length) pool = all;
     if (pool.length) { const q = pool[hashDay(today) % pool.length]; return { exam: q.key, q: { ...q }, bpm: q.tempo.bpm, unit: q.tempo.unit }; }
   }
-  const w = WARM_LEVELS[warmFor((r, id) => !!(d.lv[r + "/" + id] && d.lv[r + "/" + id].passed))];
-  const acc = d.prog.accomp && findLevel({ r: "accomp", id: d.prog.accomp.at }), key = (acc && acc.key) || "C";
+  const passed = (r, id) => !!(d.lv[r + "/" + id] && d.lv[r + "/" + id].passed);
+  const wid = warmFor(passed); if (!wid) return null;   // 一關都還沒過(第一天):不排暖身,直接從第 0 組開始
+  const w = WARM_LEVELS[wid];
+  // 調 = 今天伴奏那一關的調,但只用學過的調(還沒學過 → C)
+  const acc = d.prog.accomp && findLevel({ r: "accomp", id: d.prog.accomp.at }), k0 = (acc && acc.key) || "C", key = keyLearned(k0, passed) ? k0 : "C";
   return { q: { ...w.q, rkey: key }, name: [KEYS[key][0] + w.name[0], KEYS[key][1] + " " + w.name[1]], bpm: 60 };
 }
-const daily = createDaily({ routes: ROUTES, load: () => S.daily, save: d => { S.daily = d; store.save(); }, extras: { warm: warmItem } });
+/* 伴奏的關名寫實際和弦(「C 和 G7(I、V7)」;chordName 的關):換調複習自動換和弦名 */
+function levelName(s){
+  const L = s.level; if (!L || !L.chordName) return L ? L.name : "";
+  const k = (s.vary && s.vary.q && s.vary.q.rkey) || L.key || "C", K = keyInfo(k), uniq = [...new Set(L.prog)], names = uniq.map(ch => chordName(K, ch));
+  const join = (a, sep, and) => (a.length < 2 ? a.join("") : a.slice(0, -1).join(sep) + and + a[a.length - 1]);
+  return [`${join(names, "、", " 和 ")}(${uniq.join("、")})`, `${join(names, ", ", " and ")} (${uniq.join(", ")})`];
+}
+const daily = createDaily({ routes: ROUTES, load: () => S.daily, save: d => { S.daily = d; store.save(); }, extras: { warm: warmItem, vary: adaptVary } });
 const dcard = createDailyCard({ $, daily,
   labels: { ok: ["做到了", "Did it"], again: ["還要練", "Not yet"],
     // 狀態一句短話(fold-280 不超過兩行);過關規則改成到了目標速度在標籤後面顯示「穩 ●○○」
     hint: ["▶ 聽示範,跟著拍點彈;做到了按 ✓", "▶ Demo; play along, then ✓"],
     solo: ["▶ 只有拍點:自己彈,做到了按 ✓", "Click only: play it, then ✓"] },
-  warmName, log: () => S.log,
+  warmName, levelName, log: () => S.log,
   onStart: () => { dShow(daily.begin()); window.scrollTo({ top: 0 }); },
-  onNext: () => dNext(), onMore: () => { const s = daily.addExtra(); if (s) dShow(s); },
+  onNext: () => dNext(), onPause: () => dExit(),
+  onMore: () => { const s = daily.addExtra(); if (s) dShow(s); },
+  barHost: el => { if (ctx && ctx.subBar) ctx.subBar(el, "tech"); },   // 進行中:子項目列換成今日練習的那一行
   onOk: () => dTry("ok"), onAgain: () => dTry("again"),
   onBack: () => { stopPlayback(); if (daily.back()) dShow(daily.seg()); } });
 /* 這一段的播放:4 小節(中途消失 = 8 小節);拍點模式不是每拍 = 只有拍點 */
@@ -1463,6 +1482,7 @@ function dTry(self){
   stopPlayback();
   const s = dseg, res = daily.attempt({ bpm, self });
   const txt = () => dcard.resultText(res, s);
+  if (res.passed || res.verdict === "steady") cue();
   if (res.passed && res.cont) { dShow(daily.seg(), txt); return; }
   dseg = daily.seg();
   if (s.k === "route") { bpm = res.nextBpm; cur.tempo.bpm = bpm; syncTempoUI(); }
@@ -1470,6 +1490,8 @@ function dTry(self){
   dcard.renderStep(dseg, { status: txt, passedDone: res.passed || s.k === "review" });
   dcard.render();
 }
+/* 過關、做到了:一個短的取樣音(Salamander 高音 C6;不用合成音) */
+function cue(){ audio.ensureAudio(); audio.loadPianoFor([{ midi: 84, vel: 70 }], 1).then(() => { const t = audio.audioNow() + 0.03; audio.playPianoNote(84, t, t + 0.25, t + 0.3, 70, false); }).catch(() => {}); }
 /* 下一段:練過的那一段算一次練習 */
 function dNext(){
   stopPlayback();

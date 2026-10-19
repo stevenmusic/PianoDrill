@@ -337,7 +337,7 @@ function renderList(){
   const sys = SY.systems[S.exam.system], qs = examQuestions();
   const good = qs.filter(q => S.mastery[q.key] === "good").length;
   $("listTitle").textContent = sys.mode === "sets" ? tr(`${S.exam.set} 組要求(依序)`, `Set ${S.exam.set} (in order)`) : T("listTitle");
-  $("listSub").textContent = tr(`會了 ${good}/${qs.length}`, `Got it ${good}/${qs.length}`);
+  $("listSub").textContent = tr(`會了 ${good}/${qs.length}`, `✓ ${good}/${qs.length}`);
   $("progressBar").style.width = (qs.length ? 100 * good / qs.length : 0) + "%";
   const row = (q, i) => {
     const m = S.mastery[q.key] || "", hands = q.motion === "contrary" ? tr("反向", "contrary") : { RH: tr("右手", "RH"), LH: tr("左手", "LH"), HT: tr("雙手", "Both") }[q.hands];

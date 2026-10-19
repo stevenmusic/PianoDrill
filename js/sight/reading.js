@@ -198,7 +198,7 @@ export function createReading({ $, store, save, onAnswered = () => {} }) {
     $('rdClef').innerHTML = segHTML([['treble', '高音', 'Treble'], ['bass', '低音', 'Bass'], ['grand', '大譜表', 'Grand']], R.clef);
     $('rdPos').innerHTML = segHTML([['all', '全部', 'All'], ['line', '只線', 'Lines'], ['space', '只間', 'Spaces']], R.pos);
     $('rdAcc').innerHTML = segHTML([['w', '只有白鍵', 'White keys'], ['acc', '加升降', '♯ and ♭']], R.acc ? 'acc' : 'w');
-    $('rdMode').innerHTML = segHTML([['practice', '練習', 'Practice'], ['time', '60 秒', '60 s'], ['streak', '連對', 'Streak']], R.mode);
+    $('rdMode').innerHTML = segHTML([['practice', '練習', 'Practice'], ['time', '60 秒', '60 s'], ['streak', '連續答對', 'Streak']], R.mode);
     $('rdLo').textContent = midiName(R.lo); $('rdHi').textContent = midiName(R.hi);
     // 「加線」是什麼:括號裡白話(放不下就換行,在那一格裡)
     pairText($('rdLedger'), () => (ledgers() ? tr(`最多 ${ledgers()} 條加線(譜外的短線)`, `Up to ${ledgers()} ledger line${ledgers() > 1 ? 's' : ''} (short extra lines)`) : tr('沒有加線', 'No ledger lines')));

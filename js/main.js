@@ -280,6 +280,8 @@ document.addEventListener("touchend", e => {
   lastTouchEnd = now;
 }, { passive: false });
 document.addEventListener("gesturestart", e => e.preventDefault());
+/* iOS Safari 要有 touchstart 監聽,按鈕的 :active(按下去縮一下、變色)才會出現 */
+document.addEventListener("touchstart", () => {}, { passive: true });
 /* 每一次真的點擊都喚醒音訊(上面補的 click 不算使用者手勢,iOS 不准它打開聲音;被來電、鎖屏打斷的也在這裡叫回來) */
 for (const ev of ["touchend", "click", "keydown", "pointerdown"]) document.addEventListener(ev, () => audio.unlockAudio(), { capture: true, passive: true });
 /* 練習時螢幕不要暗掉(手機放在譜架上):App 在前景時一直保持亮著 */

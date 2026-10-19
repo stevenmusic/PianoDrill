@@ -169,7 +169,7 @@ main{
 .field select:focus{outline:none;border-color:var(--gold)}
 .field select:focus-visible{outline:2px solid var(--gold-bright);outline-offset:2px}
 .chips{display:flex;flex-wrap:wrap;gap:6px}
-#t-catChips{display:grid;grid-template-columns:repeat(auto-fill, minmax(124px, 1fr))}   /* 固定格子:中英文排法一樣 */
+#t-catChips{display:grid;grid-template-columns:repeat(auto-fit, minmax(124px, 1fr))}   /* 固定格子:中英文排法一樣 */
 .chip{height:32px;padding:0 12px;border-radius:var(--radius-pill);border:1px solid var(--line);background:var(--surface-inset);
   color:var(--muted-bright);font-family:inherit;font-size:var(--fs-sm);cursor:pointer;display:inline-flex;align-items:center;gap:6px}
 .chip[aria-pressed="true"]{border-color:var(--gold);color:var(--gold);background:rgba(242,185,75,.1);font-weight:700}
@@ -378,7 +378,7 @@ main{padding-bottom:calc(84px + env(safe-area-inset-bottom))}
 .quick .qhead b{color:var(--gold);font-weight:700}
 .quick .qhead .chip{height:26px;font-size:var(--fs-xs);margin-left:auto}
 /* 固定格子(不跟字寬走):中文、英文的排版一樣;每格放得下兩行 */
-.quick .opts{display:grid;grid-template-columns:repeat(auto-fill, minmax(128px, 1fr));overflow:visible}
+.quick .opts{display:grid;grid-template-columns:repeat(auto-fit, minmax(128px, 1fr));overflow:visible}
 .quick .opt{height:42px;font-size:var(--fs-sm);display:flex;align-items:center;gap:6px;padding:0 10px;text-align:left;
   border-radius:var(--radius-sm);white-space:normal;min-width:0}
 .quick .opt .dot{flex:none}
@@ -522,7 +522,7 @@ body.land-play #t-stage{flex:1;display:flex;flex-direction:column;justify-conten
 /* ══ 聽音:答案按鈕、鍵盤、節拍鍵、正確率 ══ */
 .step-q{font-size:var(--fs-lg);color:var(--ivory);font-weight:500;min-height:1.4em}
 .step-q:empty{display:none}
-.answers{display:grid;grid-template-columns:repeat(auto-fill, minmax(118px, 1fr));gap:8px}
+.answers{display:grid;grid-template-columns:repeat(auto-fit, minmax(118px, 1fr));gap:8px}
 .ans{min-height:48px;padding:6px 8px;border-radius:var(--radius-sm);border:1px solid var(--line);background:var(--surface-inset);
   color:var(--ivory);font-family:inherit;font-size:var(--fs-md);font-weight:500;cursor:pointer;line-height:1.25;overflow-wrap:anywhere;
   transition:background .15s,border-color .15s,color .15s,transform .09s}
@@ -603,7 +603,7 @@ body.land-play #t-stage{flex:1;display:flex;flex-direction:column;justify-conten
 .test .self{margin-top:6px;padding-left:calc(1.4em + 8px);font-size:var(--fs-xs);color:var(--muted)}
 .params{font-size:var(--fs-xs);color:var(--muted-bright);margin-bottom:10px}
 @media (max-width:360px){ .answers{grid-template-columns:repeat(2,1fr)} .srow{grid-template-columns:6em 1fr 3.8em} }
-.answers.compact{grid-template-columns:repeat(auto-fill, minmax(56px, 1fr))}
+.answers.compact{grid-template-columns:repeat(auto-fit, minmax(56px, 1fr))}
 .answers.compact .ans{font-size:var(--fs-lg);font-family:"Noto Serif TC",serif}
 /* 題目卡精簡:分數、載入進度跟標籤同一列;「隨機抽一題」那列只在檢定分頁出現 */
 .q-row .loading{position:static;flex:0 1 auto;min-width:0;font-size:var(--fs-2xs);color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -679,7 +679,7 @@ body.land-play #t-stage{flex:1;display:flex;flex-direction:column;justify-conten
 @media (max-height:420px), (orientation:landscape) and (max-height:500px){ .mod{gap:8px} }
 .notice p{font-size:var(--fs-md);line-height:1.7;color:var(--muted-bright)}
 /* 聽音選擇器:每一列用固定寬度的格子(寬度 = 中英文最長的選項),中英文每列放的個數一樣,版面不會因為換語言而變高(tools/test/bilingual.mjs) */
-#mod-ear .picker .opts{display:grid;grid-template-columns:repeat(auto-fill, minmax(var(--cw, 96px), 1fr));gap:6px}
+#mod-ear .picker .opts{display:grid;grid-template-columns:repeat(auto-fit, minmax(var(--cw, 96px), 1fr));gap:6px}
 #mod-ear .picker .opt{min-width:0;padding:0 6px}
 #mod-ear .opts[data-k="preset"]{--cw:102px}
 #e-paneNote .opts[data-k="set"]{--cw:80px}
@@ -699,7 +699,7 @@ body.land-play #t-stage{flex:1;display:flex;flex-direction:column;justify-conten
 .q-title:not(.empty){height:calc(clamp(24px, 6.6vw, 36px) * 1.45)}
 #mod-ear .q-title:not(.empty){height:auto}
 /* 聽力測驗的題型:固定寬度的格子(中英文每列個數一樣,換語言不換行) */
-#mod-ear .test .chips{display:grid;grid-template-columns:repeat(auto-fill, minmax(150px, 1fr));gap:6px}
+#mod-ear .test .chips{display:grid;grid-template-columns:repeat(auto-fit, minmax(150px, 1fr));gap:6px}
 #mod-ear .test .chip{justify-content:center;min-width:0}
 
 /* ══ 每種裝置都要「飽滿」(使用者要求):手機、平板直式一欄;平板橫式、筆電、桌機兩欄 ══
@@ -729,7 +729,7 @@ body.land-play #t-stage{flex:1;display:flex;flex-direction:column;justify-conten
 }
 /* 兩欄的左欄比較窄:選擇器的選項改固定寬度格子(中英文每列個數一樣,換語言不會多一行;聽音各列另外有自己的寬度) */
 @media (min-width:1100px){
-  .mod-side .picker .opts{display:grid;grid-template-columns:repeat(auto-fill, minmax(var(--cw, 98px), 1fr));gap:6px}
+  .mod-side .picker .opts{display:grid;grid-template-columns:repeat(auto-fit, minmax(var(--cw, 98px), 1fr));gap:6px}
   .mod-side .picker .opt{min-width:0;padding:0 6px}
   #mod-tech .picker .opts[data-k="key"],#mod-tech .picker .opts[data-k="no"]{--cw:50px}
   #mod-tech .picker .opts[data-k="octaves"]{--cw:72px}
@@ -792,3 +792,15 @@ body.land-play #t-stage{flex:1;display:flex;flex-direction:column;justify-conten
 .diff-msg{margin-top:8px;font-size:var(--fs-sm);color:var(--gold-bright);overflow-wrap:anywhere}
 .diff-fb{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-top:10px}
 .diff-fb .chip{justify-content:center;min-width:0;height:auto;min-height:36px;padding:4px 6px;white-space:normal;line-height:1.3;text-align:center}
+
+/* ══ 選項(可以點的)與標籤(只是說明)分清楚(使用者要求,所有頁面)══
+   選項一排平分整個寬度(上面的格子用 auto-fit,少的時候不會只靠左、右邊空一塊);
+   選項、答案、分段鈕都有淡淡的框線,按下去縮一下並變色(iOS 靠 main.js 的 touchstart 才有 :active);題目標籤 .q-tag 是有色底、沒有框線 */
+:root{--line-opt:#4A3F27}
+:root.light{--line-opt:#BFAE86}
+.chip,.opt,.ans{border-color:var(--line-opt)}
+.opt{transition:background .15s,border-color .15s,color .15s,transform .09s}
+.chip:active,.opt:active,.ans:active,.seg button:active{background:rgba(242,185,75,.16)}
+:root.light .chip:active,:root.light .opt:active,:root.light .ans:active,:root.light .seg button:active{background:rgba(122,92,22,.12)}
+.opt:active{transform:scale(.95)}
+@media (prefers-reduced-motion:reduce){ .btn:active,.seg button:active,.chip:active,.mbtn:active,.opt:active,.ans:active{transform:none} }

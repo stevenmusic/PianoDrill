@@ -728,7 +728,12 @@ export function examStatus() {
 }
 export function onKey(e) {
   if (readOn()) { if (reading.onKey(e)) e.preventDefault(); return; }
-  if (e.code === 'Space') { e.preventDefault(); if (!elements.play.disabled) elements.play.click(); }
+  if (e.code === 'Space') {
+    e.preventDefault();
+    // 視奏分頁還沒彈過(▶ 還沒出現)或正在彈:空白鍵 = 彈一遍 / 停止
+    if (freeAlong() && current && (!played || alongStart !== null)) togglePlayAlong();
+    else if (!elements.play.disabled) elements.play.click();
+  }
   else if ((e.key === 'n' || e.key === 'N') && !elements.generate.disabled) elements.generate.click();
 }
 function stopAll() {
@@ -1020,6 +1025,7 @@ async function newTest() {
   stopCountdown();
   player.stop();
   alongStart = null;
+  played = false;
   setAlongLabel();
   elements.along.hidden = true;
   resetAlongResult();
@@ -1105,7 +1111,7 @@ async function drawTest({ score, xml }, quiet = false) {
       await osmd.load(xml);
       osmd.render();
     }
-    if (!quiet) say('readyStatus');
+    if (!quiet) say(freeAlong() ? 'freeReady' : 'readyStatus');
   } catch (error) {
     fail('failRender', error.message);
     elements.score.classList.remove('entering');
@@ -1128,7 +1134,7 @@ async function drawTest({ score, xml }, quiet = false) {
     requestAnimationFrame(() => elements.score.classList.remove('entering'));
   });
   showMeta(score);
-  elements.countdown.hidden = false;
+  elements.countdown.hidden = freeAlong();
   elements.play.disabled = false;
   elements.prepare.disabled = false;
   elements.countdownValue.textContent = String(rules.exam.preparationSeconds);
@@ -1199,7 +1205,7 @@ async function startCountdown() {
   // 給音被打斷(按了播放、停止、產生新題):不要再開始倒數
   if (token !== prepToken) return;
   if (!finished) {
-    say('readyStatus');
+    say(freeAlong() ? 'freeReady' : 'readyStatus');
     return;
   }
 
@@ -1279,8 +1285,8 @@ function stopCountdown() {
 function setPlayState(playing) {
   elements.play.classList.toggle('is-active', playing);
   elements.playIcon.setAttribute('d', playing ? PAUSE_ICON_D : PLAY_ICON_D);
-  elements.play.setAttribute('aria-label', t(playing ? 'playAriaStop' : 'playAriaPlay'));
-  elements.play.title = t(playing ? 'playTitleStop' : 'playTitlePlay');
+  elements.play.setAttribute('aria-label', t(playing ? 'playAriaStop' : freeAlong() ? 'playAriaRef' : 'playAriaPlay'));
+  elements.play.title = t(playing ? 'playTitleStop' : freeAlong() ? 'playAriaRef' : 'playTitlePlay');
 }
 
 /**
@@ -1498,15 +1504,29 @@ function startFollowing(clock = () => player.elapsed, onFinish = null) {
  */
 let alongStart = null;
 let alongBeat = null;
+// 視奏分頁:這一題彈過(彈完或停止)了沒有。還沒彈之前不顯示 ▶(先自己讀、彈完再對照);新題目又藏起來
+let played = false;
 
+/* 視奏分頁(自由練習)的題目卡只有兩顆:左邊小的「新題目」、右邊大的「彈一遍」(進行中變停止);
+   沒有 30 秒準備倒數(官方準備時間留在檢定頁),樂譜下面那張卡只留麥克風選項與結果。檢定頁照舊 */
 function setAlongLabel() {
+  const free = freeAlong();
   elements.playAlong.textContent = t(alongStart === null ? 'playAlong' : 'playAlongStop');
+  elements.playAlong.hidden = free;
   $('playAlongTop').textContent = alongStart === null ? tr('彈一遍', 'Play it') : t('playAlongStop');
-  $('playAlongTop').hidden = !freeAlong() || !current;
+  $('playAlongTop').hidden = !free || !current;
+  $('quiz').classList.toggle('free', free);
+  elements.prepare.hidden = free;
+  if (free) elements.countdown.hidden = true;
+  elements.generate.classList.toggle('small', free);
+  // ▶ 藏起來時保留位置(大標題那一行高度不跳)
+  elements.play.style.visibility = free && !played ? 'hidden' : '';
+  setPlayState(player.playing);
 }
 
 function stopPlayAlong(message) {
   recorder.cancel(); // 手動停止:丟掉這次錄音,不評分
+  if (alongStart !== null && freeAlong()) played = true;
   alongStart = null;
   alongBeat = null;
   stopFollowing();
@@ -1521,7 +1541,7 @@ let lastRhythmResult = null;
 async function togglePlayAlong() {
   if (!current || alongStarting) return;
   if (alongStart !== null) {
-    stopPlayAlong('prepDone');
+    stopPlayAlong(freeAlong() ? 'freeDone' : 'prepDone');
     return;
   }
   player.stop();
@@ -1570,7 +1590,9 @@ function finishPlayAlong(scoring) {
   const take = scoring ? recorder.finish() : null;
   const { score } = current;
   const firstNoteAt = alongStart;
-  stopPlayAlong('alongDone');
+  const free = freeAlong();
+  stopPlayAlong(free ? 'freeDone' : 'alongDone');
+  if (free) recordPractice();   // 視奏分頁沒有準備倒數:彈完一遍算練了一題
   if (!take) return;
   // 麥克風時間軸換算成「距離第一個音幾秒」,跟題目的預期起音同一把尺
   const detected = detectOnsets(take.samples, take.sampleRate).map((time) => take.startedAt + time - firstNoteAt);

@@ -123,7 +123,10 @@
 /* 視奏分頁(自由練習)的設定卡一直展開(不收成一行):範圍階段是常用設定 */
 #s-setup.always-open .setup-summary{display:none !important}
 #s-setup.always-open .setup-body{display:block !important;margin-top:0 !important}
-#mod-sight .s-along-top{width:100%;min-height:48px;margin-top:10px;font-size:var(--fs-md)}
+/* 視奏分頁題目卡(.free):最後一行 左 = 小的「新題目」、右 = 大的「彈一遍」(唯一的主要動作);沒有準備倒數 */
+#s-quiz.free #s-generate{order:-1}
+#mod-sight .s-along-top{flex:0 1 auto;min-width:48%;min-height:48px;height:auto;padding:0 22px;font-size:var(--fs-md)}
+#s-quiz.free .q-foot{margin-top:6px}
 /* 手機橫式:認音的題目卡左右排(左 = 譜、右 = 訊息與琴鍵) */
 @media (orientation:landscape) and (max-height:500px){
   .rd-card{display:grid;grid-template-columns:minmax(0,.85fr) minmax(0,1.5fr);gap:4px 10px;align-items:start}

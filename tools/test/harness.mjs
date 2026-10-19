@@ -19,6 +19,7 @@ export function serve(){
       rsp.writeHead(200, { "content-type": TYPES[path.extname(f)] || "application/octet-stream" });
       fs.createReadStream(f).pipe(rsp);
     }).listen(0, () => res({ srv, url: `http://localhost:${srv.address().port}/` }));
+    srv.unref();   // 忘了關伺服器也不會讓 node 卡著不結束(只要瀏覽器關了)
   });
 }
 export async function open(opts = {}){
@@ -40,5 +41,7 @@ export async function open(opts = {}){
   });
   await page.goto(url + (opts.path || ""));
   await page.waitForFunction(() => window.__stageReady >= 1, null, { timeout: 30000 });
-  return { browser, page, errors, ctx, url, close: async () => { await browser.close(); srv.close(); } };
+  // close() 可以呼叫很多次;srv 也回傳,臨時寫的檢查腳本才不會關錯東西
+  let closed = false;
+  return { browser, page, errors, ctx, url, srv, close: async () => { if (closed) return; closed = true; await browser.close().catch(() => {}); srv.close(); } };
 }

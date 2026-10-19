@@ -8,6 +8,7 @@ import { noteLabelStr } from "./theory.js";
 import { hanonThirdsKey } from "./fingering.js";
 import { tr, scoped, getLang, pairText, unpair } from "../shared/i18n.js";
 import * as audio from "../shared/audio.js";
+import { addLog, cleanLog, renderLog as paintLog, today, nextGoal, cleanGoal } from "../shared/practicelog.js";
 import "./strings.js";
 const T = scoped("tech");
 
@@ -319,7 +320,7 @@ function finishMock(){
   const list = mock.list; mock = null;
   const n = list.length, good = list.filter(q => S.mastery[q.key] === "good").length, weak = list.filter(q => S.mastery[q.key] === "weak").length;
   showEmpty(); syncExamButtons();
-  emptyTitle = () => tr(`模擬考結束:${n} 項中 通過 ${good}、待加強 ${weak}、未標記 ${n - good - weak}`, `Mock done: ${good} passed, ${weak} weak, ${n - good - weak} unmarked of ${n}`);
+  emptyTitle = () => tr(`模擬考結束:${n} 項中 會了 ${good}、再練 ${weak}`, `Mock done: ${good} got it, ${weak} need work (of ${n})`);
   pairText($("qTitle"), emptyTitle);
 }
 $("drawBtn").onclick = () => { const q = drawQuestion(examPool(), S.mastery, lastKey); if (q) setQuestion(q, "exam"); };
@@ -336,7 +337,7 @@ function renderList(){
   const sys = SY.systems[S.exam.system], qs = examQuestions();
   const good = qs.filter(q => S.mastery[q.key] === "good").length;
   $("listTitle").textContent = sys.mode === "sets" ? tr(`${S.exam.set} 組要求(依序)`, `Set ${S.exam.set} (in order)`) : T("listTitle");
-  $("listSub").textContent = tr(`通過 ${good} / ${qs.length}`, `Passed ${good} / ${qs.length}`);
+  $("listSub").textContent = tr(`會了 ${good}/${qs.length}`, `Got it ${good}/${qs.length}`);
   $("progressBar").style.width = (qs.length ? 100 * good / qs.length : 0) + "%";
   const row = (q, i) => {
     const m = S.mastery[q.key] || "", hands = q.motion === "contrary" ? tr("反向", "contrary") : { RH: tr("右手", "RH"), LH: tr("左手", "LH"), HT: tr("雙手", "HT") }[q.hands];
@@ -387,7 +388,7 @@ function showEmpty(){
   cur = null; ex = null;
   $("qTitle").classList.add("empty"); $("qTitle").style.fontSize = "";
   emptyTitle = null;
-  emptyText(); $("qTags").innerHTML = "";
+  emptyText(); $("qTags").innerHTML = ""; renderIntro(null);
   $("playBtn").disabled = true; ROOT.querySelectorAll(".mbtn").forEach(b => { b.disabled = true; b.setAttribute("aria-pressed", "false"); });
   $("verifyBadge").hidden = true;
   if (osmd) { try { osmd.clear(); } catch (e) {} }
@@ -447,6 +448,18 @@ function renderQText(q, tab){
   if (!q.free && S.exam) notes.push(() => SY.systems[S.exam.system].mode === "sets" ? tr("速度是大綱的「最低速度」。", "Tempo is the syllabus minimum.") : tr("速度是大綱的「參考速度」。", "Tempo is the syllabus guide speed."));
   $("scoreNote").hidden = !notes.length;
   pairText($("scoreNote"), () => noteFns.map(f => f()).join(" "));
+  renderIntro(q.free ? tab : null);
+}
+/* 第一次進來這個子項目的一行說明(題目卡標籤下):這個子項目播放過一次就不再出現(S.intro[子項目] = true) */
+const INTRO = {
+  scale: ["一個調的音由低到高、再回來", "A key's notes up and back down"],
+  arp: ["和弦的音一個一個彈(Do Mi Sol Do)", "A chord's notes one at a time (C E G C)"],
+  hanon: ["手指練習曲,每拍 4 個音", "Finger exercise, 4 notes a beat"]
+};
+function renderIntro(tab){
+  const txt = tab && !S.intro[tab] ? INTRO[tab] : null;
+  $("intro").hidden = !txt;
+  if (txt) pairText($("intro"), () => tr(txt[0], txt[1])); else unpair($("intro"));
 }
 function syncMastery(){
   const m = cur && S.mastery[cur.key];
@@ -941,6 +954,8 @@ function revealScore(){
 }
 /* 播放的準備或排程中途出錯時,不能讓 starting 卡著(之後怎麼按都不理);錯誤原因直接寫在卡片上,方便回報 */
 async function startPlayback(){
+  // 這個子項目播放過一次:說明不再出現(換題目時才收起來,播放中版面不動)
+  if (cur && cur.free && INTRO[S.tab] && !S.intro[S.tab]) { S.intro[S.tab] = true; store.save(); }
   try { await startPlaybackInner(); }
   catch (e) {
     console.error(e);
@@ -1040,40 +1055,25 @@ export function onKey(e){
   else if ((e.key === "n" || e.key === "N") && S.tab === "exam") { const b = !$("nextBtn").hidden ? $("nextBtn") : $("drawBtn"); if (!b.hidden && !b.disabled) b.click(); }
 }
 
-/* ══ 練習紀錄 ══
-   算一次練習:示範完整播完、或按了 ✓ / ⚠ 標記。S.log = { "YYYY-MM-DD": { n: 次數, sec: 秒數 } }(只留最近 400 天) */
-const dayKey = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+/* ══ 練習紀錄(js/shared/practicelog.js,跟 DrumDrill 同一份):示範完整播完、或按了 ✓ / ⚠ 標記算一次;
+   S.log = { "YYYY-MM-DD": { n: 次數, sec: 秒數 } }(只留最近 400 天);每週目標 S.goal(分鐘,點一下換) */
 function logPractice(sec){
   S.log = S.log || {};
-  const k = dayKey(new Date()), e = S.log[k] || (S.log[k] = { n: 0, sec: 0 });
-  e.n++; e.sec += Math.round(sec || 0);
-  const keys = Object.keys(S.log).sort();
-  while (keys.length > 400) delete S.log[keys.shift()];
+  addLog(S.log, { sec, n: 1 });
   store.save(); renderLog();
 }
 function renderLog(){
-  const log = S.log || {}, today = new Date();
-  // 連續天數:從今天(今天還沒練就從昨天)往回數
-  let streak = 0, d = new Date(today);
-  if (!(log[dayKey(d)] && log[dayKey(d)].n)) d.setDate(d.getDate() - 1);
-  while (log[dayKey(d)] && log[dayKey(d)].n) { streak++; d.setDate(d.getDate() - 1); }
-  const t = log[dayKey(today)] || { n: 0, sec: 0 };
-  $("logStreak").textContent = streak; $("logToday").textContent = t.n; $("logMin").textContent = Math.round(t.sec / 60);
-  const names = getLang() === "en" ? ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"] : ["日", "一", "二", "三", "四", "五", "六"];
-  let html = "";
-  for (let i = 6; i >= 0; i--) {
-    const x = new Date(today); x.setDate(x.getDate() - i);
-    const e = log[dayKey(x)];
-    html += `<span class="${i === 0 ? "today" : ""}"><i class="${e && e.n ? "on" : ""}"></i>${names[x.getDay()]}</span>`;
-  }
-  $("logWeek").innerHTML = html;
+  S.log = S.log || {};
+  paintLog($, S.log, S.goal);
+  $("logMin").textContent = Math.floor(today(S.log).sec / 60);
 }
+$("goalBtn").onclick = () => { S.goal = nextGoal(S.goal); store.save(); renderLog(); };
 
 /* 檢定分頁上方的進度:通過幾項 / 本級幾項 */
 export function examStatus(){
   if (!SY || !S.exam) return "";
   const qs = examQuestions(), good = qs.filter(q => S.mastery[q.key] === "good").length;
-  return tr(`通過 ${good} / ${qs.length}`, `${good} / ${qs.length} passed`);
+  return tr(`會了 ${good}/${qs.length}`, `Got it ${good}/${qs.length}`);
 }
 
 /* ── 啟動(外框呼叫)── */

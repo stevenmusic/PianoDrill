@@ -97,7 +97,7 @@ async function run(vpName, vp){
     [8, "切子項目", async () => tapAny("#subSeg button")],
     [3, "考試系統", async () => tapAny("#systemSeg button")],
     [3, "級數", async () => tap(`#gradeSeg button[data-v="${Math.floor(rnd() * 9)}"]`)],
-    [2, "檢定三項", async () => tapAny("#examParts .part")],
+    [2, "檢定三項", async () => tapAny("#subSeg button")],
     [3, "展開/收起設定", async () => tapAny(".setup-summary")],
     [3, "中英切換", async () => tap("#langToggle")],
     [1, "主題", async () => tap("#themeToggle")],

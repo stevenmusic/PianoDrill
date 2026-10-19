@@ -38,7 +38,9 @@ const STR = {
   obTitle: ["你在準備鋼琴檢定嗎?", "Taking an exam?"],
   obSub: ["選好考試和級數,會打開「檢定」分頁:音階琶音、視奏、聽力都照這一級出題。之後隨時可以在「檢定」分頁更改。",
     "Pick a board and grade: Exams opens with scales, sight-reading and aural set to that grade. Change any time in Exams."],
-  obYes: ["開始準備考試", "Start exam prep"], obNo: ["不考試,自由練習", "No exam — free practice"]
+  obYes: ["開始準備考試", "Start exam prep"], obNo: ["不考試,自由練習", "No exam — free practice"],
+  obHint: ["不確定考哪個?先選「自由練習」,之後再改", "Not sure? Pick free practice — change it later"],
+  examHelp: ["看檢定書封面或問老師;不考試可以直接用前三個分頁", "Check the exam book or ask your teacher — or just use the other tabs"]
 };
 // @app-end
 /* 模組的字串:addStrings("tech", { play: ["播放示範", "Play"] }) → "tech.play" */

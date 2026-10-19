@@ -29,7 +29,8 @@ export function cleanRead(o) {
   const r = o && typeof o === 'object' && !Array.isArray(o) ? o : {};
   const ok = (v, list, d) => (list.includes(v) ? v : d);
   const out = { clef: ok(r.clef, CLEFS, 'treble'), pos: ok(r.pos, POS, 'all'), acc: r.acc === true, mode: ok(r.mode, MODES, 'practice'),
-    lo: Number.isInteger(r.lo) ? r.lo : 60, hi: Number.isInteger(r.hi) ? r.hi : 67, best: r.best, miss: r.miss };
+    lo: Number.isInteger(r.lo) ? r.lo : 60, hi: Number.isInteger(r.hi) ? r.hi : 67, best: r.best, miss: r.miss,
+    seen: r.seen === true };   // 答過一題:題目那行不再寫第一次的說明
   out.lo = Math.max(LOW, Math.min(HIGH, out.lo)); out.hi = Math.max(LOW, Math.min(HIGH, out.hi));
   if (out.hi - out.lo < 4) out.hi = Math.min(HIGH, out.lo + 4);
   return out;
@@ -128,7 +129,8 @@ export function createReading({ $, store, save, onAnswered = () => {} }) {
     const id = drill.pick(list, setting(), Math.random, last);
     last = id; q = { id, ...parse(id) }; t0 = performance.now();
     // 譜和琴鍵之間這一行不空著:平常寫題目,答了寫對錯
-    say(() => tr('什麼音?', 'Which note?'));
+    // 第一次(還沒答過):寫這一格在練什麼、怎麼作答
+    say(() => (R.seen ? tr('什麼音?', 'Which note?') : tr('看音符,點出是哪個鍵', 'Read the note, tap the key')));
     paintKeys();
     draw();
   }
@@ -141,6 +143,7 @@ export function createReading({ $, store, save, onAnswered = () => {} }) {
     let gm = pc; while (gm < q.m - 6) gm += 12; while (gm > q.m + 6) gm -= 12;
     const givenName = nameOf(gm, isBlack(gm) ? (flat ? -1 : 1) : 0);
     session.n++; if (ok) session.ok++;
+    if (!R.seen) { R.seen = true; save(); }
     onAnswered((performance.now() - t0) / 1000);
     paintKeys(pc, ok);
     lock = true;
@@ -224,7 +227,7 @@ export function createReading({ $, store, save, onAnswered = () => {} }) {
   }
   function paintMiss() {
     const t = drill.top(setting());
-    pairText($('rdMiss'), () => (t.length ? tr('最常錯:', 'Most missed: ') + t.map((x) => tr(`把 ${x.target} 看成 ${x.answer}(${x.n} 次)`, `${x.target} read as ${x.answer} (${x.n}×)`)).join(tr(';', '; ')) + tr('。下一輪這幾個會多出現(練習設定)。', '. These come up more often next round (practice setting).') : ''));
+    pairText($('rdMiss'), () => (t.length ? tr('最常錯:', 'Most missed: ') + t.map((x) => tr(`把 ${x.target} 看成 ${x.answer}(${x.n} 次)`, `${x.target} read as ${x.answer} (${x.n}×)`)).join(tr(';', '; ')) + tr('。下一輪這幾個會多出現。', '. These come up more often next round.') : ''));
   }
   let wrongName = null;
   function showEnd(res) {

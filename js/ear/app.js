@@ -5,6 +5,7 @@ import { ALL_ITEMS, itemLabel, makeQuestion, pcName, isBlack, setSolfege, noteNa
 import { makeDrill, drillName, judgeTaps, judgeKeys, lazy } from "./aural.js";
 import { tr, scoped, getLang, pairText } from "../shared/i18n.js";
 import * as audio from "../shared/audio.js";
+import { addLog, renderLog as paintLog, today, nextGoal } from "../shared/practicelog.js";
 import "./strings.js";
 const T = scoped("ear");
 
@@ -303,8 +304,14 @@ function renderAnswers(){
     syncTap();
   }
   if (A.done) showResult();
-  else $("feedback").textContent = !A.played ? tr("先按 ▶ 聽題目", "Press ▶ to listen") : A.hint ? A.hint() : "";
+  else $("feedback").textContent = !A.played ? (INTRO[S.tab] && !S.intro[S.tab] ? tr(...INTRO[S.tab]) : tr("先按 ▶ 聽題目", "Press ▶ to listen")) : A.hint ? A.hint() : "";
 }
+/* 第一次進來這個子項目(還沒答完一題):狀態那行寫在練什麼、怎麼作答(答完一題就換回「先按 ▶ 聽題目」) */
+const INTRO = {
+  note: ["聽一個音,點出是哪個鍵", "Hear a note, tap the key"],
+  interval: ["聽兩個音,選出它們差多遠", "Hear two notes, pick how far apart"],
+  chord: ["聽一個和弦,選出是哪一種", "Hear a chord, pick its type"]
+};
 
 /* ── 選擇題 ── */
 $("answers").addEventListener("click", e => {
@@ -405,6 +412,7 @@ function finish(ok){
   const st = S.stats[cur.key] || (S.stats[cur.key] = { n: 0, ok: 0 });
   st.n++; if (ok) st.ok++;
   logAnswer(ok);
+  if (INTRO[S.tab] && !S.intro[S.tab]) S.intro[S.tab] = true;   // 答完一題:第一次的說明不再出現
   if (mock) mock.res[mock.i] = ok;
   store.save();
   showResult();
@@ -514,7 +522,7 @@ async function startPlayback(){
   if (!ok) { $("playLabel").textContent = T("play"); return; }
   const t0 = playSeq(cur.play);
   play = { t0, dur: cur.play.dur, raf: 0 };
-  A.played = true;
+  A.played = true; if (!A.t0) A.t0 = Date.now();
   $("revealBtn").hidden = A.done;
   if (cur.tap) { A.taps = []; syncTap(); A.tapStart = t0; A.tapEnd = t0 + cur.play.dur; }
   // 作答提示記成函式(A.hint),換語言、切走再回來時 renderAnswers 照目前的語言重寫
@@ -571,7 +579,7 @@ function renderStats(){
   $("statsCard").hidden = !rows.length;
   $("statsList").innerHTML = rows.map(([name, s]) => {
     const p = Math.round(100 * s.ok / s.n);
-    return `<div class="srow"><span>${name}</span><div class="bar"><i class="${p < 70 ? "low" : ""}" style="width:${p}%"></i></div><small>${p}% · ${s.n}</small></div>`;
+    return `<div class="srow"><span>${name}</span><div class="bar"><i class="${p < 70 ? "low" : ""}" style="width:${p}%"></i></div><small>${p}% · ${tr(`${s.n} 題`, `${s.n} q`)}</small></div>`;
   }).join("");
   $("statsReset").hidden = !rows.length;
 }
@@ -582,35 +590,18 @@ $("statsReset").onclick = () => {
   store.save(); renderStats(); if (S.tab === "exam") renderExam();
 };
 
-/* ══ 練習紀錄 ══ S.log = { "YYYY-MM-DD": { n, ok } }(只留最近 400 天) */
-const dayKey = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+/* ══ 練習紀錄(js/shared/practicelog.js,跟 DrumDrill 同一份)══ S.log = { "YYYY-MM-DD": { n, sec, hits, total } }(只留最近 400 天)
+   答一題算一題;秒數 = 第一次按 ▶ 到作答完的時間(一題最多算 2 分鐘,放著不動不算);每週目標 S.goal(分鐘,點一下換) */
 function logAnswer(ok){
-  const k = dayKey(new Date()), e = S.log[k] || (S.log[k] = { n: 0, ok: 0 });
-  e.n++; if (ok) e.ok++;
-  const keys = Object.keys(S.log).sort();
-  while (keys.length > 400) delete S.log[keys.shift()];
+  const sec = A && A.t0 ? Math.min(120, (Date.now() - A.t0) / 1000) : 0;
+  addLog(S.log, { n: 1, sec, hits: ok ? 1 : 0, total: 1 });
   renderLog();
 }
-/* 每日目標:點一下換 10 / 20 / 30 / 50 題 */
-$("goalBtn").onclick = () => { const G = [10, 20, 30, 50]; S.goal = G[(G.indexOf(S.goal || 20) + 1) % G.length]; store.save(); renderLog(); };
+$("goalBtn").onclick = () => { S.goal = nextGoal(S.goal); store.save(); renderLog(); };
 function renderLog(){
-  const log = S.log || {}, today = new Date();
-  let streak = 0, d = new Date(today);
-  if (!(log[dayKey(d)] && log[dayKey(d)].n)) d.setDate(d.getDate() - 1);
-  while (log[dayKey(d)] && log[dayKey(d)].n) { streak++; d.setDate(d.getDate() - 1); }
-  const t = log[dayKey(today)] || { n: 0, ok: 0 };
-  const goal = S.goal || 20, pct = Math.min(100, Math.round(100 * t.n / goal));
-  $("goalBar").style.width = pct + "%"; $("goalBar").classList.toggle("done", t.n >= goal);
-  $("goalBtn").textContent = tr(`每日目標 ${Math.min(t.n, goal)}/${goal}`, `Daily goal ${Math.min(t.n, goal)}/${goal}`);
-  $("logStreak").textContent = streak; $("logToday").textContent = t.n; $("logAcc").textContent = t.n ? Math.round(100 * t.ok / t.n) + "%" : "–";
-  const names = getLang() === "en" ? ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"] : ["日", "一", "二", "三", "四", "五", "六"];
-  let html = "";
-  for (let i = 6; i >= 0; i--) {
-    const x = new Date(today); x.setDate(x.getDate() - i);
-    const e = log[dayKey(x)];
-    html += `<span class="${i === 0 ? "today" : ""}"><i class="${e && e.n ? "on" : ""}"></i>${names[x.getDay()]}</span>`;
-  }
-  $("logWeek").innerHTML = html;
+  paintLog($, S.log, S.goal);
+  const t = today(S.log);
+  $("logAcc").textContent = t.total ? Math.round(100 * t.hits / t.total) + "%" : "–";
 }
 
 /* 檢定分頁上方的進度:本級的聽力測驗題型答對率 */

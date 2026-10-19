@@ -6,6 +6,7 @@
   ["js/shared/mic.js", "js/shared/mic.js", "same"],
   ["js/shared/drill.js", "js/shared/drill.js", "same"],
   ["js/shared/staffframe.js", "js/shared/staffframe.js", "same"],
+  ["js/shared/practicelog.js", "js/shared/practicelog.js", "same"],
   ["js/main.js", "js/main.js", "markers"],
   ["sw.js", "sw.js", "markers"],
   ["tools/build/stamp.mjs", "tools/build/stamp.mjs", "same"],

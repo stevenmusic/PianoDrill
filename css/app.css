@@ -649,10 +649,10 @@ body.land-play #t-stage{flex:1;display:flex;flex-direction:column;justify-conten
 }
 /* 內容寬度:技巧、聽音窄一點(按鈕、鍵盤不會又寬又扁);視奏的樂譜要寬 */
 @media (min-width:901px){ main,footer{max-width:900px} body.view-sight main,body.view-sight footer{max-width:1180px} }
-/* 檢定:三個項目的進度,點一下切過去 */
+/* 檢定:三個項目的進度(只顯示,不是按鈕;切換用子項目列) */
 .exam-parts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:12px}
 .part{display:flex;flex-direction:column;align-items:flex-start;gap:2px;min-height:52px;padding:8px 10px;border-radius:var(--radius-sm);
-  border:1px solid var(--line);background:var(--surface-inset);color:var(--ivory);font-family:inherit;text-align:left;cursor:pointer;min-width:0}
+  border:1px solid var(--line);background:var(--surface-inset);color:var(--ivory);font-family:inherit;text-align:left;min-width:0}
 .part b{font-size:var(--fs-sm);color:var(--gold);font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
 .part small{font-size:var(--fs-2xs);color:var(--muted-bright);line-height:1.35;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;min-height:2.7em}
 .part[aria-pressed="true"]{border-color:var(--gold);background:rgba(242,185,75,.1)}
@@ -668,6 +668,10 @@ body.land-play #t-stage{flex:1;display:flex;flex-direction:column;justify-conten
 .exam-pick #systemSeg button{min-height:40px}
 .exam-grades{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0, 1fr)}   /* 每格一樣寬(flex 的話第一格少一條框線,窄 1px) */
 .exam-grades button{padding:0;min-height:36px;font-variant-numeric:tabular-nums}
+/* 級數那排下面一行小字(檢定頁:怎麼知道考哪一級 / 推估的意思;第一次的問題:不確定就先自由練習) */
+.exam-hint{margin:0;font-size:var(--fs-xs);line-height:1.5;color:var(--muted-bright)}
+/* 題目卡:第一次進來這個子項目的一行說明(練過一次就不再出現;技巧 #t-intro) */
+.q-intro{margin:6px 0 0;font-size:var(--fs-sm);line-height:1.5;color:var(--muted-bright)}
 @media (max-width:600px){ .exam-card{padding:8px 12px 10px} }
 /* 折疊機 280:9 格要 ≥ 28 寬,卡片、對話框的左右內距放不下 → 系統鈕、級數列往兩邊伸到內距裡(離卡片邊框 1px) */
 @media (max-width:300px){

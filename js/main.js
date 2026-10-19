@@ -58,6 +58,8 @@ const PART_LABEL = () => ({ tech: tr("音階琶音", "Scales & arpeggios"), sigh
 const SUB_LABEL = () => ({ tech: tr("技巧項目", "Technique"), sight: tr("手", "Hands"), ear: tr("題型", "Question type"), exam: tr("檢定項目", "Exam section") });
 /* 外框另外給模組的東西(ctx 裡;DrumDrill 用來給考試資料):PianoDrill 的模組自己讀資料,這裡沒有 */
 const appCtx = async () => ({});
+/* 有選考試時考試卡下面那一行「推估 = …」:檢定頁沒有「推估」標籤(視奏的推估說明是整句),不寫 */
+const ASSUMED_HINT = false;
 // @app-end
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
 const GRADES = [0, 1, 2, 3, 4, 5, 6, 7, 8];
@@ -83,7 +85,7 @@ applyStatic();
 $("langToggle").onclick = () => setLang(getLang() === "zh" ? "en" : "zh");
 onLang(() => {
   renderSubnav(); renderExamCard(); tabbarLabel();
-  if (!$("onboard").hidden) fillGradeSeg($("obGradeSeg"), ob.grade, ob.system);
+  if (!$("onboard").hidden) fillGradeSeg($("obGradeSeg"), ob.grade, ob.system || DEFAULT_EXAM.system);
   for (const m of Object.values(MODS)) m.relang();
 });
 
@@ -124,7 +126,20 @@ $("subSeg").onclick = e => {
   if (S.sub[S.view] === b.dataset.v) return;
   S.sub[S.view] = b.dataset.v; save();
   showView(S.view);
+  if (S.view === "exam") examScroll(b.dataset.v);
 };
+/* 檢定頁換項目:小畫面(折疊機、手機橫式)考試卡佔滿第一個畫面時,捲到這一項的題目卡(主要動作在裡面)或第一張卡 */
+function examScroll(part){
+  requestAnimationFrame(() => {
+    const cards = [...$("mod-" + part).querySelectorAll(".card")].filter(c => c.getClientRects().length && !c.closest("[hidden]"));
+    if (!cards.length) return;
+    const head = document.querySelector("header"), top = head ? head.getBoundingClientRect().bottom : 0;
+    const quiz = cards.find(c => c.classList.contains("quiz"));
+    if (quiz) { const r = quiz.getBoundingClientRect(); if (r.bottom > innerHeight - 70 || r.top > innerHeight * 0.55) window.scrollTo({ top: Math.max(0, scrollY + r.top - top - 8) }); return; }
+    const first = Math.min(...cards.map(c => c.getBoundingClientRect().top));
+    if (first > innerHeight * 0.55) window.scrollTo({ top: Math.max(0, scrollY + first - top - 8) });
+  });
+}
 /* 目前分頁的模組與它的子項目(檢定分頁:模組 = 檢定的子項目,tab = "exam") */
 const modOf = view => (view === "exam" ? S.sub.exam : view);
 const tabOf = view => (view === "exam" ? "exam" : S.sub[view] || "");
@@ -208,39 +223,25 @@ function renderExamCard(){
   syncSystemSeg(); fillGradeSeg($("gradeSeg"), S.exam ? ex.grade : null, S.exam ? ex.system : pickSys || ex.system);
   $("examSum").parentElement.hidden = !!S.exam;
   $("examSum").textContent = S.exam ? "" : pickSys ? tr("再選級數", "Now pick a grade") : tr("先選考試系統和級數", "Pick an exam board and grade");
+  // 級數那排下面一行:沒選考試 = 怎麼知道考哪一級;有選 = 「推估」是什麼意思(@app 的 ASSUMED_HINT:畫面上有「推估」標籤的 App 才寫)
+  const hint = !S.exam ? T("examHelp") : ASSUMED_HINT ? T("examAssumed") : "";
+  $("examHint").hidden = !hint; $("examHint").textContent = hint;
   $("examParts").hidden = !S.exam;
   if (!S.exam) { $("examParts").innerHTML = ""; return; }
-  // 三個項目的進度(各模組自己算),點一下切到那一項
-  const keep = keepFocus($("examParts"), "data-part");
+  // 三個項目的進度(各模組自己算);只顯示,不是按鈕(切換用上面的子項目列)
   $("examParts").innerHTML = Object.keys(MODS).map(name => {
     const st = MODS[name].examStatus() || "";
     const label = PART_LABEL()[name];
-    return `<button class="part" data-part="${name}" aria-pressed="${S.view === "exam" && S.sub.exam === name}"><b>${label}</b><small>${st}</small></button>`;
+    return `<div class="part" data-part="${name}"><b>${label}</b><small>${st}</small></div>`;
   }).join("");
-  keep();
 }
-$("examParts").onclick = e => {
-  const b = e.target.closest("[data-part]"); if (!b) return;
-  S.sub.exam = b.dataset.part; save(); showView("exam");
-  // 小畫面(折疊機、手機橫式):考試卡佔滿第一個畫面時,捲到這一項的第一張卡(按鈕不用自己往下找)
-  // 有題目卡(.quiz)就讓題目卡整張看得到(主要動作在裡面),沒有就捲到第一張卡
-  requestAnimationFrame(() => {
-    const cards = [...$("mod-" + b.dataset.part).querySelectorAll(".card")].filter(c => c.getClientRects().length && !c.closest("[hidden]"));
-    if (!cards.length) return;
-    const head = document.querySelector("header"), top = head ? head.getBoundingClientRect().bottom : 0;
-    const quiz = cards.find(c => c.classList.contains("quiz"));
-    if (quiz) { const r = quiz.getBoundingClientRect(); if (r.bottom > innerHeight - 70 || r.top > innerHeight * 0.55) window.scrollTo({ top: Math.max(0, scrollY + r.top - top - 8) }); return; }
-    const first = Math.min(...cards.map(c => c.getBoundingClientRect().top));
-    if (first > innerHeight * 0.55) window.scrollTo({ top: Math.max(0, scrollY + first - top - 8) });
-  });
-};
 /* 模組裡的進度改變了(標記通過、答題):重畫進度 */
 export function examChanged(){ if (S.view === "exam") renderExamCard(); }
 
 /* ══ 第一次打開:在準備考試嗎? ══
    無障礙:對話框打開時焦點移進去(第一個按鈕)、Tab 只在對話框 + 頂欄右邊的主題 / 語言鈕之間轉(頂欄在對話框上面,可以邊選邊換語言)、
    Esc = 「不考試,自由練習」;背景(內容、分頁列、子項目分段鈕、頂欄的考試標籤)設 inert;關掉時焦點回到打開前的地方(沒有就回到選到的分頁) */
-const ob = { ...DEFAULT_EXAM };
+const ob = { system: null, grade: null };   // 第一次的問題:系統、級數都不預選(跟檢定頁「沒選不亮」一樣)
 let obReturn = null;
 const OB_BG = () => [MAIN, $("tabbar"), $("subnav"), $("examChip")].filter(Boolean);
 const OB_SEL = "button, select, [href], input, [tabindex]:not([tabindex='-1'])";
@@ -249,7 +250,7 @@ function openOnboard(){
   obReturn = document.activeElement && document.activeElement !== document.body ? document.activeElement : null;
   $("onboard").hidden = false;
   for (const el of OB_BG()) el.inert = true;
-  const first = $("onboard").querySelector("#obSystem button[aria-pressed=true]") || obFocusables()[0];
+  const first = $("onboard").querySelector("#obSystem button") || obFocusables()[0];
   if (first) first.focus();
 }
 function closeOnboard(){
@@ -269,11 +270,14 @@ document.addEventListener("keydown", e => {
   f[i < 0 ? 0 : (i + (e.shiftKey ? -1 : 1) + f.length) % f.length].focus();
 });
 function showOnboard(){
-  const syncSys = segBind("obSystem", () => ob.system, v => { ob.system = v; ob.grade = validGrade(ob.grade, v); fillGradeSeg($("obGradeSeg"), ob.grade, v); });
-  fillGradeSeg($("obGradeSeg"), ob.grade, ob.system); syncSys();
-  $("obGradeSeg").onclick = e => { const g = gradeOfClick(e); if (g != null) { ob.grade = g; fillGradeSeg($("obGradeSeg"), g, ob.system); } };
+  // 沒選級數時「開始準備考試」不能按;先點級數 = 預設的系統(跟檢定頁一樣)
+  const obSync = () => { fillGradeSeg($("obGradeSeg"), ob.grade, ob.system || DEFAULT_EXAM.system); $("obYes").disabled = ob.grade == null; };
+  const syncSys = segBind("obSystem", () => ob.system, v => { ob.system = v; if (ob.grade != null) ob.grade = validGrade(ob.grade, v); obSync(); });
+  obSync(); syncSys();
+  $("obGradeSeg").onclick = e => { const g = gradeOfClick(e); if (g != null) { ob.grade = g; if (!ob.system) ob.system = DEFAULT_EXAM.system; obSync(); syncSys(); } };
   openOnboard();
   $("obYes").onclick = () => {
+    if (ob.grade == null) return;
     S.onboarded = true;
     setExam(ob.system, ob.grade); showView("exam");
     closeOnboard();

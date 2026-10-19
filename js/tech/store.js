@@ -1,3 +1,4 @@
+import { cleanLog, cleanGoal } from "../shared/practicelog.js";
 /* localStorage(私密瀏覽、清除網站資料時可能讀不到或寫不進去:一律 try/catch,讀不到就用預設值) */
 const KEY = "pianodrill.tech.v1";
 const OLD_KEY = "fingerdrill.v1";   // 同一個網域上的舊工具留下的紀錄:第一次打開時沿用
@@ -19,6 +20,10 @@ export function load(){
   let saved = {};
   try { saved = JSON.parse(localStorage.getItem(KEY) || localStorage.getItem(OLD_KEY) || "{}") || {}; } catch (e) {}
   state = { ...DEFAULTS, ...saved, filter: { ...DEFAULTS.filter, ...(saved.filter || {}) }, mastery: { ...(saved.mastery || {}) } };
+  state.log = cleanLog(state.log); state.goal = cleanGoal(state.goal);   // 練習紀錄、每週目標(分鐘;js/shared/practicelog.js)
+  // 第一次進來各子項目的一行說明:播放過一次的子項目 = true
+  const intro = {}; if (saved.intro && typeof saved.intro === "object") for (const k of ["scale", "arp", "hanon"]) if (saved.intro[k] === true) intro[k] = true;
+  state.intro = intro;
   return state;
 }
 export function save(){

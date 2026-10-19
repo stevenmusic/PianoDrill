@@ -9,6 +9,7 @@ import { createStage, barTimings } from './stage.js';
 import { t, applySightStatic } from './i18n.js';
 import { pairText, unpair, tr } from '../shared/i18n.js';
 import { createReading, cleanRead } from './reading.js';
+import { addLog, cleanLog, renderLog as paintLog, today, streak as logStreak, nextGoal, cleanGoal } from '../shared/practicelog.js';
 import { STAGES, HANDS, stageOf, rulesForStage, pickGrade, soloScore, rangeLabel } from './stages.js';
 
 /* 視奏模組(原 SightDrill):外框(js/main.js)負責頂欄、分頁、主題、語言與考試設定;這裡的元素 id 都加 "s-" 前綴。
@@ -30,7 +31,12 @@ const SS = (() => {
   const stage = {}, names = {};
   for (const h of HANDS) { const v = s.stage && s.stage[h]; stage[h] = Number.isInteger(v) && v >= 1 && v <= 4 ? v : 1; }
   for (const n of [1, 2, 3, 4]) { const v = s.names && s.names[n]; names[n] = typeof v === 'boolean' ? v : n === 1; }
-  return { stage, names, read: cleanRead(s.read) };
+  // 練習紀錄:舊版存在 pianodrill.sight.practice.v1({ 日期: 題數 }),第一次讀進來換成 { n, sec }
+  let log = s.log;
+  if (!log) { log = {}; try { for (const [k, n] of Object.entries(JSON.parse(readKey('pianodrill.sight.practice.v1') ?? '{}') || {})) log[k] = { n, sec: 0 }; } catch { /* 讀不到就從頭記 */ } }
+  // 第一次進來右手 / 左手 / 雙手的一行說明(題目卡狀態那行):彈完一遍的子項目 = true
+  const intro = {}; if (s.intro && typeof s.intro === 'object') for (const h of HANDS) if (s.intro[h] === true) intro[h] = true;
+  return { stage, names, read: cleanRead(s.read), log: cleanLog(log), goal: cleanGoal(s.goal), intro };
 })();
 const saveSS = () => { try { localStorage.setItem('pianodrill.sight.v1', JSON.stringify(SS)); } catch { /* 存不了就算了 */ } };
 const $ = (id) => document.getElementById('s-' + id);
@@ -41,13 +47,16 @@ let ctx = null;
 /* 視奏分頁:子項目 = 認音 / 右手 / 左手 / 雙手(外框),右手 / 左手 / 雙手各自選範圍階段 */
 let hand = 'both';
 let keyValue = '';   // 檢定頁選的調性('' = 隨機;"G:major")
-const reading = createReading({ $, store: SS.read, save: saveSS, onAnswered: () => recordPractice() });
+let readT = 0;   // 認音:上一次作答的時間(兩題之間最多算 30 秒)
+const reading = createReading({ $, store: SS.read, save: saveSS, onAnswered: () => { const now = Date.now(); if (readT) addPracticeSec(Math.min(30, (now - readT) / 1000)); readT = now; recordPractice(); } });
 const readOn = () => mode === 'free' && hand === 'read';
 /* 視奏分頁:「彈一遍」一直在(不用先等 30 秒準備;準備是選用的);檢定頁照考試流程,準備完才出現 */
 const freeAlong = () => mode === 'free' && hand !== 'read';
 let lastHandTab = null;   // 上一次在畫面上的右手 / 左手 / 雙手(切到認音時用那一階的範圍)
 const stageNow = () => stageOf(SS.stage[hand]);
 const freeKey = () => `${hand}-${SS.stage[hand]}`;
+/* 視奏分頁的狀態那行:第一次進來這個子項目(還沒彈完一遍)寫在練什麼、怎麼作答;之後寫下一步 */
+const freeReadyKey = () => (SS.intro[hand] ? 'freeReady' : 'freeIntro');
 /* 目前用哪一級的規則出題:檢定分頁照考試級數;視奏分頁 = 這一題抽到的級(範圍階段裡隨機) */
 const currentGrade = () => (mode === 'exam' ? exam.grade : current && current.free ? current.score.grade : stageNow().grades[stageNow().grades.length - 1]);
 /* 這一階的規則表複本(調性選單、出題用;階 1 只有 C 大調) */
@@ -77,7 +86,6 @@ const elements = {
   playAlong: $('playAlong'),
   alongMic: $('alongMic'),
   alongResult: $('alongResult'),
-  clearHistory: $('clearHistory'),
   confidence: $('confidence'),
 };
 
@@ -663,11 +671,6 @@ export async function start(c) {
     try { localStorage.setItem('pianodrill.sight.mic', elements.alongMic.checked ? '1' : '0'); } catch { /* 不影響使用 */ }
   });
   setAlongLabel();
-  elements.clearHistory.addEventListener('click', () => {
-    if (!confirm(t('clearHistoryConfirm'))) return;
-    history.clear();
-    updateHistoryInfo();
-  });
   elements.key.addEventListener('click', (e) => {
     const b = e.target.closest('button[data-v]');
     if (!b || b.dataset.v === keyValue) return;
@@ -1118,7 +1121,7 @@ async function drawTest({ score, xml }, quiet = false) {
       await osmd.load(xml);
       osmd.render();
     }
-    if (!quiet) say(freeAlong() ? 'freeReady' : 'readyStatus');
+    if (!quiet) say(freeAlong() ? freeReadyKey() : 'readyStatus');
   } catch (error) {
     fail('failRender', error.message);
     elements.score.classList.remove('entering');
@@ -1212,7 +1215,7 @@ async function startCountdown() {
   // 給音被打斷(按了播放、停止、產生新題):不要再開始倒數
   if (token !== prepToken) return;
   if (!finished) {
-    say(freeAlong() ? 'freeReady' : 'readyStatus');
+    say(freeAlong() ? freeReadyKey() : 'readyStatus');
     return;
   }
 
@@ -1268,6 +1271,7 @@ function runPreparationCountdown() {
 
   countdownTimer = setInterval(() => {
     remaining -= 1;
+    if (SS.log) addLog(SS.log, { sec: 1 });   // 準備倒數的每一秒(跑完或停下時存檔)
     elements.countdownValue.textContent = String(Math.max(remaining, 0));
     showPrepFloat(Math.max(remaining, 0));
     if (remaining <= 0) {
@@ -1284,6 +1288,7 @@ function runPreparationCountdown() {
 }
 
 function stopCountdown() {
+  if (countdownTimer) { saveSS(); updateHistoryInfo(); }
   clearInterval(countdownTimer);
   countdownTimer = null;
   elements.prepFloat.hidden = true;
@@ -1466,8 +1471,10 @@ function renderAt(n, zoom) {
   return { layout, fitsHeight: renderedScoreHeight() <= availableScoreHeight() };
 }
 
+let followT0 = 0;   // 跟著譜走(彈一遍、聽正確版本)開始的時間:停下來時算進練習紀錄的秒數
 function startFollowing(clock = () => player.elapsed, onFinish = null) {
   if (!current || !stage.begin()) return;
+  followT0 = performance.now();
   const { secondsPerBar } = barTimings(current.score);
   const totalBars = current.score.barCount;
 
@@ -1599,7 +1606,7 @@ function finishPlayAlong(scoring) {
   const firstNoteAt = alongStart;
   const free = freeAlong();
   stopPlayAlong(free ? 'freeDone' : 'alongDone');
-  if (free) recordPractice();   // 視奏分頁沒有準備倒數:彈完一遍算練了一題
+  if (free) { recordPractice(); if (!SS.intro[hand]) { SS.intro[hand] = true; saveSS(); } }   // 視奏分頁沒有準備倒數:彈完一遍算練了一題(第一次的說明不再出現)
   if (!take) return;
   // 麥克風時間軸換算成「距離第一個音幾秒」,跟題目的預期起音同一把尺
   const detected = detectOnsets(take.samples, take.sampleRate).map((time) => take.startedAt + time - firstNoteAt);
@@ -1642,6 +1649,7 @@ function resetAlongResult() {
 function stopFollowing() {
   cancelAnimationFrame(followFrame);
   followFrame = null;
+  if (followT0) { addPracticeSec((performance.now() - followT0) / 1000); followT0 = 0; }
   stage?.end();
 }
 
@@ -1670,47 +1678,31 @@ function togglePlayback() {
 }
 
 /*
- * 練習紀錄:每次 30 秒準備跑完算「練了一題」,按日期存在本機。徽章顯示今天幾題、
- * 連續幾天(昨天或今天有練就不斷),跟其他練習 App 的每日目標一樣,給人回來練的理由。
+ * 練習紀錄(js/shared/practicelog.js,跟技巧、聽音、DrumDrill 同一份):SS.log = { "YYYY-MM-DD": { n, sec } }、SS.goal = 每週目標(分鐘)。
+ * 一題 = 30 秒準備跑完(檢定頁)、彈完一遍(視奏分頁)、認音答一題;秒數 = 準備倒數、彈一遍、聽正確版本(跟著譜走的時間)與認音作答的時間。
+ * 出題歷史(不重複出題)照舊在背景記,不顯示也不能清除。
  */
-const PRACTICE_KEY = 'pianodrill.sight.practice.v1';
-const dayKey = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-function readPractice() {
-  try { return JSON.parse(readKey(PRACTICE_KEY) ?? '{}'); } catch { return {}; }
+function addPracticeSec(sec) {
+  if (!(sec > 0)) return;
+  addLog(SS.log, { sec: Math.min(sec, 600) });
+  saveSS(); updateHistoryInfo();
 }
 function recordPractice() {
-  const days = readPractice();
-  const key = dayKey(new Date());
-  days[key] = (days[key] ?? 0) + 1;
-  try { localStorage.setItem(PRACTICE_KEY, JSON.stringify(days)); } catch { /* 存不了就算了 */ }
+  addLog(SS.log, { n: 1 });
+  saveSS();
   updateHistoryInfo();
   if (ctx) ctx.examChanged();
 }
 function practiceStats() {
-  const days = readPractice();
-  const today = days[dayKey(new Date())] ?? 0;
-  const cursor = new Date();
-  if (!today) cursor.setDate(cursor.getDate() - 1);
-  let streak = 0;
-  while (days[dayKey(cursor)]) { streak += 1; cursor.setDate(cursor.getDate() - 1); }
-  return { today, streak };
+  return { today: today(SS.log).n, streak: logStreak(SS.log) };
 }
 
-/* 練習紀錄卡:連續天數、今天做了幾題(30 秒準備做完算一題)、出過幾題(不重複出題的紀錄) */
+/* 練習紀錄卡:連續天數、今天題數、今天分鐘 + 每週目標 + 最近 7 天 */
 function updateHistoryInfo() {
-  const { today, streak } = practiceStats();
-  $('logStreak').textContent = streak;
-  $('logToday').textContent = today;
-  $('logTotal').textContent = history.size;
-  // 最近 7 天(跟技巧、聽音的練習紀錄一樣)
-  const days = readPractice(), names = t('weekdays').split(','), now = new Date();
-  let html = '';
-  for (let i = 6; i >= 0; i -= 1) {
-    const x = new Date(now); x.setDate(x.getDate() - i);
-    html += `<span class="${i === 0 ? 'today' : ''}"><i class="${days[dayKey(x)] ? 'on' : ''}"></i>${names[x.getDay()]}</span>`;
-  }
-  $('logWeek').innerHTML = html;
+  paintLog($, SS.log, SS.goal);
+  $('logMin').textContent = Math.floor(today(SS.log).sec / 60);
 }
+$('goalBtn').addEventListener('click', () => { SS.goal = nextGoal(SS.goal); saveSS(); updateHistoryInfo(); });
 
 function escapeHtml(value) {
   return String(value).replace(/[&<>]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[char]));

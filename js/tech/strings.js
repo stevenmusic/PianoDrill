@@ -12,7 +12,7 @@ addStrings("tech", {
   good: ["會了", "Got it"], weak: ["再練", "Needs work"],
   formHarmonicShort: ["和聲", "Harmonic"], formMelodicShort: ["旋律", "Melodic"], formNaturalShort: ["自然", "Natural"],
   mGood: ["會了", "Got it"], mWeak: ["再練", "Needs work"],   // 熟練度按鈕上的小字(圖示旁)
-  scoreTitle: ["樂譜與指法", "Score"], handRH: ["右手", "RH"], handLH: ["左手", "LH"], handBoth: ["雙手", "Both"],
+  scoreTitle: ["樂譜", "Score"], handRH: ["右手", "RH"], handLH: ["左手", "LH"], handBoth: ["雙手", "Both"],
   metroTitle: ["速度", "Tempo"], bpmReset: ["回到考試速度", "Exam tempo"],
   bpmDown: ["慢 1(按住連續減少)", "Slower by 1 (hold to repeat)"], bpmUp: ["快 1(按住連續增加)", "Faster by 1 (hold to repeat)"],
   tempo: ["速度", "Tempo"],

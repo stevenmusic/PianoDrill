@@ -40,6 +40,8 @@ const SS = (() => {
 })();
 const saveSS = () => { try { localStorage.setItem('pianodrill.sight.v1', JSON.stringify(SS)); } catch { /* 存不了就算了 */ } };
 const $ = (id) => document.getElementById('s-' + id);
+/* 用麥克風評分節奏:目前版本藏起來(使用者 2026-10:之後再開)。程式與 js/shared/mic.js 留著,改成 true 就回來 */
+const MIC_UI = false;
 let active = false;
 let mode = 'free';          // 'free' 自由練習 / 'exam' 檢定分頁
 let exam = { system: 'abrsm', grade: 1, auto: true };
@@ -662,9 +664,11 @@ export async function start(c) {
   elements.play.addEventListener('click', togglePlayback);
   elements.playAlong.addEventListener('click', togglePlayAlong);
   $('playAlongTop').addEventListener('click', togglePlayAlong);
-  try { elements.alongMic.checked = readKey('pianodrill.sight.mic') === '1'; } catch { /* 沒有儲存空間就預設關 */ }
+  try { elements.alongMic.checked = MIC_UI && readKey('pianodrill.sight.mic') === '1'; } catch { /* 沒有儲存空間就預設關 */ }
+  // 麥克風評分目前藏起來(MIC_UI = false):開關、說明都不顯示,一律不用麥克風
+  elements.alongMic.closest('label').hidden = !MIC_UI;
   // 麥克風說明一行,開關打開時才出現(沒有結果時整張卡只有一行開關)
-  const micNote = () => { $('alongMicNote').hidden = !elements.alongMic.checked; };
+  const micNote = () => { $('alongMicNote').hidden = !MIC_UI || !elements.alongMic.checked; };
   micNote();
   elements.alongMic.addEventListener('change', () => {
     micNote();
@@ -1041,7 +1045,7 @@ async function newTest() {
   resetAlongResult();
   stopFollowing();
   setPlayState(false);
-  elements.along.hidden = !freeAlong();
+  elements.along.hidden = !freeAlong() || !MIC_UI;   // 視奏分頁這張卡只有麥克風選項與結果:麥克風藏起來時整張不顯示
 
   // Start fetching the piano samples now, so the first press of play is
   // immediate — same moment ScrollScore loads them, once there is a score.
@@ -1204,7 +1208,7 @@ async function startCountdown() {
   stopCountdown();
   player.stop();
   alongStart = null;
-  elements.along.hidden = !freeAlong();
+  elements.along.hidden = !freeAlong() || !MIC_UI;   // 視奏分頁這張卡只有麥克風選項與結果:麥克風藏起來時整張不顯示
   resetAlongResult();
   setAlongLabel();
   elements.checklist.hidden = true;

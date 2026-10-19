@@ -12,7 +12,7 @@
 | `<BundleID>` | `io.github.stevenmusic.pianodrill` | `io.github.stevenmusic.drumdrill` |
 | `<repo>` | `stevenmusic/PianoDrill` | `stevenmusic/DrumDrill` |
 | 打包進 App 的取樣(`tools/build/app-samples.mjs`) | 鋼琴 30 個音 × 5 層力度(有 ffmpeg 就截成 6.5 秒)+ 拍點 xstick 3 個:153 個檔、約 35 MB | 小鼓 5 層 × 6 個 + 整組鼓 12 個鼓件(鼓皮每層 3 個、鈸每層 2 個)+ 拍點 + 鼓房殘響:104 個檔、約 10.9 MB |
-| 麥克風(`NSMicrophoneUsageDescription`、第 3b 節的 AudioSession 外掛) | **要加**(視奏「跟著彈」可選用麥克風評節奏) | **要加**(S15:視奏「正式打」、聽力「回打」可選用麥克風評節奏) |
+| 麥克風(`NSMicrophoneUsageDescription`、第 3b 節的 AudioSession 外掛) | **目前版本未開放**(畫面藏起來,`js/sight/app.js` 的 `MIC_UI`);之後開放時要加(視奏「跟著彈」可選用麥克風評節奏) | **目前版本未開放**(畫面藏起來,`js/shared/micrhythm.js` 的 `MIC_UI`);之後開放時要加(S15:視奏「正式打」、聽力「接著打」可選用麥克風評節奏) |
 | 記憶體要特別測的 | 鋼琴取樣(5 層 × 30 音) | 整組鼓(視奏 RSL 4–5、聽力 Groove、Trinity Playback 會載入 12 個鼓件) |
 
 ## 1. 準備(只做一次)
@@ -129,6 +129,8 @@ WebKit 把它對應到 `AVAudioSessionCategoryPlayback`(沒有 mixWithOthers),�
 - iOS 15、16 沒有 `navigator.audioSession`,本來就只有原生設定有效;靜音開關要在這兩版的實機上也測一次。
 
 ## 3b. 開麥克風時切換 AVAudioSession(AudioSession 外掛;兩個 App 都要)
+
+> **目前版本未開放麥克風**(兩個 App 的麥克風評分都藏起來,之後再開):這一節、第 4 節的 `NSMicrophoneUsageDescription`、第 8 節第 17–20 項等開放時再做。
 
 麥克風收音(`js/shared/mic.js`,兩個 App 同一份):
 - **網頁版**(Safari 17+):開麥克風前 `navigator.audioSession.type = "play-and-record"`,錄完還原成原本的值。

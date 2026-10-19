@@ -9,6 +9,11 @@
 import { open } from '../test/harness.mjs';
 
 const problems = [];
+// 麥克風評分目前藏起來(js/sight/app.js 的 MIC_UI = false;之後再開):整個檢查跳過
+{
+  const { readFileSync } = await import('node:fs');
+  if (/const MIC_UI = false/.test(readFileSync(new URL('../../js/sight/app.js', import.meta.url), 'utf8'))) { console.log('略過:麥克風評分目前藏起來(MIC_UI = false)'); process.exit(0); }
+}
 
 /** mode: 'exact' | 'late' (constant 250 ms lag) | 'sloppy' | 'silent' | 'denied' */
 async function take(mode, grade = '1') {

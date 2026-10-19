@@ -12,6 +12,7 @@ import { createReading, cleanRead } from './reading.js';
 import { addLog, cleanLog, renderLog as paintLog, today, streak as logStreak, nextGoal, cleanGoal } from '../shared/practicelog.js';
 import { STAGES, HANDS, stageOf, rulesForStage, pickGrade, soloScore, rangeLabel } from './stages.js';
 import { paintNoteNames } from '../shared/notenames.js';
+import { createTempo } from '../shared/tempo.js';
 
 /* 視奏模組(原 SightDrill):外框(js/main.js)負責頂欄、分頁、主題、語言與考試設定;這裡的元素 id 都加 "s-" 前綴。
    檢定分頁:只有 ABRSM 1–8 級有出題規則(照官方視奏範例整理),其他考試/級數只說明還沒有,不自己發明 */
@@ -37,7 +38,9 @@ const SS = (() => {
   if (!log) { log = {}; try { for (const [k, n] of Object.entries(JSON.parse(readKey('pianodrill.sight.practice.v1') ?? '{}') || {})) log[k] = { n, sec: 0 }; } catch { /* 讀不到就從頭記 */ } }
   // 第一次進來右手 / 左手 / 雙手的一行說明(題目卡狀態那行):彈完一遍的子項目 = true
   const intro = {}; if (s.intro && typeof s.intro === 'object') for (const h of HANDS) if (s.intro[h] === true) intro[h] = true;
-  return { stage, names, read: cleanRead(s.read), log: cleanLog(log), goal: cleanGoal(s.goal), intro };
+  // 視奏分頁的速度:每個子項目的每個難度各自記住({ "right-1": 72 });沒改過 = 預設(難度 1–2 最快 ♩=80)
+  const bpm = {}; if (s.bpm && typeof s.bpm === 'object') for (const [k, v] of Object.entries(s.bpm)) if (/^(right|left|both)-[1-4]$/.test(k) && Number.isFinite(v)) bpm[k] = Math.max(30, Math.min(200, Math.round(v)));
+  return { stage, names, read: cleanRead(s.read), log: cleanLog(log), goal: cleanGoal(s.goal), intro, bpm };
 })();
 const saveSS = () => { try { localStorage.setItem('pianodrill.sight.v1', JSON.stringify(SS)); } catch { /* 存不了就算了 */ } };
 const $ = (id) => document.getElementById('s-' + id);
@@ -794,6 +797,29 @@ function renderUnsupported() {
     ? t('unsupportedTrinity')
     : ini ? t('unsupportedInitial') : t('examNotYet')));
 }
+/* ── 視奏分頁的速度(js/shared/tempo.js;跟 DrumDrill 視奏一樣):− / + / 滑桿;改了馬上用在下一次播放與彈一遍,記在 SS.bpm[子項目-難度] ── */
+const FREE_MAX_BPM = 80;
+const tempo = createTempo({ $, min: 30, max: 200, get: () => (current && current.score ? current.score.tempoBpm : 80), set: (v) => setFreeBpm(v) });
+function setFreeBpm(v) {
+  if (!current || !current.free || alongStart !== null || elements.play.classList.contains('is-active')) return;   // 播放、彈一遍中不改
+  v = Math.max(30, Math.min(200, Math.round(v)));
+  current.score.tempoBpm = v;
+  if (v === current.score.defBpm) delete SS.bpm[freeKey()]; else SS.bpm[freeKey()] = v;
+  saveSS(); renderTempo(); showMeta(current.score);
+}
+function renderTempo() {
+  const box = $('tempoBox'), on = mode === 'free' && hand !== 'read' && !!current && !!current.free && current.key === freeKey();
+  box.hidden = !on;
+  if (!on) return;
+  tempo.sync(tr('拍 / 分鐘', 'beats / min'));
+  $('bpmDown').setAttribute('aria-label', tr('慢 1(按住連續減少)', 'Slower (hold to repeat)'));
+  $('bpmUp').setAttribute('aria-label', tr('快 1(按住連續增加)', 'Faster (hold to repeat)'));
+  $('bpmRange').setAttribute('aria-label', tr('速度', 'Tempo'));
+  const changed = current.score.tempoBpm !== current.score.defBpm;
+  $('bpmReset').hidden = $('bpmReset').parentNode.hidden = !changed;   // 只在自己改過速度時出現
+  $('bpmReset').textContent = tr('回到預設', 'Default tempo');
+}
+$('bpmReset').addEventListener('click', () => { if (current && current.score) setFreeBpm(current.score.defBpm); });
 /* ── 視奏分頁的範圍階段(js/sight/stages.js):畫面只寫範圍,不寫級數、考試名稱 ── */
 const HAND_NAME = { right: () => tr('右手', 'RH'), left: () => tr('左手', 'LH') };
 function rangeText(st = stageNow(), h = hand) {
@@ -802,25 +828,27 @@ function rangeText(st = stageNow(), h = hand) {
   return `${HAND_NAME[h]()} ${full ? tr('全範圍', 'full range') + ' ' : ''}${rangeLabel(h === 'right' ? st.rh : st.lh)}`;
 }
 function renderStage() {
+  renderTempo();
   const box = $('stageBox');
   box.hidden = mode === 'exam';
   if (box.hidden) return;
   const seg = $('stageSeg'), cur = SS.stage[hand];
   const focused = document.activeElement && seg.contains(document.activeElement) ? document.activeElement.dataset.v : null;
-  seg.setAttribute('aria-label', tr('範圍階段', 'Range stage'));
+  seg.setAttribute('aria-label', tr('難度', 'Level'));
+  seg.classList.toggle('both', hand === 'both');
   seg.innerHTML = STAGES.map((st) => {
-    // 每顆按鈕只寫一行(使用者:「C4–G4 / C3–G3」擠成兩行):雙手寫 1 / 2 / 3 / 全範圍(兩手的範圍寫在下面的說明),單手寫那一手的範圍
+    // 每顆按鈕只寫一行:難度數字 + 範圍(「1 · C4–G4」;第 4 個「4 · 全範圍」);雙手兩手的範圍放不下 → 只寫數字(範圍寫在下面的說明)
     const r = hand === 'both' ? `${rangeLabel(st.rh)} / ${rangeLabel(st.lh)}` : rangeLabel(hand === 'right' ? st.rh : st.lh);
-    const head = st.n === 4 ? tr('全範圍', 'Full') : hand === 'both' ? String(st.n) : r;
-    return `<button type="button" data-v="${st.n}" aria-pressed="${st.n === cur}" aria-label="${st.n === 4 ? tr('全範圍', 'Full range') : tr(`範圍 ${st.n}`, `Range ${st.n}`)}: ${r}"><b>${head}</b></button>`;
+    const head = hand === 'both' ? String(st.n) : `${st.n} · ${st.n === 4 ? tr('全範圍', 'Full') : r}`;
+    return `<button type="button" data-v="${st.n}" aria-pressed="${st.n === cur}" aria-label="${tr(`難度 ${st.n}`, `Level ${st.n}`)}: ${st.n === 4 ? tr('全範圍', 'full range') + ' ' : ''}${r}"><b>${head}</b></button>`;
   }).join('');
   if (focused) seg.querySelector(`[data-v="${focused}"]`)?.focus({ preventScroll: true });
   const names = $('names');
   names.textContent = tr('顯示音名', 'Note names');
   names.setAttribute('aria-pressed', String(!!SS.names[cur]));
   // 單手的範圍寫在按鈕上:這一行只寫「節奏與調性由 App 依範圍安排」;雙手 1–3 的按鈕只有數字,範圍寫在前面
-  const both = hand === 'both' && stageNow().n !== 4;
-  pairText($('stageNote'), () => (both ? `${rangeText()} · ` : '') + tr('節奏與調性由 App 依範圍安排', 'Rhythm & keys set by the App'));
+  const both = hand === 'both';
+  pairText($('stageNote'), () => (both ? `${tr(`難度 ${stageNow().n}:`, `Level ${stageNow().n}: `)}${rangeText()} · ` : '') + tr('節奏與調性由 App 依範圍安排', 'Rhythm & keys set by the App'));
 }
 function setupStage() {
   $('stageSeg').addEventListener('click', (e) => {
@@ -951,6 +979,9 @@ async function newTest() {
     const fixed = st.cOnly ? { tonic: 'C', mode: 'major' } : tonic ? { tonic, mode: keyMode } : {};
     const { score: full } = generateUnique(() => { const g = pickGrade({ grades: pool.length ? pool : st.grades }); return generateTest(rulesForStage(rules, st, g), { grade: g, ...fixed }); }, history);
     const score = hand === 'both' ? full : soloScore(full, hand);
+    // 速度:難度 1–2 的「彈一遍」預設最快 ♩=80(練習設定);自己改過的照這個子項目、這個難度記住的
+    score.defBpm = st.n <= 2 ? Math.min(score.tempoBpm, FREE_MAX_BPM) : score.tempoBpm;
+    score.tempoBpm = SS.bpm[freeKey()] ?? score.defBpm;
     current = { score, xml: toMusicXml(score, { only: hand === 'right' ? 1 : hand === 'left' ? 2 : 0 }), free: true, key: freeKey() };
   }
   const score = current.score;
@@ -1054,6 +1085,7 @@ function showMeta(score) {
   const warningKey = current && current.free ? null : CONFIDENCE_LABEL_KEY[score.confidence];
   elements.confidence.hidden = !warningKey;
   if (warningKey) elements.confidence.textContent = t(warningKey);
+  renderTempo();
 }
 
 /*

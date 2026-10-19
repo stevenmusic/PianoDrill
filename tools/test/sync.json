@@ -6,6 +6,7 @@
   ["js/shared/mic.js", "js/shared/mic.js", "same"],
   ["js/shared/drill.js", "js/shared/drill.js", "same"],
   ["js/shared/staffframe.js", "js/shared/staffframe.js", "same"],
+  ["js/shared/tempo.js", "js/shared/tempo.js", "same"],
   ["js/shared/practicelog.js", "js/shared/practicelog.js", "same"],
   ["js/shared/daily.js", "js/shared/daily.js", "same"],
   ["js/shared/dailycard.js", "js/shared/dailycard.js", "same"],

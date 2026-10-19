@@ -72,6 +72,8 @@
   border-radius:var(--radius-sm);border:1px solid var(--line);background:var(--surface-inset);color:var(--ivory);font-family:inherit;cursor:pointer;text-align:center}
 .s-stage-row button b{font-size:var(--fs-sm);line-height:1.2;white-space:nowrap}   /* 每顆一行:雙手 1 / 2 / 3 / 全範圍、單手 C4–G4 */
 @media (max-width:380px){ .s-stage-row{gap:4px} .s-stage-row button b{font-size:var(--fs-xs);letter-spacing:-.02em} }
+/* 單手「1 · C4–G4」四格一排太擠:窄畫面 2 × 2 */
+@media (max-width:340px){ #s-stageSeg:not(.both){grid-template-columns:repeat(2,minmax(0,1fr))} #s-stageSeg:not(.both) button b{font-size:var(--fs-sm);letter-spacing:0} }
 .s-stage-row button small{font-size:var(--fs-2xs);color:var(--muted-bright);line-height:1.3;overflow-wrap:anywhere}
 .s-stage-row button[aria-pressed="true"]{border-color:var(--gold);color:var(--gold);background:rgba(242,185,75,.1)}
 .s-stage-row button[aria-pressed="true"] b{font-weight:700}
@@ -151,3 +153,7 @@
   #s-rdOpts .rd-seg .opt{font-size:var(--fs-sm);padding:2px 4px}
   #s-rdOpts .rd-end{row-gap:0}
 }
+/* 視奏分頁的速度:− 數字 +(一行;滑桿不放,設定卡才不會把「彈一遍」擠出第一個畫面) */
+#s-tempoBox{margin-top:10px}
+#s-tempoBox input[type=range]{display:none}
+#s-tempoBox .bpm{display:flex;align-items:baseline;justify-content:center;gap:6px}

@@ -235,7 +235,7 @@ main{
 @keyframes spin{from{transform:rotate(-90deg)}to{transform:rotate(270deg)}}
 @media (prefers-reduced-motion:reduce){.play-ring.indet{animation-duration:2.5s}}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
-.q-actions{display:flex;gap:6px;align-items:center;flex:none;margin-left:auto}
+.q-actions{display:flex;gap:6px;align-items:center;flex:0 1 auto;min-width:0;margin-left:auto;flex-wrap:wrap;justify-content:flex-end}   /* 字級放大、窄畫面放不下時換行(平常一行) */
 .q-actions .btn{height:36px;padding:0 14px;font-size:var(--fs-md)}
 .q-actions:not(:has(> button:not([hidden]))){display:none}
 #t-drawBtn,#e-drawBtn{height:36px}

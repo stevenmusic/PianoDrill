@@ -1,8 +1,9 @@
 /* 視奏分頁的「認音」(子項目第一格;照學習順序:認音 → 右手 → 左手 → 雙手)。
    一題一個音(OSMD 畫一個全音符),點下面的琴鍵(一個八度,白鍵寫音名;答音名,不管八度)。答對馬上下一題;答錯:標出正確的鍵、寫音名、播那個音(Salamander 取樣)。
    設定全部是一直看得到的按鈕(不用下拉、不收起來),點一下就換題:
-     範圍快捷鈕(= 視奏 4 階的範圍:高音譜表用右手、低音譜表用左手、大譜表兩手合起來)、自訂範圍(小鍵盤 C1–C7:點最低音、再點最高音;旁邊 ‹ › 微調)、
-     譜號(高音 / 低音 / 大譜表)、位置(全部 / 只線 / 只間)、升降(只有白鍵 / 加升降)、模式(練習 / 60 秒 / 連對)
+     譜號(高音 / 低音 / 大譜表)→ 範圍快捷鈕(= 視奏 4 階的範圍:高音譜表用右手、低音譜表用左手、大譜表兩手合起來)
+     → 音域一行(最低音、最高音上下各一顆箭頭:上 = 升高、下 = 降低,按住連續移動、放開才換題;右邊寫最多幾條加線;調到剛好等於快捷時那顆快捷亮起來)
+     → 位置(全部 / 只線 / 只間)→ 升降(只有白鍵 / 加升降)→ 模式(練習 / 60 秒 / 連對)
    挑戰、最高分、最常錯的 3 個(下一輪出現機率加倍)在 js/shared/drill.js;設定與紀錄存在 pianodrill.sight.v1 的 read(消毒)。
    都是 App 的練習設定;不寫級數、考試名稱 */
 import { tr, pairText } from '../shared/i18n.js';
@@ -11,7 +12,7 @@ import { createDrill } from '../shared/drill.js';
 import { STAGES, midiName } from './stages.js';
 import { frameStaff } from '../shared/staffframe.js';
 
-const LOW = 24, HIGH = 96;   // 小鍵盤 C1–C7
+const LOW = 24, HIGH = 96;   // 音域的上下限 C1–C7
 const WHITE = [0, 2, 4, 5, 7, 9, 11];
 const LETTER = ['C', 'C', 'D', 'D', 'E', 'F', 'F', 'G', 'G', 'A', 'A', 'B'];
 const isBlack = (m) => !WHITE.includes(((m % 12) + 12) % 12);
@@ -70,6 +71,8 @@ export function createReading({ $, store, save, onAnswered = () => {} }) {
       const d = dstepOf(m, isBlack(m) ? 1 : 0), treble = R.clef === 'treble' || (R.clef === 'grand' && m >= 60);
       n = Math.max(n, count(d, treble));
     }
+    // 大譜表:中央 C(畫在高音譜表下面一條加線)在範圍裡就至少 1 條
+    if (R.clef === 'grand' && R.lo <= 61 && R.hi >= 60) n = Math.max(n, 1);
     return n;
   }
 
@@ -112,7 +115,8 @@ export function createReading({ $, store, save, onAnswered = () => {} }) {
     const { above, below } = sideLedgers();
     const pad = Math.max(above, below, 1) + 2 + (R.acc ? 1.8 : 0);   // 升降記號(降記號比符頭高)
     const land = matchMedia('(orientation: landscape) and (max-height: 500px)').matches;
-    const maxH = land ? Math.max(130, innerHeight - 200) : Math.max(150, Math.min(270, innerHeight * 0.32));
+    // 直式矮畫面(折疊機、SE):譜框小一點,第一個畫面連設定卡的譜號、範圍快捷都看得到(tools/test/tasks.mjs 檢查)
+    const maxH = land ? Math.max(130, innerHeight - 200) : innerHeight <= 700 ? Math.max(110, Math.round(innerHeight * 0.21)) : Math.max(150, Math.min(270, innerHeight * 0.32));
     frameStaff(svg, $('rdScore'), { key: setting(), above: pad, below: pad, symmetric: true, spPx: R.clef === 'grand' ? 10 : 12, maxH, left: R.clef === 'grand' ? 1.2 : 0 });
   }
 
@@ -194,9 +198,9 @@ export function createReading({ $, store, save, onAnswered = () => {} }) {
     $('rdMode').innerHTML = segHTML([['practice', '練習', 'Practice'], ['time', '60 秒', '60 s'], ['streak', '連對', 'Streak']], R.mode);
     $('rdLo').textContent = midiName(R.lo); $('rdHi').textContent = midiName(R.hi);
     pairText($('rdLedger'), () => (ledgers() ? tr(`最多 ${ledgers()} 條加線`, `Up to ${ledgers()} ledger line${ledgers() > 1 ? 's' : ''}`) : tr('沒有加線', 'No ledger lines')));
-    for (const [id, zh, en] of [['rdQuickLbl', '範圍', 'Range'], ['rdClefLbl', '譜號', 'Clef'], ['rdPosLbl', '位置', 'Notes on'], ['rdAccLbl', '升降', 'Sharps/flats'], ['rdModeLbl', '模式', 'Mode'], ['rdLoLbl', '最低音', 'Lowest'], ['rdHiLbl', '最高音', 'Highest']]) $(id).textContent = tr(zh, en);
-    pairText($('rdNote'), () => tr('用 ‹ › 調最低音與最高音,按住可以連續移動。題目、範圍與最常錯的加倍出現都是 App 的練習設定。', 'Set the lowest and highest notes with ‹ › (hold to move fast). Ranges and doubled misses are App practice settings.'));
-    for (const [id, zh, en] of [['rdLoDown', '最低音降一個', 'Lowest down'], ['rdLoUp', '最低音升一個', 'Lowest up'], ['rdHiDown', '最高音降一個', 'Highest down'], ['rdHiUp', '最高音升一個', 'Highest up']]) $(id).setAttribute('aria-label', tr(zh, en));
+    for (const [id, zh, en] of [['rdQuickLbl', '範圍', 'Range'], ['rdClefLbl', '譜號', 'Clef'], ['rdPosLbl', '位置', 'Notes on'], ['rdAccLbl', '升降', 'Sharps/flats'], ['rdModeLbl', '模式', 'Mode'], ['rdSpanLbl', '音域', 'Span']]) $(id).textContent = tr(zh, en);
+    pairText($('rdNote'), () => tr('音域:用上下箭頭調最低音與最高音,按住可以連續移動。題目、範圍與最常錯的加倍出現都是 App 的練習設定。', 'Span: use the arrows to raise or lower the lowest and highest notes (hold to move fast). Ranges and doubled misses are App practice settings.'));
+    for (const [id, zh, en] of [['rdLoDown', '最低音降低', 'Lower the lowest note'], ['rdLoUp', '最低音升高', 'Raise the lowest note'], ['rdHiDown', '最高音降低', 'Lower the highest note'], ['rdHiUp', '最高音升高', 'Raise the highest note']]) $(id).setAttribute('aria-label', tr(zh, en));
   }
   /* 題目卡上一行寫目前的設定(例如「高音譜表 C4–C5 · 只出線上」)+ 分數 */
   function setText() {

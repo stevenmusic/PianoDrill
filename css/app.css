@@ -202,9 +202,12 @@ main{
   height:calc(clamp(26px, 7.4vw, 40px) * 1.45);display:flex;align-items:center}
 .q-title.empty{color:var(--muted);font-size:var(--fs-xl);font-family:inherit;font-weight:500}
 .q-tags{display:flex;flex-wrap:nowrap;gap:6px;overflow:hidden;align-items:center;min-height:calc(clamp(14px, 4.2vw, 18px) * 1.4 + 10px)}
-.q-tag{flex:none;font-size:calc(clamp(14px, 4.2vw, 18px) * var(--tag-scale, 1));font-weight:700;color:var(--ivory);background:var(--surface-inset);border:1px solid var(--line);
+/* 題目標籤(拍號、小節數、速度、播放方式…):只是說明、不能點 → 有顏色的底色、沒有框線,跟有框線的按鈕 / 選項分得開(使用者:框長得一樣會誤會成選項) */
+.q-tag{flex:none;font-size:calc(clamp(14px, 4.2vw, 18px) * var(--tag-scale, 1));font-weight:700;color:var(--gold-bright);background:rgba(242,185,75,.16);border:1px solid transparent;
   border-radius:var(--radius-sm);padding:4px 10px;white-space:nowrap}
-.q-tag.dyn{color:var(--teal);border-color:var(--teal)}
+:root.light .q-tag{background:rgba(122,92,22,.12)}
+.q-tag.dyn{color:var(--teal);background:rgba(63,191,174,.16);border-color:transparent}
+:root.light .q-tag.dyn{background:rgba(15,95,86,.12)}
 /* 練習紀錄:三格數字 + 最近 7 天(固定格子,中英文一樣) */
 .log-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center}
 .log-stats b{display:block;font-family:"Noto Serif TC",serif;font-size:clamp(22px,6vw,30px);color:var(--gold-bright);font-variant-numeric:tabular-nums}
@@ -214,7 +217,7 @@ main{
 .log-week i{width:clamp(18px,6vw,26px);height:clamp(18px,6vw,26px);border-radius:50%;border:1px solid var(--line);display:block}
 .log-week i.on{background:var(--gold-fill);border-color:var(--gold-fill)}
 .log-week span.today{color:var(--gold)}
-.q-tag.best{color:var(--gold-bright);border-color:var(--gold)}
+.q-tag.best{color:var(--gold-bright);border-color:var(--gold)}   /* 最佳紀錄:底色 + 金框(比一般標籤醒目) */
 .q-head,.q-row{display:flex;align-items:center;gap:10px}
 .q-head .q-title{flex:1 1 auto;min-width:0}
 .q-row .q-tags{flex:1 1 auto;min-width:0}

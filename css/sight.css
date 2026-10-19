@@ -105,19 +105,19 @@
 /* 窄畫面(折疊機、SE):標籤放在按鈕列上面,按鈕用整個卡片寬度(英文「Sharps/flats」「Practice」不被切掉、範圍鈕一行) */
 @media (max-width:380px){ .rd-row{grid-template-columns:minmax(0,1fr);gap:4px} .rd-row + .rd-row{margin-top:8px} .rd-seg{gap:4px} .rd-seg .opt{font-size:var(--fs-sm);padding:2px 3px} .rd-seg.rd-seg4 .opt{font-size:var(--fs-xs);letter-spacing:-.02em} }
 /* 矮的手機(折疊機、SE):題目卡小一點,設定卡前幾排跟題目同一個畫面 */
-@media (max-height:700px) and (orientation:portrait){ .rd-kbd{height:112px} .rd-row + .rd-row{margin-top:8px} }
+@media (max-height:700px) and (orientation:portrait){ .rd-kbd{height:100px} .rd-row + .rd-row{margin-top:6px} .rd-kbd .wk{padding-bottom:6px} }
 .rd-seg{display:grid;gap:6px;min-width:0}
 .rd-seg2{grid-template-columns:repeat(2,minmax(0,1fr))} .rd-seg3{grid-template-columns:repeat(3,minmax(0,1fr))} .rd-seg4{grid-template-columns:repeat(4,minmax(0,1fr))}
 .rd-seg .opt{min-width:0;min-height:44px;height:auto;padding:4px 6px;justify-content:center;text-align:center;white-space:normal;line-height:1.25}
 .rd-seg4 .opt{white-space:nowrap;font-size:var(--fs-sm);padding:4px 2px}   /* 範圍 / 快捷鈕每顆一行(「C3–G4」不拆成兩行) */
 /* 自訂範圍的 ‹ ›:整個卡片寬度;「最低音 ‹ E1 ›」「最高音 ‹ G6 ›」放得下並排、放不下兩排(每排同樣的欄寬,上下對齊),不會有一顆鈕單獨掉下去 */
-.rd-ends{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,190px),1fr));gap:6px 16px;margin-top:8px}
-.rd-end{display:grid;grid-template-columns:4.6em 44px 3em 44px;justify-content:start;align-items:center;column-gap:8px}   /* 標籤欄跟上面幾排一樣寬:‹ 對齊上面的按鈕 */
-@media (max-width:380px){ .rd-end{grid-template-columns:minmax(3.4em,1fr) 44px 3em 44px;column-gap:6px} }
-.rd-end .lbl{font-size:var(--fs-xs);color:var(--muted-bright);min-width:0;overflow-wrap:anywhere}
-.rd-end b{text-align:center;font-variant-numeric:tabular-nums;color:var(--gold-bright)}
-.rd-end .btn.round{width:44px;height:44px;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
-.rd-ledger{margin-top:4px}
+/* 音域一行:最低音、最高音各一欄(上 = 升高、名稱、下 = 降低),中間一條 –;「最多 n 條加線」在右邊(放不下就在這一格換行) */
+.rd-span-ctl{display:grid;grid-template-columns:44px auto 44px minmax(0,1fr);align-items:center;column-gap:8px;min-width:0}
+.rd-end{display:grid;grid-template-rows:32px auto 32px;justify-items:center;row-gap:2px}
+.rd-end b{min-width:3em;text-align:center;font-size:var(--fs-md);line-height:1.3;font-variant-numeric:tabular-nums;color:var(--gold-bright)}
+.rd-dash{color:var(--muted-bright);font-size:var(--fs-md)}
+.btn.rd-arrow{width:44px;height:32px;padding:0;border-radius:var(--radius-sm);-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.rd-ledger{margin:0 0 0 4px;min-width:0}
 .rd-ledger,.rd-note{font-size:var(--fs-xs);color:var(--muted-bright);line-height:1.5;overflow-wrap:anywhere}
 .rd-note{margin-top:10px}
 /* 視奏分頁(自由練習)的設定卡一直展開(不收成一行):範圍階段是常用設定 */
@@ -146,7 +146,5 @@
   #s-rdOpts .rd-seg .opt{min-height:36px}
   #s-rdOpts .rd-note{display:none}
   #s-rdOpts .rd-seg .opt{font-size:var(--fs-sm);padding:2px 4px}
-  #s-rdOpts .rd-ends{gap:4px 10px;margin-top:6px;grid-template-columns:repeat(auto-fit,minmax(min(100%,150px),1fr))}
-  #s-rdOpts .rd-end{grid-template-columns:4em 36px 2.4em 36px;column-gap:4px}
-  #s-rdOpts .rd-end .btn.round{width:36px;height:36px}
+  #s-rdOpts .rd-end{row-gap:0}
 }

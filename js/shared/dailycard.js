@@ -141,7 +141,7 @@ export function createDailyCard({ $, daily, labels = {}, warmName = () => "", lo
     if (s.click && s.click !== "every") parts.push(L2(labels.solo));
     else parts.push(L2(labels.hint));
     if (s.k === "route" && !s.tries) parts.push(fmt("need", { b: s.target, n: s.need }));
-    return parts.join(" ");
+    return parts.join(tr("", " "));
   }
   return {
     /* 模組正在顯示今天的段落(進行中縮成一行) */

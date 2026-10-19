@@ -10,6 +10,8 @@ import {
   scaleFingersFrom, triadFingers, fourNoteFingers, chromaticFingers, arpGroupFingers, cyclicFingers, BROKEN_FINGERS, thirdsFingers, STACCATO_DOUBLE
 } from "./fingering.js";
 import { buildHanon } from "./hanon.js";
+import { buildRoute } from "./patterns.js";
+import { findLevel } from "./routes.js";
 
 const withF = (notes, fingers) => notes.map((n, i) => ({ ...n, midi: midiOf(n), finger: fingers ? fingers[i] : null }));
 const scaleIv = q => q.quality === "major" ? INTERVALS.major : INTERVALS[q.form];
@@ -215,6 +217,7 @@ function buildDouble(FG, q){
 
 export const SIXTEENTH_TYPES = ["scale", "chromatic", "wholetone", "thirds", "sixths", "arpeggio", "dom7", "dim7"];   // 分解和弦照 Trinity 大綱(三連音 / 初級八分音符)
 export function buildExercise(FG, q){
+  if (q.type === "route") return buildRoute(FG, q);   // 今日練習的關卡(js/tech/routes.js)
   if (q.type === "hanon") return buildHanon(q.no, q.tonic, q.rhythm, q.octaves === 1 ? 1 : 2);
   const b = {
     scale: buildScale, arpeggio: buildArp, dom7: buildArp, dim7: buildArp,
@@ -264,6 +267,7 @@ export function keyName(q){
 }
 export const keyNameZh = keyName;
 export function questionText(q){
+  if (q.type === "route") { const L = findLevel(q); return [L ? pick(L.name) : "", pick(HAND[q.hands] || HAND.HT)]; }
   if (q.type === "hanon") return [tr(`哈農 第 ${q.no} 首`, `Hanon No. ${q.no}`), pick(HAND[q.hands] || HAND.HT), nm(q.tonic) + (q.quality === "minor" ? tr(" 小調", " minor") : tr(" 大調", " major"))].concat(q.octaves === 1 ? [tr("1八度", "1 oct.")] : [])
     .concat(q.rhythm === "dotted" ? [tr("附點", "Dotted")] : q.rhythm === "reverse" ? [tr("反附點", "Rev. dotted")] : []);
   // 相隔三度/六度放在標籤(取代「雙手」),題目才不會比另一種語言多一行

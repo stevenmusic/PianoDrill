@@ -24,6 +24,9 @@ export function load(){
   // 第一次進來各子項目的一行說明:播放過一次的子項目 = true
   const intro = {}; if (saved.intro && typeof saved.intro === "object") for (const k of ["scale", "arp", "hanon"]) if (saved.intro[k] === true) intro[k] = true;
   state.intro = intro;
+  // 今日練習的音名開關(每條路線記住;沒切過 = 照關卡的預設)
+  const dn = {}; if (saved.dnames && typeof saved.dnames === "object") for (const k of ["finger", "accomp"]) if (typeof saved.dnames[k] === "boolean") dn[k] = saved.dnames[k];
+  state.dnames = dn;
   return state;
 }
 export function save(){

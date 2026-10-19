@@ -178,6 +178,7 @@ function beamMarks(evs, sub){
 
 /* show: "both" | "rh" | "lh" */
 export function exerciseToMusicXML(ex, q, show = "both"){
+  if (ex.exact) return exactToMusicXML(ex, show);
   DIV = ex.div || 12; BAR = ex.bar || 4 * DIV; FINAL_Q = !!ex.finalQuarter;
   const hands = show === "both" ? ["rh", "lh"] : [show];
   const lay = hands.map(h => layoutHand(ex[h], ex.sub));
@@ -255,6 +256,7 @@ export function exerciseToMusicXML(ex, q, show = "both"){
 
 /* 播放時間表:每個音的起點(拍)與長度(拍),兩手同一份時間軸;雙音兩個音一起 */
 export function playbackEvents(ex, q, show = "both"){
+  if (ex.exact) return exactEvents(ex, show);
   DIV = ex.div || 12;
   const out = [], step = 1 / ex.sub;
   const handEvents = (notes, hand) => { let pos = 0; notes.forEach((n, i) => {
@@ -265,5 +267,177 @@ export function playbackEvents(ex, q, show = "both"){
     if (n.with) out.push({ ...ev, midi: n.with.midi, chord: true });
   }); };
   for (const h of show === "both" ? ["rh", "lh"] : [show]) handEvents(ex[h], h);
+  return out;
+}
+
+/* ══ 今日練習的關卡(js/tech/patterns.js 的 exact 格式:每個音自己帶時值)══
+   跟上面的題目分開寫(上面的規則照大綱譜例,不動):
+   - 拍號印出來(4/4、3/4),譜號固定(右手高音、左手低音;關卡的音都在 2 條加線以內,routes.mjs 檢查)
+   - 同一個譜表按住的音 = 第二聲部(ex.hold;每小節一個長音、小節之間連結線):音比較高的那一聲部符桿朝上、指法在上,另一個朝下、指法在下
+   - 和弦(n.chord)、每個音自己的斷奏 / 重音 / 圓滑線 / 連結線、每隻手自己的力度(ex.dyn;漸強 = p + 漸強記號)
+   - 連桿:4/4 的八分音符兩拍一組,其他(附點、十六分、三連音、3/4)一拍一組,休止符斷開;三連音的「3」只標每隻手第一組
+   - 臨時記號:同一小節、同一譜表照時間順序(兩個聲部一起算) */
+const XTYPE = { 48: ["whole", 0], 36: ["half", 1], 24: ["half", 0], 18: ["quarter", 1], 12: ["quarter", 0], 9: ["eighth", 1], 6: ["eighth", 0], 4: ["eighth", 0], 3: ["16th", 0] };
+const pitchXml = n => `<pitch><step>${LETTERS[n.letter]}</step>${n.alter ? `<alter>${n.alter}</alter>` : ""}<octave>${n.octave}</octave></pitch>`;
+const placeOf = (role, hand) => (role === "upper" ? "above" : role === "lower" ? "below" : hand === "rh" ? "above" : "below");
+function exactVoices(ex, h){
+  const pos = arr => { let p = 0; return arr.map(n => { const o = { ...n, pos: p }; p += n.dur; return o; }); };
+  const main = pos(ex[h]), hold = ex.hold && ex.hold[h] && ex.hold[h].length ? pos(ex.hold[h]) : null;
+  const base = h === "rh" ? 1 : 5;
+  if (!hold) return [{ notes: main, role: "single", num: base }];
+  const avg = a => { const m = a.filter(n => !n.rest).flatMap(n => [n.midi, ...(n.chord || []).map(c => c.midi)]); return m.reduce((s, x) => s + x, 0) / (m.length || 1); };
+  const holdUp = avg(hold) > avg(main);
+  return [{ notes: main, role: holdUp ? "lower" : "upper", num: base }, { notes: hold, role: holdUp ? "upper" : "lower", num: base + 1 }];
+}
+/* 一個聲部一小節的連桿、三連音 */
+function exactBeams(evs, BARX, time){
+  const marks = new Map(), b2 = new Map(), tup = new Map();
+  const beatOf = e => Math.floor((e.pos % BARX) / 12);
+  const beats = new Map();
+  for (const e of evs) (beats.get(beatOf(e)) || beats.set(beatOf(e), []).get(beatOf(e))).push(e);
+  // 4/4:兩拍都是兩個八分音符 → 兩拍一組
+  const plain = arr => arr && arr.length === 2 && arr.every(e => !e.rest && e.dur === 6);
+  const groups = [];
+  const nb = BARX / 12;
+  for (let b = 0; b < nb; b++) {
+    const arr = beats.get(b) || [];
+    if (time[0] === 4 && b % 2 === 0 && plain(arr) && plain(beats.get(b + 1))) { groups.push(arr.concat(beats.get(b + 1))); b++; continue; }
+    groups.push(arr);
+  }
+  for (const g of groups) {
+    let run = [];
+    const flush = () => {
+      if (run.length >= 2) {
+        run.forEach((e, i) => marks.set(e, i === 0 ? "begin" : i === run.length - 1 ? "end" : "continue"));
+        run.forEach((e, i) => {
+          if (e.dur > 3) return;
+          const pv = run[i - 1] && run[i - 1].dur <= 3, nx = run[i + 1] && run[i + 1].dur <= 3;
+          b2.set(e, pv && nx ? "continue" : pv ? "end" : nx ? "begin" : i === 0 ? "forward hook" : "backward hook");
+        });
+      }
+      run = [];
+    };
+    for (const e of g) { if (e.rest || e.dur >= 12) flush(); else run.push(e); }
+    flush();
+    const trip = g.filter(e => e.dur === 4);
+    for (let i = 0; i + 2 < trip.length; i += 3) { tup.set(trip[i], "start"); tup.set(trip[i + 2], "stop"); }
+  }
+  return { marks, b2, tup, runs: groups };
+}
+function exactToMusicXML(ex, show){
+  const BARX = ex.bar, hands = show === "both" ? ["rh", "lh"] : [show];
+  const keyA = keyAlters(ex.fifths);
+  const voices = hands.map(h => exactVoices(ex, h));
+  const tupShown = hands.map(() => false);
+  const sameDyn = hands.length === 2 && ex.dyn && ex.dyn.rh === ex.dyn.lh;
+  const dynXml = (d, staff) => {
+    if (!d) return "";
+    const mark = d === "cresc" ? "p" : d;
+    let x = `<direction placement="below"><direction-type><dynamics><${mark}/></dynamics></direction-type><staff>${staff}</staff></direction>`;
+    if (d === "cresc") x += `<direction placement="below"><direction-type><wedge type="crescendo"/></direction-type><staff>${staff}</staff></direction>`;
+    return x;
+  };
+  let body = "";
+  for (let m = 0; m < ex.bars; m++) {
+    body += `<measure number="${m + 1}">`;
+    if (m === 0) {
+      body += `<attributes><divisions>${ex.div}</divisions><key><fifths>${ex.fifths}</fifths></key><time><beats>${ex.time[0]}</beats><beat-type>${ex.time[1]}</beat-type></time>` +
+        (hands.length > 1 ? `<staves>${hands.length}</staves>` : "") + hands.map((h, i) => clefXml(h === "rh" ? "G" : "F", i + 1)).join("") + `</attributes>`;
+    }
+    let first = true;
+    hands.forEach((h, i) => {
+      const staff = i + 1, clef = h === "rh" ? "G" : "F";
+      const inBar = v => v.notes.filter(n => n.pos >= m * BARX && n.pos < (m + 1) * BARX);
+      // 臨時記號:這一小節、這個譜表的所有音照時間順序
+      const acc = new Map(), st = new Map();
+      voices[i].flatMap(v => inBar(v)).filter(n => !n.rest).sort((a, b) => a.pos - b.pos)
+        .forEach(n => [n, ...(n.chord || [])].forEach(x => {
+          const p = staffStep(x), cur = st.has(p) ? st.get(p) : keyA[x.letter];
+          st.set(p, x.alter);
+          acc.set(x, x.alter !== cur ? ACC_NAME[x.alter] : null);
+        }));
+      voices[i].forEach(v => {
+        if (!first) body += `<backup><duration>${BARX}</duration></backup>`;
+        first = false;
+        const evs = inBar(v);
+        if (m === 0 && v === voices[i][0] && ex.dyn && !(sameDyn && i > 0)) body += dynXml(ex.dyn[h], staff);
+        const { marks, b2, tup } = exactBeams(evs, BARX, ex.time);
+        // 符桿:兩個聲部 = 上面朝上、下面朝下;一個聲部 = 同一組連桿一起照離中線最遠的音
+        const stems = new Map();
+        if (v.role === "single") {
+          let grp = [];
+          const done = () => { if (grp.length) { const s = stemFor(grp.flatMap(e => [e, ...(e.chord || [])]), clef); grp.forEach(e => stems.set(e, s)); } grp = []; };
+          for (const e of evs) { if (e.rest) { done(); continue; } const mk = marks.get(e); if (!mk) { done(); stems.set(e, stemFor([e, ...(e.chord || [])], clef)); continue; } grp.push(e); if (mk === "end") done(); }
+          done();
+        }
+        const place = placeOf(v.role, h);
+        for (const e of evs) {
+          const [type, dots] = XTYPE[e.dur] || ["quarter", 0];
+          if (e.rest) {
+            body += `<note><rest${e.whole ? ' measure="yes"' : ""}/><duration>${e.dur}</duration><voice>${v.num}</voice><type>${e.whole ? "whole" : type}</type>` + "<dot/>".repeat(e.whole ? 0 : dots) + `<staff>${staff}</staff></note>`;
+            continue;
+          }
+          const stem = v.role === "upper" ? "up" : v.role === "lower" ? "down" : stems.get(e);
+          const tp = tup.get(e), firstTup = tp === "start" && !tupShown[i];
+          if (firstTup) tupShown[i] = true;
+          const one = (x, isChord) => {
+            let s = "<note>" + (isChord ? "<chord/>" : "") + pitchXml(x) + `<duration>${e.dur}</duration>`;
+            if (e.tie === "start" || e.tie === "both") s += `<tie type="start"/>`;
+            if (e.tie === "stop" || e.tie === "both") s += `<tie type="stop"/>`;
+            s += `<voice>${v.num}</voice><type>${type}</type>` + "<dot/>".repeat(dots);
+            if (acc.get(x)) s += `<accidental>${acc.get(x)}</accidental>`;
+            if (e.dur === 4) s += "<time-modification><actual-notes>3</actual-notes><normal-notes>2</normal-notes></time-modification>";
+            if (type !== "whole") s += `<stem>${stem}</stem>`;
+            s += `<staff>${staff}</staff>`;
+            if (!isChord && marks.get(e)) { s += `<beam number="1">${marks.get(e)}</beam>`; if (b2.get(e)) s += `<beam number="2">${b2.get(e)}</beam>`; }
+            let nt = "";
+            if (e.tie === "stop" || e.tie === "both") nt += `<tied type="stop"/>`;
+            if (e.tie === "start" || e.tie === "both") nt += `<tied type="start"/>`;
+            if (!isChord) {
+              if (tp === "start" || tp === "stop") nt += `<tuplet type="${tp}" bracket="no" show-number="${firstTup ? "actual" : "none"}" placement="${place === "above" ? "below" : "above"}"/>`;
+              if (e.slur) nt += `<slur type="${e.slur}" number="1"/>`;
+              const arts = (e.stacc ? `<staccato placement="${stem === "up" ? "below" : "above"}"/>` : "") + (e.accent ? `<accent placement="${place === "above" ? "below" : "above"}"/>` : "");
+              if (arts) nt += `<articulations>${arts}</articulations>`;
+            }
+            if (x.finger) nt += `<technical><fingering placement="${place}">${x.finger}</fingering></technical>`;
+            if (nt) s += `<notations>${nt}</notations>`;
+            return s + "</note>";
+          };
+          body += one(e, false);
+          for (const c of e.chord || []) body += one(c, true);
+        }
+        if (m === ex.bars - 1 && v === voices[i][0] && ex.dyn && ex.dyn[h] === "cresc" && !(sameDyn && i > 0)) body += `<direction placement="below"><direction-type><wedge type="stop"/></direction-type><staff>${staff}</staff></direction>`;
+      });
+    });
+    if (m === ex.bars - 1) body += `<barline location="right"><bar-style>light-heavy</bar-style></barline>`;
+    body += "</measure>";
+  }
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE score-partwise PUBLIC "-//Recordare//DTD MusicXML 3.1 Partwise//EN" "http://www.musicxml.org/dtds/partwise.dtd">
+<score-partwise version="3.1"><part-list><score-part id="P1"><part-name print-object="no">Piano</part-name></score-part></part-list><part id="P1">${body}</part></score-partwise>`;
+}
+/* 播放:每個音(和弦每個音、按住的音)一個事件,自己帶力度與斷奏;連結線接起來算一個長音 */
+const DYN_VEL = { p: 44, mf: 64, f: 90 };
+function exactEvents(ex, show){
+  const out = [], total = ex.bars * ex.bar / ex.div;
+  for (const h of show === "both" ? ["rh", "lh"] : [show]) {
+    const d = ex.dyn ? ex.dyn[h] : null;
+    const base = d && DYN_VEL[d] ? DYN_VEL[d] : ex.lhSoft ? (h === "lh" ? 52 : 70) : 64;
+    const vel = beat => (d === "cresc" ? Math.round(40 + 54 * beat / total) : base);
+    exactVoices(ex, h).forEach((v, vi) => {
+      const open = new Map();   // 連結線:midi → 事件
+      v.notes.forEach((n, idx) => {
+        if (n.rest) return;
+        const beat = n.pos / ex.div, len = n.dur / ex.div;
+        for (const x of [n, ...(n.chord || [])]) {
+          if ((n.tie === "stop" || n.tie === "both") && open.has(x.midi)) { open.get(x.midi).len += len; if (n.tie === "stop") open.delete(x.midi); continue; }
+          const ev = { beat, len, hand: h, idx, midi: x.midi, exact: true, voice: vi, stacc: !!n.stacc,
+            vel: Math.max(20, Math.min(118, vel(beat) + (n.accent ? 20 : 0) - (n.hold ? 6 : 0))), chord: x !== n };
+          out.push(ev);
+          if (n.tie === "start" || n.tie === "both") open.set(x.midi, ev);
+        }
+      });
+    });
+  }
   return out;
 }

@@ -433,13 +433,8 @@ console.log(`哈農 ${nHanon} 種組合`);
 
 // 今日練習引擎(js/shared/daily.js;兩個 App 同一份):菜單、速度階梯、連續 N 次過關、快速通道、歡迎回來、複習盒與變化、拍點模式、消毒(checks/daily.mjs)
 try { const before = fails; dailycheck(ok); console.log(fails === before ? "今日練習引擎 ✓" : "今日練習引擎 ✗"); } catch (e) { fail("今日練習引擎檢查出錯:" + e.stack); }
-// 今日練習的示範關卡(js/tech/routes.js):每一關、每一個變化、暖身都產生得出題目
-{
-  const { ROUTES, WARM } = await import("../../js/tech/routes.js");
-  const qs = [...WARM.map(w => w.q)];
-  for (const R of ROUTES) for (const L of R.levels) { ok(L.start < L.target, `今日練習 ${R.id}/${L.id}:起始速度要比目標慢`); for (const v of [{}, ...(L.vary || [])]) qs.push({ ...L.q, ...(v.q || {}) }); }
-  for (const q0 of qs) { const q = { ...q0, sub: q0.type === "hanon" ? 4 : 2 }; try { const e = buildExercise(FG, q); ok(e && e.rh && e.rh.length > 0, "今日練習的題目沒有音:" + JSON.stringify(q0)); } catch (e) { fail("今日練習的題目產生不出來:" + JSON.stringify(q0) + " " + e.message); } }
-}
+// 今日練習的關卡(js/tech/routes.js + patterns.js):手指 33 關、伴奏 17 關、每個複習變化、暖身(checks/routes.mjs;另外照樂理寫一份互相核對)
+try { const { default: routescheck } = await import("./checks/routes.mjs"); const before = fails; const n = routescheck(ok, FG); console.log(fails === before ? `今日練習關卡 ${n} 題 ✓` : "今日練習關卡 ✗"); } catch (e) { fail("今日練習關卡檢查出錯:" + e.stack); }
 
 // 版本指紋(快取):index.html 裡的 ?v= 要跟檔案內容一致
 {

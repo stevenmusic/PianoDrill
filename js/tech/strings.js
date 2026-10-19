@@ -20,4 +20,5 @@ addStrings("tech", {
   optLoop: ["循環播放", "Loop"], optRamp: ["每輪加快 4", "+4 each loop"], optClick: ["只聽拍點", "Clicks only"],
   listTitle: ["本級要求", "Grade requirements"],
   legendGood: ["會了", "Got it"], legendWeak: ["再練", "Needs work"],
+  names: ["音名", "Names"], namesTip: ["在譜表下面寫音名(C D E…)", "Letter names under each staff"],
 });

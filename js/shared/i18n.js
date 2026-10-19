@@ -59,14 +59,17 @@ addStrings("daily", {
   passed: ["過關!第 {n} 關 ✓", "Passed level {n} ✓"], cont: ["接著第 {n} 關", "on to level {n}"],
   back: ["回上一關", "Easier level"], suggest: ["要不要先回上一關暖身?", "Try the level before?"],
   welcome: ["歡迎回來,先從 ♩={b} 開始。", "Welcome back. Start at ♩={b}."],
-  need: ["到 ♩={b} 後連續穩 {n} 次就過關。", "At ♩={b}, {n} steady in a row passes."],
-  warmHint: ["跟著示範暖身,夠了就按「下一段」。", "Warm up with the demo, then Next part."],
+  streakTag: ["穩 {d}", "Steady {d}"],
+  warmHint: ["跟著示範暖身,夠了按「下一段」", "Warm up with the demo, then Next part"],
   revOk: ["複習穩了 ✓ 下次間隔更久", "Review steady ✓ Next one later"], revBack: ["明天再複習一次", "Review again tomorrow"],
   revExtra: ["加練(不改複習日期)", "Extra (reviews unchanged)"],
   vary: ["這次:{v}", "This time: {v}"], fast: ["最快 ♩={b}", "fastest ♩={b}"], check: ["重點:{list}", "Check: {list}"],
   click_two_four: ["拍點只響 2、4 拍", "click on 2 & 4 only"], click_one_three: ["拍點只響 1、3 拍", "click on 1 & 3 only"],
   click_one: ["拍點只響第 1 拍", "click on beat 1 only"], click_gap: ["拍點中途消失 2 小節", "click drops out for 2 bars"],
-  done: ["今天練完了:{s} 段 · {m} 分鐘 · 過了 {p} 關", "Done today: {s} parts · {m} min · {p} passed"],
+  // 練完了那一行:{s} = parts / part1(英文單複數)、{t} = 分鐘或秒(不到 1 分鐘寫秒,不進位成 1 分鐘);一段都沒練 = none
+  done: ["今天練完了:{s} · {t} · 過了 {p} 關", "Done today: {s} · {t} · {p} passed"],
+  parts: ["{n} 段", "{n} parts"], part1: ["{n} 段", "{n} part"], min: ["{n} 分鐘", "{n} min"], sec: ["{n} 秒", "{n} s"],
+  none: ["今天還沒練到", "Nothing practised today"],
   week: ["最近 7 天練了 {d} 天", "Practised {d} of the last 7 days"], tomorrow: ["明天:{list}", "Tomorrow: {list}"],
   more: ["再練一下", "Practise a bit more"]
 });

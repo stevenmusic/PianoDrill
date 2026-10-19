@@ -172,7 +172,33 @@ function showView(view, sub){
   if (exam) renderExamCard();
   window.scrollTo({ top: 0 });
   if (modName) MODS[modName].enter(tab);
+  balanceSoon();
 }
+/* ══ 寬畫面(≥ 1100)兩欄高度接近(使用者:左欄下面不要空一大塊):練習紀錄卡(id 結尾 logCard)放在比較矮的那一欄最下面
+   (照其他卡片的高度決定,搬過去不會再來回);左欄沒有東西(例如今日練習進行中:選擇器、紀錄都藏起來)= 一欄(.mod.one-col,app.css)。
+   窄畫面、檢定頁放回原處 */
+const WIDE = matchMedia("(min-width:1100px)");
+function balanceCols(){
+  for (const mod of document.querySelectorAll(".mod")) {
+    const side = mod.querySelector(":scope > .mod-side"), main = mod.querySelector(":scope > .mod-main");
+    if (!side || !main) continue;
+    const log = mod.querySelector('[id$="logCard"]');
+    if (log && !log._home) log._home = { parent: log.parentNode, next: log.nextElementSibling };
+    const home = () => { if (log && log.parentNode !== log._home.parent) log._home.parent.insertBefore(log, log._home.next && log._home.next.parentNode === log._home.parent ? log._home.next : null); };
+    if (mod.hidden || !WIDE.matches || document.body.classList.contains("view-exam")) { if (!mod.hidden) { home(); mod.classList.remove("one-col"); } continue; }
+    const shown = el => !el.hidden && getComputedStyle(el).display !== "none";
+    const h = col => [...col.children].filter(c => c !== log && shown(c)).reduce((a, c) => a + c.getBoundingClientRect().height + 16, 0);
+    if (log && shown(log)) {
+      const want = h(side) <= h(main) ? side : main;
+      if (log.parentNode !== want) { if (want === log._home.parent) home(); else want.appendChild(log); }
+    }
+    mod.classList.toggle("one-col", ![...side.children].some(shown));
+  }
+}
+let balanceRaf = 0;
+const balanceSoon = () => { cancelAnimationFrame(balanceRaf); balanceRaf = requestAnimationFrame(balanceCols); };
+if (typeof ResizeObserver !== "undefined") { const ro = new ResizeObserver(balanceSoon); document.querySelectorAll(".mod > .mod-side, .mod > .mod-main").forEach(el => ro.observe(el)); }
+if (WIDE.addEventListener) WIDE.addEventListener("change", balanceSoon);
 $("tabbar").onclick = e => { const b = e.target.closest("button[data-view]"); if (b) showView(b.dataset.view); };
 /* 無障礙:分頁列 = tablist,<main> = tabpanel(aria-labelledby = 目前的分頁);只有選到的分頁 tabindex=0,
    ← → ↑ ↓(直式在底部、手機橫式在左邊的直欄,兩個方向都可以)、Home / End 換分頁(選到就切過去) */

@@ -28,12 +28,14 @@ export function varyText(s){
   if (s.vary.fast) parts.push(fmt("fast", { b: s.bpm }));
   return parts.filter(Boolean).join(" · ");
 }
-/* 題目卡的標籤:[律動 第 3 關] [♩=68 → 90](學)/ [複習 · 律動 第 2 關] [♩=90](複習) */
+/* 題目卡的標籤:[律動 第 3 關] [♩=68 → 90](學)/ [律動 第 3 關] [♩=90] [穩 ●○○](到了目標速度:連續穩幾次)/ [複習 · 律動 第 2 關] [♩=90](複習) */
 export function segTags(s){
   if (!s || s.k === "warm") return s ? [fmt("warm")] : [];
   const lv = L2(s.level.route.name) + " " + fmt("level", { n: s.level.n });
   if (s.k === "review") return [fmt("review") + " · " + lv, "♩=" + s.bpm];
-  return [lv, s.bpm >= s.target ? "♩=" + s.bpm : `♩=${s.bpm} → ${s.target}`];
+  if (s.bpm < s.target) return [lv, `♩=${s.bpm} → ${s.target}`];
+  const need = s.need || 3, k = Math.min(need, s.streak || 0);
+  return [lv, "♩=" + s.bpm, fmt("streakTag", { d: "●".repeat(k) + "○".repeat(need - k) })];
 }
 /* 一次嘗試的結果 → 狀態那一句 */
 export function resultText(res, s){
@@ -46,12 +48,26 @@ export function resultText(res, s){
   return t;
 }
 
-/* createDailyCard({ $, daily, labels, warmName, log, onStart, onNext, onMore, onOk, onAgain, onBack, announce })
+/* createDailyCard({ $, daily, labels, warmName, log, onStart, onNext, onMore, onOk, onAgain, onBack, announce, acts, mark })
    - labels = { ok: [中, 英], again: [中, 英], hint: [中, 英](學的時候的下一步), solo: [中, 英](只有拍點的時候) }
    - warmName(item) → [中, 英]:暖身項目的名稱(各 App 自己寫)
-   - log() → 模組的練習紀錄(最近 7 天練了幾天) */
-export function createDailyCard({ $, daily, labels = {}, warmName = () => "", log = () => ({}), onStart, onNext, onMore, onOk, onAgain, onBack, announce = () => {} }){
+   - log() → 模組的練習紀錄(最近 7 天練了幾天)
+   - mark(s) → 這一段速度的寫法(預設「♩=」;DrumDrill 12/8 的關「♩.=」):標籤、狀態、結果的速度都照這個寫
+   - acts = { left(s, o), right(s, o) } → App 自己額外的按鈕(元素陣列):left 接在「回上一關」後面、right 放在最右邊(例如 DrumDrill 的「沒有鼓?用手機鼓墊」「打一遍」);
+     元素由 App 建立、一直留在文件裡:這一次沒用到的(或面板收起來時)放在面板裡藏起來的 .daily-park,App 用 id 找得到 */
+export function createDailyCard({ $, daily, labels = {}, warmName = () => "", log = () => ({}), onStart, onNext, onMore, onOk, onAgain, onBack, announce = () => {}, acts = {}, mark = () => "♩=" }){
+  const M = (s, t) => { const m = s ? mark(s) : "♩="; return m === "♩=" || !t ? t : String(t).replace(/♩=/g, m); };
   const card = $("dailyCard"), step = $("dailyStep");
+  const park = document.createElement("div"); park.className = "daily-park"; park.hidden = true;
+  /* App 的按鈕:先全部收進 park,再把這一次要的放進按鈕列 */
+  function placeActs(s, o){
+    step.querySelectorAll(".daily-acts > [data-app-act]").forEach(el => park.appendChild(el));
+    if (!park.isConnected) step.appendChild(park);
+    const row = step.querySelector(".daily-acts"); if (!row || !s) return;
+    const sp = row.querySelector(".daily-sp");
+    for (const el of (acts.left ? acts.left(s, o) : []) || []) { el.dataset.appAct = "1"; row.insertBefore(el, sp); }
+    for (const el of (acts.right ? acts.right(s, o) : []) || []) { el.dataset.appAct = "1"; row.appendChild(el); }
+  }
   const tid = card.id + "-title";
   card.setAttribute("role", "region"); card.setAttribute("aria-labelledby", tid);
   let showing = false, lastStatus = null, lastOpts = {};
@@ -103,8 +119,11 @@ export function createDailyCard({ $, daily, labels = {}, warmName = () => "", lo
     card.innerHTML = `<div class="card-title"><b id="${tid}">${esc(fmt("title"))} ✓</b></div>` +
       `<p class="daily-sum"></p><p class="daily-sub"></p>` + (tom.length ? `<p class="daily-sub daily-tom"></p>` : "") +
       `<button class="btn daily-more">${esc(fmt("more"))}</button>`;
-    pairText(card.querySelector(".daily-sum"), () => fmt("done", { s: s.segs, m: Math.max(1, Math.round(s.sec / 60)), p: s.passed }));
-    pairText(card.querySelector(".daily-sub"), () => fmt("week", { d: s.week }));
+    // 一段都沒練(全部按「下一段」跳過):只寫「今天還沒練到」;不到 1 分鐘寫秒;最近 7 天 0 天不寫那一行
+    const time = () => (s.sec < 60 ? fmt("sec", { n: Math.round(s.sec) }) : fmt("min", { n: Math.round(s.sec / 60) }));
+    pairText(card.querySelector(".daily-sum"), () => (s.segs ? fmt("done", { s: fmt(s.segs === 1 ? "part1" : "parts", { n: s.segs }), t: time(), p: s.passed }) : fmt("none")));
+    const wk = card.querySelector(".daily-sub:not(.daily-tom)");
+    if (s.week > 0) pairText(wk, () => fmt("week", { d: s.week })); else wk.remove();
     const tm = card.querySelector(".daily-tom");
     if (tm) pairText(tm, () => fmt("tomorrow", { list: s.tomorrow.map(l => `${L2(l.route.name)} ${fmt("level", { n: l.n })}`).concat(s.review ? [fmt("review")] : []).join(" · ") }));
     card.querySelector(".daily-more").onclick = () => onMore && onMore();
@@ -112,7 +131,8 @@ export function createDailyCard({ $, daily, labels = {}, warmName = () => "", lo
 
   /* ── 段落面板(題目卡裡)── status = () => 一句話(換語言重算);result = attempt 的結果(有就顯示結果) ── */
   function renderStep(s, { status = null, passedDone = false } = {}){
-    if (!s) { step.hidden = true; step.innerHTML = ""; return; }
+    step.querySelectorAll("[data-app-act]").forEach(el => park.appendChild(el));
+    if (!s) { step.hidden = true; step.innerHTML = ""; step.appendChild(park); return; }
     lastStatus = status; lastOpts = { status, passedDone };
     step.hidden = false;
     const warm = s.k === "warm", check = !warm && s.level.check && s.level.check.length ? s.level.check : null;
@@ -128,19 +148,21 @@ export function createDailyCard({ $, daily, labels = {}, warmName = () => "", lo
     if (check) pairText(step.querySelector(".daily-check"), () => fmt("check", { list: check.map(L2).join(" · ") }));
     const on = (sel, fn) => { const b = step.querySelector(sel); if (b) b.onclick = () => fn && fn(); };
     on(".daily-back", onBack); on(".daily-again", onAgain); on(".daily-ok", onOk); on(".daily-go", onNext);
+    step.appendChild(park);
+    placeActs(s, lastOpts);
   }
   function paintStatus(s){
     const el = step.querySelector(".daily-status"); if (!el) return;
-    pairText(el, lastStatus || (() => defaultStatus(s)));
+    pairText(el, lastStatus || (() => M(s, defaultStatus(s))));
   }
-  /* 還沒試過的時候那一句:暖身 / 歡迎回來 / 只有拍點 / 學的時候的下一步 */
+  /* 還沒試過的時候那一句(短:fold-280 不超過兩行):暖身 / 歡迎回來 / 只有拍點 / 學的時候的下一步。
+     過關的規則(到目標速度後連續穩幾次)不每次寫:到了目標速度,標籤後面顯示「穩 ●○○」 */
   function defaultStatus(s){
     if (s.k === "warm") return fmt("warmHint");
     const parts = [];
     if (s.welcome) parts.push(fmt("welcome", { b: s.bpm }));
     if (s.click && s.click !== "every") parts.push(L2(labels.solo));
     else parts.push(L2(labels.hint));
-    if (s.k === "route" && !s.tries) parts.push(fmt("need", { b: s.target, n: s.need }));
     return parts.join(tr("", " "));
   }
   return {
@@ -151,6 +173,7 @@ export function createDailyCard({ $, daily, labels = {}, warmName = () => "", lo
     relang(s){ render(); if (s && !step.hidden) renderStep(s, lastOpts); },
     hide(){ card.hidden = true; step.hidden = true; },
     announce: text => announce(text),
-    segTags, resultText, varyText, segKind
+    segTags: s => segTags(s).map(t => M(s, t)), resultText: (res, s) => M(s, resultText(res, s)), varyText: s => M(s, varyText(s)), segKind,
+    defaultStatus: s => M(s, defaultStatus(s))
   };
 }

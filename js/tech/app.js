@@ -85,7 +85,8 @@ const HANON_NOS = () => Array.from({ length: 20 }, (_, i) => [i + 1, String(i + 
 const PULSE = () => ["pulse", tr("拍點", "Click"), [["e", tr("每 2 個音響一下", "Every 2 notes")], ["q", tr("每 4 個音響一下", "Every 4 notes")]]];
 const PICKERS = {
   scale: {
-    defaults: { kind: "major", form: "harmonic", motion: "similar", key: "C", octaves: 2, hands: "HT", art: "legato", pulse: "e" },
+    // 第一次進來(自由練習)= 初學者看得懂的:C 大調、右手、一個八度(檢定頁照大綱,不受影響)
+    defaults: { kind: "major", form: "harmonic", motion: "similar", key: "C", octaves: 1, hands: "RH", art: "legato", pulse: "e" },
     rows: p => {
       const tonal = p.kind === "major" || p.kind === "minor";
       const SIM = ["similar", tr("同向", "Similar")], CON = ["contrary", tr("反向", "Contrary")];
@@ -119,7 +120,7 @@ const PICKERS = {
     }
   },
   arp: {
-    defaults: { kind: "major", inv: 0, key: "C", octaves: 2, hands: "HT", art: "legato", pulse: "e" },
+    defaults: { kind: "major", inv: 0, key: "C", octaves: 2, hands: "RH", art: "legato", pulse: "e" },   // 第一次:右手
     rows: p => [
       ["kind", tr("種類", "Type"), [["major", tr("大三和弦", "Major")], ["minor", tr("小三和弦", "Minor")], ["dom7", tr("屬七", "Dom. 7th")], ["dim7", tr("減七", "Dim. 7th")], ["broken", tr("分解和弦", "Broken")]]],
       (p.kind === "major" || p.kind === "minor") && ["inv", tr("轉位", "Position"), [[0, tr("原位", "Root")], [1, tr("第一轉位", "1st inv.")], [2, tr("第二轉位", "2nd inv.")]]],
@@ -555,6 +556,7 @@ const PHONE_LAND = "(orientation: landscape) and (max-height: 500px)";
 const isPhoneLand = () => matchMedia(PHONE_LAND).matches;
 let landZoom = null;
 function fitLandZoom(){
+  if (wrapMode()) return false;   // 今日練習的關卡:換行排法(fitWrap)自己照畫面寬高排
   if (!isPhoneLand()) { if (landZoom) { landZoom = null; return refit(); } return false; }
   const svg = $("osmd").querySelector("svg"); if (!svg || !osmd) return false;
   const H = svg.getBoundingClientRect().height; if (!H) return false;
@@ -579,7 +581,64 @@ function openSetupHeight(){
   for (const [a, b] of spans) { if (b <= end) continue; h += b - Math.max(a, end); end = b; }
   return h;
 }
-function refit(){ osmd.zoom = scoreZoom(); lastZoom = osmd.zoom; renderOsmd(); measureNotes(); return true; }
+function refit(){ if (wrapMode()) { fitWrap(); measureNotes(); return true; } osmd.zoom = scoreZoom(); lastZoom = osmd.zoom; renderOsmd(); measureNotes(); return true; }
+/* ── 今日練習的關卡:換行排法(像視奏的考卷)──
+   一般題目是一整行可以左右滑;關卡的譜短(1–8 小節),要整份看得到、不能左右捲:
+   每行小節數照候選(4 → 2 → 1;能整除的優先、不留單獨一小節),縮放到放得下寬度:
+   每行 3–4 小節要在正常大小的 85% 以上才用(不然字太小),每行 2 小節最小 WRAP_MIN,最後才一小節一行(最小 WRAP_MIN1);
+   手機橫放時再照「樂譜框到畫面底」縮(只縮不放大)。播放軸照每一行(系統)上下移動 */
+const WRAP_MIN = 0.55, WRAP_MIN1 = 0.45;   // 0.55 = 視奏考卷排法的下限(口袋總譜大小)
+const wrapMode = () => !!(cur && cur.daily && cur.type === "route" && ex && ex.exact);
+let wrapW = 0;
+function systemsOf(){ try { return osmd.GraphicSheet.MusicPages.flatMap(p => p.MusicSystems); } catch (e) { return []; } }
+/* 這次排出來的每一行小節數(OSMD 放不下會自己再換行:跟要求的不一樣 = 放不下) */
+function wrapFits(n, bars){
+  const sys = systemsOf();
+  if (sys.length !== Math.ceil(bars / n)) return false;
+  const rem = bars % n;
+  if (!sys.every((sy, i) => (sy.GraphicalMeasures || []).length === (i === sys.length - 1 && rem ? rem : n))) return false;
+  const svg = $("osmd").querySelector("svg");
+  return !svg || svg.getBoundingClientRect().width <= $("scroll").clientWidth + 1;
+}
+function wrapRender(n, z){
+  const R = osmd.EngravingRules;
+  R.RenderSingleHorizontalStaffline = false; R.RenderXMeasuresPerLineAkaSystem = n;
+  osmd.zoom = z; nameSpace(namesOn() ? namesLines : 0); osmd.render();
+}
+function wrapCands(bars){
+  const big = [4, 3].filter(n => n < bars);
+  const even = big.filter(n => bars % n === 0), rest = big.filter(n => bars % n > 1);
+  return [...new Set([bars <= 4 ? bars : null, ...even, ...rest, 2, 1])].filter(n => n && n <= bars);
+}
+function fitWrap(){
+  const bars = ex.bars || (osmd.GraphicSheet ? osmd.GraphicSheet.MeasureList.length : 4);
+  const base = window.innerWidth < 600 ? 0.85 : window.innerWidth < 1000 ? 0.95 : window.innerWidth < 1100 ? 1.05 : 1.25;
+  wrapW = $("scroll").clientWidth;
+  let pick = null;
+  for (const n of wrapCands(bars)) {
+    const floor = n >= 3 ? base * 0.85 : n === 2 ? WRAP_MIN : WRAP_MIN1;
+    const fits = z => { wrapRender(n, z); return wrapFits(n, bars); };
+    if (!fits(floor)) continue;
+    let lo = floor, hi = base;
+    if (fits(hi)) lo = hi;
+    else for (let k = 0; k < 6; k++) { const mid = (lo + hi) / 2; if (fits(mid)) lo = mid; else hi = mid; }
+    pick = { n, z: Math.floor(lo * 100) / 100 };
+    break;
+  }
+  if (!pick) pick = { n: 1, z: WRAP_MIN1 };
+  // 手機橫放:第一個畫面(或播放中貼頂欄時)放得下整份;只縮不放大,不小於這個排法的下限
+  if (isPhoneLand()) {
+    wrapRender(pick.n, pick.z);
+    const svg = $("osmd").querySelector("svg"), H = svg ? svg.getBoundingClientRect().height : 0;
+    const playing = document.body.classList.contains("land-play");
+    const top = playing ? document.querySelector("header").offsetHeight + 40 : $("stage").getBoundingClientRect().top + scrollY - openSetupHeight();
+    const avail = Math.max(130, innerHeight - top - 14);
+    if (H > avail) pick.z = Math.max(pick.n >= 2 ? WRAP_MIN : WRAP_MIN1, Math.floor(pick.z * avail / H * 100) / 100);
+  }
+  osmd.EngravingRules.RenderXMeasuresPerLineAkaSystem = pick.n; osmd.zoom = pick.z; lastZoom = pick.z;
+  renderOsmd();
+  window.__wrap = { n: pick.n, zoom: pick.z, bars };
+}
 async function renderScore(){
   if (!cur) return;
   const seq = ++renderSeq;
@@ -595,10 +654,17 @@ async function renderScore(){
   try {
     await osmd.load(xml);
     if (seq !== renderSeq) return;
-    osmd.zoom = scoreZoom();
-    renderOsmd();
-    measureNotes();
-    fitLandZoom();
+    const wrap = wrapMode();
+    $("stage").classList.toggle("wrap", wrap);
+    osmd.EngravingRules.RenderSingleHorizontalStaffline = !wrap;
+    osmd.EngravingRules.RenderXMeasuresPerLineAkaSystem = 0;
+    if (wrap) { namesLines = 1; fitWrap(); measureNotes(); }
+    else {
+      osmd.zoom = scoreZoom();
+      renderOsmd();
+      measureNotes();
+      fitLandZoom();
+    }
     syncQuizTop();
   } catch (e) {
     console.error(e);
@@ -631,9 +697,10 @@ function renderOsmd(){
 let namesLines = 1, namesSeg = null, baseSpace = null;
 function nameSpace(lines){
   const rules = osmd.EngravingRules;
-  if (!baseSpace) baseSpace = { sd: rules.StaffDistance, bsd: rules.BetweenStaffDistance };
+  if (!baseSpace) baseSpace = { sd: rules.StaffDistance, bsd: rules.BetweenStaffDistance, sys: rules.MinSkyBottomDistBetweenSystems };
   const add = lines ? (lines * Math.max(10 / (osmd.zoom || 1), 13) * 1.2 + 6) / 10 + 0.3 : 0;
   rules.StaffDistance = baseSpace.sd + add; rules.BetweenStaffDistance = baseSpace.bsd + add;
+  rules.MinSkyBottomDistBetweenSystems = baseSpace.sys + add;   // 換行排法:最下面那個譜表的音名跟下一行之間
 }
 const keyVary = () => !!(dseg && dseg.k === "review" && dseg.vary && dseg.vary.q && dseg.vary.q.rkey);
 const namesRoute = () => (dseg && dseg.k !== "warm" ? dseg.r : "finger");
@@ -748,8 +815,11 @@ function drawFingerings(){
 }
 
 /* 走一遍 OSMD 游標,記下每一步的拍點與 x(相對 #osmd);再量樂譜上下範圍給播放軸 */
+let sysTops = [], sysExt = [];
 function measureNotes(){
   noteXs = [];
+  // 換行排法:每一行(系統)的上緣(游標的 top 是 #osmd 裡的像素;OSMD 單位 × 10 × 縮放)
+  sysTops = wrapMode() ? systemsOf().map(sy => (sy.PositionAndShape.AbsolutePosition.y + sy.PositionAndShape.BorderTop) * 10 * osmd.zoom) : [];
   const c = osmd.cursor;
   c.show(); c.reset();
   let guard = 0;
@@ -762,7 +832,9 @@ function measureNotes(){
       xs = c.GNotesUnderCursor().filter(n => !(n.sourceNote && n.sourceNote.isRest && n.sourceNote.isRest())).map(n => { const g = n.getSVGGElement && n.getSVGGElement(); const h = g && (g.querySelector(".vf-notehead") || g); const r = h && h.getBoundingClientRect(); return r && r.width ? r.x - ox + r.width / 2 : null; }).filter(v => v != null);
     } catch (e) {}
     const x = xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : parseFloat(el.style.left) + (el.offsetWidth || el.width || 0) / 2;
-    noteXs.push({ beat: c.Iterator.currentTimeStamp.RealValue * 4, x });
+    let sys = 0;
+    if (wrapMode()) { const top = parseFloat(el.style.top) || 0; sys = sysTops.length ? sysTops.reduce((b, t, i) => (top + 2 >= t ? i : b), 0) : 0; }
+    noteXs.push({ beat: c.Iterator.currentTimeStamp.RealValue * 4, x, sys });
     c.next();
   }
   c.reset(); c.hide();
@@ -781,16 +853,33 @@ function placePlaylineExtent(){
   svg.querySelectorAll(".vf-stavenote, .vf-ledgers").forEach(g => { const r = g.getBoundingClientRect(); if (r.height) { top = Math.min(top, r.top); bot = Math.max(bot, r.bottom); } });
   if (!isFinite(top)) { pl.hidden = true; return; }
   const pad = space * 1.2;
+  sysExt = [];
+  if (wrapMode() && sysTops.length > 1) {
+    // 換行排法:每一行自己的上下範圍(譜線、音符照 y 分到最近的那一行)
+    const oy = $("osmd").getBoundingClientRect().top, idx = y => sysTops.reduce((b, t, i) => (y - oy + 4 >= t ? i : b), 0);
+    const ext = sysTops.map(() => [Infinity, -Infinity]);
+    svg.querySelectorAll(".staffline, .vf-stavenote, .vf-ledgers").forEach(g => { const r = g.getBoundingClientRect(); if (!r.height) return; const e = ext[idx(r.top + r.height / 2)]; e[0] = Math.min(e[0], r.top); e[1] = Math.max(e[1], r.bottom); });
+    sysExt = ext.map(([a, b]) => (isFinite(a) ? { top: Math.max(0, a - sr.top - pad), h: b - a + 2 * pad } : null));
+  }
   pl.style.top = Math.max(0, top - sr.top - pad) + "px";
   pl.style.bottom = Math.max(0, sr.bottom - bot - pad) + "px";
+  pl.style.height = "";
   pl.hidden = false;
+}
+/* 換行排法:播放軸移到這一拍那一行 */
+function playlineRow(beat){
+  if (!sysExt.length) return;
+  let i = 0; for (let k = 0; k < noteXs.length && noteXs[k].beat <= beat + 1e-6; k++) i = noteXs[k].sys || 0;
+  const e = sysExt[i] || sysExt[0]; if (!e) return;
+  const pl = $("playline");
+  pl.style.top = e.top + "px"; pl.style.bottom = "auto"; pl.style.height = e.h + "px";
 }
 function xAtBeat(beat){
   if (!noteXs.length) return 0;
   if (beat <= noteXs[0].beat) return noteXs[0].x;
   for (let i = 0; i + 1 < noteXs.length; i++) {
     const a = noteXs[i], b = noteXs[i + 1];
-    if (beat < b.beat) return a.x + (b.x - a.x) * (beat - a.beat) / (b.beat - a.beat);
+    if (beat < b.beat) return a.sys !== b.sys ? a.x : a.x + (b.x - a.x) * (beat - a.beat) / (b.beat - a.beat);   // 換行:停在這一行最後一個音
   }
   return noteXs[noteXs.length - 1].x;
 }
@@ -800,6 +889,8 @@ function xAtBeat(beat){
 function movePlayline(beat, follow){
   const scroll = $("scroll"), o = $("osmd"), pl = $("playline");
   const x = o.offsetLeft + xAtBeat(beat);
+  playlineRow(beat);
+  if (follow && wrapMode()) { if (o.style.transform) o.style.transform = ""; pl.style.transform = `translate3d(${x - 1}px,0,0)`; return; }
   if (follow) {
     if (scroll.scrollLeft) scroll.scrollLeft = 0;
     const max = Math.max(0, o.offsetLeft + o.offsetWidth - scroll.clientWidth);
@@ -836,6 +927,12 @@ const onStageResize = () => {
     else if (!isPhoneLand() && land) { document.body.classList.remove("land-play"); landScroll = null; revealScore(); }
   }
   if (!osmd || !cur) return;
+  if (wrapMode()) {
+    // 換行排法:寬度變了才重排(播放中不重排,停了再說)
+    if (!play && Math.abs($("scroll").clientWidth - wrapW) > 1 && $("scroll").clientWidth > 0) { fitWrap(); measureNotes(); return; }
+    placePlaylineExtent(); if (!play) movePlayline(0, false);
+    return;
+  }
   if (fitLandZoom()) return;
   const z = scoreZoom();
   if (z !== lastZoom && lastZoom !== null) { lastZoom = z; osmd.zoom = z; renderOsmd(); measureNotes(); return; }
@@ -876,6 +973,7 @@ function syncTempoUI(){
   else if (u === "q.") { $("bpmPct").textContent = ""; $("examTempo").textContent = tr("三連音:每拍 3 個音", "Triplets: 3 notes per beat"); }
   else if (u === "q16" && cur && cur.type !== "hanon") { $("bpmPct").textContent = ""; $("examTempo").textContent = ""; }   // 拍點在選單上,不重複
   else if (u === "q16") { $("bpmPct").textContent = ""; $("examTempo").textContent = ex && ex.rhythm !== "even" ? tr("每拍 4 個音(附點節奏)· 原譜 60–108", "4 notes per beat (dotted) · Hanon: 60–108") : tr("每拍 4 個十六分音符 · 原譜 60–108", "4 semiquavers per beat · Hanon: 60–108"); }
+  else if (cur && cur.daily) { $("bpmPct").textContent = ""; $("examTempo").textContent = tr("今日練習會自動調整", "Set by today's practice"); }   // 段落:速度卡縮成一行(− 60 +)
   else { $("bpmPct").textContent = ""; $("examTempo").textContent = ex && (ex.timeHidden || ex.exact) ? "" : tr("每拍 2 個八分音符", "2 quavers per beat"); }   // 今日練習的關卡:拍號印在譜上,一拍一下拍點   // 拍點 ♪ 在選單上,不重複
   $("beats").innerHTML = "<i class=\"first\"></i>" + "<i></i>".repeat(beatsPerBar() - 1);
 }
@@ -998,13 +1096,13 @@ function schedulePlay(p, from){
       // 今日練習的關卡(exact):每個音自己的長度、斷奏、力度(按住的音、和弦、休止都照譜)
       if (e.exact) {
         const off = e.stacc ? on + Math.min(0.12, e.len * beatSec * 0.45) : on + e.len * beatSec + 0.015;
-        if (!S.clickOnly && !p.solo) audio.playPianoNote(e.midi, on, off, off, e.vel + (Math.random() * 6 - 3), false);
+        if (!clickOnlyOn() && !p.solo) audio.playPianoNote(e.midi, on, off, off, e.vel + (Math.random() * 6 - 3), false);
         return;
       }
       const next = arr.find(x => x.beat > e.beat + 1e-6);   // 同一隻手下一個「不同時」的音(雙音的兩個音同時按)
       const legatoEnd = next ? t0 + next.beat * beatSec + 0.015 : on + e.len * beatSec;
       const off = p.stacc && next ? on + Math.min(0.12, (next.beat - e.beat) * beatSec * 0.45) : legatoEnd;
-      if (!S.clickOnly && !p.solo) audio.playPianoNote(e.midi, on, off, off, p.velAt(e.beat) + (e.idx === 0 ? 6 : 0) + (Math.random() * 6 - 3), false);
+      if (!clickOnlyOn() && !p.solo) audio.playPianoNote(e.midi, on, off, off, p.velAt(e.beat) + (e.idx === 0 ? 6 : 0) + (Math.random() * 6 - 3), false);
     });
   }
   const totalClicks = Math.ceil(p.endBeat * beatSec / clickSec);
@@ -1101,9 +1199,9 @@ async function startPlaybackInner(){
     showBeat((now - play.t0) / play.clickSec);
     movePlayline(Math.max(0, play.period ? beat % play.period : beat), true);
     if (beat > play.endBeat + 0.5) {
-      const sec = play.endBeat * play.beatSec; stopPlayback(true, !!(S.loop && cur)); logPractice(sec);
+      const sec = play.endBeat * play.beatSec; stopPlayback(true, !!(loopOn() && cur)); logPractice(sec);
       // 循環:再來一輪(有預備拍);勾了「每輪 +4」就每輪快 4(拍點 ♪ 時快 8,等於 ♩ +4)
-      if (S.loop && cur) { if (S.ramp && !dseg) setBpm(bpm + (unitOf() === "e16" ? 8 : 4), true); startPlayback(); }   // 今日練習的速度照速度階梯
+      if (loopOn() && cur) { if (S.ramp && !dseg) setBpm(bpm + (unitOf() === "e16" ? 8 : 4), true); startPlayback(); }   // 今日練習的速度照速度階梯
       return;
     }
     play.raf = requestAnimationFrame(tick);
@@ -1136,7 +1234,8 @@ function showBeat(click){
   for (let i = 0; i < dots.length; i++) dots[i].classList.toggle("on", i === k);
 }
 
-/* ══ 播放選項 ══ */
+/* ══ 播放選項 ══(今日練習的段落不用:速度卡藏起來,播放照段落的設定) */
+const loopOn = () => !!S.loop && !dseg, clickOnlyOn = () => !!S.clickOnly && !dseg;
 function syncPlayOpts(){
   $("optLoop").setAttribute("aria-pressed", String(!!S.loop));
   $("optRamp").setAttribute("aria-pressed", String(!!S.ramp));
@@ -1199,8 +1298,9 @@ function warmItem(d, today){
 const daily = createDaily({ routes: ROUTES, load: () => S.daily, save: d => { S.daily = d; store.save(); }, extras: { warm: warmItem } });
 const dcard = createDailyCard({ $, daily,
   labels: { ok: ["做到了", "Got it"], again: ["還要練", "Not yet"],
-    hint: ["按 ▶ 聽示範,拍點會陪你彈;做到了就按「做到了」。", "Tap ▶ for the demo with the click, play along, then tap Got it."],
-    solo: ["這次 ▶ 只有拍點:自己彈,做到了就按「做到了」。", "This time ▶ is click only: play it yourself, then tap Got it."] },
+    // 狀態一句短話(fold-280 不超過兩行);過關規則改成到了目標速度在標籤後面顯示「穩 ●○○」
+    hint: ["▶ 聽示範,跟著拍點彈;做到了按 ✓", "▶ for the demo; play along, then ✓"],
+    solo: ["▶ 只有拍點:自己彈,做到了按 ✓", "▶ is click only: play it, then ✓"] },
   warmName, log: () => S.log,
   onStart: () => { dShow(daily.begin()); window.scrollTo({ top: 0 }); },
   onNext: () => dNext(), onMore: () => { const s = daily.addExtra(); if (s) dShow(s); },
@@ -1228,6 +1328,7 @@ function dShow(s, status = null){
   stopPlayback();
   if (!s) { dExit(); return; }
   dseg = s; dcard.showing = true; namesSeg = null;
+  ROOT.classList.add("daily-on");   // 段落進行中:練習紀錄卡、速度卡的選項藏起來(app.css)
   if (ctx && ctx.setSubActive) ctx.setSubActive(false, "tech");
   ROOT.querySelectorAll(".pane").forEach(p => { p.hidden = true; });
   setQuestion(dailyQ(s), "daily");
@@ -1237,6 +1338,7 @@ function dShow(s, status = null){
 function dExit(){
   stopPlayback();
   dseg = null; dcard.showing = false; syncNamesBtn();
+  ROOT.classList.remove("daily-on");
   if (ctx && ctx.setSubActive) ctx.setSubActive(true, "tech");
   dcard.renderStep(null);
   if (S.tab !== "exam") dcard.render();

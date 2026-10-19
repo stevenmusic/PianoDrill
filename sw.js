@@ -12,7 +12,7 @@
 const APP = "pianodrill";
 // @app-end
 /*@precache-begin*/
-const CACHE = APP + "-app-07945e9a";
+const CACHE = APP + "-app-391e9c0c";
 const PRECACHE = [
   "./",
   "manifest.webmanifest",
@@ -24,7 +24,7 @@ const PRECACHE = [
   "licenses.html",
   "privacy.html",
   "support.html",
-  "css/app.css?v=8c9f0be39e",
+  "css/app.css?v=66c85b21a9",
   "css/sight.css?v=09a2e3f4d3",
   "vendor/opensheetmusicdisplay.min.js?v=4bfeb3d01c",
   "js/ear/app.js?v=2d4255bbdc",
@@ -33,10 +33,12 @@ const PRECACHE = [
   "js/ear/music.js?v=28644129ec",
   "js/ear/store.js?v=cfdd5a5cac",
   "js/ear/strings.js?v=eaf7382b0f",
-  "js/main.js?v=f97c982620",
+  "js/main.js?v=583103d290",
   "js/shared/audio.js?v=0cb04738a9",
+  "js/shared/daily.js?v=612eedf1a1",
+  "js/shared/dailycard.js?v=2eae9c2d18",
   "js/shared/drill.js?v=9f698a5f44",
-  "js/shared/i18n.js?v=4016742902",
+  "js/shared/i18n.js?v=754c42430d",
   "js/shared/mic.js?v=5450b68a2d",
   "js/shared/onsets.js?v=d8df0b9ef2",
   "js/shared/practicelog.js?v=acd9cd53aa",
@@ -58,11 +60,12 @@ const PRECACHE = [
   "js/sight/scoring.js?v=c1912c76a7",
   "js/sight/stage.js?v=9ca7fb07ed",
   "js/sight/stages.js?v=dae636a755",
-  "js/tech/app.js?v=a2dfc7151b",
+  "js/tech/app.js?v=e1503fceb6",
   "js/tech/exercise.js?v=23a4ce2dc5",
   "js/tech/fingering.js?v=eabf64c8e1",
   "js/tech/hanon.js?v=be2621dd7a",
   "js/tech/musicxml.js?v=4257980f50",
+  "js/tech/routes.js?v=5657a1c6dd",
   "js/tech/store.js?v=262d9296ef",
   "js/tech/strings.js?v=9cb5294522",
   "js/tech/syllabus.js?v=cdf3a21898",

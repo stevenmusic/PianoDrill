@@ -837,3 +837,49 @@ body.land-play #t-stage{flex:1;display:flex;flex-direction:column;justify-conten
 :root.light .chip:active,:root.light .opt:active,:root.light .ans:active,:root.light .seg button:active{background:rgba(122,92,22,.12)}
 .opt:active{transform:scale(.95)}
 @media (prefers-reduced-motion:reduce){ .btn:active,.seg button:active,.chip:active,.mbtn:active,.opt:active,.ans:active{transform:none} }
+
+/* ══ 今日練習(js/shared/dailycard.js;兩個 App 一樣):技巧分頁最上面一張卡 + 題目卡裡的段落面板 ══
+   一欄時排在最前面(order 0);兩欄時在 .mod-main 最上面。檢定頁不顯示(練習回饋不跟考試要求放在同一個畫面) */
+#t-dailyCard{order:0}
+body.view-exam #t-dailyCard,body.view-exam #t-dailyStep{display:none !important}
+.daily .card-title{margin-bottom:8px}
+.daily-list{list-style:none;margin:0 0 12px;padding:0;display:grid;gap:2px}
+.daily-list li{display:flex;align-items:center;gap:8px;min-height:30px;font-size:var(--fs-md);min-width:0}
+.daily-mark{flex:none;width:18px;height:18px;border-radius:50%;border:1px solid var(--muted);display:inline-flex;align-items:center;justify-content:center;color:var(--on-fill)}
+.daily-list li.done .daily-mark{background:var(--gold-fill);border-color:var(--gold-fill)}
+.daily-list li[aria-current="step"] .daily-mark{border:2px solid var(--gold)}
+.daily-k{flex:none;min-width:3.4em;font-weight:700;color:var(--gold)}
+.daily-t{flex:1 1 0;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--ivory)}
+.daily-list li.locked{color:var(--muted-bright)}
+.daily-list li.locked .daily-k,.daily-list li.locked .daily-t{color:var(--muted-bright);font-weight:500}
+.daily-list li.locked .daily-mark{border-style:dashed}
+.daily-btn{width:100%;min-height:48px;height:auto;font-size:var(--fs-lg);white-space:normal}
+.daily-note,.daily-sub{font-size:var(--fs-xs);color:var(--muted-bright);line-height:1.5;margin-top:8px}
+.daily-sum{font-size:var(--fs-md);color:var(--ivory);line-height:1.5}
+.daily-more{width:100%;min-height:44px;height:auto;margin-top:12px;white-space:normal}
+/* 進行中:一行進度 */
+.daily.daily-run{padding-top:6px;padding-bottom:6px}
+.daily-bar{display:flex;align-items:center;gap:8px;min-height:44px;min-width:0}
+.daily-bar b{flex:none;font-family:"Noto Serif TC",serif;font-size:var(--fs-md);color:var(--gold);white-space:nowrap;font-variant-numeric:tabular-nums}
+.daily-dots{display:flex;gap:4px;flex:none}
+.daily-dots i{width:10px;height:10px;border-radius:50%;border:1px solid var(--muted)}
+.daily-dots i.on{background:var(--gold-fill);border-color:var(--gold-fill)}
+.daily-dots i.cur{border:2px solid var(--gold)}
+.daily-left{flex:1 1 0;min-width:0;font-size:var(--fs-xs);color:var(--muted-bright);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.daily-left.up{color:var(--gold)}
+.daily-bar .daily-next{flex:none;min-height:44px;height:auto}
+@media (max-width:340px){ .daily-dots{display:none} }
+/* 段落面板(題目卡裡) */
+.daily-step{display:flex;flex-direction:column;gap:6px;border-top:1px solid var(--line);padding-top:10px}
+.daily-status{font-size:var(--fs-md);color:var(--ivory);line-height:1.5}
+.daily-vary{font-size:var(--fs-sm);color:var(--gold);font-weight:700;line-height:1.5}
+.daily-check{font-size:var(--fs-xs);color:var(--muted-bright);line-height:1.5}
+.daily-acts{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:2px}
+.daily-acts .daily-sp{flex:1 1 0}
+.daily-acts .text-btn{margin-top:0;min-height:44px}
+.daily-acts .btn{min-height:44px;min-width:64px;height:auto;white-space:normal}
+@media (orientation:landscape) and (max-height:500px){
+  #mod-tech .quiz .daily-step{grid-column:1 / -1;grid-row:3}
+  .daily-list{grid-template-columns:repeat(2,minmax(0,1fr));column-gap:14px;margin-bottom:8px}
+  .daily-btn{min-height:44px}
+}

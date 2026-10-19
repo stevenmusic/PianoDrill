@@ -45,6 +45,31 @@ const STR = {
 // @app-end
 /* 模組的字串:addStrings("tech", { play: ["播放示範", "Play"] }) → "tech.play" */
 export function addStrings(ns, dict){ for (const [k, v] of Object.entries(dict)) STR[ns + "." + k] = v; }
+/* 今日練習(js/shared/dailycard.js;兩個 App 一樣):{n} 之類的位置由 dailycard 填 */
+addStrings("daily", {
+  title: ["今日練習", "Today"], about: ["約 {n} 分鐘", "About {n} min"],
+  start: ["開始今天的練習", "Start today's practice"], resume: ["繼續今天的練習", "Continue today's practice"],
+  next: ["下一段 ›", "Next part ›"], left: ["剩約 {n} 分", "~{n} min left"], timeUp: ["可以進下一段了", "Ready for the next"],
+  of: ["第 {i} 段,共 {n} 段", "Part {i} of {n}"],
+  warm: ["暖身", "Warm-up"], review: ["複習", "Review"], level: ["第 {n} 關", "Level {n}"],
+  locked: ["{r}過了第 {n} 關就開始", "Opens after {r} level {n}"],
+  note: ["關卡是 App 編排的練習;沒練的日子不扣分", "Levels are the App's own drills; missed days cost nothing"],
+  steady: ["很穩!下一次 ♩={b}", "Steady! Next ♩={b}"], streak: ["很穩!再連續 {k} 次就過關", "Steady! {k} more in a row to pass"],
+  near: ["差一點,同一個速度再一次", "Close. Same tempo again"], down: ["先慢一點:♩={b}", "Slow down: ♩={b}"],
+  passed: ["過關!第 {n} 關 ✓", "Passed level {n} ✓"], cont: ["接著第 {n} 關", "on to level {n}"],
+  back: ["回上一關", "Easier level"], suggest: ["要不要先回上一關暖身?", "Try the level before?"],
+  welcome: ["歡迎回來,先從 ♩={b} 開始。", "Welcome back. Start at ♩={b}."],
+  need: ["到 ♩={b} 後連續穩 {n} 次就過關。", "At ♩={b}, {n} steady in a row passes."],
+  warmHint: ["跟著示範暖身,夠了就按「下一段」。", "Warm up with the demo, then Next part."],
+  revOk: ["複習穩了 ✓ 下次間隔更久", "Review steady ✓ Next one later"], revBack: ["明天再複習一次", "Review again tomorrow"],
+  revExtra: ["加練(不改複習日期)", "Extra (reviews unchanged)"],
+  vary: ["這次:{v}", "This time: {v}"], fast: ["最快 ♩={b}", "fastest ♩={b}"], check: ["重點:{list}", "Check: {list}"],
+  click_two_four: ["拍點只響 2、4 拍", "click on 2 & 4 only"], click_one_three: ["拍點只響 1、3 拍", "click on 1 & 3 only"],
+  click_one: ["拍點只響第 1 拍", "click on beat 1 only"], click_gap: ["拍點中途消失 2 小節", "click drops out for 2 bars"],
+  done: ["今天練完了:{s} 段 · {m} 分鐘 · 過了 {p} 關", "Done today: {s} parts · {m} min · {p} passed"],
+  week: ["最近 7 天練了 {d} 天", "Practised {d} of the last 7 days"], tomorrow: ["明天:{list}", "Tomorrow: {list}"],
+  more: ["再練一下", "Practise a bit more"]
+});
 export const T = key => (STR[key] ? STR[key][LANG === "en" ? 1 : 0] : key);
 export const scoped = ns => key => (STR[ns + "." + key] ? T(ns + "." + key) : T(key));
 

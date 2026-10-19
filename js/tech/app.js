@@ -9,6 +9,9 @@ import { hanonThirdsKey } from "./fingering.js";
 import { tr, scoped, getLang, pairText, unpair } from "../shared/i18n.js";
 import * as audio from "../shared/audio.js";
 import { addLog, cleanLog, renderLog as paintLog, today, nextGoal, cleanGoal } from "../shared/practicelog.js";
+import { createDaily, clickPlays } from "../shared/daily.js";
+import { createDailyCard } from "../shared/dailycard.js";
+import { ROUTES, WARM } from "./routes.js";
 import "./strings.js";
 const T = scoped("tech");
 
@@ -19,6 +22,7 @@ const S = store.load();
 let SY = null, FG = null;
 const tabCur = {};       // 每個分頁目前的題目
 let cur = null, ex = null, show = "both", lastKey = null;
+let dseg = null;   // 今日練習目前顯示的段落(下面「今日練習」一段)
 let bpm = 60;
 let osmd = null;
 
@@ -33,7 +37,8 @@ export function relang(){
 function relabel(){
   const tab = S.tab;
   if (tab === "scale" || tab === "arp" || tab === "hanon") renderPicker(tab);
-  if (cur) { renderQText(cur, tab); fitTitle(); }
+  dcard.relang(dseg);
+  if (cur) { renderQText(cur, dseg ? "daily" : tab); fitTitle(); }
   else emptyText();
   syncTempoUI();
   $("playLabel").textContent = play ? T("stop") : starting ? tr("準備中…", "Preparing…") : T("play");
@@ -364,13 +369,22 @@ function switchTab(tab){
   ROOT.querySelectorAll(".pane").forEach(p => p.hidden = p.dataset.pane !== tab);
   if (tab !== "exam") mock = null;
   $("drawBtn").hidden = true; $("nextBtn").hidden = true; $("mockBtn").hidden = true;
+  $("dailyCard").hidden = tab === "exam"; if (tab !== "exam") dcard.render();
   if (tab === "scale" || tab === "arp" || tab === "hanon") { renderPicker(tab); setQuestion(tabCur[tab] || freeQuestion(tab), tab); }
   else if (tab === "exam") { renderExam(); syncExamButtons(); if (tabCur.exam) setQuestion(tabCur.exam, "exam"); else showEmpty(); }
   window.scrollTo({ top: 0 });
   syncQuizTop();
 }
 /* 外框:顯示 / 離開這個模組 */
-export function enter(tab){ active = true; switchTab(tab); requestAnimationFrame(onStageResize); }
+export function enter(tab){
+  active = true;
+  // 今日練習的段落:從別的分頁回來照原樣;點了子項目(外框把分段鈕亮回來)或到檢定頁 = 暫停,回到一般畫面(卡片寫「繼續今天的練習」)
+  if (dseg) {
+    if (tab === "exam" || (ctx && ctx.subActive && ctx.subActive("tech"))) dExit();
+    else { requestAnimationFrame(onStageResize); return; }
+  }
+  switchTab(tab); requestAnimationFrame(onStageResize);
+}
 export function leave(){ active = false; stopPlayback(); }
 
 /* 題目上方那一列(官方大綱標記、抽考範圍、抽考按鈕)沒東西就整列收掉;樂譜還沒畫就留一塊放提示字。用 JS 判斷,不靠 CSS :has */
@@ -378,7 +392,7 @@ function syncQuizTop(){
   ROOT.classList.toggle("exam-empty", S.tab === "exam" && !cur);
   // 檢定頁還沒抽題:▶ 與「會了 / 再練」藏起來(沒有東西可以播、可以標)
   $("playBtn").hidden = S.tab === "exam" && !cur;
-  ROOT.querySelector(".mastery").hidden = S.tab === "exam" && !cur;   // 檢定頁還沒選題目:藏起譜卡與速度卡,本級要求放在題目卡正下方
+  ROOT.querySelector(".mastery").hidden = (S.tab === "exam" && !cur) || !!(dseg && dseg.k !== "warm");   // 今日練習的關卡用「做到了 / 還要練」   // 檢定頁還沒選題目:藏起譜卡與速度卡,本級要求放在題目卡正下方
   const top = ROOT.querySelector(".quiz-top");
   const empty = $("verifyBadge").hidden && !$("poolCount").textContent.trim() && [...top.querySelectorAll(".q-actions button")].every(b => b.hidden);
   top.classList.toggle("blank", empty);
@@ -451,7 +465,13 @@ function renderQText(q, tab){
   if (!q.free && S.exam) notes.push(() => SY.systems[S.exam.system].mode === "sets" ? tr("速度是大綱的「最低速度」。", "Tempo is the syllabus minimum.") : tr("速度是大綱的「參考速度」。", "Tempo is the syllabus guide speed."));
   $("scoreNote").hidden = !notes.length;
   pairText($("scoreNote"), () => noteFns.map(f => f()).join(" "));
-  renderIntro(q.free ? tab : null);
+  renderIntro(q.free && !q.daily ? tab : null);
+  // 今日練習:標題 = 關卡(或暖身)的名稱,標籤 = 路線第幾關、速度 → 目標
+  if (q.daily && dseg) {
+    const nm = dseg.k === "warm" ? warmName(dseg.item) : dseg.level.name;
+    $("qTitle").textContent = Array.isArray(nm) ? tr(nm[0], nm[1]) : nm;
+    $("qTags").innerHTML = dcard.segTags({ ...dseg, bpm: q.tempo.bpm }).map(t => `<span class="q-tag">${t}</span>`).join("");
+  }
 }
 /* 第一次進來這個子項目的一行說明(題目卡標籤下):這個子項目播放過一次就不再出現(S.intro[子項目] = true) */
 const INTRO = {
@@ -467,6 +487,7 @@ function renderIntro(tab){
 }
 function syncMastery(){
   const m = cur && S.mastery[cur.key];
+  ROOT.querySelector(".mastery").hidden = (S.tab === "exam" && !cur) || !!(dseg && dseg.k !== "warm");   // 今日練習的關卡用「做到了 / 還要練」
   ROOT.querySelectorAll(".mbtn").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.m === m)));
 }
 /* 哈農的速度階梯:按 ✓ = 這個速度彈順了 → 記錄最高速度、下一輪 +4 */
@@ -501,7 +522,7 @@ const PLAYLINE_RATIO = 0.25;
 let noteXs = [];
 /* 右手 / 左手 / 雙手:自由練習 = 換題目(選單沒有「手」那一列);檢定 = 照大綱指定的手,這裡只換顯示哪一手 */
 const HAND_OF = { rh: "RH", lh: "LH", both: "HT" };
-const freeTab = () => (cur && cur.free && PICKERS[S.tab] ? S.tab : null);
+const freeTab = () => (cur && cur.free && !cur.daily && PICKERS[S.tab] ? S.tab : null);   // 今日練習:右手 / 左手 / 雙手只換顯示
 const syncHandSeg = segBind("handSeg", () => show, v => {
   const tab = freeTab();
   if (tab) {
@@ -802,7 +823,8 @@ function maxBpm(){ return 300; }   // 速度上限一律 300(使用者要求)
 function setBpm(v, fromUser){
   bpm = Math.max(30, Math.min(maxBpm(), Math.round(v)));
   if (fromUser && cur) {
-    if (cur.free && cur.type === "broken") { S.freeBpm.broken = bpm; cur.tempo.bpm = bpm; }
+    if (cur.daily) cur.tempo.bpm = bpm;   // 今日練習:只改這一次(不寫進自由練習的速度)
+    else if (cur.free && cur.type === "broken") { S.freeBpm.broken = bpm; cur.tempo.bpm = bpm; }
     else if (cur.free) { S.freeBpm[S.tab] = unitOf() === "e16" ? bpm / 2 : S.tab !== "hanon" && unitOf() === "q16" ? Math.min(300, bpm * 2) : bpm; cur.tempo.bpm = bpm; }
     else S.tempoPct = Math.round(100 * bpm / cur.tempo.bpm);
     store.save();
@@ -915,11 +937,12 @@ function schedulePlay(p, from){
       const next = arr.find(x => x.beat > e.beat + 1e-6);   // 同一隻手下一個「不同時」的音(雙音的兩個音同時按)
       const legatoEnd = next ? t0 + next.beat * beatSec + 0.015 : on + e.len * beatSec;
       const off = p.stacc && next ? on + Math.min(0.12, (next.beat - e.beat) * beatSec * 0.45) : legatoEnd;
-      if (!S.clickOnly) audio.playPianoNote(e.midi, on, off, off, p.velAt(e.beat) + (e.idx === 0 ? 6 : 0) + (Math.random() * 6 - 3), false);
+      if (!S.clickOnly && !p.solo) audio.playPianoNote(e.midi, on, off, off, p.velAt(e.beat) + (e.idx === 0 ? 6 : 0) + (Math.random() * 6 - 3), false);
     });
   }
   const totalClicks = Math.ceil(p.endBeat * beatSec / clickSec);
-  for (let b = -pre; b < totalClicks; b++) { const at = t0 + b * clickSec; if (at >= from) audio.playClick(at, ((b % count) + count) % count === 0); }
+  // 今日練習的拍點模式(只響 1、3 拍、第 1 拍、中途消失 2 小節;預備拍一律響)
+  for (let b = -pre; b < totalClicks; b++) { const at = t0 + b * clickSec; if (at >= from && clickPlays(p.click, b, count, totalClicks)) audio.playClick(at, ((b % count) + count) % count === 0); }
 }
 /* 播放中改速度:停在目前的位置(拍數),照新速度把後面的音重排(以前要停下來重按才會變) */
 let retempoTimer = 0;
@@ -981,18 +1004,24 @@ async function startPlaybackInner(){
   if (starting !== token || cur !== q0 || show !== show0) { if (starting === token) { starting = 0; $("playLabel").textContent = T("play"); } $("playBtn").classList.remove("busy"); return; }
   starting = 0; $("playBtn").classList.remove("busy");
   if (!loaded) { $("playLabel").textContent = T("play"); return; }
-  const events = playbackEvents(ex, cur, show);
+  let events = playbackEvents(ex, cur, show);
   const u = unitOf(), clickSec = 60 / bpm, noteSec = clickSec / NOTES_PER_UNIT[u];
   const beatSec = noteSec * ex.sub;                      // 樂譜上一個四分音符的秒數
   const count = beatsPerBar(), pre = count * COUNT_IN_BARS;
   const t0 = ctx.currentTime + 0.15 + pre * clickSec;
   const stacc = cur.articulation === "staccato";
-  const endBeat = Math.max(...events.map(e => e.beat + e.len));
+  let endBeat = Math.max(...events.map(e => e.beat + e.len));
+  // 今日練習:短的題目重複到 4 小節(拍點中途消失 = 8 小節),整數小節一輪
+  const dp = dailyPlay();
+  if (dp) {
+    const barQ = count * clickSec / beatSec, period = Math.ceil(endBeat / barQ - 1e-6) * barQ, reps = Math.max(1, Math.ceil(dp.bars * barQ / period - 1e-6));
+    if (reps > 1) { const one = events; events = []; for (let k = 0; k < reps; k++) for (const e of one) events.push({ ...e, beat: e.beat + k * period }); endBeat = (reps - 1) * period + endBeat; }
+  }
   // 漸強再漸弱(p–f–p):前半漸強、後半漸弱
   const velAt = beat => cur.dynamic === "cresc-dim" ? Math.round(42 + 50 * (1 - Math.abs(2 * beat / endBeat - 1))) : demoVel();
   const byHand = { rh: [], lh: [] };
   events.forEach(e => byHand[e.hand].push(e));
-  play = { t0, beatSec, clickSec, endBeat, raf: 0, byHand, stacc, velAt, count, pre };
+  play = { t0, beatSec, clickSec, endBeat, raf: 0, byHand, stacc, velAt, count, pre, click: dp ? dp.click : "every", solo: !!(dp && dp.solo) };
   schedulePlay(play, -Infinity);
   revealScore();
   $("playLabel").textContent = T("stop");
@@ -1006,7 +1035,7 @@ async function startPlaybackInner(){
     if (beat > play.endBeat + 0.5) {
       const sec = play.endBeat * play.beatSec; stopPlayback(true, !!(S.loop && cur)); logPractice(sec);
       // 循環:再來一輪(有預備拍);勾了「每輪 +4」就每輪快 4(拍點 ♪ 時快 8,等於 ♩ +4)
-      if (S.loop && cur) { if (S.ramp) setBpm(bpm + (unitOf() === "e16" ? 8 : 4), true); startPlayback(); }
+      if (S.loop && cur) { if (S.ramp && !dseg) setBpm(bpm + (unitOf() === "e16" ? 8 : 4), true); startPlayback(); }   // 今日練習的速度照速度階梯
       return;
     }
     play.raf = requestAnimationFrame(tick);
@@ -1062,6 +1091,8 @@ export function onKey(e){
    S.log = { "YYYY-MM-DD": { n: 次數, sec: 秒數 } }(只留最近 400 天);每週目標 S.goal(分鐘,點一下換) */
 function logPractice(sec){
   S.log = S.log || {};
+  // 今日練習的段落:秒數也算進這一段;次數改成「完成一段算一次」(dNext)
+  if (dseg && cur && cur.daily) { daily.addSec(sec); addLog(S.log, { sec, n: 0 }); store.save(); renderLog(); dcard.render(); return; }
   addLog(S.log, { sec, n: 1 });
   store.save(); renderLog();
 }
@@ -1079,6 +1110,90 @@ export function examStatus(){
   return tr(`會了 ${good}/${qs.length}`, `Got it ${good}/${qs.length}`);
 }
 
+
+/* ══ 今日練習(js/shared/daily.js 引擎 + js/shared/dailycard.js 卡片;路線在 js/tech/routes.js,第一階段是暫時的示範關卡)══
+   技巧分頁最上面的卡片 → 「開始今天的練習」→ 一段一段:暖身(現有五指位置 / 本級音階,不過關、只記時間)、路線的這一關、複習(用這一盒的變化:
+   節奏型、觸鍵、強弱、換調、拍點模式)。▶ 示範 + 拍點陪你彈(拍點模式不是每拍都響的那一次 ▶ 只有拍點)→ 自己按「做到了 / 還要練」。
+   題目 q.daily = 段落種類(右手 / 左手 / 雙手只換顯示、速度不寫進自由練習的設定);進行中子項目分段鈕都不亮(ctx.setSubActive);點子項目或到檢定頁 = 暫停 */
+const hashDay = k => Number(k.replace(/-/g, "")) || 0;
+const warmName = it => it.name || questionText(it.q)[0];   // 本級項目照題目名稱(不寫考試名稱)
+/* 暖身:有選考試 → 本級項目(沒標「會了」的優先;畫面不寫考試名稱);沒選 → WARM 照日子輪流 */
+function warmItem(d, today){
+  if (S.exam && !S.exam.auto && SY) {
+    const all = examPool(); let pool = all.filter(q => S.mastery[q.key] !== "good"); if (!pool.length) pool = all;
+    if (pool.length) { const q = pool[hashDay(today) % pool.length]; return { exam: q.key, q: { ...q }, bpm: q.tempo.bpm, unit: q.tempo.unit }; }
+  }
+  const w = WARM[hashDay(today) % WARM.length];
+  return { q: w.q, name: w.name, bpm: 60 };
+}
+const daily = createDaily({ routes: ROUTES, load: () => S.daily, save: d => { S.daily = d; store.save(); }, extras: { warm: warmItem } });
+const dcard = createDailyCard({ $, daily,
+  labels: { ok: ["做到了", "Got it"], again: ["還要練", "Not yet"],
+    hint: ["按 ▶ 聽示範,拍點會陪你彈;做到了就按「做到了」。", "Tap ▶ for the demo with the click, play along, then tap Got it."],
+    solo: ["這次 ▶ 只有拍點:自己彈,做到了就按「做到了」。", "This time ▶ is click only: play it yourself, then tap Got it."] },
+  warmName, log: () => S.log,
+  onStart: () => { dShow(daily.begin()); window.scrollTo({ top: 0 }); },
+  onNext: () => dNext(), onMore: () => { const s = daily.addExtra(); if (s) dShow(s); },
+  onOk: () => dTry("ok"), onAgain: () => dTry("again"),
+  onBack: () => { stopPlayback(); if (daily.back()) dShow(daily.seg()); } });
+/* 這一段的播放:4 小節(中途消失 = 8 小節);拍點模式不是每拍 = 只有拍點 */
+function dailyPlay(){
+  if (!dseg || !cur || !cur.daily) return null;
+  const click = dseg.click || "every";
+  return { bars: click === "gap" ? 8 : 4, click, solo: dseg.k !== "warm" && click !== "every" };
+}
+/* 這一段的題目:關卡的 q + 這一次的變化(複習),速度 = 引擎給的 */
+function dailyQ(s){
+  const base = s.k === "warm" ? s.item.q : { ...s.level.q, ...((s.vary && s.vary.q) || {}) };
+  const q = JSON.parse(JSON.stringify(base));
+  const hanon = q.type === "hanon";
+  q.tempo = s.k === "warm" && s.item.unit ? { unit: s.item.unit, bpm: s.item.bpm } : { unit: hanon ? "q16" : "q", bpm: s.k === "warm" ? s.item.bpm : s.bpm };
+  q.sub = q.tempo.unit === "q." ? 3 : hanon ? 4 : 2;
+  q.free = true; q.daily = s.k;
+  q.key = hanon ? `hanon|${q.no}|${q.tonic}|${q.hands}|${q.rhythm}${q.octaves === 1 ? "|1" : ""}` : masteryKey(q);
+  return q;
+}
+/* 顯示一段 */
+function dShow(s, status = null){
+  stopPlayback();
+  if (!s) { dExit(); return; }
+  dseg = s; dcard.showing = true;
+  if (ctx && ctx.setSubActive) ctx.setSubActive(false, "tech");
+  ROOT.querySelectorAll(".pane").forEach(p => { p.hidden = true; });
+  setQuestion(dailyQ(s), "daily");
+  dcard.render(); dcard.renderStep(s, { status });
+}
+/* 離開段落(暫停或今天練完):回到一般畫面 */
+function dExit(){
+  stopPlayback();
+  dseg = null; dcard.showing = false;
+  if (ctx && ctx.setSubActive) ctx.setSubActive(true, "tech");
+  dcard.renderStep(null);
+  if (S.tab !== "exam") dcard.render();
+}
+/* 自評一次:做到了 / 還要練 */
+function dTry(self){
+  if (!dseg || dseg.k === "warm") return;
+  stopPlayback();
+  const s = dseg, res = daily.attempt({ bpm, self });
+  const txt = () => dcard.resultText(res, s);
+  if (res.passed && res.cont) { dShow(daily.seg(), txt); return; }
+  dseg = daily.seg();
+  if (s.k === "route") { bpm = res.nextBpm; cur.tempo.bpm = bpm; syncTempoUI(); }
+  renderQText(cur, "daily"); fitTitle();
+  dcard.renderStep(dseg, { status: txt, passedDone: res.passed || s.k === "review" });
+  dcard.render();
+}
+/* 下一段:練過的那一段算一次練習 */
+function dNext(){
+  stopPlayback();
+  const t = daily.today(), i = t.i, worked = t.sec[i] > 0 || t.tries[i] > 0;
+  const s = daily.next();
+  if (worked) { S.log = S.log || {}; addLog(S.log, { n: 1 }); store.save(); renderLog(); }
+  if (s) { dShow(s); return; }
+  dExit(); switchTab(S.tab);
+}
+
 /* ── 啟動(外框呼叫)── */
 export async function start(c){
   ctx = c;
@@ -1091,6 +1206,7 @@ export async function start(c){
   // 本級要求一律展開(還沒選題目時放在題目卡正下方;精簡 2026-10)
   if (S.exam) renderExam();
   renderLog();
-  window.__tech = { get cur(){ return cur; }, get ex(){ return ex; }, get osmd(){ return osmd; },
+  dcard.render();
+  window.__tech = { daily, dcard, get dseg(){ return dseg; }, dTry, dNext, get cur(){ return cur; }, get ex(){ return ex; }, get osmd(){ return osmd; },
     get state(){ return { play: !!play, starting: !!starting, bpm, show, scheduled: audio.scheduledCount(), noteXs: noteXs.length }; }, setQuestion, examQuestions, examPool, switchTab, fitTitle, S, SY };
 }

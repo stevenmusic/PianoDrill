@@ -167,18 +167,18 @@ export function createReading({ $, store, save, onAnswered = () => {} }) {
     $('rdPos').innerHTML = segHTML([['all', '全部', 'All'], ['line', '只線', 'Lines'], ['space', '只間', 'Spaces']], R.pos);
     $('rdAcc').innerHTML = segHTML([['w', '只有白鍵', 'White keys'], ['acc', '加升降', '♯ and ♭']], R.acc ? 'acc' : 'w');
     $('rdMode').innerHTML = segHTML([['practice', '練習', 'Practice'], ['time', '60 秒', '60 s'], ['streak', '連對', 'Streak']], R.mode);
-    // 小鍵盤 C1–C7:框起來的鍵上色;點最低音、再點最高音
+    // 小鍵盤 C1–C7:只用來顯示範圍(框起來的鍵上色)。手機上一個鍵只有幾 px 寬點不準,改用兩端的 ‹ › (按住連續移動)
     const mini = $('rdMini');
     if (!mini.children.length) {
       let html = '';
-      for (let m = LOW; m <= HIGH; m++) if (!isBlack(m)) html += `<i data-tap data-m="${m}"${m % 12 === 0 ? ` data-c="${midiName(m)}"` : ''}></i>`;
+      for (let m = LOW; m <= HIGH; m++) if (!isBlack(m)) html += `<i data-m="${m}"${m % 12 === 0 ? ` data-c="${midiName(m)}"` : ''}></i>`;
       mini.innerHTML = html;
     }
     for (const k of mini.children) { const m = Number(k.dataset.m); k.classList.toggle('in', m >= R.lo && m <= R.hi); k.classList.toggle('pend', m === pendingLo); }
     $('rdLo').textContent = midiName(R.lo); $('rdHi').textContent = midiName(R.hi);
     pairText($('rdLedger'), () => (ledgers() ? tr(`最多 ${ledgers()} 條加線`, `Up to ${ledgers()} ledger line${ledgers() > 1 ? 's' : ''}`) : tr('沒有加線', 'No ledger lines')));
     for (const [id, zh, en] of [['rdQuickLbl', '範圍', 'Range'], ['rdClefLbl', '譜號', 'Clef'], ['rdPosLbl', '位置', 'Notes on'], ['rdAccLbl', '升降', 'Sharps/flats'], ['rdModeLbl', '模式', 'Mode'], ['rdCustomLbl', '自訂', 'Custom']]) $(id).textContent = tr(zh, en);
-    pairText($('rdNote'), () => tr('點小鍵盤:先點最低音、再點最高音(‹ › 微調)。題目、範圍與最常錯的加倍出現都是 App 的練習設定。', 'Tap the mini keyboard: lowest note, then highest (‹ › to adjust). Ranges and the doubled misses are App practice settings.'));
+    pairText($('rdNote'), () => tr('用 ‹ › 調最低音與最高音,按住可以連續移動。題目、範圍與最常錯的加倍出現都是 App 的練習設定。', 'Set the lowest and highest notes with ‹ ›; hold to move quickly. Ranges and the doubled misses are App practice settings.'));
     for (const [id, zh, en] of [['rdLoDown', '最低音降一個', 'Lowest down'], ['rdLoUp', '最低音升一個', 'Lowest up'], ['rdHiDown', '最高音降一個', 'Highest down'], ['rdHiUp', '最高音升一個', 'Highest up']]) $(id).setAttribute('aria-label', tr(zh, en));
     $('rdMini').setAttribute('aria-label', tr(`範圍 ${midiName(R.lo)}–${midiName(R.hi)}`, `Range ${midiName(R.lo)}–${midiName(R.hi)}`));
   }
@@ -237,23 +237,26 @@ export function createReading({ $, store, save, onAnswered = () => {} }) {
   segClick('rdAcc', (v) => { R.acc = v === 'acc'; changed(); });
   // 換成挑戰模式:把題目卡捲到畫面上(「開始挑戰」的大按鈕在譜上)
   segClick('rdMode', (v) => { R.mode = v; changed(); if (v !== 'practice') toTop($('rdCard')); });
-  $('rdMini').addEventListener('click', (e) => {
-    const k = e.target.closest('i[data-m]'); if (!k) return;
-    const m = Number(k.dataset.m);
-    if (pendingLo == null) { pendingLo = m; paintOpts(); return; }
-    let lo = Math.min(pendingLo, m), hi = Math.max(pendingLo, m);
-    pendingLo = null;
-    if (hi - lo < 4) hi = Math.min(HIGH, lo + 4);
-    R.lo = lo; R.hi = hi; changed();
-  });
   const step = (m, d) => { let x = m + d; while (isBlack(x)) x += d; return x; };
+  // 移一個白鍵;按住時只更新範圍顯示,放開才重新出題
   const adj = (which, d) => {
-    if (which === 'lo') { const v = step(R.lo, d); if (v >= LOW && v <= R.hi - 4) R.lo = v; else return; }
-    else { const v = step(R.hi, d); if (v <= HIGH && v >= R.lo + 4) R.hi = v; else return; }
-    pendingLo = null; changed();
+    if (which === 'lo') { const v = step(R.lo, d); if (v >= LOW && v <= R.hi - 4) R.lo = v; else return false; }
+    else { const v = step(R.hi, d); if (v <= HIGH && v >= R.lo + 4) R.hi = v; else return false; }
+    pendingLo = null; return true;
   };
-  $('rdLoDown').onclick = () => adj('lo', -1); $('rdLoUp').onclick = () => adj('lo', 1);
-  $('rdHiDown').onclick = () => adj('hi', -1); $('rdHiUp').onclick = () => adj('hi', 1);
+  const hold = (id, which, d) => {
+    const el = $(id); let t1 = 0, t2 = 0, moved = false, byPointer = false;
+    const stop = () => { clearTimeout(t1); clearInterval(t2); t1 = t2 = 0; if (moved) { moved = false; changed(); } };
+    el.addEventListener('pointerdown', (e) => {
+      if (e.button > 0) return;
+      byPointer = true; moved = adj(which, d) || moved; paintOpts();
+      t1 = setTimeout(() => { t2 = setInterval(() => { if (adj(which, d)) { moved = true; paintOpts(); } }, 110); }, 380);
+    });
+    for (const ev of ['pointerup', 'pointerleave', 'pointercancel']) el.addEventListener(ev, stop);
+    // 鍵盤 Enter / 空白鍵、螢幕閱讀器:click 一次移一格(手指點的那一下 pointerdown 已經處理過)
+    el.addEventListener('click', () => { if (byPointer) { byPointer = false; return; } if (adj(which, d)) changed(); });
+  };
+  hold('rdLoDown', 'lo', -1); hold('rdLoUp', 'lo', 1); hold('rdHiDown', 'hi', -1); hold('rdHiUp', 'hi', 1);
   $('rdKbd').addEventListener('pointerdown', (e) => { const k = e.target.closest('.k'); if (!k || k.classList.contains('off')) return; e.preventDefault(); answer(Number(k.dataset.pc)); });
   $('rdStart').onclick = () => {
     endRes = null; session = { ok: 0, n: 0 };

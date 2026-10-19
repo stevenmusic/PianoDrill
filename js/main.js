@@ -110,9 +110,8 @@ function renderSubnav(){
   const opts = SUBS[S.view]();
   $("subnav").hidden = !opts.length;
   document.body.classList.toggle("no-subnav", !opts.length);
-  // 視奏的子項目是級數:按鈕上只有數字,aria-label 寫完整級名
   const keep = keepFocus($("subSeg"), "data-v");
-  $("subSeg").innerHTML = opts.map(([v, t]) => `<button data-v="${v}" aria-pressed="${S.sub[S.view] === v}"${S.view === "sight" ? ` aria-label="${gradeLabel(Number(v))}"` : ""}>${t}</button>`).join("");
+  $("subSeg").innerHTML = opts.map(([v, t]) => `<button data-v="${v}" aria-pressed="${S.sub[S.view] === v}">${t}</button>`).join("");
   $("subSeg").setAttribute("aria-label", SUB_LABEL()[S.view] || "");
   keep();
 }

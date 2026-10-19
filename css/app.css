@@ -780,3 +780,12 @@ body.land-play #t-stage{flex:1;display:flex;flex-direction:column;justify-conten
 @media (max-width:374px){ #mod-tech .picker .opts[data-k="no"]{grid-template-columns:repeat(5,minmax(0,1fr))} }
 /* 折疊機 280:對話框標題字小一級,英文才不會換行(中英文版面一樣) */
 @media (max-width:300px){ .modal-card h2{font-size:var(--fs-lg)} }
+/* ══ 自動難度(DrumDrill 的 js/shared/level.js;app.css 兩個 App 同一份):設定卡「難度 3」+ ▼ ▲ 與小字;結果下面「太簡單 / 剛好 / 太難」一排三格 ══ */
+.lvl-row{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;margin-bottom:12px}
+.lvl-row .lvl{display:flex;align-items:center;gap:10px;flex:none}
+.lvl-row .lvl b{font-family:"Noto Serif TC",serif;font-size:var(--fs-xl);color:var(--gold-bright);line-height:1.2;min-width:4.6em;text-align:center;font-variant-numeric:tabular-nums}
+.lvl-row .btn.round:disabled{opacity:.35}
+.lvl-row .info{flex:1 1 150px;min-width:0;font-size:var(--fs-xs);color:var(--muted-bright);line-height:1.5;overflow-wrap:anywhere}
+.diff-msg{margin-top:8px;font-size:var(--fs-sm);color:var(--gold-bright);overflow-wrap:anywhere}
+.diff-fb{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-top:10px}
+.diff-fb .chip{justify-content:center;min-width:0;height:auto;min-height:36px;padding:4px 6px;white-space:normal;line-height:1.3;text-align:center}

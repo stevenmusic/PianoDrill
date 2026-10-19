@@ -1,7 +1,7 @@
 // 任務腳本(兩個 App 同一份,@app-begin … @app-end 放各自的任務;tools/test/sync.json markers):
 // 模擬真人從打開 App 開始完成幾個任務,記錄每個任務「要點幾下才開始練」、要不要捲動、要點的東西在不在畫面上、
 // 有沒有點到收起來的卡片裡、有沒有下拉選單、點擊區域夠不夠大(≥ 28×28),最後一步之後的畫面有沒有告訴使用者下一步。
-// 目標:≤ 3 下就開始練、不用捲動找按鈕、沒有下拉選單、沒有收合卡。超過就印 ✗(結束碼 1)。
+// 目標:≤ 3 下就開始練、開始練之前不用捲動找按鈕、沒有下拉選單、沒有收合卡。超過就印 ✗(結束碼 1)。開始練以後的捲動記在「注意」。
 // 用法:node tools/test/tasks.mjs [尺寸,…](預設 iphone-390、fold-280、iphone-land、ipad、desktop);TASK=關鍵字 只跑名稱含關鍵字的任務
 import { open } from "./harness.mjs";
 
@@ -33,8 +33,9 @@ const TASKS = [
       { sel: '#tabbar [data-view="sight"]', say: "視奏分頁", wait: 800 },
       { sel: '#subSeg [data-v="read"]', say: "認音(題目馬上出)", start: true, wait: 1200 },
       { sel: '#s-rdClef [data-v="bass"]', say: "低音譜表", wait: 600 },
-      { sel: '#s-rdMini [data-m="36"]', say: "小鍵盤點 C2", small: "小鍵盤:整條 34 高,窄螢幕一個鍵不到 28 寬(點錯可以用 ‹ › 微調)", wait: 200 },
-      { sel: '#s-rdMini [data-m="48"]', say: "小鍵盤點 C3", small: "同上", wait: 600 },
+      // 小鍵盤只顯示範圍(手機上一個鍵只有幾 px);用「最低音 ‹」「最高音 ‹」調(低音譜表階 1 = C3–G3 → C2–C3)
+      ...Array.from({ length: 7 }, (_, i) => ({ sel: "#s-rdLoDown", say: `最低音 ‹(${i + 1}/7)`, wait: 150 })),
+      ...Array.from({ length: 4 }, (_, i) => ({ sel: "#s-rdHiDown", say: `最高音 ‹(${i + 1}/4)`, wait: 150 })),
       { sel: '#s-rdPos [data-v="line"]', say: "只出線上", wait: 600 },
       { sel: '#s-rdMode [data-v="time"]', say: "60 秒", wait: 600 },
       { sel: "#s-rdStart", say: "開始 60 秒挑戰", wait: 800 },
@@ -83,7 +84,8 @@ for (const [sname, sz] of sizes) {
         return { inView, collapsed, w: Math.round(b.width), h: Math.round(b.height) };
       }, st.sel);
       if (!info) { r.missing.push(st.say); r.fail = `找不到「${st.say}」(${st.sel})`; break; }
-      if (!info.inView) r.scrolls.push(st.say);
+      // 「不用捲動」指的是開始練之前(第一個畫面就能開始);開始練以後的設定在下面的卡片、要往下捲,只記在注意事項
+      if (!info.inView) { if (r.start == null) r.scrolls.push(st.say); else r.notes.push(`開始後捲動到「${st.say}」`); }
       if (info.collapsed) r.collapsed.push(st.say);
       if (info.w < 28 || info.h < 28) { if (st.small) r.notes.push(`${st.say} ${info.w}×${info.h}(${st.small})`); else r.small.push(`${st.say} ${info.w}×${info.h}`); }
       const el = page.locator("[data-task-target='1']").first();

@@ -258,6 +258,9 @@ const MIN_CLEARANCE_UNITS = 2;
  * drawn can come near the frame's top.
  */
 const SCORE_TOP_UNITS = 10;
+/** 最高的墨跡(速度術語、加線、圓滑線)上面再留的空白(單位;見 pinScoreTop) */
+const TOP_CLEAR_UNITS = 1.2;
+const topUnitsMemo = new Map();
 /** Breathing room under the last system, so it never sits on the screen edge. */
 const SCORE_BOTTOM_GAP = 16;
 /*
@@ -361,9 +364,24 @@ function pinScoreTop() {
   elements.score.style.marginTop = '0px';
   const clef = svg.querySelector('g.vf-clef');
   if (!clef) return;
-  const natural = clef.getBoundingClientRect().top - svg.getBoundingClientRect().top;
+  const clefTop = clef.getBoundingClientRect().top;
+  const natural = clefTop - svg.getBoundingClientRect().top;
   // One OSMD unit is ten pixels before zoom, so the target tracks staff size.
-  const target = SCORE_TOP_UNITS * 10 * osmd.zoom;
+  /*
+   * 譜面上方不留一大片空白(使用者 2026-10:Moderato 上面空太多):固定的 10 單位是「所有級數最高的墨跡」的位置,
+   * 大部分的題目只用到一半。改成「這一種題目(視奏分頁 = 子項目 + 範圍階段;檢定頁 = 級數)到目前為止最高的墨跡 + 1 單位」,
+   * 只增不減(同一種題目換題時譜表不會上下跳;偶爾遇到更高的題目往下移一次就固定)。最多還是 SCORE_TOP_UNITS。
+   */
+  let inkTop = clefTop;
+  for (const el of svg.querySelectorAll('path, rect, text')) {
+    const b = el.getBoundingClientRect();
+    if (b.width || b.height) inkTop = Math.min(inkTop, b.top);
+  }
+  const needUnits = Math.min(SCORE_TOP_UNITS, (clefTop - inkTop) / (10 * osmd.zoom) + TOP_CLEAR_UNITS);
+  const key = `${mode === 'exam' ? `x${exam.system}${exam.grade}` : `${hand}${SS.stage[hand]}`}:${namesShown() ? 'n' : ''}`;
+  const units = Math.max(needUnits, topUnitsMemo.get(key) || 0);
+  topUnitsMemo.set(key, units);
+  const target = units * 10 * osmd.zoom;
   const shift = target - natural;
   // Down: pad. Up: pull into OSMD's own blank top margin (see SCORE_TOP_UNITS).
   elements.score.style.paddingTop = `${Math.max(shift, 0)}px`;
@@ -773,15 +791,16 @@ function renderStage() {
   const focused = document.activeElement && seg.contains(document.activeElement) ? document.activeElement.dataset.v : null;
   seg.setAttribute('aria-label', tr('範圍階段', 'Range stage'));
   seg.innerHTML = STAGES.map((st) => {
+    // 每顆按鈕只寫一行(使用者:「C4–G4 / C3–G3」擠成兩行):雙手寫 1 / 2 / 3 / 全範圍(兩手的範圍寫在下面的說明),單手寫那一手的範圍
     const r = hand === 'both' ? `${rangeLabel(st.rh)} / ${rangeLabel(st.lh)}` : rangeLabel(hand === 'right' ? st.rh : st.lh);
-    const head = st.n === 4 ? tr('全範圍', 'Full') : String(st.n);
-    return `<button type="button" data-v="${st.n}" aria-pressed="${st.n === cur}" aria-label="${st.n === 4 ? head : tr(`範圍 ${st.n}`, `Range ${st.n}`)}: ${r}"><b>${head}</b><small>${r}</small></button>`;
+    const head = st.n === 4 ? tr('全範圍', 'Full') : hand === 'both' ? String(st.n) : r;
+    return `<button type="button" data-v="${st.n}" aria-pressed="${st.n === cur}" aria-label="${st.n === 4 ? tr('全範圍', 'Full range') : tr(`範圍 ${st.n}`, `Range ${st.n}`)}: ${r}"><b>${head}</b></button>`;
   }).join('');
   if (focused) seg.querySelector(`[data-v="${focused}"]`)?.focus({ preventScroll: true });
   const names = $('names');
   names.textContent = tr('顯示音名', 'Note names');
   names.setAttribute('aria-pressed', String(!!SS.names[cur]));
-  pairText($('stageNote'), () => `${rangeText()} · ${tr('範圍內的節奏與調性由 App 依階段套用(練習設定)', 'Rhythm and keys within the range are set by the App per stage (practice setting)')}`);
+  pairText($('stageNote'), () => `${rangeText()} · ${tr('範圍內的節奏與調性由 App 依階段套用(練習設定)', 'rhythm & keys set by the App (practice setting)')}`);
 }
 function setupStage() {
   $('stageSeg').addEventListener('click', (e) => {

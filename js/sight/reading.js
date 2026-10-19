@@ -9,6 +9,7 @@ import { tr, pairText } from '../shared/i18n.js';
 import * as audio from '../shared/audio.js';
 import { createDrill } from '../shared/drill.js';
 import { STAGES, midiName } from './stages.js';
+import { frameStaff } from '../shared/staffframe.js';
 
 const LOW = 24, HIGH = 96;   // 小鍵盤 C1–C7
 const WHITE = [0, 2, 4, 5, 7, 9, 11];
@@ -55,6 +56,12 @@ export function createReading({ $, store, save, onAnswered = () => {} }) {
     return out;
   }
   const parse = (id) => { const [m, a] = id.split(':').map(Number); return { m, a, name: nameOf(m, a) }; };
+  /* 範圍的最高音在最上面的譜表上面幾條加線、最低音在最下面的譜表下面幾條(譜框的上下留白) */
+  function sideLedgers() {
+    const hiD = dstepOf(R.hi, isBlack(R.hi) ? -1 : 0), loD = dstepOf(R.lo, isBlack(R.lo) ? 1 : 0);
+    const topLine = R.clef === 'bass' ? 26 : 38, bottomLine = R.clef === 'treble' ? 30 : 18;
+    return { above: hiD > topLine ? Math.floor((hiD - topLine) / 2) : 0, below: loD < bottomLine ? Math.floor((bottomLine - loD) / 2) : 0 };
+  }
   /* 範圍內最多幾條加線(高音譜表 E4–F5、低音譜表 G2–A3;大譜表:中央 C 以上算高音譜表) */
   function ledgers() {
     const count = (d, treble) => { const lo = treble ? 30 : 18, hi = treble ? 38 : 26; return d < lo ? Math.floor((lo - d) / 2) : d > hi ? Math.floor((d - hi) / 2) : 0; };
@@ -79,17 +86,34 @@ export function createReading({ $, store, save, onAnswered = () => {} }) {
       + `<attributes><divisions>1</divisions><key><fifths>0</fifths></key><time print-object="no"><beats>4</beats><beat-type>4</beat-type></time>${clefs}</attributes>`
       + `${note}${other}<barline location="right"><bar-style>none</bar-style></barline></measure></part></score-partwise>`;
   }
+  let drawSeq = 0;
   async function draw() {
     if (!q || typeof opensheetmusicdisplay === 'undefined') return;
     const box = $('rdScore');
     if (!osmd) {
       osmd = new opensheetmusicdisplay.OpenSheetMusicDisplay(box, { autoResize: false, drawTitle: false, drawPartNames: false, drawMeasureNumbers: false, drawingParameters: 'compacttight' });
     }
+    const my = ++drawSeq;
     try {
       await osmd.load(xmlFor(q.m, q.a));
-      osmd.zoom = R.clef === 'grand' ? 1.1 : 1.35;
+      if (my !== drawSeq) return;   // 載入中又換了題目:交給新的那一次畫
+      // 大譜表兩個譜表的距離固定(不跟著音的位置變),譜框裡的譜表才不會動
+      const er = osmd.EngravingRules;
+      er.StaffDistance = er.BetweenStaffDistance = 7; er.MinSkyBottomDistBetweenStaves = 0;
+      osmd.zoom = 1;
       osmd.render();
+      fit();
     } catch (e) { console.error(e); }
+  }
+  /* 譜框:這個設定允許的最多加線(上下一樣多,譜表垂直置中);同一個設定換題時框與譜表一動都不動(js/shared/staffframe.js) */
+  function fit() {
+    const svg = $('rdScore').querySelector('svg');
+    if (!svg || !$('rdScore').clientWidth) return;
+    const { above, below } = sideLedgers();
+    const pad = Math.max(above, below, 1) + 2 + (R.acc ? 1.8 : 0);   // 升降記號(降記號比符頭高)
+    const land = matchMedia('(orientation: landscape) and (max-height: 500px)').matches;
+    const maxH = land ? Math.max(130, innerHeight - 200) : Math.max(150, Math.min(270, innerHeight * 0.32));
+    frameStaff(svg, $('rdScore'), { key: setting(), above: pad, below: pad, symmetric: true, spPx: R.clef === 'grand' ? 10 : 12, maxH, left: R.clef === 'grand' ? 1.2 : 0 });
   }
 
   /* ── 出題 / 作答 ── */
@@ -99,7 +123,8 @@ export function createReading({ $, store, save, onAnswered = () => {} }) {
     if (!list.length) { q = null; $('rdScore').innerHTML = ''; say(() => tr('這個範圍沒有符合的音,換一個範圍或位置。', 'No notes match — change the range or position.')); return; }
     const id = drill.pick(list, setting(), Math.random, last);
     last = id; q = { id, ...parse(id) }; t0 = performance.now();
-    say(() => '');
+    // 譜和琴鍵之間這一行不空著:平常寫題目,答了寫對錯
+    say(() => tr('這是什麼音?點琴鍵作答', 'Which note? Tap a key'));
     paintKeys();
     draw();
   }
@@ -177,8 +202,8 @@ export function createReading({ $, store, save, onAnswered = () => {} }) {
     for (const k of mini.children) { const m = Number(k.dataset.m); k.classList.toggle('in', m >= R.lo && m <= R.hi); k.classList.toggle('pend', m === pendingLo); }
     $('rdLo').textContent = midiName(R.lo); $('rdHi').textContent = midiName(R.hi);
     pairText($('rdLedger'), () => (ledgers() ? tr(`最多 ${ledgers()} 條加線`, `Up to ${ledgers()} ledger line${ledgers() > 1 ? 's' : ''}`) : tr('沒有加線', 'No ledger lines')));
-    for (const [id, zh, en] of [['rdQuickLbl', '範圍', 'Range'], ['rdClefLbl', '譜號', 'Clef'], ['rdPosLbl', '位置', 'Notes on'], ['rdAccLbl', '升降', 'Sharps/flats'], ['rdModeLbl', '模式', 'Mode'], ['rdCustomLbl', '自訂', 'Custom']]) $(id).textContent = tr(zh, en);
-    pairText($('rdNote'), () => tr('用 ‹ › 調最低音與最高音,按住可以連續移動。題目、範圍與最常錯的加倍出現都是 App 的練習設定。', 'Set the lowest and highest notes with ‹ ›; hold to move quickly. Ranges and the doubled misses are App practice settings.'));
+    for (const [id, zh, en] of [['rdQuickLbl', '範圍', 'Range'], ['rdClefLbl', '譜號', 'Clef'], ['rdPosLbl', '位置', 'Notes on'], ['rdAccLbl', '升降', 'Sharps/flats'], ['rdModeLbl', '模式', 'Mode'], ['rdCustomLbl', '自訂', 'Custom'], ['rdLoLbl', '最低音', 'Lowest'], ['rdHiLbl', '最高音', 'Highest']]) $(id).textContent = tr(zh, en);
+    pairText($('rdNote'), () => tr('用 ‹ › 調最低音與最高音,按住可以連續移動。題目、範圍與最常錯的加倍出現都是 App 的練習設定。', 'Set the lowest and highest notes with ‹ › (hold to move fast). Ranges and doubled misses are App practice settings.'));
     for (const [id, zh, en] of [['rdLoDown', '最低音降一個', 'Lowest down'], ['rdLoUp', '最低音升一個', 'Lowest up'], ['rdHiDown', '最高音降一個', 'Highest down'], ['rdHiUp', '最高音升一個', 'Highest up']]) $(id).setAttribute('aria-label', tr(zh, en));
     $('rdMini').setAttribute('aria-label', tr(`範圍 ${midiName(R.lo)}–${midiName(R.hi)}`, `Range ${midiName(R.lo)}–${midiName(R.hi)}`));
   }
@@ -256,6 +281,9 @@ export function createReading({ $, store, save, onAnswered = () => {} }) {
     // 鍵盤 Enter / 空白鍵、螢幕閱讀器:click 一次移一格(手指點的那一下 pointerdown 已經處理過)
     el.addEventListener('click', () => { if (byPointer) { byPointer = false; return; } if (adj(which, d)) changed(); });
   };
+  // 轉向、改視窗寬度:譜框跟著容器寬重算(只改 viewBox,不重畫)
+  let lastW = innerWidth, rzT = 0;
+  addEventListener('resize', () => { if (innerWidth === lastW) return; lastW = innerWidth; clearTimeout(rzT); rzT = setTimeout(() => { if (active) fit(); }, 150); });
   hold('rdLoDown', 'lo', -1); hold('rdLoUp', 'lo', 1); hold('rdHiDown', 'hi', -1); hold('rdHiUp', 'hi', 1);
   $('rdKbd').addEventListener('pointerdown', (e) => { const k = e.target.closest('.k'); if (!k || k.classList.contains('off')) return; e.preventDefault(); answer(Number(k.dataset.pc)); });
   $('rdStart').onclick = () => {

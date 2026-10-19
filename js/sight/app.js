@@ -7,7 +7,8 @@ import { createRecorder } from '../shared/mic.js';
 import { expectedOnsets, detectOnsets, scoreRhythm } from './scoring.js';
 import { createStage, barTimings } from './stage.js';
 import { t, applySightStatic } from './i18n.js';
-import { pairText, unpair } from '../shared/i18n.js';
+import { pairText, unpair, tr } from '../shared/i18n.js';
+import { STAGES, HANDS, stageOf, rulesForStage, pickGrade, soloScore, rangeLabel } from './stages.js';
 
 /* 視奏模組(原 SightDrill):外框(js/main.js)負責頂欄、分頁、主題、語言與考試設定;這裡的元素 id 都加 "s-" 前綴。
    檢定分頁:只有 ABRSM 1–8 級有出題規則(照官方視奏範例整理),其他考試/級數只說明還沒有,不自己發明 */
@@ -19,15 +20,31 @@ function readKey(key) {
   const v = localStorage.getItem(key);
   return v ?? (OLD_KEYS[key] ? localStorage.getItem(OLD_KEYS[key]) : null);
 }
-const SS = (() => { try { return { grade: 1, ...JSON.parse(localStorage.getItem('pianodrill.sight.v1') || '{}') }; } catch { return { grade: 1 }; } })();
+/* pianodrill.sight.v1:{ stage:{ right, left, both }(視奏分頁每個子項目選的範圍階段 1–4), names:{ "1": true }(每一階的「顯示音名」;階 1 預設開) }
+   讀進來先消毒;舊版的 grade(視奏分頁選的級數)丟掉 */
+const SS = (() => {
+  let s = null;
+  try { s = JSON.parse(localStorage.getItem('pianodrill.sight.v1') || '{}'); } catch { s = null; }
+  s = s && typeof s === 'object' && !Array.isArray(s) ? s : {};
+  const stage = {}, names = {};
+  for (const h of HANDS) { const v = s.stage && s.stage[h]; stage[h] = Number.isInteger(v) && v >= 1 && v <= 4 ? v : 1; }
+  for (const n of [1, 2, 3, 4]) { const v = s.names && s.names[n]; names[n] = typeof v === 'boolean' ? v : n === 1; }
+  return { stage, names };
+})();
 const saveSS = () => { try { localStorage.setItem('pianodrill.sight.v1', JSON.stringify(SS)); } catch { /* 存不了就算了 */ } };
 const $ = (id) => document.getElementById('s-' + id);
 let active = false;
 let mode = 'free';          // 'free' 自由練習 / 'exam' 檢定分頁
 let exam = { system: 'abrsm', grade: 1, auto: true };
 let ctx = null;
-/* 目前用哪一級出題:檢定分頁照考試級數,自由練習照自己選的 */
-const currentGrade = () => (mode === 'exam' ? exam.grade : SS.grade);
+/* 視奏分頁:子項目 = 右手 / 左手 / 雙手(外框),每個子項目各自選範圍階段 */
+let hand = 'both';
+const stageNow = () => stageOf(SS.stage[hand]);
+const freeKey = () => `${hand}-${SS.stage[hand]}`;
+/* 目前用哪一級的規則出題:檢定分頁照考試級數;視奏分頁 = 這一題抽到的級(範圍階段裡隨機) */
+const currentGrade = () => (mode === 'exam' ? exam.grade : current && current.free ? current.score.grade : stageNow().grades[stageNow().grades.length - 1]);
+/* 這一階的規則表複本(調性選單、出題用;階 1 只有 C 大調) */
+const stageRules = (g = stageNow().grades[stageNow().grades.length - 1]) => rulesForStage(rules, stageNow(), g);
 /* 檢定分頁:這個考試/級數有沒有視奏規則 */
 const examSupported = () => exam.system === 'abrsm' && exam.grade >= 1 && exam.grade <= 8;
 
@@ -573,6 +590,7 @@ export async function start(c) {
       removeDuplicateText();
       pinTempoTermPosition();
       pinScoreTop();
+      drawNoteNames();
     };
   } catch (error) {
     fail('failInitRenderer', error.message);
@@ -628,11 +646,11 @@ export async function start(c) {
 let renderedWidth = 0;
 export function enter(tab) {
   active = true;
-  const was = mode, wasGrade = currentGrade();
+  const was = mode, wasKey = was === 'exam' ? `exam-${exam.grade}` : freeKey();
   mode = tab === 'exam' ? 'exam' : 'free';
-  // 自由練習:外框的子項目列就是級數(tab = "1"–"8")
-  if (mode === 'free' && /^[1-8]$/.test(tab)) { SS.grade = Number(tab); saveSS(); }
-  syncMode(was !== mode || wasGrade !== currentGrade());
+  // 視奏分頁:外框的子項目 = 右手 / 左手 / 雙手
+  if (mode === 'free' && HANDS.includes(tab)) hand = tab;
+  syncMode(was !== mode || wasKey !== (mode === 'exam' ? `exam-${exam.grade}` : freeKey()));
   // 在別的分頁時寬度變了(或從沒畫過):回來時重排
   if (current && window.innerWidth !== renderedWidth) renderCurrent();
 }
@@ -647,6 +665,7 @@ export function setExam(ex) {
 }
 export function relang() {
   applySightStatic();
+  renderStage();
   refreshDynamicText();
   renderSummary();
   if (mode === 'exam') renderUnsupported();
@@ -675,9 +694,11 @@ function syncMode(changed) {
   for (const id of ['setup', 'quiz', 'scoreCard']) $(id).hidden = !supported;
   if (!supported) { stopAll(); elements.along.hidden = true; renderUnsupported(); return; }
   if (rules) populateKeyOptions();
+  renderStage();
   renderSummary();
-  // 換了級數(或第一次進來):重新出一題
-  if (rules && (changed || !current || current.score.grade !== currentGrade())) newTest();
+  // 換了級數 / 子項目 / 範圍階段(或第一次進來):重新出一題
+  const stale = !current || (mode === 'exam' ? current.free || current.score.grade !== currentGrade() : !current.free || current.key !== freeKey());
+  if (rules && (changed || stale)) newTest();
 }
 function renderUnsupported() {
   const ini = exam.grade === 0;
@@ -685,10 +706,114 @@ function renderUnsupported() {
     ? t('unsupportedTrinity')
     : ini ? t('unsupportedInitial') : t('examNotYet')));
 }
+/* ── 視奏分頁的範圍階段(js/sight/stages.js):畫面只寫範圍,不寫級數、考試名稱 ── */
+const HAND_NAME = { right: () => tr('右手', 'RH'), left: () => tr('左手', 'LH') };
+function rangeText(st = stageNow(), h = hand) {
+  const full = st.n === 4;
+  if (h === 'both') return full ? tr('雙手 全範圍', 'Hands together · full range') : `${HAND_NAME.right()} ${rangeLabel(st.rh)} · ${HAND_NAME.left()} ${rangeLabel(st.lh)}`;
+  return `${HAND_NAME[h]()} ${full ? tr('全範圍', 'full range') + ' ' : ''}${rangeLabel(h === 'right' ? st.rh : st.lh)}`;
+}
+function renderStage() {
+  const box = $('stageBox');
+  box.hidden = mode === 'exam';
+  if (box.hidden) return;
+  const seg = $('stageSeg'), cur = SS.stage[hand];
+  const focused = document.activeElement && seg.contains(document.activeElement) ? document.activeElement.dataset.v : null;
+  seg.setAttribute('aria-label', tr('範圍階段', 'Range stage'));
+  seg.innerHTML = STAGES.map((st) => {
+    const r = hand === 'both' ? `${rangeLabel(st.rh)} / ${rangeLabel(st.lh)}` : rangeLabel(hand === 'right' ? st.rh : st.lh);
+    const head = st.n === 4 ? tr('全範圍', 'Full') : tr(`範圍 ${st.n}`, `Range ${st.n}`);
+    return `<button type="button" data-v="${st.n}" aria-pressed="${st.n === cur}" aria-label="${head}: ${r}"><b>${head}</b><small>${r}</small></button>`;
+  }).join('');
+  if (focused) seg.querySelector(`[data-v="${focused}"]`)?.focus({ preventScroll: true });
+  const names = $('names');
+  names.textContent = tr('顯示音名', 'Note names');
+  names.setAttribute('aria-pressed', String(!!SS.names[cur]));
+  pairText($('stageNote'), () => `${rangeText()} · ${tr('範圍內的節奏與調性由 App 依階段套用(練習設定)', 'Rhythm and keys within the range are set by the App per stage (practice setting)')}`);
+}
+function setupStage() {
+  $('stageSeg').addEventListener('click', (e) => {
+    const b = e.target.closest('button[data-v]');
+    if (!b || mode === 'exam') return;
+    const n = Number(b.dataset.v);
+    if (n === SS.stage[hand]) return;
+    SS.stage[hand] = n; saveSS();
+    renderStage();
+    if (rules) { populateKeyOptions(); renderSummary(); newTest(); }
+  });
+  $('names').addEventListener('click', () => {
+    const n = SS.stage[hand];
+    SS.names[n] = !SS.names[n]; saveSS();
+    renderStage();
+    drawNoteNames();
+  });
+}
+setupStage();
+/* 顯示音名(視奏分頁;每一階各自開關,階 1 預設開):譜上每個音下面(右手)/ 上面(左手)小字寫音名(字母,中英一樣),
+   畫在 OSMD 的 SVG 上(每次 render 之後重畫;換語言不用重畫)。檢定頁不畫 */
+const NOTE_LETTER = { 0: 'C', 2: 'D', 4: 'E', 5: 'F', 7: 'G', 9: 'A', 11: 'B' };
+function drawNoteNames() {
+  const svg = elements.score.querySelector('svg');
+  if (!svg) return;
+  svg.querySelectorAll('.s-name').forEach((el) => el.remove());
+  if (mode === 'exam' || !current || !current.free || !SS.names[SS.stage[hand]] || !osmd || !osmd.GraphicSheet) return;
+  // 位置用畫面座標量,再換回 SVG 自己的座標(OSMD 的 SVG 有 viewBox 縮放)
+  const ctm = svg.getScreenCTM();
+  if (!ctm) return;
+  const k = ctm.a || 1, toX = (cx) => (cx - ctm.e) / k, toY = (cy) => (cy - ctm.f) / (ctm.d || 1);
+  const NS = 'http://www.w3.org/2000/svg', unit = 10 * osmd.zoom / k, size = Math.max(8 / k, 1.25 * unit);
+  const solo = hand === 'right' ? 1 : hand === 'left' ? 2 : 0;
+  // 每一行、每一個譜表:右手(高音譜表)寫在全部符頭的最下面再往下一點、左手(低音譜表)寫在最上面再往上一點(同一行對齊)
+  const rows = new Map();
+  for (const measures of osmd.GraphicSheet.MeasureList) {
+    for (const m of measures) {
+      if (!m) continue;
+      const staffIndex = m.ParentStaff && m.ParentStaff.idInMusicSheet != null ? m.ParentStaff.idInMusicSheet : 0;
+      const isLeft = solo ? solo === 2 : staffIndex === 1;
+      const line = m.ParentStaffLine;
+      for (const se of m.staffEntries) {
+        for (const gve of se.graphicalVoiceEntries) {
+          for (const gn of gve.notes) {
+            const src = gn.sourceNote;
+            if (!src || src.isRest() || !src.Pitch || src.IsGraceNote) continue;
+            if (src.NoteTie && src.NoteTie.StartNote !== src) continue;   // 連結線後面的音不再寫
+            const head = gn.getSVGGElement && gn.getSVGGElement();
+            const nh = head && (head.querySelector('.vf-notehead') || head);
+            if (!nh) continue;
+            const box = nh.getBoundingClientRect();
+            const p = src.Pitch, letter = NOTE_LETTER[p.FundamentalNote] ?? '';
+            const acc = p.AccidentalHalfTones > 0 ? '♯' : p.AccidentalHalfTones < 0 ? '♭' : '';
+            const key = `${line && line.PositionAndShape ? Math.round(line.PositionAndShape.AbsolutePosition.y) : 0}:${staffIndex}`;
+            if (!rows.has(key)) rows.set(key, { isLeft, items: [], ext: isLeft ? Infinity : -Infinity });
+            const row = rows.get(key);
+            row.items.push({ x: toX(box.left + box.width / 2), text: letter + acc });
+            row.ext = isLeft ? Math.min(row.ext, toY(box.top)) : Math.max(row.ext, toY(box.bottom));
+          }
+        }
+      }
+    }
+  }
+  for (const row of rows.values()) {
+    const y = row.isLeft ? row.ext - 0.6 * unit : row.ext + 0.6 * unit + size * 0.8;
+    const done = new Set();
+    for (const it of row.items) {
+      const k = `${Math.round(it.x)}:${it.text}`;
+      if (done.has(k)) continue;   // 和弦裡同一個位置同一個字只寫一次
+      done.add(k);
+      const el = document.createElementNS(NS, 'text');
+      el.setAttribute('class', 's-name');
+      el.setAttribute('x', String(it.x)); el.setAttribute('y', String(y));
+      el.setAttribute('text-anchor', 'middle'); el.setAttribute('font-size', String(size));
+      el.setAttribute('aria-hidden', 'true');
+      el.textContent = it.text;
+      svg.appendChild(el);
+    }
+  }
+}
 function renderSummary() {
   const keyText = elements.key.selectedOptions[0]?.textContent ?? t('randomKey');
-  // 檢定模式:考試與級數已經寫在上面的考試設定卡(和頂欄標籤),這裡只說調性
-  elements.sum.textContent = mode === 'exam' ? keyText : t('gradeN', { n: currentGrade() }) + ' · ' + keyText;
+  // 檢定模式:考試與級數已經寫在上面的考試設定卡(和頂欄標籤),這裡只說調性;視奏分頁只寫範圍(不寫級數)
+  elements.sum.textContent = mode === 'exam' ? keyText : rangeText() + ' · ' + keyText;
 }
 
 /**
@@ -730,7 +855,7 @@ function refreshDynamicText() {
  * Grade 5 doesn't quietly drop a still-valid "C 大調" pick back to random.
  */
 function populateKeyOptions() {
-  const gradeRules = rules.grades[String(currentGrade())];
+  const gradeRules = mode === 'exam' ? rules.grades[String(currentGrade())] : stageRules().grades[String(stageNow().grades[stageNow().grades.length - 1])];
   const { major, minor } = keyOptionsFor(gradeRules);
   const previous = elements.key.value;
 
@@ -760,13 +885,25 @@ async function newTest() {
   // Start fetching the piano samples now, so the first press of play is
   // immediate — same moment ScrollScore loads them, once there is a score.
 
-  const grade = currentGrade();
   // '' (隨機調性) keeps the fully-random pickKey() behaviour; otherwise
   // every retry generateUnique makes is forced to the same chosen key,
   // same as it's forced to the same grade.
-  const [tonic, mode] = elements.key.value ? elements.key.value.split(':') : [];
-  const { score } = generateUnique(() => generateTest(rules, { grade, tonic, mode }), history);
-  current = { score, xml: toMusicXml(score) };
+  const [tonic, keyMode] = elements.key.value ? elements.key.value.split(':') : [];
+  if (mode === 'exam') {
+    const grade = currentGrade();
+    const { score } = generateUnique(() => generateTest(rules, { grade, tonic, mode: keyMode }), history);
+    current = { score, xml: toMusicXml(score), free: false };
+  } else {
+    // 視奏分頁:範圍階段裡每題隨機取一級的規則(只換 range;階 1 只出 C 大調)。選了調性就只從有這個調的級裡抽
+    const st = stageNow();
+    const hasKey = (g) => { const k = keyOptionsFor(rulesForStage(rules, st, g).grades[String(g)]); return (keyMode === 'minor' ? k.minor : k.major).some((x) => x.tonic === tonic); };
+    const pool = tonic ? st.grades.filter(hasKey) : st.grades;
+    const fixed = st.cOnly ? { tonic: 'C', mode: 'major' } : tonic ? { tonic, mode: keyMode } : {};
+    const { score: full } = generateUnique(() => { const g = pickGrade({ grades: pool.length ? pool : st.grades }); return generateTest(rulesForStage(rules, st, g), { grade: g, ...fixed }); }, history);
+    const score = hand === 'both' ? full : soloScore(full, hand);
+    current = { score, xml: toMusicXml(score, { only: hand === 'right' ? 1 : hand === 'left' ? 2 : 0 }), free: true, key: freeKey() };
+  }
+  const score = current.score;
   player.preload(score);
 
   loudRender = true;
@@ -861,7 +998,8 @@ function showMeta(score) {
   elements.meta.innerHTML = [score.timeSignature.text, t('barsSuffix', { count: score.barCount }), `♩≈${score.tempoBpm}`]
     .map((value) => `<span class="q-tag">${escapeHtml(value)}</span>`).join('');
 
-  const warningKey = CONFIDENCE_LABEL_KEY[score.confidence];
+  // 視奏分頁:範圍內的規則是 App 的練習設定,不寫「這一級」的推估說明(那是檢定頁的)
+  const warningKey = current && current.free ? null : CONFIDENCE_LABEL_KEY[score.confidence];
   elements.confidence.hidden = !warningKey;
   if (warningKey) elements.confidence.textContent = t(warningKey);
 }

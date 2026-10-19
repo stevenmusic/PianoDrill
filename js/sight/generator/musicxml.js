@@ -25,7 +25,9 @@ const escapeXml = (value) => String(value)
  * @param {{title?: string}} [options]
  * @returns {string} MusicXML document
  */
+/* options.only = 1(只有右手的高音譜表)/ 2(只有左手的低音譜表):視奏分頁的單手練習;另一手不寫(跨譜表的音留在自己的譜表) */
 export function toMusicXml(score, options = {}) {
+  const only = options.only === 1 || options.only === 2 ? options.only : 0;
   const title = options.title
     ?? `Grade ${score.grade} Sight-Reading — ${score.key.tonic} ${score.key.mode}`;
   const keyAlters = keyAlterations(score.key.fifths);
@@ -61,9 +63,12 @@ export function toMusicXml(score, options = {}) {
       lines.push(`        <divisions>${score.divisions}</divisions>`);
       lines.push(`        <key><fifths>${score.key.fifths}</fifths><mode>${score.key.mode}</mode></key>`);
       lines.push(`        <time><beats>${score.timeSignature.beats}</beats><beat-type>${score.timeSignature.beatType}</beat-type></time>`);
-      lines.push('        <staves>2</staves>');
-      lines.push('        <clef number="1"><sign>G</sign><line>2</line></clef>');
-      lines.push('        <clef number="2"><sign>F</sign><line>4</line></clef>');
+      if (only) lines.push(only === 1 ? '        <clef number="1"><sign>G</sign><line>2</line></clef>' : '        <clef number="1"><sign>F</sign><line>4</line></clef>');
+      else {
+        lines.push('        <staves>2</staves>');
+        lines.push('        <clef number="1"><sign>G</sign><line>2</line></clef>');
+        lines.push('        <clef number="2"><sign>F</sign><line>4</line></clef>');
+      }
       lines.push('      </attributes>');
       // Always above staff 1, at a fixed spot — the same place every test,
       // whether or not the right hand happens to rest through bar 1. Tying
@@ -93,8 +98,9 @@ export function toMusicXml(score, options = {}) {
       lines.push('      </attributes>');
     }
 
-    for (const staffNumber of [1, 2]) {
+    for (const staffNumber of only ? [only] : [1, 2]) {
       const bar = score.staves[staffNumber][barIndex];
+      const start = lines.length;
       // A mid-piece clef change (generate.js's addClefChanges) is its own
       // <attributes> block, not a <direction> — it has to land in this
       // staff's own note stream at the point the change takes effect, which
@@ -105,8 +111,10 @@ export function toMusicXml(score, options = {}) {
         lines.push(`        <clef number="${staffNumber}"><sign>${bar.clefChange.sign}</sign><line>${bar.clefChange.line}</line></clef>`);
         lines.push('      </attributes>');
       }
-      lines.push(...renderBar(bar, staffNumber, score, keyAltersAt(barIndex)));
-      if (staffNumber === 1) {
+      lines.push(...renderBar(bar, staffNumber, score, keyAltersAt(barIndex), !!only));
+      // 單手(視奏分頁的右手 / 左手):只有這一手的譜表,寫成單一譜表的第 1 行
+      if (only) for (let i = start; i < lines.length; i++) lines[i] = lines[i].replace(/<staff>\d<\/staff>/, '<staff>1</staff>').replace(/<clef number="\d">/, '<clef number="1">');
+      if (staffNumber === 1 && !only) {
         lines.push(`      <backup><duration>${score.barDuration}</duration></backup>`);
       }
     }
@@ -167,7 +175,7 @@ function renderDirection(direction, staffNumber) {
  * reader position is when they're encountered, so that one has to be
  * interleaved between notes rather than dumped before all of them.
  */
-function renderBar(bar, staffNumber, score, keyAlters) {
+function renderBar(bar, staffNumber, score, keyAlters, solo = false) {
   const beams = computeBeams(bar.events, score.beatDuration);
   const tuplets = computeTuplets(bar.events);
   const lines = [];
@@ -190,13 +198,14 @@ function renderBar(bar, staffNumber, score, keyAlters) {
     // it from colliding with whatever that staff's own voice is doing at
     // the same instant, since the crossed note's rhythm belongs to its own
     // hand, not the staff it's borrowing.
-    const printedStaff = event.crossStaff ?? staffNumber;
+    const cross = solo ? null : event.crossStaff;
+    const printedStaff = cross ?? staffNumber;
     lines.push(...renderNote(event, {
       staffNumber: printedStaff,
-      voice: event.crossStaff ? 5 : staffNumber,
+      voice: cross ? 5 : staffNumber,
       keyAlters,
       inEffect,
-      isolated: Boolean(event.crossStaff),
+      isolated: Boolean(cross),
       beams: beams[index],
       tuplet: tuplets[index],
     }));

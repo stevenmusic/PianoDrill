@@ -33,8 +33,11 @@ const S = (() => {
       }
     } catch (e) {}
   }
-  return { view: "tech", sub: { tech: "scale", ear: "note", exam: "tech", sight: "1" }, exam: null, onboarded: false, theme: "dark", ...saved,
-    sub: { tech: "scale", ear: "note", exam: "tech", sight: "1", ...(saved.sub || {}) } };
+  const s = { view: "tech", exam: null, onboarded: false, theme: "dark", ...saved,
+    sub: { tech: "scale", ear: "note", exam: "tech", sight: "both", ...(saved.sub || {}) } };
+  // 視奏分頁的子項目 = 右手 / 左手 / 雙手(範圍階段在 js/sight/stages.js);舊版存的是級數 1–8 → 雙手
+  if (!["right", "left", "both"].includes(s.sub.sight)) s.sub.sight = "both";
+  return s;
 })();
 /* ── 考試:兩個系統都是初級(0)到 8 級 ── */
 const SYSTEMS = { abrsm: "ABRSM", trinity: "Trinity" };
@@ -45,14 +48,14 @@ const gradeShort = g => (g === 0 ? "I" : String(g));
 /* 子項目分段鈕;檢定分頁三項的名稱 */
 const SUBS = {
   tech: () => [["scale", tr("音階", "Scales")], ["arp", tr("琶音", "Arpeggios")], ["hanon", tr("哈農", "Hanon")]],
-  // 視奏:子項目列放級數(跟技巧的音階/琶音/哈農、聽音的單音/音程/和弦同一個位置)
-  sight: () => [1, 2, 3, 4, 5, 6, 7, 8].map(g => [String(g), String(g)]),
+  // 視奏:右手 / 左手 / 雙手(級數只在檢定頁設;範圍階段在視奏分頁的設定卡)
+  sight: () => [["right", tr("右手", "Right hand")], ["left", tr("左手", "Left hand")], ["both", tr("雙手", "Both hands")]],
   ear: () => [["note", tr("單音", "Notes")], ["interval", tr("音程", "Intervals")], ["chord", tr("和弦", "Chords")]],
   exam: () => [["tech", tr("音階琶音", "Scales")], ["sight", tr("視奏", "Sight-reading")], ["ear", tr("聽力", "Aural")]]
 };
 const PART_LABEL = () => ({ tech: tr("音階琶音", "Scales & arpeggios"), sight: tr("視奏", "Sight-reading"), ear: tr("聽力測驗", "Aural tests") });
 /* 子項目分段鈕的群組名稱(無障礙:role="group" 的 aria-label) */
-const SUB_LABEL = () => ({ tech: tr("技巧項目", "Technique"), sight: tr("級數", "Grade"), ear: tr("題型", "Question type"), exam: tr("檢定項目", "Exam section") });
+const SUB_LABEL = () => ({ tech: tr("技巧項目", "Technique"), sight: tr("手", "Hands"), ear: tr("題型", "Question type"), exam: tr("檢定項目", "Exam section") });
 /* 外框另外給模組的東西(ctx 裡;DrumDrill 用來給考試資料):PianoDrill 的模組自己讀資料,這裡沒有 */
 const appCtx = async () => ({});
 // @app-end

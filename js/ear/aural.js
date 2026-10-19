@@ -129,7 +129,7 @@ const GEN = {
       gradual: chance(0.5) ? up : down, sudden: chance(0.5) ? sUp : sDown }[a];
     const mel = melody({ minor: key.minor, meter, bars: 4, range: [-2, 7] });
     const r = render(mel, key, tonic, { acc: true, dyn: g });
-    const L = { loud: ["大聲", "Loud"], quiet: ["小聲", "Quiet"], f: ["forte(強)", "Forte"], p: ["piano(弱)", "Piano"], sudden: ["突然改變", "Sudden change"], gradual: ["漸漸改變", "Gradual change"],
+    const L = { loud: ["大聲", "Loud"], quiet: ["小聲", "Quiet"], f: ["forte(大聲)", "Forte"], p: ["piano(小聲)", "Piano"], sudden: ["突然改變", "Sudden change"], gradual: ["漸漸改變", "Gradual change"],
       cresc: ["漸強", "Crescendo"], dim: ["漸弱", "Diminuendo"], subLoud: ["突然變強", "Suddenly loud"], subQuiet: ["突然變弱", "Suddenly quiet"] };
     return { play: { ev: r.ev, dur: r.dur }, steps: [{ get q(){ return tr("力度是?", "Dynamics?"); }, choices: opts.map(o => ch(o, ...L[o])), answer: a }] };
   },

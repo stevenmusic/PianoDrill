@@ -200,7 +200,8 @@ export function createReading({ $, store, save, onAnswered = () => {} }) {
     $('rdAcc').innerHTML = segHTML([['w', '只有白鍵', 'White keys'], ['acc', '加升降', '♯ and ♭']], R.acc ? 'acc' : 'w');
     $('rdMode').innerHTML = segHTML([['practice', '練習', 'Practice'], ['time', '60 秒', '60 s'], ['streak', '連對', 'Streak']], R.mode);
     $('rdLo').textContent = midiName(R.lo); $('rdHi').textContent = midiName(R.hi);
-    pairText($('rdLedger'), () => (ledgers() ? tr(`最多 ${ledgers()} 條加線`, `Up to ${ledgers()} ledger line${ledgers() > 1 ? 's' : ''}`) : tr('沒有加線', 'No ledger lines')));
+    // 「加線」是什麼:括號裡白話(放不下就換行,在那一格裡)
+    pairText($('rdLedger'), () => (ledgers() ? tr(`最多 ${ledgers()} 條加線(譜外的短線)`, `Up to ${ledgers()} ledger line${ledgers() > 1 ? 's' : ''} (short extra lines)`) : tr('沒有加線', 'No ledger lines')));
     for (const [id, zh, en] of [['rdQuickLbl', '範圍', 'Range'], ['rdClefLbl', '譜號', 'Clef'], ['rdPosLbl', '位置', 'Notes on'], ['rdAccLbl', '升降', 'Sharps/flats'], ['rdModeLbl', '模式', 'Mode'], ['rdSpanLbl', '音域', 'Span']]) $(id).textContent = tr(zh, en);
     pairText($('rdNote'), () => tr('按住箭頭可以連續移動', 'Hold an arrow to keep moving'));
     for (const [id, zh, en] of [['rdLoDown', '最低音降低', 'Lower the lowest note'], ['rdLoUp', '最低音升高', 'Raise the lowest note'], ['rdHiDown', '最高音降低', 'Lower the highest note'], ['rdHiUp', '最高音升高', 'Raise the highest note']]) $(id).setAttribute('aria-label', tr(zh, en));

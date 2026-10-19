@@ -339,7 +339,7 @@ body{background:
   .card{padding:12px}
   .qlist{grid-template-columns:1fr}
   .q-actions .btn-label{display:none}
-  #t-drawBtn .btn-label,#t-mockBtn .btn-label,#e-drawBtn .btn-label,#e-mockBtn .btn-label{display:inline}
+  #t-drawBtn .btn-label,#t-nextBtn .btn-label,#t-mockBtn .btn-label,#e-drawBtn .btn-label,#e-mockBtn .btn-label{display:inline}   /* 「›」一定寫字(下一題) */
 }
 /* 手機橫向 */
 @media (max-height:420px), (orientation:landscape) and (max-height:500px){
@@ -538,6 +538,8 @@ body.land-play #t-stage{flex:1;display:flex;flex-direction:column;justify-conten
 .ans.right{background:var(--teal-fill);border-color:var(--teal-fill);color:var(--on-fill);font-weight:700}
 .ans.wrong{background:#C8553D;border-color:#C8553D;color:#fff;font-weight:700}
 .ans.done{opacity:.55}
+.ans small{display:block;margin-top:1px;font-size:var(--fs-2xs);font-weight:400;color:var(--muted-bright);line-height:1.3}
+.ans.right small,.ans.wrong small{color:inherit}
 .ans.done.right,.ans.done.wrong{opacity:1}
 .feedback{min-height:1.4em;font-size:var(--fs-md);color:var(--muted-bright)}
 .feedback.ok{color:var(--teal)}

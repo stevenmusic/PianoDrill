@@ -34,7 +34,7 @@ const S = (() => {
     } catch (e) {}
   }
   const s = { view: "tech", exam: null, onboarded: false, theme: "dark", ...saved,
-    sub: { tech: "scale", ear: "note", exam: "tech", sight: "both", ...(saved.sub || {}) } };
+    sub: { tech: "scale", ear: "note", exam: "tech", sight: "right", ...(saved.sub || {}) } };   // 第一次進視奏 = 右手(階 1)
   // 視奏分頁的子項目 = 認音 / 右手 / 左手 / 雙手(範圍階段在 js/sight/stages.js);舊版存的是級數 1–8 → 雙手
   if (!["read", "right", "left", "both"].includes(s.sub.sight)) s.sub.sight = "both";
   return s;
@@ -49,7 +49,7 @@ const gradeShort = g => (g === 0 ? "I" : String(g));
 const SUBS = {
   tech: () => [["scale", tr("音階", "Scales")], ["arp", tr("琶音", "Arpeggios")], ["hanon", tr("哈農", "Hanon")]],
   // 視奏:照學習順序 認音 → 右手 → 左手 → 雙手(級數只在檢定頁設;範圍階段在視奏分頁的設定卡)
-  sight: () => [["read", tr("認音", "Notes")], ["right", tr("右手", "RH")], ["left", tr("左手", "LH")], ["both", tr("雙手", "Both")]],
+  sight: () => [["read", tr("認音", "Notes")], ["right", tr("右手", "Right")], ["left", tr("左手", "Left")], ["both", tr("雙手", "Both")]],
   ear: () => [["note", tr("單音", "Notes")], ["interval", tr("音程", "Intervals")], ["chord", tr("和弦", "Chords")]],
   exam: () => [["tech", tr("音階琶音", "Scales")], ["sight", tr("視奏", "Sight-reading")], ["ear", tr("聽力", "Aural")]]
 };

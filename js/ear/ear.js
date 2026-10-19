@@ -22,13 +22,13 @@ export const NOTE_RANGES = { "1": [60, 71], "2": [48, 71], "4": [36, 83] };   //
 
 /* ── 音程 ── 答案 = 半音數(1–12) */
 export const INTERVALS = [
-  { id: "m2", st: 1, zh: "小二度", en: "m2" }, { id: "M2", st: 2, zh: "大二度", en: "M2" },
-  { id: "m3", st: 3, zh: "小三度", en: "m3" }, { id: "M3", st: 4, zh: "大三度", en: "M3" },
-  { id: "P4", st: 5, zh: "完全四度", en: "P4" }, { id: "TT", st: 6, zh: "三全音", en: "Tritone" },
-  { id: "P5", st: 7, zh: "完全五度", en: "P5" }, { id: "m6", st: 8, zh: "小六度", en: "m6" },
-  { id: "M6", st: 9, zh: "大六度", en: "M6" }, { id: "m7", st: 10, zh: "小七度", en: "m7" },
-  { id: "M7", st: 11, zh: "大七度", en: "M7" }, { id: "P8", st: 12, zh: "完全八度", en: "Octave" }
-];
+  { id: "m2", st: 1, zh: "小二度", en: "Min 2nd", ex: ["Do–Re♭", "C–D♭"] }, { id: "M2", st: 2, zh: "大二度", en: "Maj 2nd", ex: ["Do–Re", "C–D"] },
+  { id: "m3", st: 3, zh: "小三度", en: "Min 3rd", ex: ["Do–Mi♭", "C–E♭"] }, { id: "M3", st: 4, zh: "大三度", en: "Maj 3rd", ex: ["Do–Mi", "C–E"] },
+  { id: "P4", st: 5, zh: "完全四度", en: "Perf 4th", ex: ["Do–Fa", "C–F"] }, { id: "TT", st: 6, zh: "三全音", en: "Tritone", ex: ["Do–Fa♯", "C–F♯"] },
+  { id: "P5", st: 7, zh: "完全五度", en: "Perf 5th", ex: ["Do–Sol", "C–G"] }, { id: "m6", st: 8, zh: "小六度", en: "Min 6th", ex: ["Do–La♭", "C–A♭"] },
+  { id: "M6", st: 9, zh: "大六度", en: "Maj 6th", ex: ["Do–La", "C–A"] }, { id: "m7", st: 10, zh: "小七度", en: "Min 7th", ex: ["Do–Si♭", "C–B♭"] },
+  { id: "M7", st: 11, zh: "大七度", en: "Maj 7th", ex: ["Do–Si", "C–B"] }, { id: "P8", st: 12, zh: "完全八度", en: "Octave", ex: ["Do–Do", "C–C"] }
+];   // 英文不用 m2 / P4 縮寫(自學者看不懂);ex = 以 C 為根的例子(作答鈕第二行小字)
 export const intervalLabel = it => tr(it.zh, it.en);
 
 /* ── 和弦 ── */
@@ -104,7 +104,7 @@ function build(tab, pick, it, items){
     const m = pickOne(cands), ref = pick.ref === "C" ? 60 : pick.ref === "A" ? 69 : null;
     return { tab, key: "note:" + it.id, sig: "n" + m, play: playOf([m], "single", ref),
       keys: { target: [m], lo: 60, hi: 71, pcOnly: true, allowed: items.map(x => x.pc), mute: true },
-      get label(){ return tr("這是什麼音?", "Which note?"); }, get tags(){ return [tr("八度不限", "Any octave")]; }   /* 參考音已經寫在設定列(「先聽 C」),標籤只留題目卡獨有的 */, get reveal(){ return noteName(m) + (Math.floor(m / 12) - 1); },
+      get label(){ return tr("這是什麼音?", "Which note?"); }, get tags(){ return [tr("哪個八度都算對", "Any octave counts")]; }   /* 參考音已經寫在設定列(「先聽 C」),標籤只留題目卡獨有的 */, get reveal(){ return noteName(m) + (Math.floor(m / 12) - 1); },
       compare: id => playOf([Math.floor(m / 12) * 12 + Number(id)], "single", null) };
   }
   if (tab === "interval") {
@@ -114,7 +114,7 @@ function build(tab, pick, it, items){
     const ns = x => dir === "down" ? [root + x.st, root] : [root, root + x.st];
     const mode = dir === "harm" ? "block" : "melodic";
     return { tab, key: "interval:" + it.id, sig: dir + root + it.id, play: playOf(ns(it), mode),
-      steps: [{ get q(){ return tr("什麼音程?", "Which interval?"); }, choices: items.map(x => ({ id: x.id, get label(){ return intervalLabel(x); } })), answer: it.id }],
+      steps: [{ get q(){ return tr("什麼音程?", "Which interval?"); }, choices: items.map(x => ({ id: x.id, get label(){ return intervalLabel(x); }, get sub(){ return tr(x.ex[0], x.ex[1]); } })), answer: it.id }],
       get label(){ return tr("這是什麼音程?", "Which interval?"); }, get tags(){ return pick.dir === "mix" ? questionTags({ tab, dir }) : []; }   /* 方向跟設定列一樣就不寫;「混合」才寫這一題是哪一種 */, reveal: ns(it).map(midiName).join(" → "),
       compare: id => playOf(ns(INTERVALS.find(x => x.id === id)), mode) };
   }

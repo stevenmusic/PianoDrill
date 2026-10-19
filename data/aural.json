@@ -11,7 +11,7 @@
             "drills": [{ "type": "pulse", "p": { "meters": ["2", "3", "4"] } }] },
           { "id": "B", "zh": "拍出兩個節奏回聲:兩小節、三或四拍子、只有旋律;先數兩小節,聽完馬上接著拍", "en": "Clap back two 2-bar rhythm echoes (3 or 4 time) in time, after a 2-bar count-in",
             "drills": [{ "type": "rhythm", "p": { "bars": 2, "meters": ["3", "4"], "countIn": true } }] },
-          { "id": "C", "zh": "唱出兩個回聲:一小節、4/4、大調、主音到中音;先聽主和弦與主音,數兩小節", "en": "Sing back two 1-bar echoes (4/4, major, tonic–mediant) after key-chord, tonic and count-in",
+          { "id": "C", "zh": "唱出兩個回聲:一小節、4/4、大調、主音到中音(Do 到 Mi);先聽主和弦與主音,數兩小節", "en": "Sing back two 1-bar echoes (4/4, major, tonic–mediant) after key-chord, tonic and count-in",
             "drills": [{ "type": "echo", "p": { "bars": 1, "meters": ["4"], "range": [0, 2], "minor": false, "onlyC": false } }] },
           { "id": "D", "zh": "回答曲子的一個特徵:力度(大聲/小聲)或奏法(圓滑/斷開)", "en": "Answer about one feature: dynamics (loud/quiet) or articulation (smooth/detached)",
             "drills": [{ "type": "dyn", "p": { "set": "lq" } }, { "type": "artic", "p": {} }] }
@@ -19,7 +19,7 @@
         { "grade": 1, "source": "p.46", "tests": [
           { "id": "A", "zh": "拍出拍子(強拍拍大聲),並回答是二拍子還是三拍子", "en": "Clap the pulse (stressing strong beats) and say if it is in two or three time",
             "drills": [{ "type": "pulse", "p": { "meters": ["2", "3"] } }, { "type": "meter", "p": { "choices": ["2", "3"] } }] },
-          { "id": "B", "zh": "唱出三個回聲:兩小節、大調、主音到中音", "en": "Sing back three 2-bar echoes (major, tonic–mediant)",
+          { "id": "B", "zh": "唱出三個回聲:兩小節、大調、主音到中音(Do 到 Mi)", "en": "Sing back three 2-bar echoes (major, tonic–mediant)",
             "drills": [{ "type": "echo", "p": { "bars": 2, "meters": ["2", "3", "4"], "range": [0, 2], "minor": false } }] },
           { "id": "C", "zh": "兩小節樂句(大調)彈兩次,第二次改了一個音:改變在開頭附近還是結尾附近", "en": "A 2-bar major phrase is played twice with one note changed: near the beginning or near the end?",
             "drills": [{ "type": "change", "p": { "bars": 2, "kind": "pitch", "ask": "half", "minor": false, "intro": true } }] },
@@ -101,14 +101,14 @@
         { "grade": 0, "source": "p.99", "params": "旋律、4 小節、大調、2 拍", "paramsEn": "Melody only · 4 bars · major · 2 time", "tests": [
           { "id": "1", "zh": "聽三次,第三次拍出拍子(強拍加重)", "en": "Clap the pulse on the third playing, stressing the strong beat",
             "drills": [{ "type": "pulse", "p": { "meters": ["2"] } }] },
-          { "id": "2", "zh": "聽一次:力度是 forte 還是 piano", "en": "Dynamic: forte or piano?", "drills": [{ "type": "dyn", "p": { "set": "fp" } }] },
+          { "id": "2", "zh": "聽一次:力度是 forte(大聲)還是 piano(小聲)", "en": "Dynamic: forte or piano?", "drills": [{ "type": "dyn", "p": { "set": "fp" } }] },
           { "id": "3", "zh": "聽一次:奏法是圓滑還是斷奏", "en": "Articulation: legato or staccato?", "drills": [{ "type": "artic", "p": { "names": "it" } }] },
           { "id": "4", "zh": "聽前三個音:哪一個最高 / 最低", "en": "First three notes: which is highest / lowest?", "drills": [{ "type": "highlow", "p": {} }] }
         ] },
         { "grade": 1, "source": "p.102", "params": "旋律、4 小節、大調、2 或 3 拍", "paramsEn": "Melody only · 4 bars · major · 2 or 3 time", "tests": [
           { "id": "1", "zh": "聽三次,第三次拍出拍子(強拍加重)", "en": "Clap the pulse on the third playing, stressing the strong beat",
             "drills": [{ "type": "pulse", "p": { "meters": ["2", "3"] } }] },
-          { "id": "2", "zh": "聽一次:(i) forte 還是 piano;(ii) 圓滑還是斷奏", "en": "(i) Forte or piano; (ii) legato or staccato",
+          { "id": "2", "zh": "聽一次:(i) forte(大聲)還是 piano(小聲);(ii) 圓滑還是斷奏", "en": "(i) Forte or piano; (ii) legato or staccato",
             "drills": [{ "type": "dyn", "p": { "set": "fp" } }, { "type": "artic", "p": { "names": "it" } }] },
           { "id": "3", "zh": "聽前兩小節:最後一個音比第一個音高還是低", "en": "First two bars: is the last note higher or lower than the first?",
             "drills": [{ "type": "lastfirst", "p": { "bars": 2, "meters": ["2", "3"], "minor": false } }] },

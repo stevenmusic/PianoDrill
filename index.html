@@ -18,7 +18,7 @@
 <title>PianoDrill 鋼琴檢定特訓</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/app.css?v=e18a6f673b">
+<link rel="stylesheet" href="css/app.css?v=8c9f0be39e">
 <link rel="stylesheet" href="css/sight.css?v=09a2e3f4d3">
 </head>
 <body>
@@ -137,7 +137,7 @@
               <span class="btn-label" id="t-drawLabel">隨機抽考</span></button>
             <button class="btn" id="t-nextBtn" hidden>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>
-              <span class="btn-label" id="t-nextLabel" data-i18n="tech.next">下一項</span></button>
+              <span class="btn-label" id="t-nextLabel" data-i18n="tech.next">下一題</span></button>
             <button class="btn" id="t-mockBtn" hidden>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2M9 2h6"/></svg>
               <span class="btn-label mock-label" id="t-mockLabel">模擬考</span></button>
@@ -182,7 +182,7 @@
           <div class="metro">
             <button class="btn round" id="t-bpmDown" data-i18n-attr="aria-label:tech.bpmDown,title:tech.bpmDown" aria-label="慢 1(按住連續減少)" title="慢 1(按住連續減少)">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M5 12h14"/></svg></button>
-            <div class="bpm"><b id="t-bpmVal">60</b><small id="t-bpmUnit">♩ / 分</small><small id="t-bpmPct"></small></div>
+            <div class="bpm"><b id="t-bpmVal">60</b><small id="t-bpmUnit">拍 / 分鐘</small><small id="t-bpmPct"></small></div>
             <button class="btn round" id="t-bpmUp" data-i18n-attr="aria-label:tech.bpmUp,title:tech.bpmUp" aria-label="快 1(按住連續增加)" title="快 1(按住連續增加)">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
             <input type="range" id="t-bpmRange" min="30" max="300" step="1" value="60" data-i18n-attr="aria-label:tech.tempo" aria-label="速度" style="grid-column:1 / -1">
@@ -193,7 +193,7 @@
             <!-- 播放選項:循環、每輪加快(速度階梯)、只聽拍點(自己彈,不放示範) -->
             <div class="play-opts">
               <button class="chip" id="t-optLoop" aria-pressed="false" data-i18n="tech.optLoop">循環播放</button>
-              <button class="chip" id="t-optRamp" aria-pressed="false" data-i18n="tech.optRamp">每輪 +4</button>
+              <button class="chip" id="t-optRamp" aria-pressed="false" data-i18n="tech.optRamp">每輪加快 4</button>
               <button class="chip" id="t-optClick" aria-pressed="false" data-i18n="tech.optClick">只聽拍點</button>
             </div>
           </div>
@@ -432,9 +432,9 @@
   </div>
 </div>
 
-<script type="importmap">{"imports":{"./js/ear/app.js":"./js/ear/app.js?v=86f8229747","./js/ear/aural.js":"./js/ear/aural.js?v=0518f87b71","./js/ear/ear.js":"./js/ear/ear.js?v=39479533ae","./js/ear/music.js":"./js/ear/music.js?v=28644129ec","./js/ear/store.js":"./js/ear/store.js?v=cfdd5a5cac","./js/ear/strings.js":"./js/ear/strings.js?v=eaf7382b0f","./js/main.js":"./js/main.js?v=75a29cc0a4","./js/shared/audio.js":"./js/shared/audio.js?v=0cb04738a9","./js/shared/drill.js":"./js/shared/drill.js?v=9f698a5f44","./js/shared/i18n.js":"./js/shared/i18n.js?v=4016742902","./js/shared/mic.js":"./js/shared/mic.js?v=5450b68a2d","./js/shared/onsets.js":"./js/shared/onsets.js?v=d8df0b9ef2","./js/shared/practicelog.js":"./js/shared/practicelog.js?v=acd9cd53aa","./js/shared/staffframe.js":"./js/shared/staffframe.js?v=7d869b31d1","./js/sight/app.js":"./js/sight/app.js?v=dd11fcf5b1","./js/sight/generator/fingerprint.js":"./js/sight/generator/fingerprint.js?v=9c9903e4f3","./js/sight/generator/generate.js":"./js/sight/generator/generate.js?v=0a2725513f","./js/sight/generator/harmony.js":"./js/sight/generator/harmony.js?v=153a66fd1f","./js/sight/generator/index.js":"./js/sight/generator/index.js?v=f1aee5c391","./js/sight/generator/melody.js":"./js/sight/generator/melody.js?v=262e7dca21","./js/sight/generator/meter.js":"./js/sight/generator/meter.js?v=efdd9ec3e8","./js/sight/generator/musicxml.js":"./js/sight/generator/musicxml.js?v=0cf5774154","./js/sight/generator/random.js":"./js/sight/generator/random.js?v=3b9b511386","./js/sight/generator/rhythm.js":"./js/sight/generator/rhythm.js?v=013f8685d0","./js/sight/generator/theory.js":"./js/sight/generator/theory.js?v=bca3da5ea8","./js/sight/i18n.js":"./js/sight/i18n.js?v=168a14d04f","./js/sight/playback.js":"./js/sight/playback.js?v=2f4f886ed6","./js/sight/reading.js":"./js/sight/reading.js?v=c898181c2c","./js/sight/scoring.js":"./js/sight/scoring.js?v=c1912c76a7","./js/sight/stage.js":"./js/sight/stage.js?v=9ca7fb07ed","./js/sight/stages.js":"./js/sight/stages.js?v=dae636a755","./js/tech/app.js":"./js/tech/app.js?v=272baad3c5","./js/tech/exercise.js":"./js/tech/exercise.js?v=254ed7b2c1","./js/tech/fingering.js":"./js/tech/fingering.js?v=eabf64c8e1","./js/tech/hanon.js":"./js/tech/hanon.js?v=be2621dd7a","./js/tech/musicxml.js":"./js/tech/musicxml.js?v=4257980f50","./js/tech/store.js":"./js/tech/store.js?v=262d9296ef","./js/tech/strings.js":"./js/tech/strings.js?v=99d24a410d","./js/tech/syllabus.js":"./js/tech/syllabus.js?v=cdf3a21898","./js/tech/theory.js":"./js/tech/theory.js?v=ed03457554"}}</script>
-<script type="application/json" id="pdVersions">{"data/aural.json":"742488735b","data/fingerings.json":"01a74f2d0c","data/sight-rules.json":"56549899c8","data/syllabus.json":"30b5443db2"}</script>
+<script type="importmap">{"imports":{"./js/ear/app.js":"./js/ear/app.js?v=2d4255bbdc","./js/ear/aural.js":"./js/ear/aural.js?v=73c42e36db","./js/ear/ear.js":"./js/ear/ear.js?v=ffb4d3a8e6","./js/ear/music.js":"./js/ear/music.js?v=28644129ec","./js/ear/store.js":"./js/ear/store.js?v=cfdd5a5cac","./js/ear/strings.js":"./js/ear/strings.js?v=eaf7382b0f","./js/main.js":"./js/main.js?v=f97c982620","./js/shared/audio.js":"./js/shared/audio.js?v=0cb04738a9","./js/shared/drill.js":"./js/shared/drill.js?v=9f698a5f44","./js/shared/i18n.js":"./js/shared/i18n.js?v=4016742902","./js/shared/mic.js":"./js/shared/mic.js?v=5450b68a2d","./js/shared/onsets.js":"./js/shared/onsets.js?v=d8df0b9ef2","./js/shared/practicelog.js":"./js/shared/practicelog.js?v=acd9cd53aa","./js/shared/staffframe.js":"./js/shared/staffframe.js?v=7d869b31d1","./js/sight/app.js":"./js/sight/app.js?v=dd11fcf5b1","./js/sight/generator/fingerprint.js":"./js/sight/generator/fingerprint.js?v=9c9903e4f3","./js/sight/generator/generate.js":"./js/sight/generator/generate.js?v=0a2725513f","./js/sight/generator/harmony.js":"./js/sight/generator/harmony.js?v=153a66fd1f","./js/sight/generator/index.js":"./js/sight/generator/index.js?v=f1aee5c391","./js/sight/generator/melody.js":"./js/sight/generator/melody.js?v=262e7dca21","./js/sight/generator/meter.js":"./js/sight/generator/meter.js?v=efdd9ec3e8","./js/sight/generator/musicxml.js":"./js/sight/generator/musicxml.js?v=0cf5774154","./js/sight/generator/random.js":"./js/sight/generator/random.js?v=3b9b511386","./js/sight/generator/rhythm.js":"./js/sight/generator/rhythm.js?v=013f8685d0","./js/sight/generator/theory.js":"./js/sight/generator/theory.js?v=bca3da5ea8","./js/sight/i18n.js":"./js/sight/i18n.js?v=f6864e4587","./js/sight/playback.js":"./js/sight/playback.js?v=2f4f886ed6","./js/sight/reading.js":"./js/sight/reading.js?v=f1fb01efdf","./js/sight/scoring.js":"./js/sight/scoring.js?v=c1912c76a7","./js/sight/stage.js":"./js/sight/stage.js?v=9ca7fb07ed","./js/sight/stages.js":"./js/sight/stages.js?v=dae636a755","./js/tech/app.js":"./js/tech/app.js?v=9bece91cb2","./js/tech/exercise.js":"./js/tech/exercise.js?v=23a4ce2dc5","./js/tech/fingering.js":"./js/tech/fingering.js?v=eabf64c8e1","./js/tech/hanon.js":"./js/tech/hanon.js?v=be2621dd7a","./js/tech/musicxml.js":"./js/tech/musicxml.js?v=4257980f50","./js/tech/store.js":"./js/tech/store.js?v=262d9296ef","./js/tech/strings.js":"./js/tech/strings.js?v=9cb5294522","./js/tech/syllabus.js":"./js/tech/syllabus.js?v=cdf3a21898","./js/tech/theory.js":"./js/tech/theory.js?v=ed03457554"}}</script>
+<script type="application/json" id="pdVersions">{"data/aural.json":"2260b8dfee","data/fingerings.json":"01a74f2d0c","data/sight-rules.json":"56549899c8","data/syllabus.json":"30b5443db2"}</script>
 <script src="vendor/opensheetmusicdisplay.min.js?v=4bfeb3d01c"></script>
-<script type="module" src="js/main.js?v=75a29cc0a4"></script>
+<script type="module" src="js/main.js?v=f97c982620"></script>
 </body>
 </html>

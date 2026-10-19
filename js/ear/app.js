@@ -93,7 +93,8 @@ function pickSummary(tab){
   const p = S.pick[tab], items = ALL_ITEMS[tab].filter(it => p.set.includes(it.id));
   const names = items.length > 4 ? tr(`${items.length} 項`, `${items.length} items`) : items.map(it => itemLabel(tab, it)).join("、");
   const row = k => { const r = PICKERS[tab](p).find(x => x[0] === k); const o = r && r[2].find(x => x[0] === p[k]); return o ? o[1] : ""; };
-  return [names, ...({ note: ["range", "ref"], interval: ["dir"], chord: ["inv", "style"] }[tab]).map(row)].join(" · ");
+  // 和弦:作答鈕已經寫了和弦名,設定列只寫「原位 · 同時」
+  return [tab === "chord" ? null : names, ...({ note: ["range", "ref"], interval: ["dir"], chord: ["inv", "style"] }[tab]).map(row)].filter(Boolean).join(" · ");
 }
 function renderPicker(tab){
   const pane = paneOf(tab), p = S.pick[tab];
@@ -288,11 +289,11 @@ function renderAnswers(){
     box.innerHTML = st.choices.map((c, i) => {
       let cls = "ans";
       if (res) cls += c.id === st.answer ? " right" : c.id === res.pick ? " wrong" : " done";
-      return `<button class="${cls}" data-id="${c.id}">${c.label}</button>`;
+      return `<button class="${cls}" data-id="${c.id}">${c.label}${c.sub ? `<small>${c.sub}</small>` : ""}</button>`;   // 音程:第二行小字是以 C 為根的例子
     }).join("");
   } else if (q.keys) {
     box.classList.remove("compact");
-    $("stepQ").textContent = q.keys.target.length > 1 ? tr(`在鍵盤上彈出 ${q.keys.target.length} 個音`, `Play the ${q.keys.target.length} notes`) : "";   // 單音:題目已經寫「這是什麼音?」,標籤有「八度不限」
+    $("stepQ").textContent = q.keys.target.length > 1 ? tr(`在鍵盤上彈出 ${q.keys.target.length} 個音`, `Play the ${q.keys.target.length} notes`) : "";   // 單音:題目已經寫「這是什麼音?」,標籤有「哪個八度都算對」
     box.innerHTML = `<div class="kbd-wrap"><div class="kbd" id="e-kbd">${keyboardHTML(q.keys)}</div>` +
       (q.keys.target.length > 1 ? `<div class="kbd-row"><div class="kbd-dots" id="e-kbdDots"></div><button class="btn ghost small" id="e-kbdClear">${T("clearKeys")}</button></div>` : "") + `</div>`;
     syncKeys(); fitKeyboard();
@@ -332,7 +333,7 @@ function keyboardHTML(k){
   let b = k.hi; while (isBlack(b)) b++;
   const whites = []; for (let m = a; m <= b; m++) if (!isBlack(m)) whites.push(m);
   const w = 100 / whites.length;
-  let html = whites.map(m => `<div class="k wk${k.allowed && !k.allowed.includes(m % 12) ? " off" : ""}" data-m="${m}">${m % 12 === 0 ? (k.pcOnly ? noteName(0) : "C" + (Math.floor(m / 12) - 1)) : ""}</div>`).join("");
+  let html = whites.map(m => `<div class="k wk${k.allowed && !k.allowed.includes(m % 12) ? " off" : ""}" data-m="${m}">${k.pcOnly ? noteName(m % 12) : m % 12 === 0 ? "C" + (Math.floor(m / 12) - 1) : ""}</div>`).join("");   // 單音題:每個白鍵照「音名」設定標字(跟認音一樣)
   whites.forEach((m, i) => {
     if (m + 1 <= b && isBlack(m + 1)) html += `<div class="k bk${k.allowed && !k.allowed.includes((m + 1) % 12) ? " off" : ""}" data-m="${m + 1}" style="left:calc(${(i + 1) * w}% - ${w * 0.31}%);width:${w * 0.62}%"></div>`;
   });

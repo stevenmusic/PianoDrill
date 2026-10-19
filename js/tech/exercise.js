@@ -238,7 +238,7 @@ export function buildExercise(FG, q){
 const OCT = [["", ""], ["一個八度", "1 octave"], ["兩個八度", "2 octaves"], ["三個八度", "3 octaves"], ["四個八度", "4 octaves"]];
 const FORM = { harmonic: ["和聲小調", "harmonic minor", "harm. minor"], melodic: ["旋律小調", "melodic minor", "mel. minor"], natural: ["自然小調", "natural minor", "nat. minor"] };
 const INV = [["", ""], ["第一轉位", "1st inv."], ["第二轉位", "2nd inv."]];
-const HAND = { RH: ["右手", "RH"], LH: ["左手", "LH"], HT: ["雙手", "HT"] };
+const HAND = { RH: ["右手", "RH"], LH: ["左手", "LH"], HT: ["雙手", "Both hands"] };   // 英文不寫 HT(自學者看不懂)
 const DYN = { f: ["f", "f"], p: ["p", "p"], mf: ["mf", "mf"], "cresc-dim": ["p–f–p", "p–f–p"] };
 const pick = pair => tr(pair[0], pair[1]);
 const nm = s => noteLabelStr(s);

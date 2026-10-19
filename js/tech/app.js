@@ -76,7 +76,7 @@ const gradeLabel = g => ctx.gradeLabel(g.grade, S.exam.system);   // 級數名�
 
 // 拍點:♪ = 每 2 個音打一下(預設)、♩ = 每 4 個音(一拍)打一下;樂譜不變,只換節拍器的拍點與速度數字
 const HANON_NOS = () => Array.from({ length: 20 }, (_, i) => [i + 1, String(i + 1)]);   // 第 1–20 首(第 39、41 首的音階、琶音在音階/琶音分頁,指法照它們核對)
-const PULSE = () => ["pulse", tr("拍點", "Pulse"), [["e", tr("♪ 每 2 音", "♪ per 2")], ["q", tr("♩ 每 4 音", "♩ per 4")]]];
+const PULSE = () => ["pulse", tr("拍點", "Click"), [["e", tr("每 2 個音響一下", "Every 2 notes")], ["q", tr("每 4 個音響一下", "Every 4 notes")]]];
 const PICKERS = {
   scale: {
     defaults: { kind: "major", form: "harmonic", motion: "similar", key: "C", octaves: 2, hands: "HT", art: "legato", pulse: "e" },
@@ -113,7 +113,7 @@ const PICKERS = {
     }
   },
   arp: {
-    defaults: { kind: "major", inv: 0, key: "C", octaves: 4, hands: "HT", art: "legato", pulse: "e" },
+    defaults: { kind: "major", inv: 0, key: "C", octaves: 2, hands: "HT", art: "legato", pulse: "e" },
     rows: p => [
       ["kind", tr("種類", "Type"), [["major", tr("大三和弦", "Major")], ["minor", tr("小三和弦", "Minor")], ["dom7", tr("屬七", "Dom. 7th")], ["dim7", tr("減七", "Dim. 7th")], ["broken", tr("分解和弦", "Broken")]]],
       (p.kind === "major" || p.kind === "minor") && ["inv", tr("轉位", "Position"), [[0, tr("原位", "Root")], [1, tr("第一轉位", "1st inv.")], [2, tr("第二轉位", "2nd inv.")]]],
@@ -123,7 +123,7 @@ const PICKERS = {
       p.kind !== "broken" && PULSE()   // 分解和弦是三連音,一拍(三個音)打一下
     ].filter(Boolean),
     toQ: p => {
-      const q = { hands: p.hands, octaves: 4, articulation: p.art, motion: "similar", tonic: p.key };   // 琶音一律四個八度(使用者要求,不給 1–3 八度);分解和弦另外設兩個八度
+      const q = { hands: p.hands, octaves: 2, articulation: p.art, motion: "similar", tonic: p.key };   // 自由練習的琶音一律兩個八度(2026-10 第二輪;不給範圍選項,檢定照大綱);分解和弦另外設一個八度
       if (p.kind === "major" || p.kind === "minor") Object.assign(q, { type: "arpeggio", quality: p.kind, inversion: Number(p.inv), cat: "arpeggio" });
       else if (p.kind === "broken") Object.assign(q, { type: "broken", quality: "major", cat: "broken", octaves: 1 });   // 照 Trinity 1 級:一個八度、三連音
       else Object.assign(q, { type: p.kind, quality: "major", cat: "seventh" });
@@ -164,7 +164,7 @@ function renderPicker(tab){
     opts.map(([v, t]) => `<button class="opt" data-v="${v}" aria-pressed="${String(v) === String(p[k])}">${t}</button>`).join("") + `</div></div>`).join("");
   // 收起來的一行只寫題目卡(標題、標籤)沒有的:題目名稱、手、範圍、奏法都已經在題目卡上 → 只寫「換題目」+ 拍點
   const pr = cfg.rows(p).find(r => r && r[0] === "pulse"), pv = pr && pr[2].find(o => o[0] === p.pulse);
-  pane.querySelector(".sum").textContent = [tr("換題目", "Change"), pv ? tr("拍點 ", "Pulse ") + pv[1] : ""].filter(Boolean).join(" · ");
+  pane.querySelector(".sum").textContent = [tr("換題目", "Change"), pv ? tr("拍點:", "Click ") + (getLang() === "en" ? pv[1].toLowerCase() : pv[1]) : ""].filter(Boolean).join(" · ");
   renderQuick(tab);
   syncHandAllowed();
 }
@@ -340,7 +340,7 @@ function renderList(){
   $("listSub").textContent = tr(`會了 ${good}/${qs.length}`, `Got it ${good}/${qs.length}`);
   $("progressBar").style.width = (qs.length ? 100 * good / qs.length : 0) + "%";
   const row = (q, i) => {
-    const m = S.mastery[q.key] || "", hands = q.motion === "contrary" ? tr("反向", "contrary") : { RH: tr("右手", "RH"), LH: tr("左手", "LH"), HT: tr("雙手", "HT") }[q.hands];
+    const m = S.mastery[q.key] || "", hands = q.motion === "contrary" ? tr("反向", "contrary") : { RH: tr("右手", "RH"), LH: tr("左手", "LH"), HT: tr("雙手", "Both") }[q.hands];
     const extra = [hands, q.range === "5th" ? tr("五度", "5th") : tr(q.octaves + "八度", q.octaves + " oct.")];
     if (q.dynamic) extra.push({ "cresc-dim": "p–f–p" }[q.dynamic] || q.dynamic);
     return `<button class="qrow${cur && !cur.free && cur.key === q.key ? " cur" : ""}" data-i="${i}"><i class="dot ${m}"></i><span>${questionText(q)[0]}${q.articulation === "staccato" ? tr("(斷奏)", " (staccato)") : ""}</span><small>${extra.join(" · ")}</small></button>`;
@@ -348,7 +348,7 @@ function renderList(){
   if (sys.mode === "sets") $("qGroups").innerHTML = `<div class="qlist">${qs.map(row).join("")}</div>`;
   else $("qGroups").innerHTML = CATEGORIES.map(c => {
     const list = qs.map((q, i) => [q, i]).filter(([q]) => q.cat === c.id);
-    return list.length ? `<div class="group"><h3>${c.zh}</h3><div class="qlist">${list.map(([q, i]) => row(q, i)).join("")}</div></div>` : "";
+    return list.length ? `<div class="group"><h3>${tr(c.zh, c.en)}</h3><div class="qlist">${list.map(([q, i]) => row(q, i)).join("")}</div></div>` : "";
   }).join("");
 }
 $("qGroups").onclick = e => {
@@ -375,7 +375,10 @@ export function leave(){ active = false; stopPlayback(); }
 
 /* 題目上方那一列(官方大綱標記、抽考範圍、抽考按鈕)沒東西就整列收掉;樂譜還沒畫就留一塊放提示字。用 JS 判斷,不靠 CSS :has */
 function syncQuizTop(){
-  ROOT.classList.toggle("exam-empty", S.tab === "exam" && !cur);   // 檢定頁還沒選題目:藏起譜卡與速度卡,本級要求放在題目卡正下方
+  ROOT.classList.toggle("exam-empty", S.tab === "exam" && !cur);
+  // 檢定頁還沒抽題:▶ 與「會了 / 再練」藏起來(沒有東西可以播、可以標)
+  $("playBtn").hidden = S.tab === "exam" && !cur;
+  ROOT.querySelector(".mastery").hidden = S.tab === "exam" && !cur;   // 檢定頁還沒選題目:藏起譜卡與速度卡,本級要求放在題目卡正下方
   const top = ROOT.querySelector(".quiz-top");
   const empty = $("verifyBadge").hidden && !$("poolCount").textContent.trim() && [...top.querySelectorAll(".q-actions button")].every(b => b.hidden);
   top.classList.toggle("blank", empty);
@@ -457,7 +460,8 @@ const INTRO = {
   hanon: ["手指練習曲,每拍 4 個音", "Finger exercise, 4 notes a beat"]
 };
 function renderIntro(tab){
-  const txt = tab && !S.intro[tab] ? INTRO[tab] : null;
+  // 檢定頁的模擬考:這一行改寫「彈完自己按「會了」或「再練」」(模擬考靠熟練度按鈕記結果)
+  const txt = mock && cur && mock.list.includes(cur) ? ["彈完自己按「會了」或「再練」", "After playing, tap Got it or Needs work"] : tab && !S.intro[tab] ? INTRO[tab] : null;
   $("intro").hidden = !txt;
   if (txt) pairText($("intro"), () => tr(txt[0], txt[1])); else unpair($("intro"));
 }
@@ -777,16 +781,15 @@ function syncTempoUI(){
   const u = unitOf();
   $("bpmRange").max = maxBpm();
   $("bpmVal").textContent = bpm; $("bpmRange").value = bpm;
-  $("bpmUnit").textContent = `${unitSym(u)} / ${tr("分", "min")}`;
+  $("bpmUnit").textContent = tr("拍 / 分鐘", "beats / min");   // 拍 = 拍點響一下(每 2 或 4 個音,看選單)
   const examT = cur && !cur.free ? cur.tempo : null;
   $("bpmReset").hidden = !examT;
   if (examT) {
     const pct = Math.round(100 * bpm / examT.bpm);
     $("bpmPct").textContent = pct === 100 ? tr("考試", "exam") : tr(`考試速度的 ${pct}%`, `${pct}% of exam tempo`);
-    $("examTempo").textContent = unitSym(u) !== UNIT_SYM[u]
-      ? tr(`大綱 ${UNIT_SYM[u]} = ${examT.bpm}(每拍 ${NOTES_PER_UNIT[u]} 個八分音符)= 這裡的 ${unitSym(u)} = ${examT.bpm}`, `Syllabus ${UNIT_SYM[u]} = ${examT.bpm} (${NOTES_PER_UNIT[u]} quavers) = ${unitSym(u)} = ${examT.bpm} here`)
-      : tr(`考試速度 ${UNIT_SYM[u]} = ${examT.bpm}(八分音符,每拍 ${NOTES_PER_UNIT[u]} 個${u === "q." ? ",三連音" : ""})`,
-      `Exam tempo ${UNIT_SYM[u]} = ${examT.bpm} (${NOTES_PER_UNIT[u]} ${u === "q." ? "triplet " : ""}quavers per beat)`);
+    // 不寫 ♩ / ♪ 的換算(自學者看不懂):考試速度的數字 + 每拍幾個音
+    $("examTempo").textContent = tr(`考試速度 ${examT.bpm}(每拍 ${NOTES_PER_UNIT[u]} 個音${u === "q." ? ",三連音" : ""})`,
+      `Exam tempo ${examT.bpm} (${NOTES_PER_UNIT[u]} ${u === "q." ? "triplet " : ""}notes per beat)`);
   } else if (u === "e16") { $("bpmPct").textContent = ""; $("examTempo").textContent = tr("原譜 ♩ 60–108 = ♪ 120–216", "Hanon ♩ 60–108 = ♪ 120–216"); }   // 拍點在選單上
   else if (u === "q.") { $("bpmPct").textContent = ""; $("examTempo").textContent = tr("三連音:每拍 3 個音", "Triplets: 3 notes per beat"); }
   else if (u === "q16" && cur && cur.type !== "hanon") { $("bpmPct").textContent = ""; $("examTempo").textContent = ""; }   // 拍點在選單上,不重複
@@ -1040,7 +1043,7 @@ function showBeat(click){
 function syncPlayOpts(){
   $("optLoop").setAttribute("aria-pressed", String(!!S.loop));
   $("optRamp").setAttribute("aria-pressed", String(!!S.ramp));
-  $("optRamp").disabled = !S.loop;
+  $("optRamp").hidden = !S.loop;   // 沒開循環播放時「每輪加快 4」沒有作用:藏起來(跟 DrumDrill 一樣)
   $("optClick").setAttribute("aria-pressed", String(!!S.clickOnly));
 }
 for (const [id, k] of [["optLoop", "loop"], ["optRamp", "ramp"], ["optClick", "clickOnly"]]) $(id).onclick = () => { S[k] = !S[k]; store.save(); syncPlayOpts(); };

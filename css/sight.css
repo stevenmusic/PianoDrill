@@ -48,6 +48,7 @@
 #mod-sight .along-result{flex-basis:100%;border:1px solid var(--line);border-radius:var(--radius-sm);padding:12px 14px;line-height:1.5;background:var(--surface-inset)}
 #mod-sight .along-result .big{font-family:"Noto Serif TC",serif;font-size:34px;font-weight:700;color:var(--gold-bright);line-height:1.2}
 #mod-sight .along-result .big small{font-family:"Noto Sans TC",sans-serif;font-size:var(--fs-sm);font-weight:400;color:var(--muted-bright);margin-left:4px}
+#mod-sight .along-result .big small.lead{margin-left:0;margin-right:6px}
 #mod-sight .along-result p{margin-top:4px;color:var(--muted-bright);font-size:var(--fs-sm)}
 #mod-sight .along-result .disclaimer{color:var(--muted);font-size:var(--fs-xs)}
 

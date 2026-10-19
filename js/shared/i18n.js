@@ -24,7 +24,7 @@ const STR = {
   tagline: ["鋼琴檢定特訓", "Piano exam trainer"],
   themeToggleLabel: ["淺色模式", "Light mode"], themeToggleTitle: ["切換淺色/深色主題", "Switch light/dark theme"],
   langToggleText: ["EN", "中"], langToggleLabel: ["切換為英文", "Switch to Chinese"], langToggleTitle: ["切換語言", "Switch language"],
-  tabTech: ["技巧", "Technique"], tabSight: ["視奏", "Sight-read"], tabEar: ["聽音", "Aural"], tabExam: ["檢定", "Exams"],
+  tabTech: ["技巧", "Technique"], tabSight: ["視奏", "Sight-read"], tabEar: ["聽力", "Aural"], tabExam: ["檢定", "Exams"],
   lblSystem: ["考試系統", "Exam board"], lblGrade: ["級數", "Grade"],
   examSetupTitle: ["準備的考試", "Your exam"],
   examNone: ["還沒選考試", "No exam chosen"],

@@ -1520,7 +1520,7 @@ function renderRhythmResult() {
     const lag = Math.abs(r.offsetMs) >= 80
       ? `<p>${escapeHtml(t(r.offsetMs > 0 ? 'resultLate' : 'resultEarly', { ms: Math.abs(r.offsetMs) }))}</p>`
       : '';
-    box.innerHTML = `<div class="big">${r.score}<small>${escapeHtml(t('resultTitle'))}</small></div>`
+    box.innerHTML = `<div class="big"><small class="lead">${escapeHtml(t('resultTitle'))}</small>${r.score}<small>/ 100</small></div>`
       + `<p>${escapeHtml(t('resultHits', { hits: r.hits, total: r.total, missed: r.missed, extra: r.extra, err: r.meanErrorMs, tol: r.toleranceMs }))}</p>`
       + lag
       + `<p>${escapeHtml(t(advice))}</p>`

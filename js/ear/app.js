@@ -139,7 +139,7 @@ function renderExam(){
   ensureExam();
   const sys = SY.systems[S.exam.system], g = gradeOf(S.exam.system, S.exam.grade);
   // 考試系統、級數在外框的檢定設定卡;這裡只寫本級有幾項測驗、答對要不要自動下一題
-  $("examSummary").textContent = tr(`${g.tests.length} 項聽力測驗`, `${g.tests.length} aural tests`) + " · " + (S.auto ? tr("答對自動下一題", "Auto next") : tr("手動下一題", "Manual next"));
+  $("examSummary").textContent = tr(`${g.tests.length} 項聽力`, `${g.tests.length} aural tests`) + " · " + (S.auto ? tr("答對自動下一題", "Auto next") : tr("手動下一題", "Manual next"));
   pairText($("examNote"), () => tr(`依據:${sys.syllabus} ${g.source}`, `Source: ${sys.syllabus}, ${g.source}`) + (sys.syllabusNote ? tr("(" + sys.syllabusNote + ")", "") : ""));
   $("testsSub").textContent = (getLang() === "en" ? g.paramsEn : g.params) || "";
   $("testsList").innerHTML = (g.params ? "" : "") + g.tests.map(t => {

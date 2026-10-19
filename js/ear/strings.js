@@ -8,5 +8,5 @@ addStrings("ear", {
   optAuto: ["答對自動下一題", "Auto next"], mock: ["模擬考", "Mock exam"], optAdaptive: ["加強弱項", "Focus weak"],
   statsTitle: ["各項正確率", "Accuracy"], statsReset: ["重設", "Reset"],
   logTitle: ["練習紀錄", "Practice log"], logStreak: ["連續天數", "Day streak"], logToday: ["今天題數", "Today"], logAcc: ["今天正確率", "Today %"],
-  examTestsTitle: ["本級聽力測驗", "Aural tests"],
+  examTestsTitle: ["本級聽力", "Aural"],
 });

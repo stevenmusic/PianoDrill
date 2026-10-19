@@ -172,7 +172,7 @@ function renderPicker(tab){
     opts.map(([v, t]) => `<button class="opt" data-v="${v}" aria-pressed="${String(v) === String(p[k])}">${t}</button>`).join("") + `</div></div>`).join("");
   // 收起來的一行只寫題目卡(標題、標籤)沒有的:題目名稱、手、範圍、奏法都已經在題目卡上 → 只寫「換題目」+ 拍點
   const pr = cfg.rows(p).find(r => r && r[0] === "pulse"), pv = pr && pr[2].find(o => o[0] === p.pulse);
-  pane.querySelector(".sum").textContent = [tr("換題目", "Change"), pv ? tr("拍點:", "Click ") + (getLang() === "en" ? pv[1].toLowerCase() : pv[1]) : ""].filter(Boolean).join(" · ");
+  pane.querySelector(".sum").textContent = [tr("選題目", "Choose"), pv ? tr("拍點:", "Click ") + (getLang() === "en" ? pv[1].toLowerCase() : pv[1]) : ""].filter(Boolean).join(" · ");
   renderQuick(tab);
   syncHandAllowed();
 }
@@ -395,7 +395,7 @@ function syncQuizTop(){
   ROOT.classList.toggle("exam-empty", S.tab === "exam" && !cur);
   // 檢定頁還沒抽題:▶ 與「會了 / 再練」藏起來(沒有東西可以播、可以標)
   $("playBtn").hidden = S.tab === "exam" && !cur;
-  ROOT.querySelector(".mastery").hidden = (S.tab === "exam" && !cur) || !!(dseg && dseg.k !== "warm");   // 今日練習的關卡用「做到了 / 還要練」   // 檢定頁還沒選題目:藏起譜卡與速度卡,本級要求放在題目卡正下方
+  ROOT.querySelector(".mastery").hidden = (S.tab === "exam" && !cur) || !!dseg;   // 今日練習每一段(含暖身)都不標熟練度(段落用「做到了 / 還要練」)   // 檢定頁還沒選題目:藏起譜卡與速度卡,本級要求放在題目卡正下方
   const top = ROOT.querySelector(".quiz-top");
   const empty = $("verifyBadge").hidden && !$("poolCount").textContent.trim() && [...top.querySelectorAll(".q-actions button")].every(b => b.hidden);
   top.classList.toggle("blank", empty);
@@ -506,7 +506,7 @@ function renderIntro(tab){
 }
 function syncMastery(){
   const m = cur && S.mastery[cur.key];
-  ROOT.querySelector(".mastery").hidden = (S.tab === "exam" && !cur) || !!(dseg && dseg.k !== "warm");   // 今日練習的關卡用「做到了 / 還要練」
+  ROOT.querySelector(".mastery").hidden = (S.tab === "exam" && !cur) || !!dseg;   // 今日練習每一段(含暖身)都不標熟練度(段落用「做到了 / 還要練」)
   ROOT.querySelectorAll(".mbtn").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.m === m)));
 }
 /* 哈農的速度階梯:按 ✓ = 這個速度彈順了 → 記錄最高速度、下一輪 +4 */
@@ -1411,7 +1411,7 @@ function warmItem(d, today){
 }
 const daily = createDaily({ routes: ROUTES, load: () => S.daily, save: d => { S.daily = d; store.save(); }, extras: { warm: warmItem } });
 const dcard = createDailyCard({ $, daily,
-  labels: { ok: ["做到了", "Got it"], again: ["還要練", "Not yet"],
+  labels: { ok: ["做到了", "Did it"], again: ["還要練", "Not yet"],
     // 狀態一句短話(fold-280 不超過兩行);過關規則改成到了目標速度在標籤後面顯示「穩 ●○○」
     hint: ["▶ 聽示範,跟著拍點彈;做到了按 ✓", "▶ Demo; play along, then ✓"],
     solo: ["▶ 只有拍點:自己彈,做到了按 ✓", "Click only: play it, then ✓"] },

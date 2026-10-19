@@ -1,7 +1,7 @@
 {
   "name": "PianoDrill 鋼琴檢定特訓",
   "short_name": "PianoDrill",
-  "description": "音階琶音與哈農、隨機視奏題、聽音與聽力測驗,依 ABRSM / Trinity 大綱出題",
+  "description": "音階琶音與哈農、隨機視奏題、聽力練習,依 ABRSM / Trinity 大綱出題",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

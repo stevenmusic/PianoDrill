@@ -139,9 +139,10 @@ export function createDailyCard({ $, daily, labels = {}, warmName = () => "", lo
     const warm = s.k === "warm", list = warm ? (s.item && s.item.check) || [] : [...(s.level.handsLine ? [s.level.handsLine] : []), ...(s.level.check || [])];
     const check = list.length ? list : null;
     const vary = varyText(s);
-    const primaryNext = warm || passedDone;
+    // 暖身:只有進度條上那一顆「下一段 ›」(按鈕列整列不放);過關、複習完 = 主要按鈕「下一段 ›」
+    const primaryNext = passedDone;
     step.innerHTML = `<p class="daily-status"></p>` + (vary ? `<p class="daily-vary"></p>` : "") + (check ? `<p class="daily-check"></p>` : "") +
-      `<div class="daily-acts">` + (!warm && s.k === "route" && daily.canBack() && !passedDone ? `<button class="text-btn daily-back">${esc(fmt("back"))}</button>` : "") +
+      `<div class="daily-acts"${warm ? " hidden" : ""}>` + (!warm && s.k === "route" && daily.canBack() && !passedDone ? `<button class="text-btn daily-back">${esc(fmt("back"))}</button>` : "") +
       `<span class="daily-sp"></span>` +
       (primaryNext ? `<button class="btn primary daily-go">${esc(fmt("next"))}</button>`
         : `<button class="btn daily-again">${esc(L2(labels.again))}</button><button class="btn primary daily-ok">${ICON_OK}<span class="btn-label">${esc(L2(labels.ok))}</span></button>`) + `</div>`;

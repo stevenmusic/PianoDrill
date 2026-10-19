@@ -79,3 +79,44 @@
 .s-stage-foot .chip{flex:none}
 .s-stage-foot .info{flex:1 1 160px;min-width:0;font-size:var(--fs-xs);color:var(--muted-bright);line-height:1.5;overflow-wrap:anywhere}
 #s-score .s-name{font-family:"Noto Sans TC",sans-serif;font-weight:500;fill:#5a4a2a;pointer-events:none}
+/* ══ 認音(js/sight/reading.js)與認譜(DrumDrill)同一套樣式:題目卡(設定一行 + 譜 + 作答)、設定卡(一直看得到的按鈕列)══ */
+#s-rdCard{order:3} #s-rdOpts{order:4}
+.rd-head{display:flex;align-items:baseline;gap:6px 12px;flex-wrap:wrap}
+.rd-set{flex:1 1 auto;min-width:0;font-size:var(--fs-sm);color:var(--ivory);font-weight:700;overflow-wrap:anywhere}
+.rd-score{flex:none;font-size:var(--fs-sm);color:var(--gold-bright);font-variant-numeric:tabular-nums}
+.rd-paper{position:relative;margin-top:8px;background:var(--paper);border-radius:var(--radius-sm);min-height:150px;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.rd-score-box{width:min(100%, 220px);color:#16130D}
+.rd-score-box svg{display:block}
+.rd-start{position:absolute;inset:auto;min-height:52px;padding:0 26px;font-size:var(--fs-md)}
+.rd-start[hidden]{display:none}
+.rd-msg{min-height:1.6em;margin-top:6px;text-align:center;font-size:var(--fs-md)}
+.rd-msg.ok{color:var(--teal)} .rd-msg.no{color:var(--gold-bright)}
+.rd-kbd{height:150px;margin-top:6px}
+.rd-kbd .wk{align-items:flex-end;padding-bottom:10px}
+.rd-kbd .wk b{font-size:var(--fs-lg);color:#665A42}
+.rd-kbd.idle{opacity:.45;pointer-events:none}
+.rd-miss{margin-top:8px;font-size:var(--fs-xs);color:var(--muted-bright);line-height:1.5;overflow-wrap:anywhere}
+.rd-miss:empty{display:none}
+.rd-row{display:grid;grid-template-columns:4.6em minmax(0,1fr);align-items:center;gap:8px;min-width:0}
+.rd-row + .rd-row{margin-top:10px}
+.rd-row > .lbl{font-size:var(--fs-xs);color:var(--muted-bright)}
+@media (max-width:380px){ .rd-row{grid-template-columns:1fr;gap:4px} }
+.rd-seg{display:grid;gap:6px;min-width:0}
+.rd-seg2{grid-template-columns:repeat(2,minmax(0,1fr))} .rd-seg3{grid-template-columns:repeat(3,minmax(0,1fr))} .rd-seg4{grid-template-columns:repeat(4,minmax(0,1fr))}
+@media (max-width:440px){ .rd-seg4{grid-template-columns:repeat(2,minmax(0,1fr))} }
+.rd-seg .opt{min-width:0;min-height:44px;height:auto;padding:4px 6px;justify-content:center;text-align:center;white-space:normal;line-height:1.25}
+.rd-custom{display:flex;flex-direction:column;gap:6px;min-width:0}
+.rd-mini{display:flex;height:34px;border-radius:4px;overflow:hidden;background:#0C0A07;gap:1px;padding:1px;cursor:pointer;touch-action:manipulation}
+.rd-mini i{flex:1 1 0;min-width:0;background:#DDD6C4;position:relative}
+.rd-mini i.in{background:var(--gold)}
+.rd-mini i.pend{background:var(--teal)}
+.rd-mini i[data-c]::after{content:"";position:absolute;left:0;bottom:0;width:100%;height:4px;background:rgba(0,0,0,.35)}
+.rd-ends{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.rd-ends b{min-width:2.4em;text-align:center;font-variant-numeric:tabular-nums;color:var(--gold-bright)}
+.rd-ends .btn.round{width:44px;height:44px}
+.rd-dash{color:var(--muted)}
+.rd-custom .info,.rd-note{font-size:var(--fs-xs);color:var(--muted-bright);line-height:1.5;overflow-wrap:anywhere}
+.rd-note{margin-top:10px}
+/* 視奏分頁(自由練習)的設定卡一直展開(不收成一行):範圍階段是常用設定 */
+#s-setup.always-open .setup-summary{display:none !important}
+#s-setup.always-open .setup-body{display:block !important;margin-top:0 !important}

@@ -8,6 +8,7 @@ import { expectedOnsets, detectOnsets, scoreRhythm } from './scoring.js';
 import { createStage, barTimings } from './stage.js';
 import { t, applySightStatic } from './i18n.js';
 import { pairText, unpair, tr } from '../shared/i18n.js';
+import { createReading, cleanRead } from './reading.js';
 import { STAGES, HANDS, stageOf, rulesForStage, pickGrade, soloScore, rangeLabel } from './stages.js';
 
 /* 視奏模組(原 SightDrill):外框(js/main.js)負責頂欄、分頁、主題、語言與考試設定;這裡的元素 id 都加 "s-" 前綴。
@@ -29,7 +30,7 @@ const SS = (() => {
   const stage = {}, names = {};
   for (const h of HANDS) { const v = s.stage && s.stage[h]; stage[h] = Number.isInteger(v) && v >= 1 && v <= 4 ? v : 1; }
   for (const n of [1, 2, 3, 4]) { const v = s.names && s.names[n]; names[n] = typeof v === 'boolean' ? v : n === 1; }
-  return { stage, names };
+  return { stage, names, read: cleanRead(s.read) };
 })();
 const saveSS = () => { try { localStorage.setItem('pianodrill.sight.v1', JSON.stringify(SS)); } catch { /* 存不了就算了 */ } };
 const $ = (id) => document.getElementById('s-' + id);
@@ -37,8 +38,11 @@ let active = false;
 let mode = 'free';          // 'free' 自由練習 / 'exam' 檢定分頁
 let exam = { system: 'abrsm', grade: 1, auto: true };
 let ctx = null;
-/* 視奏分頁:子項目 = 右手 / 左手 / 雙手(外框),每個子項目各自選範圍階段 */
+/* 視奏分頁:子項目 = 認音 / 右手 / 左手 / 雙手(外框),右手 / 左手 / 雙手各自選範圍階段 */
 let hand = 'both';
+const reading = createReading({ $, store: SS.read, save: saveSS, onAnswered: () => recordPractice() });
+const readOn = () => mode === 'free' && hand === 'read';
+let lastHandTab = null;   // 上一次在畫面上的右手 / 左手 / 雙手(切到認音時用那一階的範圍)
 const stageNow = () => stageOf(SS.stage[hand]);
 const freeKey = () => `${hand}-${SS.stage[hand]}`;
 /* 目前用哪一級的規則出題:檢定分頁照考試級數;視奏分頁 = 這一題抽到的級(範圍階段裡隨機) */
@@ -597,6 +601,7 @@ export async function start(c) {
     return;
   }
   window.__osmd = osmd; // debugging hook, also used by scripts/smoke.js
+  window.__read = reading; // 測試用(tools/test/tasks.mjs):認音
 
   stage = createStage({
     score: elements.score,
@@ -648,14 +653,19 @@ export function enter(tab) {
   active = true;
   const was = mode, wasKey = was === 'exam' ? `exam-${exam.grade}` : freeKey();
   mode = tab === 'exam' ? 'exam' : 'free';
-  // 視奏分頁:外框的子項目 = 右手 / 左手 / 雙手
-  if (mode === 'free' && HANDS.includes(tab)) hand = tab;
+  // 視奏分頁:外框的子項目 = 認音 / 右手 / 左手 / 雙手;從右手 / 左手 / 雙手切到認音:認音的範圍預設 = 那一階
+  if (mode === 'free' && (HANDS.includes(tab) || tab === 'read')) {
+    if (tab === 'read' && lastHandTab && was === 'free') reading.fromStage(lastHandTab, SS.stage[lastHandTab]);
+    hand = tab;
+    lastHandTab = HANDS.includes(tab) ? tab : null;
+  }
   syncMode(was !== mode || wasKey !== (mode === 'exam' ? `exam-${exam.grade}` : freeKey()));
   // 在別的分頁時寬度變了(或從沒畫過):回來時重排
   if (current && window.innerWidth !== renderedWidth) renderCurrent();
 }
 export function leave() {
   active = false;
+  reading.leave();
   stopAll();
 }
 export function setExam(ex) {
@@ -666,6 +676,7 @@ export function setExam(ex) {
 export function relang() {
   applySightStatic();
   renderStage();
+  reading.relang();
   refreshDynamicText();
   renderSummary();
   if (mode === 'exam') renderUnsupported();
@@ -676,6 +687,7 @@ export function examStatus() {
   return today ? t('practiceStats', { today, streak }) : t('examReady');
 }
 export function onKey(e) {
+  if (readOn()) { if (reading.onKey(e)) e.preventDefault(); return; }
   if (e.code === 'Space') { e.preventDefault(); if (!elements.play.disabled) elements.play.click(); }
   else if ((e.key === 'n' || e.key === 'N') && !elements.generate.disabled) elements.generate.click();
 }
@@ -689,6 +701,20 @@ function stopAll() {
 }
 /* 自由練習 ↔ 檢定:級數改用考試的;這個考試/級數沒有規則時整個收起來,只留說明 */
 function syncMode(changed) {
+  // 認音:只有認音的兩張卡(題目、設定),視奏的卡片都收起來
+  const rd = readOn();
+  $('rdCard').hidden = $('rdOpts').hidden = !rd;
+  if (rd) {
+    stopAll();
+    for (const id of ['setup', 'quiz', 'scoreCard', 'unsupported']) $(id).hidden = true;
+    elements.along.hidden = true;
+    reading.enter();
+    return;
+  }
+  reading.leave();
+  // 視奏分頁:設定卡一直展開(範圍階段是常用設定),調性由 App 依階段套用(不放下拉選單);檢定頁照舊(收成一行、有調性選單)
+  $('setup').classList.toggle('always-open', mode !== 'exam');
+  elements.key.closest('.prow').hidden = mode !== 'exam';
   const supported = mode !== 'exam' || examSupported();
   $('unsupported').hidden = supported;
   for (const id of ['setup', 'quiz', 'scoreCard']) $(id).hidden = !supported;
@@ -813,7 +839,7 @@ function drawNoteNames() {
 function renderSummary() {
   const keyText = elements.key.selectedOptions[0]?.textContent ?? t('randomKey');
   // 檢定模式:考試與級數已經寫在上面的考試設定卡(和頂欄標籤),這裡只說調性;視奏分頁只寫範圍(不寫級數)
-  elements.sum.textContent = mode === 'exam' ? keyText : rangeText() + ' · ' + keyText;
+  elements.sum.textContent = mode === 'exam' ? keyText : rangeText();
 }
 
 /**

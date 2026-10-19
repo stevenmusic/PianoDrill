@@ -4,6 +4,7 @@
   ["js/shared/audio.js", "js/shared/audio.js", "markers"],
   ["js/shared/onsets.js", "js/shared/onsets.js", "same"],
   ["js/shared/mic.js", "js/shared/mic.js", "same"],
+  ["js/shared/drill.js", "js/shared/drill.js", "same"],
   ["js/main.js", "js/main.js", "markers"],
   ["sw.js", "sw.js", "markers"],
   ["tools/build/stamp.mjs", "tools/build/stamp.mjs", "same"],

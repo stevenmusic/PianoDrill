@@ -243,8 +243,10 @@ main{
 .q-actions:not(:has(> button:not([hidden]))){display:none}
 #t-drawBtn,#e-drawBtn{height:36px}
 .mastery{display:flex;gap:6px;flex:none}
-.mbtn{width:40px;height:40px;padding:0;justify-content:center;border-radius:50%;border:1px solid var(--line);background:transparent;color:var(--muted-bright);
-  font-family:inherit;font-size:var(--fs-md);cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+/* 熟練度:圖示 + 小字(會了 / 待加強),新手才看得懂兩顆在做什麼 */
+.mbtn{min-width:40px;height:40px;padding:0 10px 0 8px;justify-content:center;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--muted-bright);
+  font-family:inherit;font-size:var(--fs-xs);cursor:pointer;display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
+.mbtn svg{flex:none}
 .mbtn[data-m="good"][aria-pressed="true"]{background:var(--teal-fill);border-color:var(--teal-fill);color:var(--on-fill);font-weight:700}
 .mbtn[data-m="weak"][aria-pressed="true"]{background:#E8A25B;border-color:#E8A25B;color:var(--on-fill);font-weight:700}
 .quiz{position:relative}
@@ -351,6 +353,10 @@ footer{padding-bottom:max(28px, env(safe-area-inset-bottom))}
 
 /* ══ 分頁架構(音階 / 琶音 / 哈農 / 檢定)══ */
 [hidden]{display:none !important}
+/* 不常用、會清掉資料的動作(清除出題紀錄):卡片最下面的小字文字按鈕(點了要確認) */
+.text-btn{display:inline-flex;align-items:center;min-height:32px;margin-top:6px;padding:0;border:0;background:none;font:inherit;font-size:var(--fs-xs);color:var(--muted-bright);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+/* 檢定頁不放練習紀錄、統計(練習回饋不跟配分、等第放在同一個畫面;兩個 App 一樣) */
+body.view-exam #t-logCard,body.view-exam #s-logCard,body.view-exam #e-logCard,body.view-exam #s-statsCard,body.view-exam #e-statsCard{display:none}
 main{padding-bottom:calc(84px + env(safe-area-inset-bottom))}
 .tabbar{position:fixed;left:0;right:0;bottom:0;z-index:30;display:grid;grid-template-columns:repeat(4,1fr);
   background:var(--panel);border-top:1px solid var(--line);padding:6px max(8px, env(safe-area-inset-left)) calc(6px + env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-right));
@@ -429,8 +435,10 @@ header{z-index:60}
   .fields{grid-template-columns:1fr}
   .seg button{padding:0 4px;font-size:var(--fs-sm)}
   .q-actions{gap:6px}
-  .mbtn{width:34px;height:34px}
-  .mastery{gap:4px}
+  .mbtn{height:34px;padding:0 8px 0 6px}
+  .mastery{gap:4px;margin-left:auto}
+  .q-row:has(> .mastery){flex-wrap:wrap}   /* 熟練度有小字:標籤放不下時熟練度換到下一行(靠右),標籤不會被擠成「…」 */
+  .q-row:has(> .mastery) .q-tags{flex:1 1 130px}
   .q-row{gap:6px}
   .q-tags{gap:4px}
   .q-tag{padding:3px 6px}
@@ -505,7 +513,7 @@ header{z-index:60}
   #mod-tech .q-tags{grid-column:2;grid-row:2;min-height:0;height:30px}   /* 標籤字級會縮:高度固定,中英文才一樣 */
   #mod-tech .q-tag{font-size:calc(14px * var(--tag-scale, 1));padding:0 7px;line-height:26px}
   #mod-tech .mastery{grid-column:3;grid-row:2}
-  #mod-tech .mbtn{width:34px;height:34px}
+  #mod-tech .mbtn{height:34px}
   #mod-tech .play-round{grid-column:4;grid-row:2;width:44px;height:44px}
   #mod-tech .quiz .loading{top:2px}
   #t-scoreCard .card-title{margin-bottom:4px}

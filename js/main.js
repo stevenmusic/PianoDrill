@@ -110,7 +110,8 @@ function keepFocus(box, attr){
 /* ══ 分頁 ══ */
 let curMod = null;
 function renderSubnav(){
-  const opts = SUBS[S.view]();
+  // 檢定分頁還沒選考試:只有考試卡(三個項目的子項目也不顯示)
+  const opts = S.view === "exam" && !S.exam ? [] : SUBS[S.view]();
   $("subnav").hidden = !opts.length;
   document.body.classList.toggle("no-subnav", !opts.length);
   const keep = keepFocus($("subSeg"), "data-v");
@@ -134,7 +135,8 @@ function showView(view, sub){
   document.querySelectorAll("#tabbar button").forEach(b => { const on = b.dataset.view === view; b.setAttribute("aria-selected", String(on)); b.tabIndex = on ? 0 : -1; });
   MAIN.setAttribute("aria-labelledby", "tab-" + view);
   const exam = view === "exam";
-  const modName = modOf(view);
+  // 檢定分頁還沒選考試:只有考試卡(「先選考試系統和級數」),不顯示任何一級的內容(不拿預設的系統、級數充數)
+  const modName = exam && !S.exam ? null : modOf(view);
   const tab = tabOf(view);
   $("examSetup").hidden = !exam;
   if (curMod && curMod !== modName) MODS[curMod].leave();
@@ -145,7 +147,7 @@ function showView(view, sub){
   renderSubnav();
   if (exam) renderExamCard();
   window.scrollTo({ top: 0 });
-  MODS[modName].enter(tab);
+  if (modName) MODS[modName].enter(tab);
 }
 $("tabbar").onclick = e => { const b = e.target.closest("button[data-view]"); if (b) showView(b.dataset.view); };
 /* 無障礙:分頁列 = tablist,<main> = tabpanel(aria-labelledby = 目前的分頁);只有選到的分頁 tabindex=0,
@@ -182,24 +184,32 @@ function fillGradeSeg(seg, grade, sys){
 }
 const gradeOfClick = e => { const b = e.target.closest("button[data-v]"); return b && !b.disabled ? Number(b.dataset.v) : null; };
 function setExam(system, grade){
-  S.exam = { system, grade }; save();
+  const was = !!S.exam;
+  S.exam = { system, grade }; save(); pickSys = null;
   pushExam();
+  if (!was && S.view === "exam") showView("exam");   // 剛選好考試:檢定分頁的內容現在才出現
 }
+/* 還沒選考試時,檢定頁的系統鈕、級數鈕都不亮;先點系統只記住(亮那一顆),點了級數才算選好(先點級數 = 預設的系統) */
+let pickSys = null;
 function pushExam(){
   const ex = examNow();
   for (const m of Object.values(MODS)) m.setExam(ex);
   renderExamCard(); renderChip();
 }
-const syncSystemSeg = segBind("systemSeg", () => examNow().system, v => setExam(v, validGrade(examNow().grade, v)));
-$("gradeSeg").onclick = e => { const g = gradeOfClick(e); if (g != null) setExam(examNow().system, g); };
+const syncSystemSeg = segBind("systemSeg", () => (S.exam ? S.exam.system : pickSys), v => { if (S.exam) setExam(v, validGrade(S.exam.grade, v)); else { pickSys = v; renderExamCard(); } });
+$("gradeSeg").onclick = e => { const g = gradeOfClick(e); if (g != null) setExam(S.exam ? S.exam.system : pickSys || examNow().system, g); };
 function renderChip(){
   $("examChip").hidden = !S.exam;
   if (S.exam) $("examChip").textContent = `${SYSTEMS[S.exam.system]} ${gradeLabel(S.exam.grade)}`;
 }
 function renderExamCard(){
   const ex = examNow();
-  syncSystemSeg(); fillGradeSeg($("gradeSeg"), ex.grade, ex.system);
-  $("examSum").textContent = S.exam ? `${SYSTEMS[ex.system]} · ${gradeLabel(ex.grade, ex.system)}` : tr("還沒選考試 · 請在下面選", "No exam yet · pick one below");
+  // 已選考試:系統鈕、級數鈕亮著就是標題(不再寫一行「RSL · 3 級」);還沒選:兩排都不亮,只寫「先選考試系統和級數」
+  syncSystemSeg(); fillGradeSeg($("gradeSeg"), S.exam ? ex.grade : null, S.exam ? ex.system : pickSys || ex.system);
+  $("examSum").parentElement.hidden = !!S.exam;
+  $("examSum").textContent = S.exam ? "" : pickSys ? tr("再選級數", "Now pick a grade") : tr("先選考試系統和級數", "Pick an exam board and grade");
+  $("examParts").hidden = !S.exam;
+  if (!S.exam) { $("examParts").innerHTML = ""; return; }
   // 三個項目的進度(各模組自己算),點一下切到那一項
   const keep = keepFocus($("examParts"), "data-part");
   $("examParts").innerHTML = Object.keys(MODS).map(name => {

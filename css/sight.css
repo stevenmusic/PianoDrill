@@ -52,7 +52,6 @@
 #mod-sight .along-result .disclaimer{color:var(--muted);font-size:var(--fs-xs)}
 
 /* 練習紀錄卡標題列的「清除出題紀錄」靠右 */
-#s-logCard .card-title .btn{margin-left:auto}
 /* 級數鈕只寫數字:一樣寬 */
 #s-grades .opt{min-width:44px}
 /* 準備 30 秒的浮動倒數(樂譜捲到畫面上時,題目卡的倒數看不到) */

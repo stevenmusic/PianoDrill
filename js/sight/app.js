@@ -660,6 +660,7 @@ export async function start(c) {
   });
   setAlongLabel();
   elements.clearHistory.addEventListener('click', () => {
+    if (!confirm(t('clearHistoryConfirm'))) return;
     history.clear();
     updateHistoryInfo();
   });

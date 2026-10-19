@@ -66,7 +66,7 @@ const TASKS = [
       { sel: '#examParts [data-part="sight"]', say: "視奏(這一級的題目直接出)", start: true, wait: 2000 },
       { sel: "#s-prepare", say: "開始 30 秒準備", wait: 2500 }
     ],
-    check: async page => page.evaluate(() => (/3/.test(document.getElementById("examSum").textContent) && !document.getElementById("s-quiz").hidden ? null : "檢定頁沒有出題")),
+    check: async page => page.evaluate(() => (document.querySelector('#gradeSeg [aria-pressed="true"]')?.dataset.v === "3" && !document.getElementById("s-quiz").hidden ? null : "檢定頁沒有出題")),
     next: { sel: "#s-message", words: ["給音", "準備", "pitch", "prep", "Prep"] } }
 ];
 // @app-end

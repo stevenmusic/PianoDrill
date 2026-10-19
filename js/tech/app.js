@@ -160,7 +160,9 @@ function renderPicker(tab){
   pane.querySelector(".rows").innerHTML = cfg.rows(p).map(([k, lbl, opts]) =>
     `<div class="prow"><span class="lbl">${lbl}</span><div class="opts" data-k="${k}">` +
     opts.map(([v, t]) => `<button class="opt" data-v="${v}" aria-pressed="${String(v) === String(p[k])}">${t}</button>`).join("") + `</div></div>`).join("");
-  pane.querySelector(".sum").textContent = questionText(cfg.toQ(p)).join(" · ");
+  // 收起來的一行只寫題目卡(標題、標籤)沒有的:題目名稱、手、範圍、奏法都已經在題目卡上 → 只寫「換題目」+ 拍點
+  const pr = cfg.rows(p).find(r => r && r[0] === "pulse"), pv = pr && pr[2].find(o => o[0] === p.pulse);
+  pane.querySelector(".sum").textContent = [tr("換題目", "Change"), pv ? tr("拍點 ", "Pulse ") + pv[1] : ""].filter(Boolean).join(" · ");
   renderQuick(tab);
 }
 for (const tab of ["scale", "arp", "hanon"]) {

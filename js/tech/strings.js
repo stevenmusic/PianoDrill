@@ -10,6 +10,7 @@ addStrings("tech", {
   lblCats: ["抽考範圍", "Include"], excludeMastered: ["排除已通過的項目", "Skip passed items"],
   draw: ["隨機抽考", "Random"], next: ["下一項", "Next"], play: ["播放示範", "Play"], stop: ["停止", "Stop"],
   good: ["通過", "Pass"], weak: ["待加強", "Weak"],
+  mGood: ["會了", "Got it"], mWeak: ["待加強", "Practise"],   // 熟練度按鈕上的小字(圖示旁)
   scoreTitle: ["樂譜與指法", "Score"], handRH: ["右手", "RH"], handLH: ["左手", "LH"], handBoth: ["雙手", "Both"],
   metroTitle: ["速度", "Tempo"], bpmReset: ["回到考試速度", "Exam tempo"],
   bpmDown: ["慢 1(按住連續減少)", "Slower by 1 (hold to repeat)"], bpmUp: ["快 1(按住連續增加)", "Faster by 1 (hold to repeat)"],

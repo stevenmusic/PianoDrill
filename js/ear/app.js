@@ -270,7 +270,7 @@ function renderQuestion(){
   $("qTitle").textContent = q.label || "";
   $("qTags").innerHTML = (q.tags || []).map(t => `<span class="q-tag">${t}</span>`).join("");
   $("playBtn").disabled = false;
-  $("revealBtn").hidden = A.done;
+  $("revealBtn").hidden = A.done || !A.played;   // 「顯示答案」聽過一次題目才出現,答完藏起來
   $("nextBtn").disabled = !A.done && !q.tap;
   renderAnswers();
   syncScoreLine();
@@ -514,6 +514,7 @@ async function startPlayback(){
   const t0 = playSeq(cur.play);
   play = { t0, dur: cur.play.dur, raf: 0 };
   A.played = true;
+  $("revealBtn").hidden = A.done;
   if (cur.tap) { A.taps = []; syncTap(); A.tapStart = t0; A.tapEnd = t0 + cur.play.dur; }
   // 作答提示記成函式(A.hint),換語言、切走再回來時 renderAnswers 照目前的語言重寫
   A.hint = cur.tap && cur.tap.kind === "pulse" ? () => tr("跟著拍子按「拍」", "Tap along") : null;
@@ -565,12 +566,12 @@ function renderStats(){
   if (PRACTICE.includes(S.tab)) rows = ALL_ITEMS[S.tab].map(it => [itemLabel(S.tab, it), S.stats[S.tab + ":" + it.id]]);
   else if (S.exam && SY) rows = allDrills().map(d => [`${d.test.id} ${drillName(d.drill.type)}`, S.stats[examKey(d.test, d.drill)]]);
   rows = rows.filter(r => r[1] && r[1].n);
-  $("statsList").innerHTML = rows.length ? rows.map(([name, s]) => {
+  // 沒有資料:整張藏起來(不放一張空卡);檢定頁本來就不放(app.css body.view-exam)
+  $("statsCard").hidden = !rows.length;
+  $("statsList").innerHTML = rows.map(([name, s]) => {
     const p = Math.round(100 * s.ok / s.n);
     return `<div class="srow"><span>${name}</span><div class="bar"><i class="${p < 70 ? "low" : ""}" style="width:${p}%"></i></div><small>${p}% · ${s.n}</small></div>`;
-  }).join("") : `<p class="stats-empty"></p>`;
-  const empty = $("statsList").querySelector(".stats-empty");
-  if (empty) pairText(empty, () => tr("答幾題之後,這裡會顯示每一項的正確率(加強弱項會多出錯得多的)", "Answer a few questions to see accuracy per item (Focus weak drills the ones you miss)"));
+  }).join("");
   $("statsReset").hidden = !rows.length;
 }
 $("statsReset").onclick = () => {

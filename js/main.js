@@ -212,6 +212,17 @@ function renderExamCard(){
 $("examParts").onclick = e => {
   const b = e.target.closest("[data-part]"); if (!b) return;
   S.sub.exam = b.dataset.part; save(); showView("exam");
+  // 小畫面(折疊機、手機橫式):考試卡佔滿第一個畫面時,捲到這一項的第一張卡(按鈕不用自己往下找)
+  // 有題目卡(.quiz)就讓題目卡整張看得到(主要動作在裡面),沒有就捲到第一張卡
+  requestAnimationFrame(() => {
+    const cards = [...$("mod-" + b.dataset.part).querySelectorAll(".card")].filter(c => c.getClientRects().length && !c.closest("[hidden]"));
+    if (!cards.length) return;
+    const head = document.querySelector("header"), top = head ? head.getBoundingClientRect().bottom : 0;
+    const quiz = cards.find(c => c.classList.contains("quiz"));
+    if (quiz) { const r = quiz.getBoundingClientRect(); if (r.bottom > innerHeight - 70 || r.top > innerHeight * 0.55) window.scrollTo({ top: Math.max(0, scrollY + r.top - top - 8) }); return; }
+    const first = Math.min(...cards.map(c => c.getBoundingClientRect().top));
+    if (first > innerHeight * 0.55) window.scrollTo({ top: Math.max(0, scrollY + first - top - 8) });
+  });
 };
 /* 模組裡的進度改變了(標記通過、答題):重畫進度 */
 export function examChanged(){ if (S.view === "exam") renderExamCard(); }
@@ -265,7 +276,7 @@ function showOnboard(){
 let lastTouchEnd = 0;
 document.addEventListener("touchend", e => {
   const now = Date.now();
-  if (now - lastTouchEnd < 300) { e.preventDefault(); const t = e.target.closest("button:not(.tap-pad), .opt, .chip, [role=tab]"); if (t && !t.disabled) t.click(); }
+  if (now - lastTouchEnd < 300) { e.preventDefault(); const t = e.target.closest("button:not(.tap-pad), .opt, .chip, [role=tab], [data-tap]"); if (t && !t.disabled) t.click(); }
   lastTouchEnd = now;
 }, { passive: false });
 document.addEventListener("gesturestart", e => e.preventDefault());

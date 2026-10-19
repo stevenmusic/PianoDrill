@@ -134,6 +134,10 @@ export function createReading({ $, store, save, onAnswered = () => {} }) {
     } catch (e) { /* 取樣載不到就不出聲 */ }
   }
   let msgFn = null;
+  function toTop(card) {
+    const r = card.getBoundingClientRect(), head = document.querySelector('header'), top = head ? head.getBoundingClientRect().bottom : 0;
+    if (r.top < top || r.bottom > innerHeight - 60) window.scrollTo({ top: Math.max(0, scrollY + r.top - top - 8) });
+  }
   function say(fn, cls = '') { msgFn = fn; const el = $('rdMsg'); el.classList.remove('ok', 'no'); if (cls) el.classList.add(cls); pairText(el, fn); }
 
   /* ── 作答鍵盤:一個八度(C–B),白鍵寫音名 ── */
@@ -167,7 +171,7 @@ export function createReading({ $, store, save, onAnswered = () => {} }) {
     const mini = $('rdMini');
     if (!mini.children.length) {
       let html = '';
-      for (let m = LOW; m <= HIGH; m++) if (!isBlack(m)) html += `<i data-m="${m}"${m % 12 === 0 ? ` data-c="${midiName(m)}"` : ''}></i>`;
+      for (let m = LOW; m <= HIGH; m++) if (!isBlack(m)) html += `<i data-tap data-m="${m}"${m % 12 === 0 ? ` data-c="${midiName(m)}"` : ''}></i>`;
       mini.innerHTML = html;
     }
     for (const k of mini.children) { const m = Number(k.dataset.m); k.classList.toggle('in', m >= R.lo && m <= R.hi); k.classList.toggle('pend', m === pendingLo); }
@@ -231,7 +235,8 @@ export function createReading({ $, store, save, onAnswered = () => {} }) {
   });
   segClick('rdPos', (v) => { R.pos = v; changed(); });
   segClick('rdAcc', (v) => { R.acc = v === 'acc'; changed(); });
-  segClick('rdMode', (v) => { R.mode = v; changed(); });
+  // 換成挑戰模式:把題目卡捲到畫面上(「開始挑戰」的大按鈕在譜上)
+  segClick('rdMode', (v) => { R.mode = v; changed(); if (v !== 'practice') toTop($('rdCard')); });
   $('rdMini').addEventListener('click', (e) => {
     const k = e.target.closest('i[data-m]'); if (!k) return;
     const m = Number(k.dataset.m);

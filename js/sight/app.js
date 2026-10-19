@@ -40,8 +40,11 @@ let exam = { system: 'abrsm', grade: 1, auto: true };
 let ctx = null;
 /* 視奏分頁:子項目 = 認音 / 右手 / 左手 / 雙手(外框),右手 / 左手 / 雙手各自選範圍階段 */
 let hand = 'both';
+let keyValue = '';   // 檢定頁選的調性('' = 隨機;"G:major")
 const reading = createReading({ $, store: SS.read, save: saveSS, onAnswered: () => recordPractice() });
 const readOn = () => mode === 'free' && hand === 'read';
+/* 視奏分頁:「彈一遍」一直在(不用先等 30 秒準備;準備是選用的);檢定頁照考試流程,準備完才出現 */
+const freeAlong = () => mode === 'free' && hand !== 'read';
 let lastHandTab = null;   // 上一次在畫面上的右手 / 左手 / 雙手(切到認音時用那一階的範圍)
 const stageNow = () => stageOf(SS.stage[hand]);
 const freeKey = () => `${hand}-${SS.stage[hand]}`;
@@ -618,6 +621,7 @@ export async function start(c) {
   elements.prepare.addEventListener('click', startCountdown);
   elements.play.addEventListener('click', togglePlayback);
   elements.playAlong.addEventListener('click', togglePlayAlong);
+  $('playAlongTop').addEventListener('click', togglePlayAlong);
   try { elements.alongMic.checked = readKey('pianodrill.sight.mic') === '1'; } catch { /* 沒有儲存空間就預設關 */ }
   elements.alongMic.addEventListener('change', () => {
     try { localStorage.setItem('pianodrill.sight.mic', elements.alongMic.checked ? '1' : '0'); } catch { /* 不影響使用 */ }
@@ -627,7 +631,11 @@ export async function start(c) {
     history.clear();
     updateHistoryInfo();
   });
-  elements.key.addEventListener('change', () => {
+  elements.key.addEventListener('click', (e) => {
+    const b = e.target.closest('button[data-v]');
+    if (!b || b.dataset.v === keyValue) return;
+    keyValue = b.dataset.v;
+    for (const x of elements.key.querySelectorAll('button')) x.setAttribute('aria-pressed', String(x.dataset.v === keyValue));
     renderSummary();
     if (current) newTest();
   });
@@ -714,6 +722,10 @@ function syncMode(changed) {
   reading.leave();
   // 視奏分頁:設定卡一直展開(範圍階段是常用設定),調性由 App 依階段套用(不放下拉選單);檢定頁照舊(收成一行、有調性選單)
   $('setup').classList.toggle('always-open', mode !== 'exam');
+  // 視奏分頁的主要動作是題目卡上的「彈一遍」,新題目改成次要按鈕
+  elements.generate.classList.toggle('primary', mode === 'exam');
+  elements.generate.classList.toggle('ghost', mode !== 'exam');
+  setAlongLabel();
   elements.key.closest('.prow').hidden = mode !== 'exam';
   const supported = mode !== 'exam' || examSupported();
   $('unsupported').hidden = supported;
@@ -748,8 +760,8 @@ function renderStage() {
   seg.setAttribute('aria-label', tr('範圍階段', 'Range stage'));
   seg.innerHTML = STAGES.map((st) => {
     const r = hand === 'both' ? `${rangeLabel(st.rh)} / ${rangeLabel(st.lh)}` : rangeLabel(hand === 'right' ? st.rh : st.lh);
-    const head = st.n === 4 ? tr('全範圍', 'Full') : tr(`範圍 ${st.n}`, `Range ${st.n}`);
-    return `<button type="button" data-v="${st.n}" aria-pressed="${st.n === cur}" aria-label="${head}: ${r}"><b>${head}</b><small>${r}</small></button>`;
+    const head = st.n === 4 ? tr('全範圍', 'Full') : String(st.n);
+    return `<button type="button" data-v="${st.n}" aria-pressed="${st.n === cur}" aria-label="${st.n === 4 ? head : tr(`範圍 ${st.n}`, `Range ${st.n}`)}: ${r}"><b>${head}</b><small>${r}</small></button>`;
   }).join('');
   if (focused) seg.querySelector(`[data-v="${focused}"]`)?.focus({ preventScroll: true });
   const names = $('names');
@@ -837,7 +849,7 @@ function drawNoteNames() {
   }
 }
 function renderSummary() {
-  const keyText = elements.key.selectedOptions[0]?.textContent ?? t('randomKey');
+  const keyText = elements.key.querySelector('button[aria-pressed="true"]')?.textContent ?? t('randomKey');
   // 檢定模式:考試與級數已經寫在上面的考試設定卡(和頂欄標籤),這裡只說調性;視奏分頁只寫範圍(不寫級數)
   elements.sum.textContent = mode === 'exam' ? keyText : rangeText();
 }
@@ -883,18 +895,10 @@ function refreshDynamicText() {
 function populateKeyOptions() {
   const gradeRules = mode === 'exam' ? rules.grades[String(currentGrade())] : stageRules().grades[String(stageNow().grades[stageNow().grades.length - 1])];
   const { major, minor } = keyOptionsFor(gradeRules);
-  const previous = elements.key.value;
-
-  elements.key.innerHTML = `<option value="">${escapeHtml(t('randomKey'))}</option>`;
-  for (const { tonic } of major) {
-    elements.key.insertAdjacentHTML('beforeend', `<option value="${tonic}:major">${escapeHtml(t('majorKey', { tonic }))}</option>`);
-  }
-  for (const { tonic } of minor) {
-    elements.key.insertAdjacentHTML('beforeend', `<option value="${tonic}:minor">${escapeHtml(t('minorKey', { tonic }))}</option>`);
-  }
-
-  const stillValid = [...elements.key.options].some((option) => option.value === previous);
-  elements.key.value = stillValid ? previous : '';
+  // 調性:一排按鈕(不用下拉選單;檢定頁的設定卡裡),「隨機調性」在第一顆;換級數時還有效的調性保留
+  const opts = [['', t('randomKey')], ...major.map(({ tonic }) => [`${tonic}:major`, t('majorKey', { tonic })]), ...minor.map(({ tonic }) => [`${tonic}:minor`, t('minorKey', { tonic })])];
+  if (!opts.some(([v]) => v === keyValue)) keyValue = '';
+  elements.key.innerHTML = opts.map(([v, label]) => `<button type="button" class="opt" data-v="${v}" aria-pressed="${v === keyValue}">${escapeHtml(label)}</button>`).join('');
 }
 
 async function newTest() {
@@ -907,6 +911,7 @@ async function newTest() {
   resetAlongResult();
   stopFollowing();
   setPlayState(false);
+  elements.along.hidden = !freeAlong();
 
   // Start fetching the piano samples now, so the first press of play is
   // immediate — same moment ScrollScore loads them, once there is a score.
@@ -914,7 +919,7 @@ async function newTest() {
   // '' (隨機調性) keeps the fully-random pickKey() behaviour; otherwise
   // every retry generateUnique makes is forced to the same chosen key,
   // same as it's forced to the same grade.
-  const [tonic, keyMode] = elements.key.value ? elements.key.value.split(':') : [];
+  const [tonic, keyMode] = mode === 'exam' && keyValue ? keyValue.split(':') : [];   // 視奏分頁:調性由 App 依範圍階段套用
   if (mode === 'exam') {
     const grade = currentGrade();
     const { score } = generateUnique(() => generateTest(rules, { grade, tonic, mode: keyMode }), history);
@@ -930,6 +935,7 @@ async function newTest() {
     current = { score, xml: toMusicXml(score, { only: hand === 'right' ? 1 : hand === 'left' ? 2 : 0 }), free: true, key: freeKey() };
   }
   const score = current.score;
+  setAlongLabel();
   player.preload(score);
 
   loudRender = true;
@@ -1067,7 +1073,7 @@ async function startCountdown() {
   stopCountdown();
   player.stop();
   alongStart = null;
-  elements.along.hidden = true;
+  elements.along.hidden = !freeAlong();
   resetAlongResult();
   setAlongLabel();
   elements.checklist.hidden = true;
@@ -1380,6 +1386,8 @@ let alongBeat = null;
 
 function setAlongLabel() {
   elements.playAlong.textContent = t(alongStart === null ? 'playAlong' : 'playAlongStop');
+  $('playAlongTop').textContent = alongStart === null ? tr('彈一遍', 'Play it') : t('playAlongStop');
+  $('playAlongTop').hidden = !freeAlong() || !current;
 }
 
 function stopPlayAlong(message) {

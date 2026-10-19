@@ -4,6 +4,7 @@
      譜號(高音 / 低音 / 大譜表)→ 範圍快捷鈕(= 視奏 4 階的範圍:高音譜表用右手、低音譜表用左手、大譜表兩手合起來)
      → 音域一行(最低音、最高音上下各一顆箭頭:上 = 升高、下 = 降低,按住連續移動、放開才換題;右邊寫最多幾條加線;調到剛好等於快捷時那顆快捷亮起來)
      → 位置(全部 / 只線 / 只間)→ 升降(只有白鍵 / 加升降)→ 模式(練習 / 60 秒 / 連對)
+   題目(音名 / 時值):「時值」= 看一個音符或休止符,問「這是幾拍?」作答 ½ / 1 / 2 / 3 / 4(js/shared/values.js;快捷:四分和八分 → 加二分、全音符 → 加休止符 → 加附點)。
    挑戰、最高分、最常錯的 3 個(下一輪出現機率加倍)在 js/shared/drill.js;設定與紀錄存在 pianodrill.sight.v1 的 read(消毒)。
    都是 App 的練習設定;不寫級數、考試名稱 */
 import { tr, pairText } from '../shared/i18n.js';
@@ -11,6 +12,7 @@ import * as audio from '../shared/audio.js';
 import { createDrill } from '../shared/drill.js';
 import { STAGES, midiName } from './stages.js';
 import { frameStaff } from '../shared/staffframe.js';
+import { VALUES, VALUE_SETS, BEATS, beatLabel, valueName, beatText, setOf, valueXML } from '../shared/values.js';
 
 const LOW = 24, HIGH = 96;   // 音域的上下限 C1–C7
 const WHITE = [0, 2, 4, 5, 7, 9, 11];
@@ -30,7 +32,8 @@ export function cleanRead(o) {
   const ok = (v, list, d) => (list.includes(v) ? v : d);
   const out = { clef: ok(r.clef, CLEFS, 'treble'), pos: ok(r.pos, POS, 'all'), acc: r.acc === true, mode: ok(r.mode, MODES, 'practice'),
     lo: Number.isInteger(r.lo) ? r.lo : 60, hi: Number.isInteger(r.hi) ? r.hi : 67, best: r.best, miss: r.miss,
-    seen: r.seen === true };   // 答過一題:題目那行不再寫第一次的說明
+    seen: r.seen === true, seenVal: r.seenVal === true,   // 答過一題(音名 / 時值各自):題目那行不再寫第一次的說明
+    kind: r.kind === 'value' ? 'value' : 'note', vset: VALUE_SETS.some((s) => s[0] === r.vset) ? r.vset : VALUE_SETS[0][0] };   // 題目:音名 / 時值
   out.lo = Math.max(LOW, Math.min(HIGH, out.lo)); out.hi = Math.max(LOW, Math.min(HIGH, out.hi));
   if (out.hi - out.lo < 4) out.hi = Math.min(HIGH, out.lo + 4);
   return out;
@@ -40,7 +43,8 @@ export function createReading({ $, store, save, onAnswered = () => {} }) {
   const R = store;   // pianodrill.sight.v1 的 read
   const drill = createDrill({ store: R, save, onEnd: (res) => showEnd(res) });
   let osmd = null, q = null, last = null, pendingLo = null, active = false, lock = false, nextTimer = 0, session = { ok: 0, n: 0 }, endRes = null, t0 = 0;
-  const setting = () => `${R.clef}:${R.lo}-${R.hi}:${R.pos}:${R.acc ? 'acc' : 'w'}`;
+  const valOn = () => R.kind === 'value';
+  const setting = () => (valOn() ? `val:${R.vset}` : `${R.clef}:${R.lo}-${R.hi}:${R.pos}:${R.acc ? 'acc' : 'w'}`);
 
   /* ── 題庫:範圍內(白鍵 / 加黑鍵),照位置篩(線上 / 間上;C4 在加線上)── */
   function items() {
@@ -99,7 +103,7 @@ export function createReading({ $, store, save, onAnswered = () => {} }) {
     }
     const my = ++drawSeq;
     try {
-      await osmd.load(xmlFor(q.m, q.a));
+      await osmd.load(q.value ? valueXML(q.id, 'treble') : xmlFor(q.m, q.a));
       if (my !== drawSeq) return;   // 載入中又換了題目:交給新的那一次畫
       // 大譜表兩個譜表的距離固定(不跟著音的位置變),譜框裡的譜表才不會動
       const er = osmd.EngravingRules;
@@ -113,6 +117,12 @@ export function createReading({ $, store, save, onAnswered = () => {} }) {
   function fit() {
     const svg = $('rdScore').querySelector('svg');
     if (!svg || !$('rdScore').clientWidth) return;
+    if (valOn()) {   // 時值:框的大小固定(一個音符或休止符,高音譜表第三線)
+      const land = matchMedia('(orientation: landscape) and (max-height: 500px)').matches;
+      const maxH = land ? Math.max(130, innerHeight - 200) : innerHeight <= 700 ? Math.max(110, Math.round(innerHeight * 0.21)) : Math.max(150, Math.min(270, innerHeight * 0.32));
+      frameStaff(svg, $('rdScore'), { key: setting(), above: 3, below: 3, symmetric: true, spPx: 12, maxH });
+      return;
+    }
     const { above, below } = sideLedgers();
     const pad = Math.max(above, below, 1) + 2 + (R.acc ? 1.8 : 0);   // 升降記號(降記號比符頭高)
     const land = matchMedia('(orientation: landscape) and (max-height: 500px)').matches;
@@ -124,6 +134,13 @@ export function createReading({ $, store, save, onAnswered = () => {} }) {
   /* ── 出題 / 作答 ── */
   function next() {
     clearTimeout(nextTimer); lock = false;
+    if (valOn()) {
+      const id = drill.pick(setOf(R.vset)[2], setting(), Math.random, last);
+      last = id; q = { id, value: true, name: valueName(id) }; t0 = performance.now();
+      say(() => (R.seenVal ? tr('這是幾拍?', 'How many beats?') : tr('看音符或休止符,點出是幾拍(四分音符 = 1 拍)', 'How many beats? (quarter note = 1)')));
+      paintKeys(); paintBeats(); draw();
+      return;
+    }
     const list = items();
     if (!list.length) { q = null; $('rdScore').innerHTML = ''; say(() => tr('這個範圍沒有符合的音,換一個範圍或位置。', 'No notes match — change the range or position.')); return; }
     const id = drill.pick(list, setting(), Math.random, last);
@@ -131,11 +148,41 @@ export function createReading({ $, store, save, onAnswered = () => {} }) {
     // 譜和琴鍵之間這一行不空著:平常寫題目,答了寫對錯
     // 第一次(還沒答過):寫這一格在練什麼、怎麼作答
     say(() => (R.seen ? tr('什麼音?', 'Which note?') : tr('看音符,點出是哪個鍵', 'Read the note, tap the key')));
-    paintKeys();
+    paintKeys(); paintBeats();
     draw();
   }
+  /* 時值:作答 ½ 1 2 3 4 */
+  function answerBeat(b) {
+    if (!q || !q.value || lock || !active) return;
+    if (R.mode !== 'practice' && !drill.running) return;
+    const target = VALUES[q.id].beat, ok = b === target;
+    session.n++; if (ok) session.ok++;
+    if (!R.seenVal) { R.seenVal = true; save(); }
+    onAnswered((performance.now() - t0) / 1000);
+    paintBeats(b, ok);
+    lock = true;
+    wrongName = ok ? null : q.id;
+    if (ok) say(() => tr('對了', 'Right'), 'ok');
+    else { const id = q.id; say(() => tr(`答案是 ${beatText(VALUES[id].beat)}(${valueName(id)})`, `It's ${beatText(VALUES[id].beat)} (${valueName(id)})`), 'no'); }
+    const res = drill.answer(setting(), q.id, b, ok);
+    paintTop(); paintMiss();
+    if (res) return;
+    if (R.mode !== 'practice' && !drill.running) return;
+    nextTimer = setTimeout(() => { if (active) next(); }, ok ? 450 : 1500);
+  }
+  function paintBeats(tapped = null, ok = null) {
+    const box = $('rdBeats'), on = valOn();
+    box.hidden = !on; $('rdKbd').hidden = on;
+    if (!on) return;
+    if (!box.children.length) box.innerHTML = BEATS.map((b) => `<button type="button" class="opt" data-v="${b}"></button>`).join('');
+    for (const el of box.children) {
+      el.textContent = beatLabel(el.dataset.v); el.setAttribute('aria-label', beatText(el.dataset.v));
+      el.classList.toggle('wrong', tapped != null && ok === false && el.dataset.v === tapped);
+      el.classList.toggle('right', tapped != null && !!q && q.value && el.dataset.v === VALUES[q.id].beat);
+    }
+  }
   function answer(pc) {
-    if (!q || lock || !active) return;
+    if (!q || q.value || lock || !active) return;
     if (R.mode !== 'practice' && !drill.running) return;
     const target = ((q.m % 12) + 12) % 12, ok = pc === target;
     const flat = q.a < 0;
@@ -199,15 +246,23 @@ export function createReading({ $, store, save, onAnswered = () => {} }) {
     $('rdPos').innerHTML = segHTML([['all', '全部', 'All'], ['line', '只線', 'Lines'], ['space', '只間', 'Spaces']], R.pos);
     $('rdAcc').innerHTML = segHTML([['w', '只有白鍵', 'White keys'], ['acc', '加升降', '♯ and ♭']], R.acc ? 'acc' : 'w');
     $('rdMode').innerHTML = segHTML([['practice', '練習', 'Practice'], ['time', '60 秒', '60 s'], ['streak', '連續答對', 'Streak']], R.mode);
+    // 題目:音名 / 時值(時值時藏起譜號、範圍、音域、位置、升降,換成時值快捷)
+    $('rdKind').innerHTML = segHTML([['note', '音名', 'Notes'], ['value', '時值', 'Note values']], R.kind);
+    $('rdVals').innerHTML = segHTML(VALUE_SETS.map(([v, nm]) => [v, nm[0], nm[1]]), R.vset);
+    for (const id of ['rdClef', 'rdQuick', 'rdPos', 'rdAcc']) $(id).closest('.rd-row').hidden = valOn();
+    $('rdLo').closest('.rd-row').hidden = valOn(); $('rdNote').hidden = valOn();
+    $('rdValsRow').hidden = !valOn();
     $('rdLo').textContent = midiName(R.lo); $('rdHi').textContent = midiName(R.hi);
     // 「加線」是什麼:括號裡白話(放不下就換行,在那一格裡)
     pairText($('rdLedger'), () => (ledgers() ? tr(`最多 ${ledgers()} 條加線(譜外的短線)`, `Up to ${ledgers()} ledger line${ledgers() > 1 ? 's' : ''} (short extra lines)`) : tr('沒有加線', 'No ledger lines')));
-    for (const [id, zh, en] of [['rdQuickLbl', '範圍', 'Range'], ['rdClefLbl', '譜號', 'Clef'], ['rdPosLbl', '位置', 'Notes on'], ['rdAccLbl', '升降', 'Sharps/flats'], ['rdModeLbl', '模式', 'Mode'], ['rdSpanLbl', '音域', 'Span']]) $(id).textContent = tr(zh, en);
+    for (const [id, zh, en] of [['rdQuickLbl', '範圍', 'Range'], ['rdClefLbl', '譜號', 'Clef'], ['rdPosLbl', '位置', 'Notes on'], ['rdAccLbl', '升降', 'Sharps/flats'], ['rdModeLbl', '模式', 'Mode'], ['rdSpanLbl', '音域', 'Span'], ['rdKindLbl', '題目', 'Quiz'], ['rdValsLbl', '時值', 'Values']]) $(id).textContent = tr(zh, en);
+    pairText($('rdValsHint'), () => tr('每一格都包含前一格', 'Each one adds to the one before'));
     pairText($('rdNote'), () => tr('按住箭頭可以連續移動', 'Hold an arrow to keep moving'));
     for (const [id, zh, en] of [['rdLoDown', '最低音降低', 'Lower the lowest note'], ['rdLoUp', '最低音升高', 'Raise the lowest note'], ['rdHiDown', '最高音降低', 'Lower the highest note'], ['rdHiUp', '最高音升高', 'Raise the highest note']]) $(id).setAttribute('aria-label', tr(zh, en));
   }
   /* 題目卡上一行寫目前的設定(例如「高音譜表 C4–C5 · 只出線上」)+ 分數 */
   function setText() {
+    if (valOn()) return tr('時值 · ', 'Values · ') + tr(...setOf(R.vset)[1]);
     const clef = { treble: tr('高音譜表', 'Treble'), bass: tr('低音譜表', 'Bass'), grand: tr('大譜表', 'Grand staff') }[R.clef];
     const pos = { all: '', line: tr(' · 只出線上', ' · lines only'), space: tr(' · 只出間上', ' · spaces only') }[R.pos];
     return `${clef} ${midiName(R.lo)}–${midiName(R.hi)}${pos}${R.acc ? tr(' · 加升降', ' · ♯/♭') : ''}`;
@@ -223,12 +278,13 @@ export function createReading({ $, store, save, onAnswered = () => {} }) {
     // 挑戰模式還沒開始 / 結束:大按鈕「開始」蓋在譜上(作答鍵先不能按)
     const waiting = k !== 'practice' && !run;
     $('rdStart').hidden = !waiting;
-    $('rdKbd').classList.toggle('idle', waiting);
+    $('rdKbd').classList.toggle('idle', waiting); $('rdBeats').classList.toggle('idle', waiting);
     if (waiting) $('rdStartLbl').textContent = endRes ? tr('再挑戰一次', 'Try again') : k === 'time' ? tr('開始 60 秒挑戰', 'Start 60 s challenge') : tr('開始連對挑戰', 'Start streak challenge');
   }
   function paintMiss() {
     const t = drill.top(setting());
-    pairText($('rdMiss'), () => (t.length ? tr('最常錯:', 'Most missed: ') + t.map((x) => tr(`把 ${x.target} 看成 ${x.answer}(${x.n} 次)`, `${x.target} read as ${x.answer} (${x.n}×)`)).join(tr(';', '; ')) + tr('。下一輪這幾個會多出現。', '. These come up more often next round.') : ''));
+    const tn = (x) => (valOn() ? valueName(x) : x), an = (x) => (valOn() ? beatText(x) : x);
+    pairText($('rdMiss'), () => (t.length ? tr('最常錯:', 'Most missed: ') + t.map((x) => tr(`把 ${tn(x.target)} 看成 ${an(x.answer)}(${x.n} 次)`, `${tn(x.target)} read as ${an(x.answer)} (${x.n}×)`)).join(tr(';', '; ')) + tr('。下一輪這幾個會多出現。', '. These come up more often next round.') : ''));
   }
   let wrongName = null;
   function showEnd(res) {
@@ -236,7 +292,7 @@ export function createReading({ $, store, save, onAnswered = () => {} }) {
     clearTimeout(nextTimer); lock = true;
     const wn = res.reason === 'wrong' ? wrongName : null;
     if (res.reason === 'stop' || res.reason === 'restart') { paintTop(); return; }
-    say(() => (wn ? tr(`答案是 ${wn}。`, `It was ${wn}. `) : '') + (res.kind === 'time' ? tr(`時間到:答對 ${res.score} 題`, `Time's up: ${res.score} right`) : tr(`連對 ${res.score} 題`, `Streak: ${res.score}`))
+    say(() => (wn ? (valOn() ? tr(`答案是 ${beatText(VALUES[wn].beat)}(${valueName(wn)})。`, `It's ${beatText(VALUES[wn].beat)} (${valueName(wn)}). `) : tr(`答案是 ${wn}。`, `It was ${wn}. `)) : '') + (res.kind === 'time' ? tr(`時間到:答對 ${res.score} 題`, `Time's up: ${res.score} right`) : tr(`連對 ${res.score} 題`, `Streak: ${res.score}`))
       + (res.newBest ? tr(' · 新紀錄!', ' · New best!') : tr(` · 最高 ${res.best}`, ` · best ${res.best}`)), res.newBest ? 'ok' : '');
     paintTop(); paintMiss();
   }
@@ -248,6 +304,9 @@ export function createReading({ $, store, save, onAnswered = () => {} }) {
 
   /* 事件 */
   const segClick = (id, fn) => $(id).addEventListener('click', (e) => { const b = e.target.closest('button[data-v]'); if (b) fn(b.dataset.v); });
+  segClick('rdKind', (v) => { if (v === R.kind) return; R.kind = v === 'value' ? 'value' : 'note'; q = null; last = null; changed(); });
+  segClick('rdVals', (v) => { R.vset = v; changed(); });
+  segClick('rdBeats', (v) => answerBeat(v));
   segClick('rdQuick', (v) => { const [lo, hi] = quickRange(R.clef, Number(v)); R.lo = lo; R.hi = hi; pendingLo = null; changed(); });
   segClick('rdClef', (v) => {
     if (v === R.clef) return;
@@ -301,11 +360,12 @@ export function createReading({ $, store, save, onAnswered = () => {} }) {
     enter() {
       active = true;
       paintOpts(); paintTop(); paintMiss();
-      if (!q) next(); else draw();
+      if (!q || !!q.value !== valOn()) next(); else { paintBeats(); draw(); }
     },
     leave() { active = false; clearTimeout(nextTimer); if (drill.running) drill.stop(); },
     relang() { paintOpts(); paintTop(); paintMiss(); if (msgFn) say(msgFn); },
     onKey(e) {
+      if (valOn()) { const d = '1234'.indexOf(e.key); if (d >= 0) { answerBeat(String(d + 1)); return true; } return false; }
       const i = 'cdefgab'.indexOf((e.key || '').toLowerCase());
       if (i >= 0) { answer(WHITE[i]); return true; }
       return false;

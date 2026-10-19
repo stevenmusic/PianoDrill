@@ -154,7 +154,9 @@ export function createDailyCard({ $, daily, labels = {}, warmName = () => "", le
     // 暖身:只有進度條上那一顆「下一段 ›」(按鈕列整列不放);過關、複習完 = 主要按鈕「下一段 ›」
     const primaryNext = passedDone;
     const tip = !warm && !daily.data.tip && s.bpm;   // 第一次:速度的小字說明「速度 56 = 每分鐘 56 拍」(試過一次就不再出現)
-    step.innerHTML = `<p class="daily-status"></p>` + (tip ? `<p class="daily-tip"></p>` : "") + (vary ? `<p class="daily-vary"></p>` : "") + (check ? `<p class="daily-check"></p>` : "") +
+    // 重點:每項一行的清單(系統化規則:主要資訊字級 ≥ --fs-md)
+    step.innerHTML = `<p class="daily-status"></p>` + (tip ? `<p class="daily-tip"></p>` : "") + (vary ? `<p class="daily-vary"></p>` : "") +
+      (check ? `<div class="daily-check"><b>${esc(fmt("checkTitle"))}</b><ul>${check.map(() => "<li></li>").join("")}</ul></div>` : "") +
       `<div class="daily-acts"${warm ? " hidden" : ""}>` + (!warm && s.k === "route" && daily.canBack() && !passedDone ? `<button class="text-btn daily-back">${esc(fmt("back"))}</button>` : "") +
       `<span class="daily-sp"></span>` +
       (primaryNext ? `<button class="btn primary daily-go">${esc(fmt("next"))}</button>`
@@ -162,7 +164,7 @@ export function createDailyCard({ $, daily, labels = {}, warmName = () => "", le
     paintStatus(s);
     if (tip) pairText(step.querySelector(".daily-tip"), () => fmt("tempoTip", { b: s.bpm }));
     if (vary) pairText(step.querySelector(".daily-vary"), () => fmt("vary", { v: varyText(s) }));
-    if (check) pairText(step.querySelector(".daily-check"), () => fmt("check", { list: check.map(L2).join(" · ") }));
+    if (check) step.querySelectorAll(".daily-check li").forEach((li, i) => { li.textContent = L2(check[i]); });   // 每項一行(不用 pairText:英文比較長時中文會多出空行;換語言時 relang 重畫)
     const on = (sel, fn) => { const b = step.querySelector(sel); if (b) b.onclick = () => fn && fn(); };
     on(".daily-back", onBack); on(".daily-again", onAgain); on(".daily-ok", onOk); on(".daily-go", onNext);
     step.appendChild(park);

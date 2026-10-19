@@ -118,7 +118,7 @@
 .rd-end{display:grid;grid-template-rows:32px auto 32px;justify-items:center;row-gap:2px}
 .rd-end b{min-width:3em;text-align:center;font-size:var(--fs-md);line-height:1.3;font-variant-numeric:tabular-nums;color:var(--gold-bright)}
 .rd-dash{color:var(--muted-bright);font-size:var(--fs-md)}
-.btn.rd-arrow{width:44px;height:32px;padding:0;border-radius:var(--radius-sm);-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.btn.rd-arrow{width:44px;height:44px;padding:0;border-radius:var(--radius-sm);-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 .rd-ledger{margin:0 0 0 4px;min-width:0}
 .rd-ledger,.rd-note{font-size:var(--fs-xs);color:var(--muted-bright);line-height:1.5;overflow-wrap:anywhere}
 .rd-note{margin-top:10px}

@@ -41,7 +41,7 @@ export function paintNoteNames(svg, osmd, { cls = 'note-name', size: wantSize = 
             const box = nh.getBoundingClientRect();
             const p = src.Pitch, letter = NOTE_LETTER[p.FundamentalNote] ?? '';
             const acc = p.AccidentalHalfTones > 0 ? '♯' : p.AccidentalHalfTones < 0 ? '♭' : '';
-            row.items.push({ x: toX(box.left + box.width / 2), y: toY(box.top + box.height / 2), text: letter + acc });
+            row.items.push({ x: toX(box.left + box.width / 2), y: toY(box.top + box.height / 2), h: p.getHalfTone ? p.getHalfTone() : 0, text: letter + acc });
           }
         }
       }
@@ -51,14 +51,14 @@ export function paintNoteNames(svg, osmd, { cls = 'note-name', size: wantSize = 
   list.forEach((row, i) => { row.next = i + 1 < list.length ? list[i + 1].top : Infinity; });
   let maxBottom = 0, need = 1, crowded = false;
   for (const row of list) {
-    // 同一個位置的音(和弦)排成一欄:高的音在上面;同一個字只寫一次
+    // 同一個位置的音(和弦)排成一欄:高的音在上面(照音高排:和弦的每個音拿到的是同一個符頭群組,不能照 y 排);同一個字只寫一次
     const cols = [];
     for (const it of row.items.sort((a, b) => a.x - b.x)) {
       let col = cols.find((c) => Math.abs(c.x - it.x) < 4);
       if (!col) { col = { x: it.x, notes: [] }; cols.push(col); }
       col.notes.push(it);
     }
-    for (const col of cols) col.texts = [...new Set(col.notes.sort((a, b) => a.y - b.y).map((it) => it.text))];
+    for (const col of cols) col.texts = [...new Set(col.notes.sort((a, b) => b.h - a.h || a.y - b.y).map((it) => it.text))];
     if (!cols.length) continue;
     // 先畫出來量字的大小(基線到頂端的距離、寬度),再決定高度
     let lineH = 0, ascent = 0;

@@ -1,7 +1,7 @@
 /* 今日練習的關卡(js/tech/routes.js)→ 練習題(ex,musicxml.js 的 exact 格式:每個音自己帶時值)。
    純函式(node 可測;tools/test/checks/routes.mjs)。指法:五指位置照位置算(一指一個鍵,一定對);
    一個八度音階照 data/fingerings.json(已核對);左手和弦照方法書常見的最近位置(SHAPE)。
-   題目欄位 q:{ type: "route", r, id }(或 { warm })+ 這一次的變化 key / rhythm / touch / dyn(複習)。
+   題目欄位 q:{ type: "route", r, id }(或 { warm })+ 這一次的變化 rkey(調)/ rhythm / touch / dyn(複習)。
    ex = { exact: true, div: 12, bar, time, fifths, sub: 2, bars, rh, lh, hold: { rh, lh }, dyn: { rh, lh }, lhSoft }
    音:{ letter, alter, octave, midi, finger, dur, chord?: [音…], rest?, stacc?, accent?, slur?: "start" | "stop", tie?: "start" | "stop" | "both" } */
 import { parseNote, spellScale, INTERVALS, midiOf, keyFifths } from "./theory.js";
@@ -165,7 +165,7 @@ const applyTouch = (notes, t) => notes.map(n => (n.rest ? n : t === "stacc" ? (n
 export function buildRoute(FG, q){
   const L = findLevel(q); if (!L) throw new Error("沒有這一關:" + (q.id || q.warm));
   const accomp = !!L.prog;
-  const K = keyInfo(q.key || L.key || "C");
+  const K = keyInfo(q.rkey || L.key || "C");
   const time = L.time || [4, 4], beats = time[0], BAR = beats * 12;
   let rh, lh, hold = null, bars;
   if (accomp) {

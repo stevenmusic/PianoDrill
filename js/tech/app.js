@@ -635,7 +635,7 @@ function nameSpace(lines){
   const add = lines ? (lines * Math.max(10 / (osmd.zoom || 1), 13) * 1.2 + 6) / 10 + 0.3 : 0;
   rules.StaffDistance = baseSpace.sd + add; rules.BetweenStaffDistance = baseSpace.bsd + add;
 }
-const keyVary = () => !!(dseg && dseg.k === "review" && dseg.vary && dseg.vary.q && dseg.vary.q.key);
+const keyVary = () => !!(dseg && dseg.k === "review" && dseg.vary && dseg.vary.q && dseg.vary.q.rkey);
 const namesRoute = () => (dseg && dseg.k !== "warm" ? dseg.r : "finger");
 function namesDefault(){
   if (!dseg) return false;
@@ -652,8 +652,12 @@ function namesOn(){
 }
 function syncNamesBtn(){
   const b = $("namesBtn"); if (!b) return;
-  b.hidden = !(cur && cur.daily && cur.type === "route" && dseg);
+  const route = !!(cur && cur.daily && cur.type === "route" && dseg);
+  b.hidden = !route;
   b.setAttribute("aria-pressed", String(namesOn()));
+  // 今日練習的關卡:譜卡標題列 = [音名] …[右手|左手|雙手](標題「樂譜與指法」省掉,一行放得下);單手的關不放手的切換(只有那一手)
+  $("scoreCard").querySelector(".card-title").hidden = route;
+  $("handSeg").hidden = route && cur.hands !== "HT";
 }
 $("namesBtn").onclick = () => {
   const v = !namesOn();
@@ -755,7 +759,7 @@ function measureNotes(){
     const el = c.cursorElement;
     let xs = [];
     try {
-      xs = c.GNotesUnderCursor().map(n => { const g = n.getSVGGElement && n.getSVGGElement(); const h = g && (g.querySelector(".vf-notehead") || g); const r = h && h.getBoundingClientRect(); return r && r.width ? r.x - ox + r.width / 2 : null; }).filter(v => v != null);
+      xs = c.GNotesUnderCursor().filter(n => !(n.sourceNote && n.sourceNote.isRest && n.sourceNote.isRest())).map(n => { const g = n.getSVGGElement && n.getSVGGElement(); const h = g && (g.querySelector(".vf-notehead") || g); const r = h && h.getBoundingClientRect(); return r && r.width ? r.x - ox + r.width / 2 : null; }).filter(v => v != null);
     } catch (e) {}
     const x = xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : parseFloat(el.style.left) + (el.offsetWidth || el.width || 0) / 2;
     noteXs.push({ beat: c.Iterator.currentTimeStamp.RealValue * 4, x });
@@ -1190,7 +1194,7 @@ function warmItem(d, today){
   }
   const w = WARM_LEVELS[warmFor((r, id) => !!(d.lv[r + "/" + id] && d.lv[r + "/" + id].passed))];
   const acc = d.prog.accomp && findLevel({ r: "accomp", id: d.prog.accomp.at }), key = (acc && acc.key) || "C";
-  return { q: { ...w.q, key }, name: [KEYS[key][0] + w.name[0], KEYS[key][1] + " " + w.name[1]], bpm: 60 };
+  return { q: { ...w.q, rkey: key }, name: [KEYS[key][0] + w.name[0], KEYS[key][1] + " " + w.name[1]], bpm: 60 };
 }
 const daily = createDaily({ routes: ROUTES, load: () => S.daily, save: d => { S.daily = d; store.save(); }, extras: { warm: warmItem } });
 const dcard = createDailyCard({ $, daily,
@@ -1273,6 +1277,6 @@ export async function start(c){
   if (S.exam) renderExam();
   renderLog();
   dcard.render();
-  window.__tech = { daily, dcard, get dseg(){ return dseg; }, dTry, dNext, get cur(){ return cur; }, get ex(){ return ex; }, get osmd(){ return osmd; },
+  window.__tech = { daily, dcard, get dseg(){ return dseg; }, dTry, dNext, dShow, get cur(){ return cur; }, get ex(){ return ex; }, get osmd(){ return osmd; },
     get state(){ return { play: !!play, starting: !!starting, bpm, show, scheduled: audio.scheduledCount(), noteXs: noteXs.length }; }, setQuestion, examQuestions, examPool, switchTab, fitTitle, S, SY };
 }

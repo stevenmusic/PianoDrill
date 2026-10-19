@@ -22,7 +22,7 @@
 
    ── 複習的變化(vary[盒 − 1];同一段用不同方式練)──
    原樣 → 節奏型(附點 / 反附點)→ 觸鍵(斷奏)與強弱(p、f、漸強)→ 換調(C → G → F)→ 綜合(+ 拍點只響 1、3 拍 / 第 1 拍 / 中途消失)。
-   q = 題目要改的欄位(key、rhythm、touch、dyn),name = 「這次:…」(自動產生);換調時譜、指法、聲音都換,關卡名稱跟調無關 */
+   q = 題目要改的欄位(rkey 調、rhythm、touch、dyn;不用 key:題目的 key 是熟練度的鍵),name = 「這次:…」(自動產生);換調時譜、指法、聲音都換,關卡名稱跟調無關 */
 
 const x2 = s => s + " | " + s;
 /* ── 複習變化的名稱(自動)── */
@@ -34,7 +34,7 @@ const VNAME = {
 };
 export function varyName(q){
   const parts = [];
-  if (q.key) parts.push(KEY_NAME[q.key]);
+  if (q.rkey) parts.push(KEY_NAME[q.rkey]);
   for (const k of ["rhythm", "touch", "dyn"]) if (q[k]) parts.push(VNAME[k][q[k]]);
   return parts.length ? [parts.map(p => p[0]).join("、"), parts.map(p => p[1]).join(", ")] : null;
 }
@@ -44,13 +44,13 @@ const RH = k => (k % 2 ? "reverse" : "dotted"), DY = k => ["p", "f", "cresc"][k 
 const vary = {
   // 一般(C 大調的關):原樣 → 節奏型 → 觸鍵 + 強弱 → 換 G → 換 F + 綜合 → 換 G + 中途消失
   std: (k, o = {}) => [V(), V(o.noRhythm ? { dyn: DY(k + 1) } : { rhythm: RH(k) }), V({ ...(o.noTouch ? {} : { touch: "stacc" }), ...(o.noDyn ? {} : { dyn: DY(k) }) }),
-    V({ key: "G" }), V({ key: o.onlyG ? "G" : "F", ...(o.noRhythm ? {} : { rhythm: RH(k + 1) }) }, "one-three"), V({ key: "G", ...(o.noTouch ? {} : { touch: "stacc" }) }, "gap")],
+    V({ rkey: "G" }), V({ rkey: o.onlyG ? "G" : "F", ...(o.noRhythm ? {} : { rhythm: RH(k + 1) }) }, "one-three"), V({ rkey: "G", ...(o.noTouch ? {} : { touch: "stacc" }) }, "gap")],
   // 已經是 G / F / a 的關(關卡本身就是那個調):不換調,改用拍點模式
   fixed: (k, o = {}) => [V(), V(o.noRhythm ? { dyn: "p" } : { rhythm: RH(k) }), V({ ...(o.noTouch ? {} : { touch: "stacc" }), dyn: DY(k) }),
     V({ dyn: "cresc" }, "one-three"), V(o.noRhythm ? { dyn: "f" } : { rhythm: RH(k + 1) }, "one"), V({}, "gap")],
   // 伴奏:原樣 → 節奏型(八分音符的型)或斷奏 → 強弱(有右手 = 右手大聲、左手小聲)→ 換 G → 換 F + 拍點只響 1、3 拍 → 換 G + 只響第 1 拍
   acc: (k, o = {}) => [V(), V(o.eighths ? { rhythm: RH(k) } : { touch: "stacc" }), V(o.rh ? { dyn: "balance" } : { dyn: DY(k) }),
-    V({ key: "G" }), V({ key: "F", ...(o.rh ? { dyn: "balance" } : {}) }, "one-three"), V({ key: "G" }, "one")],
+    V({ rkey: "G" }), V({ rkey: "F", ...(o.rh ? { dyn: "balance" } : {}) }, "one-three"), V({ rkey: "G" }, "one")],
   accFixed: (k, o = {}) => [V(), V(o.eighths ? { rhythm: RH(k) } : { touch: "stacc" }), V(o.rh ? { dyn: "balance" } : { dyn: DY(k) }),
     V({ dyn: "cresc" }, "one-three"), V({}, "one"), V({}, "gap")]
 };
@@ -190,7 +190,7 @@ function finish(route, list){
         noTouch: L.id === "PF3", noDyn: L.id === "PF4"
       };
       if (L.id === "PE1") {   // 拇指穿越在 F 大調會把拇指放到 B♭ 上:只換到 G
-        L.vary = [V(), V({ rhythm: RH(k) }), V({ touch: "stacc", dyn: DY(k) }), V({ key: "G" }), V({ key: "G", rhythm: RH(k + 1) }, "one-three"), V({ touch: "stacc" }, "gap")];
+        L.vary = [V(), V({ rhythm: RH(k) }), V({ touch: "stacc", dyn: DY(k) }), V({ rkey: "G" }), V({ rkey: "G", rhythm: RH(k + 1) }, "one-three"), V({ touch: "stacc" }, "gap")];
       } else L.vary = fixedKey ? vary.fixed(k, o) : vary.std(k, o);
     } else {
       const o = { eighths: ["broken", "alberti", "r158"].includes(L.lh), rh: !!L.rh };

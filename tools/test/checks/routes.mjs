@@ -50,7 +50,7 @@ export default function check(ok, FG){
         try { ex = buildExercise(FG, q); } catch (e) { ok(false, `${at} 變化 ${vi}:產生不出來 ${e.message}`); return; }
         n++;
         if (vi === 0) for (const h of ["rh", "lh"]) for (const x of ex[h]) if (!x.rest) durs.push(x.dur);
-        if (v.q && v.q.key) ok(ex.fifths === FIFTHS[v.q.key], `${at} 變化 ${vi}:換到 ${v.q.key} 的調號 ${ex.fifths}`);
+        if (v.q && v.q.rkey) ok(ex.fifths === FIFTHS[v.q.rkey], `${at} 變化 ${vi}:換到 ${v.q.rkey} 的調號 ${ex.fifths}`);
         if (v.name) ok(v.name[0] && v.name[1], `${at} 變化 ${vi}:名稱`);
         checkEx(ok, ex, q, L, `${at}${vi ? " 變化 " + vi : ""}`);
       });
@@ -63,7 +63,7 @@ export default function check(ok, FG){
     if (R.unlock) ok(lvIds.has(`${R.unlock.route}/${R.unlock.passed}`) || ROUTES.some(r => r.id === R.unlock.route && r.levels.some(l => l.id === R.unlock.passed)), `${R.id}:unlock 指到不存在的關`);
   }
   for (const W of Object.values(WARM_LEVELS)) for (const key of ["C", "G", "F", "a"]) {
-    const q = { ...W.q, key, sub: 2 };
+    const q = { ...W.q, rkey: key, sub: 2 };
     try { const ex = buildExercise(FG, q); checkEx(ok, ex, q, W, `暖身 ${W.id} ${key}`); n++; ok(Math.min(...["rh", "lh"].flatMap(h => ex[h].filter(x => !x.rest).map(x => x.dur))) >= (W.id === "w5s" || W.id === "w5q" ? 12 : 6), `暖身 ${W.id}:初學從四分音符`); }
     catch (e) { ok(false, `暖身 ${W.id} ${key}:${e.message}`); }
   }
@@ -71,7 +71,7 @@ export default function check(ok, FG){
 }
 
 function checkEx(ok, ex, q, L, at){
-  const key = q.key || L.key || "C", BAR = ex.bar, pcs = scalePcs(key);
+  const key = q.rkey || L.key || "C", BAR = ex.bar, pcs = scalePcs(key);
   ok(ex.bar === (L.time ? L.time[0] : 4) * 12, `${at}:小節長度`);
   ok(ex.fifths === FIFTHS[key], `${at}:調號`);
   for (const h of ["rh", "lh"]) {

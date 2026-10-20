@@ -70,7 +70,8 @@ const currentGrade = () => (mode === 'exam' ? exam.grade : current && current.fr
 /* 這一階的規則表複本(調性選單、出題用;階 1 只有 C 大調) */
 const stageRules = (g = stageNow().grades[stageNow().grades.length - 1]) => rulesForStage(rules, stageNow(), g);
 /* 檢定分頁:這個考試/級數有沒有視奏規則 */
-const examSupported = () => exam.system === 'abrsm' && exam.grade >= 1 && exam.grade <= 8;
+// ABRSM 初級–8 級都有規則(data/sight-rules.json 的 grades["0"]–["8"];初級照 2020 年範例書 35 題);Trinity 還沒有
+const examSupported = () => exam.system === 'abrsm' && exam.grade >= 0 && exam.grade <= 8;
 
 const elements = {
   key: $('key'),
@@ -827,10 +828,7 @@ function setExamItem(on) {
   elements.generate.querySelector('.btn-label').textContent = on ? tr('練習一題', 'Get a test') : t('generateLabel');
 }
 function renderUnsupported() {
-  const ini = exam.grade === 0;
-  pairText($('unsupportedText'), () => (exam.system === 'trinity'
-    ? t('unsupportedTrinity')
-    : ini ? t('unsupportedInitial') : t('examNotYet')));
+  pairText($('unsupportedText'), () => (exam.system === 'trinity' ? t('unsupportedTrinity') : t('examNotYet')));
 }
 /* ── 視奏分頁的速度(js/shared/tempo.js;跟 DrumDrill 視奏一樣):− / + / 滑桿;改了馬上用在下一次播放與彈一遍,記在 SS.bpm[子項目-難度] ── */
 const FREE_MAX_BPM = 80;

@@ -39,6 +39,180 @@
     "7/4": 0.3
   },
   "grades": {
+    "0": {
+      "grade": 0,
+      "confidence": "verified",
+      "source": "ABRSM Piano Specimen Sight-Reading Tests, Initial Grade (AB4002, 2020) — 35 題逐題核對;只用範例出現過的參數(tests.md 初級一節)",
+      "lengthBars": {
+        "2/4": [
+          6,
+          6
+        ],
+        "4/4": [
+          4,
+          4
+        ]
+      },
+      "timeSignatures": [
+        "2/4",
+        "4/4"
+      ],
+      "timeSignatureWeights": {
+        "2/4": 20,
+        "4/4": 15
+      },
+      "keys": {
+        "maxAccidentals": 1,
+        "major": [
+          {
+            "tonic": "C",
+            "fifths": 0
+          }
+        ],
+        "minor": [
+          {
+            "tonic": "D",
+            "fifths": -1
+          }
+        ],
+        "majorShare": 0.46,
+        "comment": "範例 35 題:C 大調 16、d 小調 19(一個降記號、全部結束在 D);沒有 F 大調、a 小調"
+      },
+      "texture": {
+        "handsPlayTogether": false,
+        "fiveFingerPosition": true,
+        "positionShifts": false,
+        "maxNotesPerChord": 1,
+        "handAlternation": "hands take turns: the first hand plays the first half of the bars, the other hand the second half; never together",
+        "leadRightHandShare": 0.46,
+        "firstTurnEndsOnTonic": false,
+        "tuneAcrossTurns": true,
+        "firstTurnEndDegrees": {
+          "1": 1,
+          "2": 10,
+          "3": 2,
+          "4": 4,
+          "5": 18
+        },
+        "firstTurnEndComment": "範例 35 題先彈那隻手的最後一個音:5 級 18、2 級 10、4 級 4、3 級 2、主音 1;App 在那個音底下的和弦音裡照這個比例抽(V 加 4 級 = V7)"
+      },
+      "range": {
+        "rightHand": {
+          "minMidi": 60,
+          "maxMidi": 69,
+          "label": "C4–A4",
+          "positionSpan": 5
+        },
+        "leftHand": {
+          "minMidi": 48,
+          "maxMidi": 57,
+          "label": "C3–A3",
+          "positionSpan": 5
+        },
+        "legerLines": 1,
+        "byKey": {
+          "C": {
+            "rightHand": {
+              "minMidi": 60,
+              "maxMidi": 67,
+              "label": "C4–G4"
+            },
+            "leftHand": {
+              "minMidi": 48,
+              "maxMidi": 55,
+              "label": "C3–G3"
+            }
+          },
+          "Dm": {
+            "rightHand": {
+              "minMidi": 62,
+              "maxMidi": 69,
+              "label": "D4–A4"
+            },
+            "leftHand": {
+              "minMidi": 50,
+              "maxMidi": 57,
+              "label": "D3–A3"
+            }
+          }
+        }
+      },
+      "rhythm": {
+        "noteValues": [
+          "half",
+          "quarter",
+          "eighth"
+        ],
+        "dottedValues": [],
+        "rests": [],
+        "restsNote": "只有沒在彈的手的整小節休止;彈奏中的手沒有休止",
+        "smallestDivision": 8,
+        "ties": false,
+        "triplets": false,
+        "syncopation": false,
+        "upbeat": false,
+        "eighthsBeamedInPairs": true,
+        "eighthsOnBeatOnly": true,
+        "turnEndNote": "half"
+      },
+      "harmony": {
+        "chromaticNotes": false,
+        "raisedSeventhInMinor": false
+      },
+      "articulations": [
+        "slur",
+        "staccato"
+      ],
+      "dynamics": [
+        "p",
+        "f"
+      ],
+      "dynamicFeatures": [],
+      "expression": {
+        "styleWeights": {
+          "legato": 0,
+          "detached": 0,
+          "mixed": 19,
+          "plain": 16
+        },
+        "wholeTurn": true,
+        "turnDynamicPercent": 46,
+        "styleAnyTerm": true,
+        "styleAnyTermComment": "範例在 Gently、Andante、Slowly 下也有一手整段斷奏(#7 #18 #19 #21 #24 #34);初級不套用「慢 / 歌唱性的字只給圓滑線」"
+      },
+      "otherFeatures": [
+        "tempo/character word at start",
+        "fingering on each hand's first note"
+      ],
+      "tempoTerms": [
+        "Moderato",
+        "Slowly",
+        "Grandly",
+        "Lively",
+        "Andante",
+        "Allegretto",
+        "Smoothly",
+        "Happily",
+        "Gently"
+      ],
+      "newAtThisGrade": [
+        "最基礎:C 大調與 d 小調的五指位置、兩手輪流(各彈一半)、2/4 六小節與 4/4 四小節、二分 / 四分 / 八分音符、f 與 p、斷奏與圓滑線"
+      ],
+      "generatorHints": {
+        "stepwiseBiasPercent": 75,
+        "activity": 0.2,
+        "maxLeapSemitones": 7,
+        "startOnChordTone": true,
+        "endOnTonic": true,
+        "motifRepeatBars": [
+          1,
+          2
+        ],
+        "restDensityPercent": 0,
+        "bassDecorationPercent": 55,
+        "bassInversionPercent": 45
+      }
+    },
     "1": {
       "grade": 1,
       "confidence": "verified",

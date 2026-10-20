@@ -201,7 +201,9 @@ FingerDrill(技巧)、SightDrill(視奏)、EarDrill(聽音)三個工具合併成
 - **檢定要求只能照官方大綱**,沒辦法自動出題/批改的只列出要求,不要自己發明:
   - 音階琶音:改 `tools/build/syllabus_src.py` 再產生 `data/syllabus.json`,照 `docs/tech/CLAUDE.md` 核對
   - 聽力:`data/aural.json` 每一級有 source(頁碼)
-  - 視奏:`data/sight-rules.json` 照 ABRSM 官方視奏範例整理(1–8 級)。**Trinity 與 ABRSM 初級的視奏還沒有規則 → 檢定分頁只說明還沒有,不拿 ABRSM 的規則充數**
+  - 視奏:`data/sight-rules.json` 照 ABRSM 官方視奏範例整理(初級 = 2020 年 Initial 範例書 35 題逐題核對,`grades["0"]`;1–8 級)。**Trinity 的視奏還沒有規則 → 檢定分頁只說明還沒有,不拿 ABRSM 的規則充數**;
+    初級只用範例出現過的參數(C 大調 / d 小調各一個固定五指位置、2/4 六小節 / 4/4 四小節、兩手輪流、二分 / 四分 / 八分、f p、斷奏 + 圓滑線),準備 30 秒;
+    初級專用欄位(其他級沒設 = 原本的行為):`range.byKey`、`texture.firstTurnEndDegrees`(先彈那隻手收在哪一級,範例 5 級 51%)、`expression.styleAnyTerm`(任何術語都可以一手斷奏 + 一手圓滑線)等
 - **不要用合成鋼琴音**:一律用 `js/shared/audio.js`(ScrollScore 的 Salamander 取樣),拍點用 Naked Drums xstick(視奏原本另一套 tonejs 取樣已經換掉)
 - 外觀照 HarmonyHands / HarmonyMap 的設計代幣(`css/app.css` 開頭那段),圖示用線稿 SVG(24 格、stroke 2、圓端點)
 - App 圖示(`icons/`)不放文字、不用考試機構的標誌或配色;改圖示改 `tools/test/icons.mjs` 再重新產生

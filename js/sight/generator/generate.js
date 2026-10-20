@@ -146,8 +146,8 @@ function naturalSeventhOverDominant(score) {
 
 function generateOnce(rulesTable, options) {
   const grade = options.grade;
-  const rules = rulesTable.grades[String(grade)];
-  if (!rules) throw new Error(`no rules for grade ${grade}`);
+  const gradeRules = rulesTable.grades[String(grade)];
+  if (!gradeRules) throw new Error(`no rules for grade ${grade}`);
 
   const seed = options.seed;
   const rng = createRandom(seed);
@@ -156,9 +156,13 @@ function generateOnce(rulesTable, options) {
   // pick — resolved against this grade's own key list so it also picks up
   // the correct `fifths`, rather than trusting the caller to know it.
   const key = createKey(
-    options.tonic && options.mode ? resolveKey(rules, options.tonic, options.mode) : pickKey(rng, rules),
+    options.tonic && options.mode ? resolveKey(gradeRules, options.tonic, options.mode) : pickKey(rng, gradeRules),
   );
-  const meter = meterInfo(pickTimeSignature(rng, rules, rulesTable));
+  // A grade may give each key its own hand ranges (`range.byKey`, from the
+  // specimen book: Initial's C major sits at C4-G4 / C3-G3, its D minor at
+  // D4-A4 / D3-A3). Without byKey this is the grade's own rules, unchanged.
+  const rules = withKeyRange(gradeRules, key);
+  const meter = meterInfo(pickTimeSignature(rng, gradeRules, rulesTable));
   const barCount = pickBarCount(rng, rules, meter.text);
   // A bar splitting into two chords is a faster harmonic rhythm than
   // lower grades' one-chord-per-bar texture can support — reserved for
@@ -184,16 +188,32 @@ function generateOnce(rulesTable, options) {
   // test. The split is decided up front so that each hand's line is written
   // over the bars it actually plays and cadences properly.
   const silence = rules.texture.handsPlayTogether === false
-    ? splitBarsBetweenHands(barCount, rng)
+    ? splitBarsBetweenHands(barCount, rng, rules.texture.leadRightHandShare ?? 0.7)
     : { rightHand: new Set(), leftHand: new Set() };
+  /*
+   * Whether each hand's own last note is forced to the tonic. Grade 1 does it
+   * for both hands (the docs' "Grade 1's alternating hands force endOnTonic on
+   * each hand"); the Initial specimen book never ends the first turn on the
+   * tonic (34 of 35 tests), so a grade can switch it off for the hand that
+   * finishes first (`texture.firstTurnEndsOnTonic: false`).
+   */
+  const finishesFirst = (silent) => silent.has(barCount - 1);
+  const turnTonic = (silent) => !(rules.texture.firstTurnEndsOnTonic === false && finishesFirst(silent));
 
   // The left hand is written first and becomes the bass the right hand is
   // checked against; writing them independently is what produced clashes.
   // Both rhythms first, so the left hand's can be drawn against the right
   // hand's; pitches are still written left hand first (see buildRhythm).
-  const rightParams = { rng, rules, meter, barCount, hand: 'rightHand', progression, key, silentBars: silence.rightHand, form };
+  /*
+   * Where the hand that finishes first ends its turn, when the grade gives
+   * weights for it (`texture.firstTurnEndDegrees`, Initial: the specimen
+   * book ends the first turn on the dominant in 18 of 35 tests, the
+   * supertonic 10, the subdominant 4, the mediant 2, the tonic 1).
+   */
+  const turnEnd = (silent) => (turnTonic(silent) ? null : rules.texture.firstTurnEndDegrees ?? null);
+  const rightParams = { rng, rules, meter, barCount, hand: 'rightHand', progression, key, silentBars: silence.rightHand, form, endOnTonic: turnTonic(silence.rightHand), turnEnd: turnEnd(silence.rightHand) };
   const rightRhythm = buildRhythm(rightParams);
-  const leftParams = { rng, rules, meter, barCount, hand: 'leftHand', progression, key, silentBars: silence.leftHand, form, partner: rightRhythm };
+  const leftParams = { rng, rules, meter, barCount, hand: 'leftHand', progression, key, silentBars: silence.leftHand, form, partner: rightRhythm, endOnTonic: turnTonic(silence.leftHand), turnEnd: turnEnd(silence.leftHand) };
   const leftHand = pitchStaff(buildRhythm(leftParams), leftParams);
   /*
    * Where the left hand actually settled. The right hand's working range was
@@ -255,8 +275,13 @@ function generateOnce(rulesTable, options) {
   // A lively word (Leggiero, Scherzando, Allegro…) needs a tune that moves:
   // under fewer than three notes a 4/4 bar it read like a misprint.
   const quarters = (barCount * meter.barDuration) / DIVISIONS;
-  const sluggish = rightHand.reduce((n, bar) => n + bar.events.filter((e) => !e.rest).length, 0) / quarters < 0.75
-    || rightHand.filter((bar) => bar.events.filter((e) => !e.rest).length === 1).length >= 0.4 * barCount;
+  // With hands taking turns the tune is whichever hand is playing
+  // (`texture.tuneAcrossTurns`, Initial); otherwise it is the right hand.
+  const tune = rules.texture.tuneAcrossTurns
+    ? rightHand.map((bar, i) => (bar.events.some((e) => !e.rest) ? bar : leftHand[i]))
+    : rightHand;
+  const sluggish = tune.reduce((n, bar) => n + bar.events.filter((e) => !e.rest).length, 0) / quarters < 0.75
+    || tune.filter((bar) => bar.events.filter((e) => !e.rest).length === 1).length >= 0.4 * barCount;
   const fitting = rules.tempoTerms.filter((term) => termFitsMetre(term, meter.text) && !(busy && (TEMPO_BPM[term] ?? 96) <= 66)
     && !sadInMajor(term) && !(choppy && (CANTABILE_WORDS.test(term) || /andante/i.test(term)))
     && !(sluggish && MOVING_WORDS.test(term)));
@@ -283,7 +308,7 @@ function generateOnce(rulesTable, options) {
 
 /** Weighted so the staple metres dominate and the rarities stay rare. */
 function pickTimeSignature(rng, rules, rulesTable) {
-  const weights = rulesTable.timeSignatureWeights ?? {};
+  const weights = rules.timeSignatureWeights ?? rulesTable.timeSignatureWeights ?? {};
   const candidates = rules.timeSignatures.map((text) => ({ text, weight: weights[text] ?? 1 }));
   return rng.weighted(candidates).text;
 }
@@ -317,7 +342,8 @@ function pickKey(rng, rules) {
   // Majors are more common in the specimen books than minors — Grade 8's
   // allKeys table used a slightly different weight (0.6) than the rest
   // (0.65) even before this was factored out, so that stays grade-specific.
-  return rng.chance(rules.keys.allKeys ? 0.6 : 0.65) ? rng.pick(majors) : rng.pick(minors);
+  const share = rules.keys.majorShare ?? (rules.keys.allKeys ? 0.6 : 0.65);
+  return rng.chance(share) ? rng.pick(majors) : rng.pick(minors);
 }
 
 /** Resolve a user-picked tonic/mode against this grade's own key list, so it
@@ -327,6 +353,29 @@ function resolveKey(rules, tonic, mode) {
   const found = (mode === 'major' ? major : minor).find((k) => k.tonic === tonic);
   if (!found) throw new Error(`${tonic} ${mode} is not available at grade ${rules.grade}`);
   return { tonic: found.tonic, mode, fifths: found.fifths };
+}
+
+/** Name a key the way `range.byKey` does: the tonic for major, tonic + "m" for minor ("C", "Dm", "F#m"). */
+export function keyRangeId(key) {
+  return key.mode === 'minor' ? `${key.tonic}m` : key.tonic;
+}
+
+/**
+ * This grade's rules with the hand ranges of the drawn key, when the grade
+ * gives them per key (`range.byKey`); otherwise the grade's rules object
+ * itself, untouched, so grades without byKey generate exactly as before.
+ */
+export function withKeyRange(rules, key) {
+  const own = rules.range?.byKey?.[keyRangeId(key)];
+  if (!own) return rules;
+  return {
+    ...rules,
+    range: {
+      ...rules.range,
+      rightHand: { ...rules.range.rightHand, ...own.rightHand },
+      leftHand: { ...rules.range.leftHand, ...own.leftHand },
+    },
+  };
 }
 
 function pickBarCount(rng, rules, timeSignature) {
@@ -444,7 +493,9 @@ function buildRhythm({ rng, rules, meter, barCount, hand, progression, silentBar
         maxFast,
         activity: activity * 0.4,
       }).events;
-      const endsLong = (drawn) => !drawn[drawn.length - 1].rest && drawn[drawn.length - 1].dur >= meter.barDuration / 2;
+      // Initial ends every turn on a minim, a whole 2/4 bar included (`rhythm.turnEndNote`).
+      const minEnd = rules.rhythm.turnEndNote === 'half' ? Math.max(meter.barDuration / 2, 2 * DIVISIONS) : meter.barDuration / 2;
+      const endsLong = (drawn) => !drawn[drawn.length - 1].rest && drawn[drawn.length - 1].dur >= minEnd;
       const held = noteOfDuration(meter.barDuration, rules);
       events = null;
       if (isFinalBar && isLeft && rules.texture.handsPlayTogether && held && rng.chance(0.6)) events = [held];   // Grade 1's LH is a tune, not a bass
@@ -699,7 +750,7 @@ function strikeAt(events, at, rules) {
 }
 
 /** Pitches (and chords) for a hand whose rhythm `buildRhythm` has drawn. */
-function pitchStaff(bars, { rng, rules, meter, hand, progression, key, against = null, above = null, form = [] }) {
+function pitchStaff(bars, { rng, rules, meter, hand, progression, key, against = null, above = null, form = [], endOnTonic = true, turnEnd = null }) {
   const isLeft = hand === 'leftHand';
   const range = rules.range[hand];
   const { low, high } = dstepRange(key, range.minMidi, range.maxMidi);
@@ -728,6 +779,7 @@ function pitchStaff(bars, { rng, rules, meter, hand, progression, key, against =
    * five or six times in 15% of tests. It gets the melody's treatment.
    */
   const bassLine = isLeft && rules.texture.handsPlayTogether !== false;
+  const endDegree = turnEnd && !endOnTonic ? pickTurnEnd(rng, turnEnd, bars, progression, key, window) : null;
   // The bass line is planned bar to bar first (melody.js planBassLine), then filled.
   const bassPlan = bassLine
     ? planBassLine({ rng, key, bars, progression, window, inversion: (rules.generatorHints.bassInversionPercent ?? 0) / 100, phraseEnd: halfCadenceBar(bars.length) })
@@ -757,7 +809,8 @@ function pitchStaff(bars, { rng, rules, meter, hand, progression, key, against =
       // Only the bass is chord-tone-restricted, so only the bass reads this.
       bassDecoration: bassLine ? (rules.generatorHints.bassDecorationPercent ?? 0) / 100 : 0,
       bassInversion: bassLine ? (rules.generatorHints.bassInversionPercent ?? 0) / 100 : 0,
-      endOnTonic: true,
+      endOnTonic,
+      endDegree,
       barDuration: meter.barDuration,
       // The tune is shaped as an arch across the whole test; the bass that
       // supports it should stay put underneath rather than arch with it.
@@ -1164,6 +1217,9 @@ function mergeFinalStutter(bars, rules, barDuration, octaveDrop = true) {
   const held = noteOfDuration(barDuration, rules);
   if (held) { bar.events = [{ ...sounding[sounding.length - 1], ...held, rest: false }]; return; }
   if (!octaveDrop) {
+    // A grade without ties (Initial: no whole note either) keeps the repeated
+    // note, as its specimen tests do (D3 D3, C3 C3 as two minims).
+    if (rules.rhythm.ties === false) return;
     // No single note value fills the bar (5/4, 7/8…): tie the notes into one
     // held note, as engraving does (F5q~F5w), instead of striking it again.
     const first = bar.events.indexOf(sounding[0]);
@@ -1375,10 +1431,30 @@ function fiveFingerWindow(rng, key, low, high, above = null, center = null) {
   return { low: start, high: start + 4 };
 }
 
+/**
+ * The scale degree (0 = tonic) the first hand's turn ends on, drawn from the
+ * grade's weights (1-indexed degrees, `texture.firstTurnEndDegrees`) among
+ * the tones of the chord under that note — the 7th too over V (V7) — and
+ * inside the hand's window. Null when none fits: the walk then ends freely.
+ */
+function pickTurnEnd(rng, weights, bars, progression, key, window) {
+  const playing = bars.map((bar, i) => (bar.events.some((event) => !event.rest) ? i : -1)).filter((i) => i >= 0);
+  if (!playing.length) return null;
+  const chord = lastChord(progression[playing[playing.length - 1]] ?? 'I');
+  const tones = chordDegrees(chord);
+  if (chord === 'V') tones.push(3);
+  const inWindow = new Set();
+  for (let d = window.low; d <= window.high; d++) inWindow.add(degreeOf(d, key));
+  const options = Object.entries(weights)
+    .map(([degree, weight]) => ({ value: Number(degree) - 1, weight }))
+    .filter((o) => o.weight > 0 && tones.includes(o.value) && inWindow.has(o.value));
+  return options.length ? rng.weighted(options).value : null;
+}
+
 /** Which bars each hand sits out, when the hands alternate (Grade 1). */
-function splitBarsBetweenHands(barCount, rng) {
+function splitBarsBetweenHands(barCount, rng, leadRightShare = 0.7) {
   const split = Math.ceil(barCount / 2);
-  const leadWithRight = rng.chance(0.7);
+  const leadWithRight = rng.chance(leadRightShare);
   const rightHand = new Set();
   const leftHand = new Set();
 
@@ -1419,10 +1495,11 @@ function applyExpression(rng, rules, score) {
   const opening = rng.pick(rules.dynamics.filter((d) => d !== 'ff' && d !== 'fff'));
   bars[0].directions.push({ kind: 'dynamics', value: opening });
 
-  if (score.barCount >= 4 && rng.chance(0.45)) {
-    const wedge = rng.pick(
-      rules.dynamicFeatures.filter((f) => f === 'crescendo' || f === 'diminuendo'),
-    );
+  // A grade with no hairpins (Initial: f and p only) never draws one; the
+  // check comes first only when the list is empty, so other grades draw as before.
+  const wedges = rules.dynamicFeatures.filter((f) => f === 'crescendo' || f === 'diminuendo');
+  if (wedges.length && score.barCount >= 4 && rng.chance(0.45)) {
+    const wedge = rng.pick(wedges);
     if (wedge) {
       const start = Math.floor(score.barCount / 2) - 1;
       bars[start].directions.push({ kind: 'wedge', value: wedge, type: 'start' });
@@ -1434,6 +1511,20 @@ function applyExpression(rng, rules, score) {
         bars[Math.min(start + 2, score.barCount - 1)].directions.push({ kind: 'dynamics', value: target });
       }
     }
+  }
+
+  /*
+   * Hands taking turns: the second hand may enter at the other dynamic (f then
+   * p, or p then f) — 16 of the 35 Initial specimen tests, never the same one
+   * twice. Only a grade that asks for it (`expression.turnDynamicPercent`).
+   */
+  const expression = rules.expression ?? {};
+  const turns = rules.texture.handsPlayTogether === false;
+  if (turns && expression.turnDynamicPercent && rng.chance(expression.turnDynamicPercent / 100)) {
+    const second = sounds(1, 0) ? 2 : 1;
+    const entry = score.staves[second].findIndex((bar, i) => i > 0 && bar.events.some((event) => !event.rest));
+    const other = rules.dynamics.filter((d) => d !== opening && d !== 'ff' && d !== 'fff');
+    if (entry > 0 && other.length) score.staves[second][entry].directions.push({ kind: 'dynamics', value: rng.pick(other) });
   }
 
   const canSlur = rules.articulations.includes('slur');
@@ -1488,6 +1579,25 @@ function applyExpression(rng, rules, score) {
       for (let i = 0; i < span.length; i++) slurredBars.add(`${staffNumber}:${barIndex + i}`);
     }
   };
+  // One slur over a hand's whole turn (hands taking turns): first to last note.
+  const slurTurn = (staffNumber) => {
+    const staff = score.staves[staffNumber];
+    const playing = staff.map((bar, i) => (bar.events.some((event) => !event.rest) ? i : -1)).filter((i) => i >= 0);
+    if (!playing.length) return;
+    const span = staff.slice(playing[0], playing[playing.length - 1] + 1);
+    const events = span.flatMap((bar) => bar.events);
+    const sounding = marksOf(events);
+    if (sounding.length < 3 || !unbrokenRun(events)) return;
+    const same = (a, b) => a?.pitch && b?.pitch && a.pitch.midi === b.pitch.midi;
+    while (sounding.length >= 3 && same(sounding[0], sounding[1])) sounding.shift();
+    while (sounding.length >= 3 && same(sounding[sounding.length - 1], sounding[sounding.length - 2])) sounding.pop();
+    if (sounding.length < 3 || same(sounding[0], sounding[1])) return;
+    sounding[0].slur = 'start';
+    sounding[sounding.length - 1].slur = 'stop';
+    sounding[0].slurNumber = staffNumber;
+    sounding[sounding.length - 1].slurNumber = staffNumber;
+    for (const i of playing) slurredBars.add(`${staffNumber}:${i}`);
+  };
   const addRun = (staffNumber, mark, firstBar, lastBar, types) => {
     for (let barIndex = firstBar; barIndex <= lastBar; barIndex++) {
       if (slurredBars.has(`${staffNumber}:${barIndex}`)) continue;
@@ -1512,11 +1622,18 @@ function applyExpression(rng, rules, score) {
    * old freedom; anything in between gets staccato for one phrase at most.
    */
   const character = tempoCharacter(score.tempoTerm, score.tempoBpm);
+  // A grade may weight the styles from its specimen book (`expression.styleWeights`;
+  // Initial: one hand detached + the other slurred 19, plain 16, nothing else).
+  const styleWeight = (name, fallback) => expression.styleWeights?.[name] ?? fallback;
+  // Initial's specimen book detaches one hand under any word — Gently,
+  // Andante, Slowly included (`expression.styleAnyTerm`); other grades keep
+  // the rule that a singing or slow word takes slurs or nothing.
+  const singing = character === 'cantabile' && !expression.styleAnyTerm;
   const style = rng.weighted([
-    { value: 'legato', weight: canSlur ? 5 : 0 },
-    { value: 'detached', weight: canStaccato && character !== 'cantabile' ? 2 : 0 },
-    { value: 'mixed', weight: canSlur && canStaccato && character !== 'cantabile' ? 3 : 0 },
-    { value: 'plain', weight: 1.5 },
+    { value: 'legato', weight: canSlur ? styleWeight('legato', 5) : 0 },
+    { value: 'detached', weight: canStaccato && !singing ? styleWeight('detached', 2) : 0 },
+    { value: 'mixed', weight: canSlur && canStaccato && !singing ? styleWeight('mixed', 3) : 0 },
+    { value: 'plain', weight: styleWeight('plain', 1.5) },
   ]).value;
 
   const lastBar = score.barCount - 1;
@@ -1529,6 +1646,14 @@ function applyExpression(rng, rules, score) {
     // The detached hand is dotted for a whole phrase; the other stays plain.
     const from = rng.chance(0.5) ? 0 : lastPhraseStart;
     addRun(detachedHand, 'staccato', from, Math.min(lastBar - 1, from + phraseBars - 1), ['quarter', 'eighth']);
+  } else if (style === 'mixed' && turns && expression.wholeTurn) {
+    // Hands taking turns (Initial): one slur over the legato hand's whole turn,
+    // staccato on every crotchet and quaver of the other hand's turn — how all
+    // 19 marked Initial specimen tests are written.
+    const legatoHand = detachedHand === 1 ? 2 : 1;
+    slurTurn(legatoHand);
+    const playing = score.staves[detachedHand].map((bar, i) => (bar.events.some((event) => !event.rest) ? i : -1)).filter((i) => i >= 0);
+    if (playing.length) addRun(detachedHand, 'staccato', playing[0], playing[playing.length - 1], ['quarter', 'eighth']);
   } else if (style === 'mixed') {
     // Tune slurred, accompaniment detached (or the reverse) — the classic
     // piano texture, with both hands marked consistently across the piece.

@@ -139,6 +139,7 @@ The user's complaint was that the left hand felt mechanical. An independent revi
   - a singing or slow word gets only slurs or no marks;
   - a whole-piece staccato hand only for a lively right hand;
   - a staccato accompaniment for one phrase at most.
+  - **Not at Initial** (`expression.styleAnyTerm`): its specimen book detaches one whole turn under Gently, Andante and Slowly too (#7 #18 #19 #21 #24 #34), so there any word may take "one hand staccato + the other hand slurred" (19 of 35 specimen tests; the App ~54%). Grades 1-8 keep the rule.
 - The audit's figure-repetition metric keeps held single-note bars in the sequence **with their real rhythm**, so two held bars running counts as a repeat. Two earlier versions were wrong:
   - dropping held bars made the bars on either side look adjacent;
   - giving each held bar a unique token hid real repetition (the reviewer caught this).
@@ -205,6 +206,14 @@ Ninth review round: the tune had gone still — a third of Grade 3-4 tests held 
 Tenth review round: every modulating Grade 8 test ended in the dominant, because `addModulation` transposed the whole consequent. It now transposes only the span from the consequent's restart up to the closing V-I (`keyChange.endBarIndex` = barCount - 2, where the home signature is printed again), so the piece cadences in its own key. The span moves up a fifth or down a fourth, whichever joins its neighbours more smoothly (no join wider than a sixth, no tritone or altered interval), with the tune held to its own register (no lower than middle C or its lowest elsewhere, no higher than C6 or its highest elsewhere); a span ending on vi (the home iii before V) is not used. `keyOfBar(score, barIndex)` (generate.js) is the one place that says which key a bar is in; the audit and the tests use it. Eleventh review round: a span that ended on the new key's I left the closing "V-I" sounding as I-IV in the dominant (28% of modulating tests), so the span's last bar must be the new key's IV or ii — which are the home I and vi, a pivot that hands the piece back. A down-a-fourth span may not take the bass below E2 (or its lowest elsewhere). Since most candidates now fail a check, modulation is attempted in 75% of eligible tests and lands in about 5% of Grade 8 tests; audited as "modulation hands back home", 100%.
 
 Ties: a final melody bar of one pitch that no single note value can fill (5/4, 7/8…) is tied (`mergeFinalStutter`, `event.tie` start/both/stop) instead of struck again; `playback.js`'s `layOutStaff` lengthens the note a tie continues rather than re-attacking it, and `scoring.js`'s `expectedOnsets` does not count a continuation as an attack. The left hand still takes its octave drop there.
+
+### Initial grade (grade 0, 2026-10; specimen book AB4002, all 35 tests read)
+
+Rules in `grades["0"]` take only what the specimen book shows (C major / D minor, one fixed five-finger position per key, 2/4 six bars or 4/4 four bars, hands strictly taking turns, minims/crotchets/quavers, f and p, staccato + slur). Every grade-0 behaviour is a data field that other grades leave unset, so Grades 1-8 generate byte-for-byte as before (audit identical) — there is no `grade === 0` branch:
+- `range.byKey` (per-key hand ranges, `withKeyRange`), `keys.majorShare`, `timeSignatureWeights` inside the grade, `texture.leadRightHandShare`, `rhythm.turnEndNote: "half"` (each turn ends on a minim), rests in a playing hand only if `rhythm.rests` lists them (`quarterRest` / `halfRest` capabilities), `rhythm.ties: false` keeps a final repeated note as two minims.
+- `texture.firstTurnEndsOnTonic: false`: the hand that finishes first is exempt from "Grade 1's alternating hands force endOnTonic on each hand". Instead `texture.firstTurnEndDegrees` (1-indexed weights: 5 → 18, 2 → 10, 4 → 4, 3 → 2, 1 → 1, the specimen counts) is drawn in `pickTurnEnd` among the tones of the chord under that note (plus the 7th over V) and pinned like the tonic (`endDegree` in `assignPitches`: approached via `cadenceApproach`, exempt from the repair passes). Dominant 51% in the specimen, ~50% in the App (it was 11%, mostly the supertonic).
+- `texture.tuneAcrossTurns`: the tempo word's "sluggish tune" check and the audit read whichever hand is playing that bar.
+- `expression.styleWeights` / `wholeTurn` / `turnDynamicPercent` / `styleAnyTerm`: one slur over a whole turn and staccato over the other turn, the second hand entering at the other dynamic in ~46%; no hairpins.
 
 ### Phrase structure, motif restatement and cadence
 

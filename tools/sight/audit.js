@@ -565,8 +565,14 @@ function auditRhythm(grade, tests) {
    */
   const MOVING = /allegr|vivace|vivo|presto|leggiero|scherz|giocoso|playful|lively|dancing|capriccioso|brillante|con brio|spiritoso|animato|agitato|happily|bright|jolly|cheerful/i;
   let staticTunes = 0, movingOverStatic = 0;
+  // Hands taking turns with the tune passing between them (Initial,
+  // `texture.tuneAcrossTurns`): the tune is whichever hand plays that bar —
+  // the same reading the generator's tempo-word choice uses.
+  const acrossTurns = rules.grades[String(grade)].texture.tuneAcrossTurns === true;
   for (const score of tests) {
-    const bars = score.staves[1];
+    const bars = acrossTurns
+      ? score.staves[1].map((bar, i) => (bar.events.some((e) => !e.rest) ? bar : score.staves[2][i]))
+      : score.staves[1];
     const held = bars.filter((bar) => bar.events.filter((e) => !e.rest).length === 1).length;
     const notes = bars.reduce((n, bar) => n + bar.events.filter((e) => !e.rest).length, 0);
     const quarters = bars.reduce((n, bar) => n + bar.events.reduce((d, e) => d + e.dur, 0), 0) / 24;
@@ -684,8 +690,14 @@ function auditMelody(grade, tests) {
     lines.push(`       bars restating an earlier contour ${fixed(pct(mean(restated), 1))}% `
       + '(too short / hands alternate — no period possible)');
   }
-  lines.push(check('melody', grade, 'reaches final tonic by step', `${fixed(pct(cadenceStep, cadenceTotal))}%`,
-    pct(cadenceStep, cadenceTotal) >= 85, '>=85%'));
+  // Initial's specimen book reaches its final tonic by step in only 15 of 35
+  // tests (5-1 in 9, by a third in 7): reported there, not asserted.
+  if (rules.grades[String(grade)].texture.tuneAcrossTurns) {
+    lines.push(`       reaches final tonic by step ${fixed(pct(cadenceStep, cadenceTotal))}% (Initial specimen: 15 of 35 by step — not asserted)`);
+  } else {
+    lines.push(check('melody', grade, 'reaches final tonic by step', `${fixed(pct(cadenceStep, cadenceTotal))}%`,
+      pct(cadenceStep, cadenceTotal) >= 85, '>=85%'));
+  }
   /*
    * The contour arch needs range to be audible in. A five-finger grade gives
    * the melody five notes total, where the arch's targets span barely two
@@ -1080,9 +1092,14 @@ function auditVoiceLeading(grade, tests) {
     `${fixed(pct(wideSpacing, spacingPairs), 2)}%`,
     pct(wideSpacing, spacingPairs) === 0, '0% (a hand cannot stretch past an octave)'));
 
-  lines.push(check('voiceleading', grade, 'leading note rises at the V-I arrival',
-    `${fixed(pct(leadingResolved, leadingNotes))}%`,
-    pct(leadingResolved, leadingNotes) >= 70, '>=70% (a tendency tone at its resolution)'));
+  // A five-finger position on the tonic (Initial: C-G, D-A) has no 7th at all.
+  if (leadingNotes === 0) {
+    lines.push('       leading note rises at the V-I arrival   n/a (no leading note in any test: the position holds no 7th)');
+  } else {
+    lines.push(check('voiceleading', grade, 'leading note rises at the V-I arrival',
+      `${fixed(pct(leadingResolved, leadingNotes))}%`,
+      pct(leadingResolved, leadingNotes) >= 70, '>=70% (a tendency tone at its resolution)'));
+  }
   lines.push(check('voiceleading', grade, 'leading note doubled',
     `${fixed(pct(doubledLeading, chordsWithLeading), 2)}%`,
     pct(doubledLeading, chordsWithLeading) <= 2, '<=2% of chords containing it'));

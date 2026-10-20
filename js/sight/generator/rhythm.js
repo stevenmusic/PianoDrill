@@ -47,13 +47,13 @@ const SIMPLE_CELLS = [
   { id: 'sse', beats: 1, weight: 1.0, requires: ['sixteenth'], events: [note('16th', S), note('16th', S), note('eighth', E)] },
   { id: 'de_s', beats: 1, weight: 1.5, requires: ['dottedEighth'], events: [dotted('eighth', E + S), note('16th', S)] },
   { id: 'trip', beats: 1, weight: 0.45, requires: ['triplet'], events: [triplet(), triplet(), triplet()] },
-  { id: 'qr', beats: 1, weight: 0.9, calm: true, rests: 1, requires: [], events: [rest('quarter', Q)] },
+  { id: 'qr', beats: 1, weight: 0.9, calm: true, rests: 1, requires: ['quarterRest'], events: [rest('quarter', Q)] },
   { id: 'e_er', beats: 1, weight: 0.8, rests: 1, requires: ['eighthRest'], events: [note('eighth', E), rest('eighth', E)] },
 
   { id: 'h', beats: 2, weight: 4, calm: true, requires: ['half'], events: [note('half', H)] },
   { id: 'dq_e', beats: 2, weight: 3, calm: true, requires: ['dottedQuarter'], events: [dotted('quarter', Q + E), note('eighth', E)] },
   { id: 'e_q_e', beats: 2, weight: 2, requires: ['syncopation'], events: [note('eighth', E), note('quarter', Q), note('eighth', E)] },
-  { id: 'hr', beats: 2, weight: 0.6, calm: true, rests: 1, requires: ['half'], events: [rest('half', H)] },
+  { id: 'hr', beats: 2, weight: 0.6, calm: true, rests: 1, requires: ['half', 'halfRest'], events: [rest('half', H)] },
 
   { id: 'dh', beats: 3, weight: 3, calm: true, requires: ['dottedHalf'], events: [dotted('half', H + Q)] },
   { id: 'w', beats: 4, weight: 2.5, calm: true, requires: ['whole'], events: [note('whole', W)] },
@@ -83,6 +83,10 @@ export function capabilitiesFor(gradeRules) {
   if (dottedValues.includes('quarter')) caps.add('dottedQuarter');
   if (dottedValues.includes('eighth')) caps.add('dottedEighth');
   if (rests.includes('eighth')) caps.add('eighthRest');
+  // Rests inside a playing hand are a grade's vocabulary too: Initial has none
+  // (a hand that is not playing gets whole-bar rests, which are not cells).
+  if (rests.includes('quarter')) caps.add('quarterRest');
+  if (rests.includes('half')) caps.add('halfRest');
   if (gradeRules.rhythm.triplets) caps.add('triplet');
   if (gradeRules.rhythm.syncopation) caps.add('syncopation');
   return caps;

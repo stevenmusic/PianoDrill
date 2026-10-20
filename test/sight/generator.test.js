@@ -807,3 +807,92 @@ test('the tune\'s final note is held, not struck again (tied where no single val
       `grade ${context.grade} seed ${context.seed}: final note re-struck instead of tied`));
   });
 });
+
+/*
+ * range.byKey: a grade that gives each key its own hand ranges (Initial, from
+ * its specimen book: C major C4-G4 / C3-G3, D minor D4-A4 / D3-A3) keeps every
+ * note of a test in that key's range, and only draws keys that have one.
+ */
+test('a grade with range.byKey keeps each key inside that key\'s own range', () => {
+  for (const grade of GRADES) {
+    const byKey = rules.grades[String(grade)].range.byKey;
+    if (!byKey) continue;
+    for (let i = 0; i < 300; i++) {
+      const seed = i * 2654435761 % 4294967296;
+      const score = generateTest(rules, { grade, seed });
+      const id = score.key.mode === 'minor' ? `${score.key.tonic}m` : score.key.tonic;
+      assert.ok(byKey[id], `grade ${grade} seed ${seed}: key ${id} has no byKey range`);
+      for (const [staff, hand] of [[1, 'rightHand'], [2, 'leftHand']]) {
+        const { minMidi, maxMidi } = byKey[id][hand];
+        for (const bar of score.staves[staff]) {
+          for (const event of soundingEvents(bar)) {
+            for (const pitch of [event.pitch, ...(event.chord ?? [])]) {
+              assert.ok(pitch.midi >= minMidi && pitch.midi <= maxMidi,
+                `grade ${grade} seed ${seed} ${id} ${hand}: ${pitch.midi} outside ${minMidi}-${maxMidi}`);
+            }
+          }
+        }
+      }
+    }
+  }
+});
+
+/* Initial (grade 0), checked against what all 35 specimen tests (AB4002) do. */
+test('Initial matches its specimen book: turns, values, no rests in a turn, f/p, slur + staccato only', () => {
+  if (!rules.grades['0']) return;
+  for (let i = 0; i < 300; i++) {
+    const seed = i * 7919 + 13;
+    const score = generateTest(rules, { grade: 0, seed });
+    const ctx = `Initial seed ${seed}`;
+    assert.ok(['2/4:6', '4/4:4'].includes(`${score.timeSignature.text}:${score.barCount}`), `${ctx}: ${score.timeSignature.text} ${score.barCount} bars`);
+    const plays = (staff) => score.staves[staff].map((bar, b) => (soundingEvents(bar).length ? b : -1)).filter((b) => b >= 0);
+    const rh = plays(1), lh = plays(2);
+    assert.equal(rh.filter((b) => lh.includes(b)).length, 0, `${ctx}: hands sound together`);
+    assert.equal(rh.length, score.barCount / 2, `${ctx}: right hand plays ${rh.length} bars`);
+    for (const staff of [1, 2]) {
+      for (const b of plays(staff)) {
+        const bar = score.staves[staff][b];
+        assert.ok(bar.events.every((e) => !e.rest), `${ctx}: a rest inside a playing bar`);
+        for (const e of bar.events) {
+          assert.ok(['half', 'quarter', 'eighth'].includes(e.type) && !e.dots && !e.tie && !e.timeModification, `${ctx}: ${e.type}${e.dots ? '.' : ''}`);
+          for (const a of e.articulations ?? []) assert.equal(a, 'staccato', `${ctx}: articulation ${a}`);
+        }
+      }
+      const turn = plays(staff);
+      const last = score.staves[staff][turn[turn.length - 1]].events.at(-1);
+      assert.equal(last.type, 'half', `${ctx}: staff ${staff}'s turn ends on a ${last.type}`);
+    }
+    for (const bar of [...score.staves[1], ...score.staves[2]]) {
+      for (const d of bar.directions) {
+        if (d.kind === 'dynamics') assert.ok(['p', 'f'].includes(d.value), `${ctx}: dynamic ${d.value}`);
+        assert.notEqual(d.kind, 'wedge', `${ctx}: hairpin`);
+      }
+    }
+  }
+});
+
+/*
+ * Initial's first turn ends where its specimen book ends it (mostly the
+ * dominant: 18 of 35), and any tempo word may take one hand staccato + the
+ * other slurred (the book does it under Gently, Andante and Slowly too).
+ */
+test('Initial: first turn ends mostly on the dominant; staccato under any word', () => {
+  const g0 = rules.grades['0'];
+  if (!g0?.texture.firstTurnEndDegrees) return;
+  let dominant = 0, total = 0, slowDetached = 0;
+  for (let i = 0; i < 400; i++) {
+    const seed = i * 104729 + 7;
+    const score = generateTest(rules, { grade: 0, seed });
+    const key = createKey(score.key);
+    const first = score.staves[1][0].events.some((e) => !e.rest) ? 1 : 2;
+    const notes = score.staves[first].flatMap((bar) => bar.events.filter((e) => !e.rest));
+    const degree = degreeOf(notes[notes.length - 1].dstep, key) + 1;
+    assert.ok(g0.texture.firstTurnEndDegrees[degree], `Initial seed ${seed}: first turn ends on degree ${degree}`);
+    total += 1;
+    if (degree === 5) dominant += 1;
+    const detached = [1, 2].some((s) => score.staves[s].some((bar) => bar.events.some((e) => (e.articulations ?? []).includes('staccato'))));
+    if (detached && /gently|slowly|andante|smoothly/i.test(score.tempoTerm)) slowDetached += 1;
+  }
+  assert.ok(dominant / total > 0.38 && dominant / total < 0.64, `dominant ${dominant}/${total}`);
+  assert.ok(slowDetached > 0, 'no staccato under a slow word');
+});

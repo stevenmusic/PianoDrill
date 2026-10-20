@@ -252,6 +252,10 @@ export function assignPitches({ rng, key, bars, progression, window, options, ag
     // so keeps the line stepwise. 0 restores root position as the only option.
     bassInversion = 0,
     endOnTonic = true,
+    // Where a hand that does not end on the tonic ends instead (a scale
+    // degree, 0 = tonic), or null to end wherever the walk arrives. Initial's
+    // first turn (generate.js pickTurnEnd).
+    endDegree = null,
     barDuration = 0,
     arch = 0,
     bassPlan = null,
@@ -281,7 +285,11 @@ export function assignPitches({ rng, key, bars, progression, window, options, ag
   const noteTotal = soundingEvents.length;
   // Where the closing tonic will land, worked out before the walk starts so
   // the note before it can aim to be a step away from it (see below).
-  const cadenceTonic = endOnTonic ? (melodyPlan?.[bars.length - 1] ?? nearestWithDegree(allSteps, key, 0, aim(1))) : null;
+  const cadenceTonic = endOnTonic ? (melodyPlan?.[bars.length - 1] ?? nearestWithDegree(allSteps, key, 0, aim(1)))
+    : endDegree !== null ? nearestWithDegree(allSteps, key, endDegree, aim(1)) : null;
+  // The last note is pinned (tonic, or the turn's chosen degree): the repair
+  // passes leave it where it is.
+  const pinnedFinal = endOnTonic || endDegree !== null ? finalEvent : null;
   let noteIndex = 0;
 
   let previous = null;
@@ -508,6 +516,8 @@ export function assignPitches({ rng, key, bars, progression, window, options, ag
       let chosen;
       if (isFinalNote && endOnTonic) {
         chosen = nearestWithDegree(allSteps, key, 0, previous ?? target);
+      } else if (isFinalNote && endDegree !== null) {
+        chosen = cadenceTonic;
       } else if (previous === null) {
         if (chordToneOnly && bassPlan?.[barIndex] !== undefined && offset === 0) {
           chosen = bassPlan[barIndex];
@@ -716,11 +726,11 @@ export function assignPitches({ rng, key, bars, progression, window, options, ag
     bar.events.forEach((event, i) => { if (best.notes[i]) Object.assign(event, best.notes[i]); });
   });
 
-  repairNonChordTones(bars, key, window, { against, barDuration, finalEvent: endOnTonic ? finalEvent : null });
-  const augmentedContext = { window, against, barDuration, finalEvent: endOnTonic ? finalEvent : null };
+  repairNonChordTones(bars, key, window, { against, barDuration, finalEvent: pinnedFinal });
+  const augmentedContext = { window, against, barDuration, finalEvent: pinnedFinal };
   fixAugmentedSeconds(bars, key, augmentedContext);
   // Both repairs move pitches after the vertical check, so verify once more.
-  resolveClashes({ bars, key, window, against, barDuration, finalEvent: endOnTonic ? finalEvent : null });
+  resolveClashes({ bars, key, window, against, barDuration, finalEvent: pinnedFinal, finalDegree: endOnTonic ? 0 : endDegree });
   // resolveClashes can relocate a note onto the raised 7th next to the natural
   // 6th, so the augmented-2nd rule has to be re-checked after it rather than
   // only before — it writes raised 7ths now, where it used to force naturals.
@@ -1387,7 +1397,7 @@ function pickWeighted(ctx) {
  * hand can reappear. Anything still clashing is moved to the nearest pitch
  * that does not.
  */
-function resolveClashes({ bars, key, window, against, barDuration, finalEvent }) {
+function resolveClashes({ bars, key, window, against, barDuration, finalEvent, finalDegree = 0 }) {
   if (!against?.length) return;
 
   bars.forEach((bar, barIndex) => {
@@ -1406,7 +1416,7 @@ function resolveClashes({ bars, key, window, against, barDuration, finalEvent })
       if (!wrong(event.pitch.midi)) continue;
 
       // The cadence note stays on the tonic whatever else has to move.
-      const tones = event === finalEvent ? [0] : (event.chordDegrees ?? []);
+      const tones = event === finalEvent ? [finalDegree] : (event.chordDegrees ?? []);
       const findReplacement = (requireTone) => {
         let replacement = null;
         let bestDistance = Infinity;

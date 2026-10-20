@@ -1427,13 +1427,8 @@ export function examStatus(){
    題目 q.daily = 段落種類(右手 / 左手 / 雙手只換顯示、速度不寫進自由練習的設定);進行中子項目分段鈕都不亮(ctx.setSubActive);點子項目或到檢定頁 = 暫停 */
 const hashDay = k => Number(k.replace(/-/g, "")) || 0;
 const warmName = it => it.name || questionText(it.q)[0];   // 本級項目照題目名稱(不寫考試名稱)
-/* 暖身:有選考試 → 本級項目(沒標「會了」的優先;畫面不寫考試名稱);
-   沒選 → 照手指路線的進度(routes.js 的 warmFor:五指兩手輪流 → 雙手四分 → 八分 → 一個八度音階),調 = 今天伴奏那一關的調;♩=60 */
+/* 暖身(今日練習不看考試級數;檢定頁才照級數):照手指路線的進度(routes.js 的 warmFor:五指兩手輪流 → 雙手四分 → 八分 → 一個八度音階),調 = 今天伴奏那一關的調;♩=60 */
 function warmItem(d, today){
-  if (S.exam && !S.exam.auto && SY) {
-    const all = examPool(); let pool = all.filter(q => S.mastery[q.key] !== "good"); if (!pool.length) pool = all;
-    if (pool.length) { const q = pool[hashDay(today) % pool.length]; return { exam: q.key, q: { ...q }, bpm: q.tempo.bpm, unit: q.tempo.unit }; }
-  }
   const passed = (r, id) => !!(d.lv[r + "/" + id] && d.lv[r + "/" + id].passed);
   const wid = warmFor(passed); if (!wid) return null;   // 一關都還沒過(第一天):不排暖身,直接從第 0 組開始
   const w = WARM_LEVELS[wid];
@@ -1449,6 +1444,15 @@ function levelName(s){
   return [`${join(names, "、", " 和 ")}(${uniq.join("、")})`, `${join(names, ", ", " and ")} (${uniq.join(", ")})`];
 }
 const daily = createDaily({ routes: ROUTES, load: () => S.daily, save: d => { S.daily = d; store.save(); }, extras: { warm: warmItem, vary: adaptVary } });
+/* 舊版用考試項目排的暖身(item.exam):今天的暖身還沒開始就照路線進度重排;沒有能用的暖身(第一天)→ 拿掉這一段 */
+function replanWarm(){
+  const t = daily.today(), i = t.plan.findIndex(p => p.k === "warm");
+  if (i < 0 || !(t.plan[i].item && t.plan[i].item.exam) || t.done[i] || t.sec[i] > 0 || t.i > i || (dseg && dseg.k === "warm")) return;
+  const it = warmItem(daily.data, t.date);
+  if (it) t.plan[i].item = it;
+  else { for (const k of ["plan", "done", "sec", "tries"]) if (Array.isArray(t[k])) t[k].splice(i, 1); }
+  S.daily = daily.data; store.save();
+}
 const dcard = createDailyCard({ $, daily,
   labels: { ok: ["做到了", "Did it"], again: ["還要練", "Not yet"], verb: ["彈", "play"], good: ["很好!", "Good!"],
     // 狀態一句短話(fold-280 不超過兩行);過關規則改成到了目標速度在標籤後面顯示「穩 ●○○」
@@ -1544,6 +1548,7 @@ export async function start(c){
   // 本級要求一律展開(還沒選題目時放在題目卡正下方;精簡 2026-10)
   if (S.exam) renderExam();
   renderLog();
+  replanWarm();
   dcard.render();
   window.__tech = { daily, dcard, get dseg(){ return dseg; }, dTry, dNext, dShow, get cur(){ return cur; }, get ex(){ return ex; }, get osmd(){ return osmd; },
     get state(){ return { play: !!play, starting: !!starting, bpm, show, scheduled: audio.scheduledCount(), noteXs: noteXs.length }; }, setQuestion, examQuestions, examPool, switchTab, fitTitle, S, SY };

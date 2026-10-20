@@ -121,6 +121,12 @@ export default function check(ok, FG){
   ok(acc.unlock && acc.unlock.route === "finger" && acc.unlock.passed === "PA5", "伴奏:手指路線過了 PA5 才開放");
   const none = () => false, upTo = ids => (r, id) => ids.includes(id);
   ok(warmFor(none) === null && warmFor(upTo(["P02", "P01"])) === "w0" && warmFor(upTo(["P02", "P01", "PA1", "PA2"])) === "w5s" && warmFor(upTo(["PA4", "PA5", "PE3"])) === "wsc", "暖身只用已經過的關(第一天不排暖身)");
+  {
+    // 今日練習不看考試級數:暖身只照手指路線的進度(warmFor;不會比已經過的關難);app.js 的 warmItem 不讀考試
+    const appSrc = fs.readFileSync(new URL("../../../js/tech/app.js", import.meta.url), "utf8");
+    const wsrc = (appSrc.match(/\nfunction warmItem\([\s\S]*?\n}\n/) || [""])[0];
+    ok(wsrc && /warmFor\(/.test(wsrc) && !/exam|SY\b/i.test(wsrc), "今日練習的暖身不看考試(warmItem 只用 warmFor;選了任何考試都一樣)");
+  }
   const pb1 = F0.find(l => l.id === "PB1"), v2 = pb1.vary[1], v3 = pb1.vary[2], v4 = pb1.vary[3];
   const a2 = adaptVary(v2, { level: pb1, box: 2, passed: none }), a3 = adaptVary(v3, { level: pb1, box: 3, passed: none }), a4 = adaptVary(v4, { level: pb1, box: 4, passed: none });
   ok(v2.q.rhythm && !(a2.q && a2.q.rhythm) && (a2.click || (a2.q && Object.keys(a2.q).length)), "還沒教附點:附點拿掉(什麼都不剩就用拍點模式):" + JSON.stringify(a2));

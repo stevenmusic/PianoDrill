@@ -208,7 +208,7 @@ function finish(route, list){
 const WHY_FINGER = {
   "0": C("先認得中央 C 和手指號碼,看譜才找得到鍵", "Know middle C and finger numbers to find notes from the page"),
   A: C("五指放好不移動,先把每個音彈清楚", "Keep five fingers in place and play every note clearly"),
-  B: C("4、5 指力氣最小,單獨練過,彈起來才平均", "Fingers 4 and 5 are weakest; train them alone for even notes"),
+  B: C("4、5 指最弱,單獨練才會變強", "Fingers 4 and 5 are weakest; train them alone to get stronger"),
   C: C("按住一個音再彈,手指才不會互相牽動", "Hold one note so the other fingers stop moving together"),
   D: C("3、4 指最難分開,練好以後快的音群才彈得順", "Fingers 3 and 4 are hardest to separate; fast runs need them"),
   E: C("學會拇指穿越,才能彈超過五個音的音階", "Thumb-under lets you play scales longer than five notes"),

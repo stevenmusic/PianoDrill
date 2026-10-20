@@ -30,6 +30,7 @@ export function rulesForStage(rulesTable, stage, grade) {
     rightHand: { ...g.range.rightHand, minMidi: stage.rh[0], maxMidi: stage.rh[1], label: rangeLabel(stage.rh) },
     leftHand: { ...g.range.leftHand, minMidi: stage.lh[0], maxMidi: stage.lh[1], label: rangeLabel(stage.lh) },
   };
+  delete g.range.byKey;   // 階段的範圍就是這一階的範圍:不用檢定級數「每個調」的範圍(range.byKey)蓋過去
   if (stage.cOnly) g.keys = { maxAccidentals: 0, major: [{ tonic: 'C', fifths: 0 }], minor: [] };
   table.grades[String(grade)] = g;
   return table;

@@ -12,7 +12,7 @@
 const APP = "pianodrill";
 // @app-end
 /*@precache-begin*/
-const CACHE = APP + "-app-3b8112e3";
+const CACHE = APP + "-app-a8dda8a7";
 const PRECACHE = [
   "./",
   "manifest.webmanifest",
@@ -48,7 +48,7 @@ const PRECACHE = [
   "js/shared/values.js?v=e240ea1b65",
   "js/sight/app.js?v=607f3caba4",
   "js/sight/generator/fingerprint.js?v=9c9903e4f3",
-  "js/sight/generator/generate.js?v=cc037399e3",
+  "js/sight/generator/generate.js?v=2bf5f28eae",
   "js/sight/generator/harmony.js?v=153a66fd1f",
   "js/sight/generator/index.js?v=f1aee5c391",
   "js/sight/generator/melody.js?v=90ff930860",
@@ -62,7 +62,7 @@ const PRECACHE = [
   "js/sight/reading.js?v=9b8c333e75",
   "js/sight/scoring.js?v=c1912c76a7",
   "js/sight/stage.js?v=9ca7fb07ed",
-  "js/sight/stages.js?v=dae636a755",
+  "js/sight/stages.js?v=1768d14127",
   "js/tech/app.js?v=13ef8ca885",
   "js/tech/exercise.js?v=565cfe5487",
   "js/tech/fingering.js?v=eabf64c8e1",
@@ -76,7 +76,7 @@ const PRECACHE = [
   "js/tech/theory.js?v=ed03457554",
   "data/aural.json?v=2260b8dfee",
   "data/fingerings.json?v=01a74f2d0c",
-  "data/sight-rules.json?v=ce957f0919",
+  "data/sight-rules.json?v=6d910f6dd5",
   "data/syllabus.json?v=30b5443db2"
 ];
 /*@precache-end*/

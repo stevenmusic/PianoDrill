@@ -272,17 +272,145 @@
       "range": {
         "rightHand": {
           "minMidi": 60,
-          "maxMidi": 76,
-          "label": "C4–E5",
+          "maxMidi": 79,
+          "label": "C4–G5",
           "positionSpan": 5
         },
         "leftHand": {
           "minMidi": 41,
-          "maxMidi": 57,
-          "label": "F2–A3",
+          "maxMidi": 60,
+          "label": "F2–C4",
           "positionSpan": 5
         },
-        "legerLines": 0
+        "legerLines": 1,
+        "byKey": {
+          "C": {
+            "rightHand": {
+              "minMidi": 60,
+              "maxMidi": 67,
+              "label": "C4–G4"
+            },
+            "leftHand": {
+              "minMidi": 48,
+              "maxMidi": 60,
+              "label": "C3–C4"
+            },
+            "tests": [
+              1,
+              9,
+              15,
+              18,
+              21,
+              26,
+              33,
+              42,
+              48
+            ]
+          },
+          "F": {
+            "rightHand": {
+              "minMidi": 60,
+              "maxMidi": 79,
+              "label": "C4–G5"
+            },
+            "leftHand": {
+              "minMidi": 50,
+              "maxMidi": 60,
+              "label": "D3–C4"
+            },
+            "tests": [
+              2,
+              7,
+              10,
+              14,
+              16,
+              23,
+              30,
+              34,
+              40,
+              47,
+              55
+            ]
+          },
+          "Am": {
+            "rightHand": {
+              "minMidi": 62,
+              "maxMidi": 76,
+              "label": "D4–E5"
+            },
+            "leftHand": {
+              "minMidi": 45,
+              "maxMidi": 60,
+              "label": "A2–C4"
+            },
+            "tests": [
+              3,
+              6,
+              8,
+              13,
+              17,
+              25,
+              27,
+              31,
+              36,
+              39,
+              43,
+              46,
+              49,
+              52,
+              54
+            ]
+          },
+          "Dm": {
+            "rightHand": {
+              "minMidi": 62,
+              "maxMidi": 76,
+              "label": "D4–E5"
+            },
+            "leftHand": {
+              "minMidi": 45,
+              "maxMidi": 57,
+              "label": "A2–A3"
+            },
+            "tests": [
+              4,
+              11,
+              19,
+              22,
+              24,
+              28,
+              35,
+              38,
+              41,
+              45,
+              50,
+              53
+            ]
+          },
+          "G": {
+            "rightHand": {
+              "minMidi": 62,
+              "maxMidi": 76,
+              "label": "D4–E5"
+            },
+            "leftHand": {
+              "minMidi": 50,
+              "maxMidi": 60,
+              "label": "D3–C4"
+            },
+            "tests": [
+              5,
+              12,
+              20,
+              29,
+              32,
+              37,
+              44,
+              51
+            ]
+          }
+        },
+        "byKeyComment": "每個調各自的音域 = 範例書(AB3394)那個調的最低~最高音(tests = 題號),直接用、不跟整級範圍取交集;整級範圍放寬到包含所有調"
       },
       "rhythm": {
         "noteValues": [
@@ -440,8 +568,8 @@
       "range": {
         "rightHand": {
           "minMidi": 60,
-          "maxMidi": 79,
-          "label": "C4–G5",
+          "maxMidi": 81,
+          "label": "C4–A5",
           "positionSpan": 5
         },
         "leftHand": {
@@ -450,7 +578,179 @@
           "label": "D2–C4",
           "positionSpan": 5
         },
-        "legerLines": 1
+        "legerLines": 1,
+        "byKey": {
+          "C": {
+            "rightHand": {
+              "minMidi": 60,
+              "maxMidi": 79,
+              "label": "C4–G5"
+            },
+            "leftHand": {
+              "minMidi": 48,
+              "maxMidi": 55,
+              "label": "C3–G3"
+            },
+            "tests": [
+              1,
+              3,
+              12,
+              22,
+              30,
+              36,
+              46
+            ]
+          },
+          "F": {
+            "rightHand": {
+              "minMidi": 60,
+              "maxMidi": 79,
+              "label": "C4–G5"
+            },
+            "leftHand": {
+              "minMidi": 53,
+              "maxMidi": 60,
+              "label": "F3–C4"
+            },
+            "tests": [
+              2,
+              7,
+              10,
+              20,
+              33,
+              42,
+              48,
+              54
+            ]
+          },
+          "Dm": {
+            "rightHand": {
+              "minMidi": 60,
+              "maxMidi": 81,
+              "label": "C4–A5",
+              "comment": "範例最低 C#4 是導音,下限放到同字母本位音"
+            },
+            "leftHand": {
+              "minMidi": 50,
+              "maxMidi": 57,
+              "label": "D3–A3"
+            },
+            "tests": [
+              4,
+              11,
+              24,
+              27,
+              43,
+              50,
+              51
+            ]
+          },
+          "G": {
+            "rightHand": {
+              "minMidi": 62,
+              "maxMidi": 76,
+              "label": "D4–E5"
+            },
+            "leftHand": {
+              "minMidi": 43,
+              "maxMidi": 60,
+              "label": "G2–C4"
+            },
+            "tests": [
+              5,
+              16,
+              25,
+              26,
+              31,
+              32,
+              40,
+              44,
+              52
+            ]
+          },
+          "Am": {
+            "rightHand": {
+              "minMidi": 64,
+              "maxMidi": 76,
+              "label": "E4–E5"
+            },
+            "leftHand": {
+              "minMidi": 45,
+              "maxMidi": 57,
+              "label": "A2–A3"
+            },
+            "tests": [
+              6,
+              17,
+              39,
+              47
+            ]
+          },
+          "Gm": {
+            "rightHand": {
+              "minMidi": 67,
+              "maxMidi": 81,
+              "label": "G4–A5"
+            },
+            "leftHand": {
+              "minMidi": 43,
+              "maxMidi": 60,
+              "label": "G2–C4"
+            },
+            "tests": [
+              8,
+              14,
+              19,
+              23,
+              29,
+              34,
+              38,
+              41
+            ]
+          },
+          "D": {
+            "rightHand": {
+              "minMidi": 62,
+              "maxMidi": 81,
+              "label": "D4–A5"
+            },
+            "leftHand": {
+              "minMidi": 45,
+              "maxMidi": 57,
+              "label": "A2–A3"
+            },
+            "tests": [
+              9,
+              15,
+              18,
+              28,
+              35,
+              45,
+              53
+            ]
+          },
+          "Em": {
+            "rightHand": {
+              "minMidi": 62,
+              "maxMidi": 76,
+              "label": "D4–E5",
+              "comment": "範例最低 D#4 是導音,下限放到同字母本位音"
+            },
+            "leftHand": {
+              "minMidi": 52,
+              "maxMidi": 59,
+              "label": "E3–B3"
+            },
+            "tests": [
+              13,
+              21,
+              37,
+              49,
+              55
+            ]
+          }
+        },
+        "byKeyComment": "每個調各自的音域 = 範例書(AB3395)那個調的最低~最高音(tests = 題號),直接用、不跟整級範圍取交集;整級範圍放寬到包含所有調"
       },
       "rhythm": {
         "noteValues": [

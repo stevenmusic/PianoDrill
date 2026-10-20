@@ -767,7 +767,10 @@ function pitchStaff(bars, { rng, rules, meter, hand, progression, key, against =
   // The accompaniment stays on the bass staff's side of middle C (D4 at most,
   // through Grade 5): reaching F4-G4 under a tune that sits around C5 put the
   // hands within a tone of each other at 7-14% of attacks.
-  const top = isLeft && !rules.texture.fiveFingerPosition ? Math.max(low + 6, Math.min(high, 29)) : high;
+  // Never above the hand's own range: a per-key range (range.byKey) can be
+  // narrower than the seven steps the D4 cap assumes (the grade-wide ranges
+  // never are, so for them this is the same number as before).
+  const top = isLeft && !rules.texture.fiveFingerPosition ? Math.min(high, Math.max(low + 6, Math.min(high, 29))) : high;
   const window = rules.texture.fiveFingerPosition
     ? fiveFingerWindow(rng, key, low, high, above, center === null ? null : center + 1)
     : tessituraWindow(rng, key, isLeft && top - 15 >= Math.min(10, 8 + rules.grade) ? Math.max(low, 15) : low, top, isLeft ? Math.min(10, 8 + rules.grade) : 8 + rules.grade, above, center);

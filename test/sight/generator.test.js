@@ -821,7 +821,9 @@ test('a grade with range.byKey keeps each key inside that key\'s own range', () 
       const seed = i * 2654435761 % 4294967296;
       const score = generateTest(rules, { grade, seed });
       const id = score.key.mode === 'minor' ? `${score.key.tonic}m` : score.key.tonic;
-      assert.ok(byKey[id], `grade ${grade} seed ${seed}: key ${id} has no byKey range`);
+      // A key the specimen book never uses keeps the grade-wide range; Initial
+      // only draws keys that have one (checked in its own test below).
+      if (!byKey[id]) continue;
       for (const [staff, hand] of [[1, 'rightHand'], [2, 'leftHand']]) {
         const { minMidi, maxMidi } = byKey[id][hand];
         for (const bar of score.staves[staff]) {
@@ -844,6 +846,8 @@ test('Initial matches its specimen book: turns, values, no rests in a turn, f/p,
     const seed = i * 7919 + 13;
     const score = generateTest(rules, { grade: 0, seed });
     const ctx = `Initial seed ${seed}`;
+    const id = score.key.mode === 'minor' ? `${score.key.tonic}m` : score.key.tonic;
+    assert.ok(['C', 'Dm'].includes(id), `${ctx}: key ${id} is not in the specimen book`);
     assert.ok(['2/4:6', '4/4:4'].includes(`${score.timeSignature.text}:${score.barCount}`), `${ctx}: ${score.timeSignature.text} ${score.barCount} bars`);
     const plays = (staff) => score.staves[staff].map((bar, b) => (soundingEvents(bar).length ? b : -1)).filter((b) => b >= 0);
     const rh = plays(1), lh = plays(2);

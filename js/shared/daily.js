@@ -11,7 +11,7 @@
    - 同一個速度連續 4 次不穩 → 建議回上一關(只建議,不自動退)
    - 一次嘗試的結果:鼓墊 / 評分 score ≥ PASS = 穩、≥ NEAR = 差一點、其他 = 太快了;自評 self "ok" = 穩、"again" = 差一點
    ── 過了以後:間隔複習 + 變化 ──
-   - 過關 → 複習盒 1,隔天複習;穩 → 下一盒(間隔 REVIEW_GAPS 1、3、7、14、30 天,盒 6 之後每 60 天一次);不穩 → 退回上一盒(上一個變化)、隔天再來
+   - 過關 → 複習盒 1,隔天複習(關卡 review: false = 不放進複習盒,例如第 0 組的基礎關);穩 → 下一盒(間隔 REVIEW_GAPS 1、3、7、14、30 天,盒 6 之後每 60 天一次);不穩 → 退回上一盒(上一個變化)、隔天再來
    - 每一盒用不同的變化練(vary[盒 − 1]):預設 DEFAULT_VARY = 原樣 → 拍點只響 2、4 拍 → 只響第 1 拍 → 中途消失 2 小節 → 中途消失 + 最快;
      各 App 的關卡資料可以換成自己的(鋼琴:附點、斷奏、強弱、換調;q = 題目要改的欄位,name = 顯示名稱 [中, 英])
    - 變化只用學過的(系統化規則):extras.vary(v, { r, level, box, passed(r, id) }) → 這一次真的用的變化(還沒學的拿掉、退回拍點模式;各 App 自己判斷)
@@ -90,7 +90,7 @@ export function cleanDaily(raw, routes, today = null){
     const bpm = int(v.bpm, MIN_BPM, MAX_BPM, null); if (bpm != null) e.bpm = bpm;
     const best = int(v.best, MIN_BPM, MAX_BPM, null); if (best != null) e.best = best;
     const lastBpm = int(v.lastBpm, MIN_BPM, MAX_BPM, null); if (lastBpm != null) e.lastBpm = lastBpm;
-    if (isDay(v.passed)) { e.passed = v.passed; e.box = int(v.box, 1, MAX_BOX, 1); e.due = isDay(v.due) ? v.due : addDays(v.passed, 1); }
+    if (isDay(v.passed)) { e.passed = v.passed; if (L.review !== false) { e.box = int(v.box, 1, MAX_BOX, 1); e.due = isDay(v.due) ? v.due : addDays(v.passed, 1); } }
     if (isDay(v.rev)) e.rev = v.rev;
     d.lv[k] = e;
   }
@@ -147,7 +147,7 @@ export function buildPlan({ routes, daily: d, today, extras = {} }){
 
 /* ══ 引擎 ══
    createDaily({ routes, load, save, now, extras })
-   - routes = [{ id, name: [中, 英], unlock?, up?, down?, need?, vary?, levels: [{ id, name, start, target, up?, down?, need?, click?, vary?, check? }] }]
+   - routes = [{ id, name: [中, 英], unlock?, up?, down?, need?, vary?, levels: [{ id, name, start, target, up?, down?, need?, click?, vary?, check?, review? }] }]
    - load() → 存的原始資料(各模組 localStorage 的 daily);save(d) 存回去
    - extras.warm(d, today) → 暖身項目(各 App 自己挑;沒有就不排暖身) */
 export function createDaily({ routes, load = () => null, save = () => {}, now = () => new Date(), extras = {} }){
@@ -209,6 +209,7 @@ export function createDaily({ routes, load = () => null, save = () => {}, now = 
     else {
       out.bpm = bpmFor(s.r, s.lv); out.click = L.click || "every"; out.target = L.target; out.need = cfg(R, L, "need", NEED);
       const e = d.lv[keyOf(s.r, s.lv)] || {}; out.streak = e.streak || 0;
+      out.suggest = (e.same || 0) >= SUGGEST_AFTER;   // 同一速度連續不穩:畫面才放「回上一關」
       out.welcome = t.welcome && !t.tries[t.i];
     }
     return out;
@@ -258,7 +259,7 @@ export function createDaily({ routes, load = () => null, save = () => {}, now = 
       // 快速通道:這一關一次失手都沒有
       d.prog[s.r].fast = e.miss === 0;
       e.streak = 0;
-      if (!e.passed) { e.passed = day; e.box = 1; e.due = addDays(day, 1); }
+      if (!e.passed) { e.passed = day; if (L.review !== false) { e.box = 1; e.due = addDays(day, 1); } }
       if (!t.passed.includes(k)) t.passed.push(k);
       const i = R.levels.findIndex(l => l.id === s.lv);
       if (d.prog[s.r].at === s.lv) {
@@ -305,7 +306,7 @@ export function createDaily({ routes, load = () => null, save = () => {}, now = 
       add.push({ k: "route", r: R.id, lv: d.prog[R.id].at, sec: SEG_SEC.route });
     }
     let pick = null;
-    for (const [k, e] of Object.entries(d.lv)) if (e.passed && (!pick || e.due < pick.e.due)) pick = { k, e };
+    for (const [k, e] of Object.entries(d.lv)) if (e.passed && e.due && (!pick || e.due < pick.e.due)) pick = { k, e };
     if (pick) { const [r, lv] = pick.k.split("/"); add.push({ k: "review", r, lv, box: pick.e.box, sec: SEG_SEC.review, extra: true }); }
     if (!add.length) return null;
     const first = t.plan.length;

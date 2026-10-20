@@ -18,7 +18,7 @@ export const DRILL_NAME = {
   pulse: ["跟著打拍子", "Clap the pulse"], meter: ["幾拍子", "Time"], rhythm: ["拍出節奏", "Clap the rhythm"],
   echo: ["聽完彈回來", "Echo / memory"], dyn: ["力度", "Dynamics"], artic: ["奏法", "Articulation"],
   tempo: ["速度變化", "Tempo"], tonality: ["大調/小調", "Major/minor"], change: ["找出改變", "Spot the change"],
-  highlow: ["最高/最低音", "Highest/lowest"], lastfirst: ["最後一音高或低", "Last vs first"], interval: ["音程", "Interval"],
+  highlow: ["最高/最低音", "Highest/lowest"], lastfirst: ["最後一個音:高還是低", "Last vs first"], interval: ["音程", "Interval"],
   cadence: ["終止式", "Cadence"], chords: ["和弦", "Chords"], modulation: ["轉調", "Modulation"], tonchange: ["調性改變", "Tonality change"]
 };
 export const drillName = t => tr(...DRILL_NAME[t]);

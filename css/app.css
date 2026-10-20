@@ -860,7 +860,7 @@ body.view-exam #t-dailyCard,body.view-exam #t-dailyStep{display:none !important}
 .daily-list li.done .daily-mark{background:var(--gold-fill);border-color:var(--gold-fill)}
 .daily-list li[aria-current="step"] .daily-mark{border:2px solid var(--gold)}
 .daily-k{flex:none;min-width:3.4em;font-weight:700;color:var(--gold)}
-.daily-t{flex:1 1 0;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--ivory)}
+.daily-t{flex:1 1 0;min-width:0;overflow-wrap:anywhere;line-height:1.35;color:var(--ivory)}   /* 關卡名放不下就換到第二行(不切成「…」) */
 .daily-list li.locked{color:var(--muted-bright)}
 .daily-list li.locked .daily-k,.daily-list li.locked .daily-t{color:var(--muted-bright);font-weight:500}
 .daily-list li.locked .daily-mark{border-style:dashed}
@@ -899,7 +899,7 @@ body.view-exam #t-dailyCard,body.view-exam #t-dailyStep{display:none !important}
 .daily-acts .btn{min-height:44px;min-width:64px;height:auto;white-space:normal}
 @media (orientation:landscape) and (max-height:500px){
   #mod-tech .quiz .daily-step{grid-column:1 / -1;grid-row:3}
-  .daily-list{grid-template-columns:repeat(2,minmax(0,1fr));column-gap:14px;margin-bottom:8px}
+  .daily-list{margin-bottom:8px}   /* 一段一行(兩欄讀起來順序會亂) */
   .daily-btn{min-height:44px}
 }
 
@@ -962,3 +962,32 @@ body.view-exam #t-dailyCard,body.view-exam #t-dailyStep{display:none !important}
 .chord-table i{font-style:normal;color:var(--muted)}
 /* 折疊機:段落按鈕列(App 的文字鈕 + 還要練 + 主要按鈕)排得進一行 */
 @media (max-width:340px){ .daily-acts{gap:4px} .daily-acts .btn{min-width:0;padding:0 8px} .daily-acts .text-btn{padding-left:0;padding-right:0} }
+
+/* ══ 第三輪審查(2026-10;兩個 App 一樣)══ */
+/* 常用的按鈕點擊區域 ≥ 44:級數、系統、熟練度、循環播放 / 只聽拍點、標示左右手 / 音名、難度回饋、檢定頁的「下一題 / 下一項」 */
+.exam-pick #systemSeg button,.exam-grades button{min-height:44px}
+.mbtn{min-height:44px}
+.play-opts .chip{min-height:44px}
+.diff-fb .chip{min-height:44px}
+#t-rlBtn,#t-namesBtn,#s-names{min-height:44px;height:auto}
+#t-nextBtn{min-height:44px;height:auto}
+/* 手機橫式:主要按鈕(開始 / 停止模擬考)、譜卡的手的切換、考試的系統與級數不壓到 28 */
+@media (max-height:420px), (orientation:landscape) and (max-height:500px){
+  #t-mockBtn,#s-mockBtn,#e-mockBtn,#t-mockClose,#s-mockClose,#e-mockClose{min-height:44px;height:auto}
+  #t-scoreCard .seg button{min-height:44px}
+  .exam-pick .seg button,.exam-pick #systemSeg button{min-height:44px}
+  /* 題目卡的白話說明放回大標題(那一行)下面 */
+  #mod-tech .quiz .q-intro{grid-column:1 / -1;grid-row:3;margin-top:0}
+}
+/* 模擬考(檢定頁)的標籤列:放不下時熟練度換到下一行,標籤不被蓋住、不縮成看不到 */
+@media (max-width:600px){
+  body.view-exam .q-row:has(> .mastery){flex-wrap:wrap}
+  body.view-exam .q-row:has(> .mastery) .q-tags{flex:1 1 auto}
+  body.view-exam .q-row:has(> .mastery) .mastery{margin-left:auto}
+}
+/* 平板、桌機:今日練習那一行(子項目列的位置)跟下面卡片的內容對齊(main 900 − 內距 28;卡片內距 16 + 框 1) */
+@media (min-width:601px) and (min-height:501px){
+  .subnav .sub-bar{width:min(872px, 100%);padding:0 17px}
+}
+@media (min-width:1100px){ .subnav .sub-bar{width:min(1100px, 100%)} }   /* 寬畫面:今日練習進行中是一欄置中 1100(.mod.one-col) */
+

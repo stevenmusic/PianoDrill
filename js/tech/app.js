@@ -149,7 +149,7 @@ const PICKERS = {
       ["key", tr("調", "Key"), p.moreKeys || p.key !== "C" ? keyOpts(MAJ_KEYS).concat([["__less", tr("收起", "Less")]])
         : [["C", tr("C(原譜)", "C (orig.)")], ["__more", tr("其他調…", "Other keys…")]]],
       ["hands", tr("手", "Hands"), HANDS()],
-      ["rhythm", tr("節奏", "Rhythm"), [["even", tr("原譜", "Even")], ["dotted", tr("附點", "Dotted")], ["reverse", tr("反附點", "Rev. dotted")]]],
+      ["rhythm", tr("節奏", "Rhythm"), [["even", tr("平均", "Even")], ["dotted", tr("附點", "Dotted")], ["reverse", tr("反附點", "Rev. dotted")]]],
       // 拍點:♩ = 每 4 個音一拍(原譜的速度記法)、♪ = 每 2 個音一拍(比較好數;樂譜不變,速度數字 ×2)
       PULSE()   // 跟音階、琶音同一個順序(♪ 每 2 音 → ♩ 每 4 音);哈農預設仍是 ♩
     ],
@@ -1110,6 +1110,7 @@ function setBpm(v, fromUser){
   }
   syncTempoUI();
   retempo();
+  if (dseg) syncReady();
 }
 /* − / +:點一下 ±1;按住 0.4 秒後開始連續增減,越按越快(每次 ±1 → 0.6 秒後 ±2 → 1.6 秒後 ±5) */
 function holdRepeat(btn, dir){
@@ -1178,11 +1179,11 @@ function preloadSamples(){
     try {
       setRing(null);   // 不在這裡建立 AudioContext(要等使用者的手勢,見 audio.js 的 dec())
       const notes = playbackEvents(ex, cur, "both").map(e => ({ midi: e.midi, vel: e.vel || demoVel() }));
-      setMsg("loadingMsg", () => tr("載入鋼琴取樣…", "Loading piano samples…"));
+      setMsg("loadingMsg", () => tr("載入鋼琴聲音…", "Loading piano…"));
       await audio.loadPianoFor(notes, 6, p => {
         if (preloadJob !== job) return;
         setRing(p * 0.95);
-        setMsg("loadingMsg", () => tr("載入鋼琴取樣… ", "Loading piano samples… ") + Math.round(p * 100) + "%");
+        setMsg("loadingMsg", () => tr("載入鋼琴聲音… ", "Loading piano… ") + Math.round(p * 100) + "%");
       });
       await audio.loadClick().catch(() => {});
       samplesReady = true;
@@ -1191,7 +1192,7 @@ function preloadSamples(){
     } catch (e) {
       if (preloadJob === job) {
         preloadJob = null;   // 失敗的不留著:下次按播放重新載
-        setMsg("loadingMsg", () => tr("鋼琴取樣載入失敗,再按一次播放重試(需要網路,之後會存在裝置上)", "Could not load piano samples — tap play to retry (needs internet once; then cached)"));
+        setMsg("loadingMsg", () => tr("鋼琴聲音載入失敗,再按一次播放重試(需要網路,之後會存在裝置上)", "Could not load the piano — tap play to retry (needs internet once; then cached)"));
       }
       return false;
     }
@@ -1242,6 +1243,7 @@ function retempo(){
     const beat = (from - play.t0) / play.beatSec;           // 新速度從這一拍接下去
     audio.cancelFrom(from);
     play.t0 = from - beat * beatSec; play.beatSec = beatSec; play.clickSec = clickSec;
+    play.mark = Math.max(0, beat); play.heard = false;   // 換了速度:要用新的速度再播 2 小節
     schedulePlay(play, from);
   }, 60);
 }
@@ -1307,7 +1309,8 @@ async function startPlaybackInner(){
   const velAt = beat => cur.dynamic === "cresc-dim" ? Math.round(42 + 50 * (1 - Math.abs(2 * beat / endBeat - 1))) : demoVel();
   const byHand = { rh: [], lh: [] };
   events.forEach(e => byHand[e.hand].push(e));
-  play = { t0, beatSec, clickSec, endBeat, raf: 0, byHand, stacc, velAt, count, pre, click: dp ? dp.click : "every", solo: !!(dp && dp.solo), period };
+  play = { t0, beatSec, clickSec, endBeat, raf: 0, byHand, stacc, velAt, count, pre, click: dp ? dp.click : "every", solo: !!(dp && dp.solo), period,
+    mark: 0, heard: false, heardQ: 2 * count * clickSec / beatSec };   // 今日練習:預備拍之後播過 2 小節,「做到了」才能按
   schedulePlay(play, -Infinity);
   revealScore();
   $("playLabel").textContent = T("stop");
@@ -1317,6 +1320,7 @@ async function startPlaybackInner(){
     const now = audio.audioNow();
     const beat = (now - play.t0) / play.beatSec;
     showBeat((now - play.t0) / play.clickSec);
+    if (dp && !play.heard && beat - play.mark >= play.heardQ) { play.heard = true; heardAt = heardKey(); syncReady(); }
     movePlayline(Math.max(0, play.period ? beat % play.period : beat), true);
     if (beat > play.endBeat + 0.5) {
       const sec = play.endBeat * play.beatSec; stopPlayback(true, !!(loopOn() && cur)); logPractice(sec);
@@ -1428,7 +1432,7 @@ function levelName(s){
 }
 const daily = createDaily({ routes: ROUTES, load: () => S.daily, save: d => { S.daily = d; store.save(); }, extras: { warm: warmItem, vary: adaptVary } });
 const dcard = createDailyCard({ $, daily,
-  labels: { ok: ["做到了", "Did it"], again: ["還要練", "Not yet"],
+  labels: { ok: ["做到了", "Did it"], again: ["還要練", "Not yet"], verb: ["彈", "play"], good: ["很好!", "Good!"],
     // 狀態一句短話(fold-280 不超過兩行);過關規則改成到了目標速度在標籤後面顯示「穩 ●○○」
     hint: ["▶ 聽示範,跟著拍點彈;做到了按 ✓", "▶ Demo; play along, then ✓"],
     solo: ["▶ 只有拍點:自己彈,做到了按 ✓", "Click only: play it, then ✓"] },
@@ -1439,6 +1443,10 @@ const dcard = createDailyCard({ $, daily,
   barHost: el => { if (ctx && ctx.subBar) ctx.subBar(el, "tech"); },   // 進行中:子項目列換成今日練習的那一行
   onOk: () => dTry("ok"), onAgain: () => dTry("again"),
   onBack: () => { stopPlayback(); if (daily.back()) dShow(daily.seg()); } });
+/* 「做到了」要先用現在的速度播過一輪(預備拍之後 2 小節)才能按:同一段、同一關、同一個速度 */
+let heardAt = null;
+const heardKey = () => (dseg ? `${dseg.i}/${dseg.lv || ""}/${bpm}` : null);
+function syncReady(){ dcard.ready(!!dseg && heardAt === heardKey()); }
 /* 這一段的播放:4 小節(中途消失 = 8 小節);拍點模式不是每拍 = 只有拍點 */
 function dailyPlay(){
   if (!dseg || !cur || !cur.daily) return null;
@@ -1465,6 +1473,7 @@ function dShow(s, status = null){
   if (ctx && ctx.setSubActive) ctx.setSubActive(false, "tech");
   ROOT.querySelectorAll(".pane").forEach(p => { p.hidden = true; });
   setQuestion(dailyQ(s), "daily");
+  syncReady();
   dcard.render(); dcard.renderStep(s, { status });
 }
 /* 離開段落(暫停或今天練完):回到一般畫面 */
@@ -1479,6 +1488,7 @@ function dExit(){
 /* 自評一次:做到了 / 還要練 */
 function dTry(self){
   if (!dseg || dseg.k === "warm") return;
+  if (self === "ok" && !dcard.isReady) return;   // 還沒播過:不算嘗試
   stopPlayback();
   const s = dseg, res = daily.attempt({ bpm, self });
   const txt = () => dcard.resultText(res, s);
@@ -1487,6 +1497,7 @@ function dTry(self){
   dseg = daily.seg();
   if (s.k === "route") { bpm = res.nextBpm; cur.tempo.bpm = bpm; syncTempoUI(); }
   renderQText(cur, "daily"); fitTitle();
+  syncReady();
   dcard.renderStep(dseg, { status: txt, passedDone: res.passed || s.k === "review" });
   dcard.render();
 }

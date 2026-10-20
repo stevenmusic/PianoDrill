@@ -483,12 +483,12 @@ function preloadSamples(){
   job.p = (async () => {
     try {
       setRing(null);
-      await audio.loadPianoFor(neededNotes(cur), 4, p => { if (preloadJob === job) { setRing(p * 0.95); setMsg("loadingMsg", () => tr("載入鋼琴取樣… ", "Loading piano… ") + Math.round(p * 100) + "%"); } });
+      await audio.loadPianoFor(neededNotes(cur), 4, p => { if (preloadJob === job) { setRing(p * 0.95); setMsg("loadingMsg", () => tr("載入鋼琴聲音… ", "Loading piano… ") + Math.round(p * 100) + "%"); } });
       if (cur.play.clicks && cur.play.clicks.length) await audio.loadClick().catch(() => {});
       if (preloadJob === job) { setRing(1); setMsg("loadingMsg", null); }
       return true;
     } catch (e) {
-      if (preloadJob === job) { preloadJob = null; setMsg("loadingMsg", () => tr("鋼琴取樣載入失敗,再按一次播放重試(第一次需要網路)", "Could not load piano samples — tap play to retry (needs internet once)")); }
+      if (preloadJob === job) { preloadJob = null; setMsg("loadingMsg", () => tr("鋼琴聲音載入失敗,再按一次播放重試(第一次需要網路)", "Could not load the piano — tap play to retry (needs internet once)")); }
       return false;
     }
   })();

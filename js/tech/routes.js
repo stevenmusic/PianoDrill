@@ -1,6 +1,6 @@
 /* 今日練習的路線與關卡(PianoDrill;引擎 js/shared/daily.js、卡片 js/shared/dailycard.js、譜與指法 js/tech/patterns.js)。
    兩條路線:手指(33 關:第 0 組 2 + A–G 31)、左手伴奏(17 關;手指路線過了 PA5(A 組的基礎關)才開放)。
-   第 0 組(初學基礎,系統化 2026-10):「找到中央 C」(配手位圖)→「手指號碼」(看數字按對手指,右手四分);快速通道照舊可以快速跳過。全部是 App 編排的練習(不是哪一本教材的譜),速度、重點都是練習設定。
+   第 0 組(初學基礎,系統化 2026-10):「找到中央 C」(配手位圖)→「手指號碼」(看數字按對手指,右手四分);快速通道照舊可以快速跳過;練的是找位置、不是速度:start = target、need: 2、review: false(不放進複習盒)。全部是 App 編排的練習(不是哪一本教材的譜),速度、重點都是練習設定。
    原則(使用者 2026-10 確認):主要客群是完全初學 → 第 1 關從最基本;時值由慢到快(四分 → 八分 → 後面才十六分);熟手靠快速通道。
    start / target = 起始 / 目標速度(♩,一拍一下拍點);check = 檢查重點(2–3 項,看得見、聽得到的事)。
    names = 這一組預設顯示音名(手指 A–C 組、伴奏 A–B 組;之後難度上升才預設關;使用者切過就照他的,每條路線記住)。
@@ -60,9 +60,9 @@ const C = (zh, en) => [zh, en];
 /* ══ 手指路線(33 關)══ */
 const FINGER = [
   // 0 初學基礎(右手、四分音符;C 位置)
-  { id: "P02", g: "0", name: C("找到中央 C", "Find middle C"), hands: "RH", value: "q", rh: "1 1 1 1 | 1 - - -", start: 50, target: 76,
+  { id: "P02", g: "0", name: C("找到中央 C", "Find middle C"), hands: "RH", value: "q", rh: "1 1 1 1 | 1 - - -", start: 50, target: 50, need: 2, review: false,
     check: [C("中央 C:兩個黑鍵左邊的白鍵", "Middle C: the white key left of the two black keys"), C("右手大拇指放在中央 C", "Right thumb on middle C")] },
-  { id: "P01", g: "0", name: C("手指號碼", "Finger numbers"), hands: "RH", value: "q", rh: "1 3 2 4 | 5 3 4 2", start: 50, target: 76,
+  { id: "P01", g: "0", name: C("手指號碼", "Finger numbers"), hands: "RH", value: "q", rh: "1 3 2 4 | 5 3 4 2", start: 50, target: 50, need: 2, review: false,
     check: [C("先看手指號碼再按", "Read the finger number first"), C("大拇指 = 1、小指 = 5", "Thumb = 1, little finger = 5")] },
   // A 五指位置(四分音符 → 最後一關八分音符)
   { id: "PA1", g: "A", name: C("右手五指上下", "RH: five fingers up and down"), hands: "RH", value: "q", rh: "1 2 3 4 | 5 4 3 2", start: 60, target: 100,
@@ -118,12 +118,12 @@ const FINGER = [
   { id: "PF1", g: "F", name: C("左手長音、右手動", "LH holds, RH moves"), hands: "HT", value: "e", lh: "@w 5 | 5", rh: x2("1 2 3 4 5 4 3 2"), start: 56, target: 92,
     check: [C("左手按到小節結束", "LH holds to the barline"), C("右手每個音一樣大", "RH notes even")] },
   { id: "PF2", g: "F", name: C("左手四分、右手八分", "LH quarters, RH eighths"), hands: "HT", value: "e", lh: "@q 5 3 1 3 | 5 3 1 3", rh: x2("1 2 3 4 5 4 3 2"), start: 56, target: 92,
-    check: [C("左手每下對齊右手的單數音", "LH lines up with RH notes 1, 3, 5, 7"), C("不要越彈越快", "Don't rush")] },
+    check: [C("左手跟右手第 1、3、5、7 個音一起", "LH with RH notes 1, 3, 5, 7"), C("不要越彈越快", "Don't rush")] },
   { id: "PF3", g: "F", name: C("左手斷奏、右手圓滑", "LH staccato, RH legato"), hands: "HT", value: "e", lh: "@q 5. 1. 5. 1. | 5. 1. 5. 1.", rh: x2("1( 2 3 4 5 4 3 2)"), start: 56, target: 92,
     check: [C("左手短", "LH short"), C("右手連著、不斷掉", "RH connected")] },
   { id: "PF4", g: "F", name: C("右手大聲、左手小聲", "RH loud, LH soft"), hands: "HT", value: "q", dyn: { rh: "f", lh: "p" }, rh: "1 2 3 4 | @h 5 3", lh: "@w 5+1 | 5+1", start: 60, target: 96,
     check: [C("右手唱出來", "RH sings out"), C("左手像背景", "LH in the background")] },
-  { id: "PF5", g: "F", name: C("右手在反拍", "RH on the off-beats"), hands: "HT", value: "e", lh: "@q 5 1 5 1 | 5 1 5 1", rh: "r 3 r 3 r 4 r 4 | r 5 r 5 r 4 r 4", start: 50, target: 84,
+  { id: "PF5", g: "F", name: C("右手在 &", "RH on the &"), hands: "HT", value: "e", lh: "@q 5 1 5 1 | 5 1 5 1", rh: "r 3 r 3 r 4 r 4 | r 5 r 5 r 4 r 4", start: 50, target: 84,
     check: [C("右手在 &(唸 and = 拍子的後半)", "RH on the & (second half of the beat)"), C("不被左手拉走", "Don't follow the LH")] },
   // 兩對三移到之後再做(審查定案 2026-10);換成兩手輪流接句
   { id: "PF6", g: "F", name: C("兩手輪流接句(右手接左手)", "Pass the phrase, LH to RH"), hands: "HT", value: "e", lh: "5 4 3 2 1 2 3 4 | R", rh: "R | 1 2 3 4 5 4 3 2", start: 56, target: 92,

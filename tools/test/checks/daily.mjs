@@ -137,7 +137,7 @@ export default function check(ok){
   r = d.attempt({ bpm: 76, self: "ok" }); ok(r.nextBpm === 80, "穩 → 上一格(76 → 80):" + r.nextBpm);
   // 建議回上一關:同一個速度連續 4 次不穩
   for (let i = 0; i < 4; i++) r = d.attempt({ bpm: 70, self: "again" });
-  ok(r.suggestBack, "同一個速度連續 4 次不穩 → 建議回上一關");
+  ok(r.suggestBack && d.seg().suggest, "同一個速度連續 4 次不穩 → 建議回上一關(seg().suggest:畫面才放「回上一關」)");
   // 最慢 = 起始速度的下一格(60 → 58)
   for (let i = 0; i < 12; i++) r = d.attempt({ bpm: Math.max(40, r.nextBpm), score: 0 });
   ok(r.nextBpm === 58, "最慢 = 起始速度的下一格:" + r.nextBpm);
@@ -195,6 +195,14 @@ export default function check(ok){
   const od = createDaily({ routes: offRoutes, load: () => null, now }); od.begin();
   r = od.attempt({ bpm: 66, self: "ok" }); const r2 = od.attempt({ bpm: 69, self: "ok" });
   ok(r.nextBpm === 69 && r2.nextBpm === 70, "目標 70 不在刻度上:66 → 69 → 70:" + [r.nextBpm, r2.nextBpm]);
+  // 第 0 組(基礎關):start = target、need 2、review: false → 過了不放進複習盒(不排複習、加練也不挑)
+  const zRoutes = [{ id: "z", name: ["丁", "D"], levels: [{ id: "Z0", name: ["零", "Zero"], start: 60, target: 60, need: 2, review: false }, { id: "Z1", name: ["一", "One"], start: 60, target: 63 }] }];
+  const zd = createDaily({ routes: zRoutes, load: () => null, now }); zd.begin();
+  r = zd.attempt({ bpm: 60, self: "ok" }); ok(!r.passed && r.streak === 1, "基礎關:起始 = 目標,第 1 次穩還沒過");
+  r = zd.attempt({ bpm: 60, self: "ok" }); ok(r.passed && !zd.data.lv["z/Z0"].due && !zd.data.lv["z/Z0"].box, "基礎關:連續 2 次穩過關、不放進複習盒:" + JSON.stringify(zd.data.lv["z/Z0"]));
+  ok(!buildPlan({ routes: zRoutes, daily: zd.data, today: addDays(zd.today().date, 3), extras: {} }).some(p => p.k === "review"), "基礎關:之後不排複習");
+  const zx = cleanDaily({ lv: { "z/Z0": { passed: "2026-10-01", box: 2, due: "2026-10-05" } } }, zRoutes);
+  ok(zx.lv["z/Z0"].passed && !zx.lv["z/Z0"].due, "基礎關:舊版存的複習盒讀進來拿掉");
 }
 
 if (process.argv[1] && import.meta.url.endsWith(process.argv[1].split("/").pop())) {

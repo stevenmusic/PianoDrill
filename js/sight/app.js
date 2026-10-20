@@ -195,9 +195,11 @@ function staffZoom() {
  * change how many bars fit on a line.
  */
 function layoutShapeKey(score) {
-  // 顯示音名的譜比較高(每個譜表下面多一排字),排法與大小分開記
-  return `${score.grade}:${score.barCount}:${timeSignatureClass(score.timeSignature)}:${layoutWidthClass()}${namesShown() ? ':n' : ''}`;
+  // 顯示音名的譜比較高(每個譜表下面多一排字),排法與大小分開記;手機每行 2 小節(twoPerLine)也分開記
+  return `${score.grade}:${score.barCount}:${timeSignatureClass(score.timeSignature)}:${layoutWidthClass()}${namesShown() ? ':n' : ''}${twoPerLine() ? ':2' : ''}`;
 }
+/* 視奏分頁(自由練習)手機寬度(< 500):難度 1–2 每行 2 小節(字大、初學者看得清楚;檢定頁照考卷排法) */
+const twoPerLine = () => mode !== 'exam' && !!current && !!current.free && !readOn() && SS.stage[hand] <= 2 && innerWidth < 500 && current.score.barCount >= 2;
 
 let rules = null;
 let osmd = null;
@@ -1345,7 +1347,7 @@ async function fitScore() {
   }
 
   let chosen = null;
-  for (const n of perLineCandidates(totalBars)) {
+  for (const n of twoPerLine() ? [2] : perLineCandidates(totalBars)) {
     // 寬度:縮到 n 小節放得進一行為止(二分搜尋;縮小只會更放得下)
     const fits = (z) => matchesRequestedLayout(renderAt(n, z).layout, n, totalBars);
     if (!fits(MIN_ZOOM)) continue;               // 最小還放不下(音太密)→ 每行少一小節

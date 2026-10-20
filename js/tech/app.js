@@ -330,6 +330,7 @@ function finishMock(){
   showEmpty(); syncExamButtons();
   emptyTitle = () => tr(`模擬考結束:${n} 項中 會了 ${good}、再練 ${weak}`, `Mock done: ${good} got it, ${weak} need work (of ${n})`);
   pairText($("qTitle"), emptyTitle);
+  syncQuizTop();
 }
 $("drawBtn").onclick = () => { const q = drawQuestion(examPool(), S.mastery, lastKey); if (q) setQuestion(q, "exam"); };
 $("nextBtn").onclick = () => {
@@ -393,11 +394,12 @@ export function leave(){ active = false; stopPlayback(); }
 /* 題目上方那一列(官方大綱標記、抽考範圍、抽考按鈕)沒東西就整列收掉;樂譜還沒畫就留一塊放提示字。用 JS 判斷,不靠 CSS :has */
 function syncQuizTop(){
   ROOT.classList.toggle("exam-empty", S.tab === "exam" && !cur);
+  $("quizCard").classList.toggle("hint-empty", S.tab === "exam" && !cur && !emptyTitle);   // 還沒選題目:一行淡色提示 + 最下面一列按鈕(app.css 的 .quiz.hint-empty);模擬考結果照舊用大標題
   // 檢定頁還沒抽題:▶ 與「會了 / 再練」藏起來(沒有東西可以播、可以標)
   $("playBtn").hidden = S.tab === "exam" && !cur;
   ROOT.querySelector(".mastery").hidden = (S.tab === "exam" && !cur) || !!dseg;   // 今日練習每一段(含暖身)都不標熟練度(段落用「做到了 / 還要練」)   // 檢定頁還沒選題目:藏起譜卡與速度卡,本級要求放在題目卡正下方
   const top = ROOT.querySelector(".quiz-top");
-  const empty = $("verifyBadge").hidden && !$("poolCount").textContent.trim() && [...top.querySelectorAll(".q-actions button")].every(b => b.hidden);
+  const empty = ROOT.querySelector(".mastery").hidden && !$("poolCount").textContent.trim() && [...top.querySelectorAll(".q-actions button")].every(b => b.hidden);
   top.classList.toggle("blank", empty);
   $("stage").classList.toggle("blank", !$("osmd").childElementCount);
 }
@@ -410,7 +412,6 @@ function showEmpty(){
   emptyTitle = null;
   emptyText(); $("qTags").innerHTML = ""; renderIntro(null);
   $("playBtn").disabled = true; ROOT.querySelectorAll(".mbtn").forEach(b => { b.disabled = true; b.setAttribute("aria-pressed", "false"); });
-  $("verifyBadge").hidden = true;
   if (osmd) { try { osmd.clear(); } catch (e) {} }
   $("osmd").innerHTML = ""; osmd = null; noteXs = []; $("playline").hidden = true;
   setMsg("paperMsg", () => tr("選一題之後,這裡會顯示五線譜與指法", "Pick an item to see the score and fingering here"));
@@ -421,7 +422,7 @@ function showEmpty(){
 /* 沒有題目時的文字:大標題、抽考範圍(showEmpty 與換語言共用) */
 function emptyText(){
   const sets = S.exam && SY.systems[S.exam.system].mode === "sets";
-  pairText($("qTitle"), emptyTitle || (() => { const d = sets ? tr("隨機抽一項", "Random") : tr("隨機抽考", "Random"); return tr("按「" + d + "」,或從下方清單選一項", "Tap " + d + ", or pick from the list below"); }));
+  pairText($("qTitle"), emptyTitle || (() => { const d = sets ? tr("隨機抽一項", "Random") : tr("隨機抽考", "Random"); return tr("按「" + d + "」,或從下面的清單選一項", "Tap " + d + ", or pick from the list below"); }));
   $("poolCount").textContent = "";   // 「抽考範圍 n 題」不寫(本級要求就在下面)
 }
 function setQuestion(q, tab){
@@ -444,20 +445,23 @@ function setQuestion(q, tab){
   syncQuizTop();
   preloadSamples();
 }
-/* 題目的文字:大標題、標籤、官方大綱標記、抽考範圍、樂譜下方說明(setQuestion 與換語言共用) */
+/* 標籤(題目卡標題同一行):自由練習不放「右手 / 左手 / 雙手」(譜卡的手切換就是;畫面設計 2026-10);回傳 [文字, parts 的索引 − 1] */
+const HAND_TAGS = () => [tr("右手", "RH"), tr("左手", "LH"), tr("雙手", "Both hands")];
+function tagParts(q, parts){
+  const drop = q.free && !q.daily ? HAND_TAGS() : [];
+  return parts.slice(1).map((t, i) => [t, i]).filter(([t]) => !drop.includes(t));
+}
+/* 題目的文字:大標題、標籤、抽考範圍、樂譜下方說明(setQuestion 與換語言共用) */
 function renderQText(q, tab){
   const parts = questionText(q);
   unpair($("qTitle")); $("qTitle").textContent = parts[0]; $("qTitle").classList.remove("empty");
-  $("qTags").innerHTML = parts.slice(1).map((t, i) => `<span class="q-tag${q.dynamic && i === parts.length - 2 ? " dyn" : ""}">${t}</span>`).join("") + hanonBestTag(q);
-  // 上方那一列(官方大綱標記、抽考範圍)只在檢定分頁出現:音階/琶音分頁點「本級要求」的題目時不出現,題目才不會往下跳
+  $("qTags").innerHTML = tagParts(q, parts).map(([t, i]) => `<span class="q-tag${q.dynamic && i === parts.length - 2 ? " dyn" : ""}">${t}</span>`).join("") + hanonBestTag(q);
+  // 最後一行的「模擬考 n / m」只在檢定分頁的模擬考出現(「官方大綱」徽章不放:畫面設計 2026-10)
   if (!q.free && S.exam && tab === "exam") {
     const g = examGrade();
-    $("verifyBadge").hidden = false;
-    $("verifyBadge").classList.toggle("ok", !!g.verified);
-    $("verifyBadge").textContent = g.verified ? tr("官方大綱", "Official syllabus") : tr("大綱未核對", "Syllabus not checked");
     $("poolCount").textContent = mock && mock.list.includes(q) ? tr(`模擬考 ${mock.i + 1} / ${mock.list.length}`, `Mock ${mock.i + 1} / ${mock.list.length}`)
       : tab === "exam" ? "" : `${SY.systems[S.exam.system].name} ${gradeLabel(g)}`;
-  } else { $("verifyBadge").hidden = true; $("poolCount").textContent = ""; }
+  } else { $("poolCount").textContent = ""; }
   // 樂譜下方說明
   const notes = [], noteFns = notes;   // 每一則是函式:中英文各跑一次
   if (q.type === "thirds" || q.type === "sixths") notes.push(doubleNote(q));
@@ -466,7 +470,6 @@ function renderQText(q, tab){
   if (q.apart === 3) notes.push(() => tr("相隔三度:右手比左手高十度(三度 + 八度),左手從主音、右手從第三級開始。", "A third apart: RH plays a tenth above LH — LH starts on the tonic, RH on the 3rd."));
   if (q.apart === 6) notes.push(() => tr("相隔六度:主音在上方 — 右手從主音、左手從低六度的第三級開始。", "A sixth apart: tonic on top — RH starts on the tonic, LH on the 3rd a sixth below."));
   if (q.type === "chromatic" && q.lhStart !== q.rhStart) notes.push(() => tr(`兩手從不同的音開始:左手 ${noteLabelStr(q.lhStart)}、右手 ${noteLabelStr(q.rhStart)}。`, `Hands start on different notes: LH ${noteLabelStr(q.lhStart)}, RH ${noteLabelStr(q.rhStart)}.`));
-  if (!q.free && S.exam) notes.push(() => SY.systems[S.exam.system].mode === "sets" ? tr("速度是大綱的「最低速度」。", "Tempo is the syllabus minimum.") : tr("速度是大綱的「參考速度」。", "Tempo is the syllabus guide speed."));
   $("scoreNote").hidden = !notes.length;
   pairText($("scoreNote"), () => noteFns.map(f => f()).join(" "));
   renderIntro(q.free && !q.daily ? tab : null);
@@ -534,7 +537,7 @@ ROOT.querySelectorAll(".mbtn").forEach(b => b.onclick = () => {
     logPractice(0);
     setBpm(bpm + (unitOf() === "e16" ? 8 : 4), true);   // 下一輪 ♩ +4
     const parts = questionText(cur);
-    $("qTags").innerHTML = parts.slice(1).map(t => `<span class="q-tag">${t}</span>`).join("") + hanonBestTag(cur);
+    $("qTags").innerHTML = tagParts(cur, parts).map(([t]) => `<span class="q-tag">${t}</span>`).join("") + hanonBestTag(cur);
     fitTitle(); syncMastery();
     return;
   }
@@ -1089,7 +1092,7 @@ function syncTempoUI(){
   $("bpmReset").hidden = !examT;
   if (examT) {
     const pct = Math.round(100 * bpm / examT.bpm);
-    $("bpmPct").textContent = pct === 100 ? tr("考試", "exam") : tr(`考試速度的 ${pct}%`, `${pct}% of exam tempo`);
+    $("bpmPct").textContent = pct === 100 ? "" : tr(`考試速度的 ${pct}%`, `${pct}% of exam tempo`);   // 等於考試速度:副標已經寫了,數字後面不再寫「考試」
     // 不寫 ♩ / ♪ 的換算(自學者看不懂):考試速度的數字 + 每拍幾個音
     $("examTempo").textContent = tr(`考試速度 ${examT.bpm}(每拍 ${NOTES_PER_UNIT[u]} 個音${u === "q." ? ",三連音" : ""})`,
       `Exam tempo ${examT.bpm} (${NOTES_PER_UNIT[u]} ${u === "q." ? "triplet " : ""}notes per beat)`);

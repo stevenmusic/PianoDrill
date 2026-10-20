@@ -53,7 +53,6 @@ const SUBS = {
   ear: () => [["note", tr("單音", "Notes")], ["interval", tr("音程", "Intervals")], ["chord", tr("和弦", "Chords")]],
   exam: () => [["tech", tr("音階琶音", "Scales")], ["sight", tr("視奏", "Sight-reading")], ["ear", tr("聽力", "Aural")]]
 };
-const PART_LABEL = () => ({ tech: tr("音階琶音", "Scales"), sight: tr("視奏", "Sight-reading"), ear: tr("聽力", "Aural") });
 /* 子項目分段鈕的群組名稱(無障礙:role="group" 的 aria-label) */
 const SUB_LABEL = () => ({ tech: tr("技巧項目", "Technique"), sight: tr("讀譜類別", "Reading type"), ear: tr("題型", "Question type"), exam: tr("檢定項目", "Exam section") });
 /* 外框另外給模組的東西(ctx 裡;DrumDrill 用來給考試資料):PianoDrill 的模組自己讀資料,這裡沒有 */
@@ -273,14 +272,7 @@ function renderExamCard(){
   // 級數那排下面一行:沒選考試 = 怎麼知道考哪一級;有選 = 「推估」是什麼意思(@app 的 ASSUMED_HINT:畫面上有「推估」標籤的 App 才寫)
   const hint = !S.exam ? T("examHelp") : ASSUMED_HINT ? T("examAssumed") : "";
   $("examHint").hidden = !hint; $("examHint").textContent = hint;
-  $("examParts").hidden = !S.exam;
-  if (!S.exam) { $("examParts").innerHTML = ""; return; }
-  // 三個項目的進度(各模組自己算);只顯示,不是按鈕(切換用上面的子項目列)
-  $("examParts").innerHTML = Object.keys(MODS).map(name => {
-    const st = MODS[name].examStatus() || "";
-    const label = PART_LABEL()[name];
-    return `<div class="part" data-part="${name}"><b>${label}</b><small>${st}</small></div>`;
-  }).join("");
+  // 以前這裡有三格進度(技巧 / 視奏 / 聽力):跟子項目列重複、又寫了練習紀錄與正確率 → 拿掉(2026-10);各項進度在自己的檢定頁(模組的 examStatus 留著,不畫)
 }
 /* 模組裡的進度改變了(標記通過、答題):重畫進度 */
 export function examChanged(){ if (S.view === "exam") renderExamCard(); }

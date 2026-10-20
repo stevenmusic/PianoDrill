@@ -18,7 +18,7 @@
 <title>PianoDrill 鋼琴檢定特訓</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/app.css?v=a43c3ffe1b">
+<link rel="stylesheet" href="css/app.css?v=8ec33b20bf">
 <link rel="stylesheet" href="css/sight.css?v=b5a18401c3">
 </head>
 <body>
@@ -53,8 +53,6 @@
         <div class="seg exam-grades" id="gradeSeg" role="group" data-i18n-attr="aria-label:lblGrade" aria-label="級數"></div>
         <p class="exam-hint" id="examHint" hidden></p>
       </div>
-      <!-- 本級三個項目的進度:點一下切到那一項 -->
-      <div class="exam-parts" id="examParts"></div>
     </div>
   </section>
 
@@ -129,41 +127,41 @@
         <section class="card daily" id="t-dailyCard" hidden></section>
         <!-- 練習面板(音階、琶音、檢定共用) -->
         <section class="card quiz" id="t-quizCard" aria-live="polite">
-          <div class="quiz-top">
-            <span class="verify-badge" id="t-verifyBadge" hidden></span>
-            <span class="loading" id="t-loadingMsg"></span>
-            <span class="count" id="t-poolCount"></span>
-            <div class="q-actions">
-            <button class="btn primary" id="t-drawBtn" hidden>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8" cy="8" r="1.3" fill="currentColor"/><circle cx="16" cy="16" r="1.3" fill="currentColor"/><circle cx="12" cy="12" r="1.3" fill="currentColor"/></svg>
-              <span class="btn-label" id="t-drawLabel">隨機抽考</span></button>
-            <button class="btn" id="t-nextBtn" hidden>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>
-              <span class="btn-label" id="t-nextLabel" data-i18n="tech.next">下一題</span></button>
-            <button class="btn" id="t-mockBtn" hidden>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2M9 2h6"/></svg>
-              <span class="btn-label mock-label" id="t-mockLabel">模擬考</span></button>
-          </div>
-          </div>
-          <!-- 右撇子:播放鈕在題目右邊,會了/再練在標籤右邊(只用圖示) -->
+          <!-- 大標題 → 標籤(同一行;放不下時整組標籤掉到下一行)→ 最右邊 ▶ -->
           <div class="q-head">
-            <div class="q-title empty" id="t-qTitle"></div>
+            <div class="q-ht">
+              <div class="q-title empty" id="t-qTitle"></div>
+              <div class="q-tags" id="t-qTags"></div>
+            </div>
             <button class="play-round" id="t-playBtn" disabled>
               <svg class="play-ring" id="t-playRing" viewBox="0 0 64 64" aria-hidden="true"><circle class="ring-bg" cx="32" cy="32" r="30" pathLength="1"/><circle class="ring-fg" cx="32" cy="32" r="30" pathLength="1"/></svg>
               <svg id="t-playIcon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4v16l13-8z"/></svg>
               <span class="sr" id="t-playLabel">播放示範</span></button>
           </div>
-          <div class="q-row">
-            <div class="q-tags" id="t-qTags"></div>
+          <!-- 第一次進來這個子項目的一行說明(播放過一次就不再出現;pianodrill.tech.v1 的 intro) -->
+          <p class="q-intro" id="t-intro" hidden></p>
+          <!-- 最後一行:左 = 熟練度「會了 / 再練」(次要),右 = 檢定頁的 模擬考 / 隨機抽考 / 下一題(主要);沒東西就整列收掉 -->
+          <div class="quiz-top q-last">
             <div class="mastery">
               <button class="mbtn" data-m="good" aria-pressed="false" disabled data-i18n-attr="title:tech.good">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span class="mlbl" data-i18n="tech.mGood">會了</span></button>
               <button class="mbtn" data-m="weak" aria-pressed="false" disabled data-i18n-attr="title:tech.weak">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18.4A2 2 0 0 0 3.5 21h17a2 2 0 0 0 1.7-2.6L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg><span class="mlbl" data-i18n="tech.mWeak">再練</span></button>
             </div>
+            <span class="loading" id="t-loadingMsg"></span>
+            <span class="count" id="t-poolCount"></span>
+            <div class="q-actions">
+            <button class="btn" id="t-mockBtn" hidden>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2M9 2h6"/></svg>
+              <span class="btn-label mock-label" id="t-mockLabel">模擬考</span></button>
+            <button class="btn primary" id="t-drawBtn" hidden>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8" cy="8" r="1.3" fill="currentColor"/><circle cx="16" cy="16" r="1.3" fill="currentColor"/><circle cx="12" cy="12" r="1.3" fill="currentColor"/></svg>
+              <span class="btn-label" id="t-drawLabel">隨機抽考</span></button>
+            <button class="btn" id="t-nextBtn" hidden>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>
+              <span class="btn-label" id="t-nextLabel" data-i18n="tech.next">下一題</span></button>
           </div>
-          <!-- 第一次進來這個子項目的一行說明(播放過一次就不再出現;pianodrill.tech.v1 的 intro) -->
-          <p class="q-intro" id="t-intro" hidden></p>
+          </div>
           <!-- 今日練習的段落面板(狀態 / 變化 / 重點 / 回上一關 · 還要練 · 做到了;js/shared/dailycard.js) -->
           <div class="daily-step" id="t-dailyStep" hidden></div>
         </section>
@@ -291,11 +289,14 @@
         <!-- 題目卡(跟技巧、聽音同一個排法):大標題 = 調性,右邊 ▶;標籤 = 拍號、小節、速度;下面 左:30 秒準備 + 倒數,右:新題目 -->
         <section class="card quiz" id="s-quiz" aria-live="polite">
           <div class="q-head">
-            <div class="q-title empty" id="s-title"></div>
+            <!-- 大標題 → 標籤(同一行;放不下時整組標籤掉到下一行)→ 最右邊 ▶ -->
+            <div class="q-ht">
+              <div class="q-title empty" id="s-title"></div>
+              <div class="q-tags" id="s-meta"></div>
+            </div>
             <button class="play-round" id="s-play" disabled data-si18n-attr="aria-label:playAriaPlay,title:playTitlePlay,data-cap:playCap" data-cap="正確版本" aria-label="播放" title="播放正確版本">
               <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path id="s-playIcon" d="M8 5v14l11-7z"/></svg></button>
           </div>
-          <div class="q-row"><div class="q-tags" id="s-meta"></div></div>
           <p class="feedback" id="s-message"></p>
           <div class="q-foot">
             <button class="btn ghost small" id="s-prepare" disabled>
@@ -385,14 +386,18 @@
             </div>
           </div>
           <div class="q-head">
-            <div class="q-title empty" id="e-qTitle"></div>
+            <!-- 大標題 → 標籤(同一行;放不下時整組標籤掉到下一行)→ 最右邊 ▶ -->
+            <div class="q-ht">
+              <div class="q-title empty" id="e-qTitle"></div>
+              <div class="q-tags" id="e-qTags"></div>
+            </div>
             <button class="play-round" id="e-playBtn" disabled data-i18n-attr="data-cap:ear.playCap" data-cap="題目">
               <svg class="play-ring" id="e-playRing" viewBox="0 0 64 64" aria-hidden="true"><circle class="ring-bg" cx="32" cy="32" r="30" pathLength="1"/><circle class="ring-fg" cx="32" cy="32" r="30" pathLength="1"/></svg>
               <svg id="e-playIcon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4v16l13-8z"/></svg>
               <span class="sr" id="e-playLabel">播放題目</span></button>
           </div>
-          <!-- 標籤 | 載入進度 | 本輪分數(放同一列,題目上方不再空一大塊) -->
-          <div class="q-row"><div class="q-tags" id="e-qTags"></div><span class="loading" id="e-loadingMsg"></span><span class="count" id="e-scoreLine"></span></div>
+          <!-- 載入進度 | 連對 n(兩個都空就整列收掉) -->
+          <div class="q-row" id="e-infoRow" hidden><span class="loading" id="e-loadingMsg"></span><span class="count" id="e-scoreLine"></span></div>
           <p class="step-q" id="e-stepQ"></p>
           <div class="answers" id="e-answers"></div>
           <div class="feedback" id="e-feedback"></div>
@@ -450,9 +455,9 @@
   </div>
 </div>
 
-<script type="importmap">{"imports":{"./js/ear/app.js":"./js/ear/app.js?v=41bedf4b98","./js/ear/aural.js":"./js/ear/aural.js?v=0c492685b1","./js/ear/ear.js":"./js/ear/ear.js?v=7aa62130bc","./js/ear/music.js":"./js/ear/music.js?v=28644129ec","./js/ear/store.js":"./js/ear/store.js?v=cfdd5a5cac","./js/ear/strings.js":"./js/ear/strings.js?v=62d5d35316","./js/main.js":"./js/main.js?v=2fa8365485","./js/shared/audio.js":"./js/shared/audio.js?v=0cb04738a9","./js/shared/daily.js":"./js/shared/daily.js?v=90d712e055","./js/shared/dailycard.js":"./js/shared/dailycard.js?v=ca043acf6b","./js/shared/drill.js":"./js/shared/drill.js?v=9f698a5f44","./js/shared/i18n.js":"./js/shared/i18n.js?v=c74620758b","./js/shared/mic.js":"./js/shared/mic.js?v=5450b68a2d","./js/shared/notenames.js":"./js/shared/notenames.js?v=68a982911d","./js/shared/onsets.js":"./js/shared/onsets.js?v=d8df0b9ef2","./js/shared/practicelog.js":"./js/shared/practicelog.js?v=acd9cd53aa","./js/shared/staffframe.js":"./js/shared/staffframe.js?v=7d869b31d1","./js/shared/tempo.js":"./js/shared/tempo.js?v=1e38af7d3f","./js/shared/values.js":"./js/shared/values.js?v=e240ea1b65","./js/sight/app.js":"./js/sight/app.js?v=a887abb868","./js/sight/generator/fingerprint.js":"./js/sight/generator/fingerprint.js?v=9c9903e4f3","./js/sight/generator/generate.js":"./js/sight/generator/generate.js?v=0a2725513f","./js/sight/generator/harmony.js":"./js/sight/generator/harmony.js?v=153a66fd1f","./js/sight/generator/index.js":"./js/sight/generator/index.js?v=f1aee5c391","./js/sight/generator/melody.js":"./js/sight/generator/melody.js?v=262e7dca21","./js/sight/generator/meter.js":"./js/sight/generator/meter.js?v=efdd9ec3e8","./js/sight/generator/musicxml.js":"./js/sight/generator/musicxml.js?v=0cf5774154","./js/sight/generator/random.js":"./js/sight/generator/random.js?v=3b9b511386","./js/sight/generator/rhythm.js":"./js/sight/generator/rhythm.js?v=013f8685d0","./js/sight/generator/theory.js":"./js/sight/generator/theory.js?v=bca3da5ea8","./js/sight/i18n.js":"./js/sight/i18n.js?v=15592073dd","./js/sight/playback.js":"./js/sight/playback.js?v=2f4f886ed6","./js/sight/reading.js":"./js/sight/reading.js?v=5fb6bc3f46","./js/sight/scoring.js":"./js/sight/scoring.js?v=c1912c76a7","./js/sight/stage.js":"./js/sight/stage.js?v=9ca7fb07ed","./js/sight/stages.js":"./js/sight/stages.js?v=dae636a755","./js/tech/app.js":"./js/tech/app.js?v=6042e3fd86","./js/tech/exercise.js":"./js/tech/exercise.js?v=565cfe5487","./js/tech/fingering.js":"./js/tech/fingering.js?v=eabf64c8e1","./js/tech/hanon.js":"./js/tech/hanon.js?v=be2621dd7a","./js/tech/musicxml.js":"./js/tech/musicxml.js?v=f077fb5329","./js/tech/patterns.js":"./js/tech/patterns.js?v=efffeb11ac","./js/tech/routes.js":"./js/tech/routes.js?v=aa37af589a","./js/tech/store.js":"./js/tech/store.js?v=b1d795598e","./js/tech/strings.js":"./js/tech/strings.js?v=cd030f40ef","./js/tech/syllabus.js":"./js/tech/syllabus.js?v=cdf3a21898","./js/tech/theory.js":"./js/tech/theory.js?v=ed03457554"}}</script>
+<script type="importmap">{"imports":{"./js/ear/app.js":"./js/ear/app.js?v=9077f928a3","./js/ear/aural.js":"./js/ear/aural.js?v=0c492685b1","./js/ear/ear.js":"./js/ear/ear.js?v=b3b3eba738","./js/ear/music.js":"./js/ear/music.js?v=28644129ec","./js/ear/store.js":"./js/ear/store.js?v=cfdd5a5cac","./js/ear/strings.js":"./js/ear/strings.js?v=62d5d35316","./js/main.js":"./js/main.js?v=ee198d45ec","./js/shared/audio.js":"./js/shared/audio.js?v=0cb04738a9","./js/shared/daily.js":"./js/shared/daily.js?v=90d712e055","./js/shared/dailycard.js":"./js/shared/dailycard.js?v=ca043acf6b","./js/shared/drill.js":"./js/shared/drill.js?v=9f698a5f44","./js/shared/i18n.js":"./js/shared/i18n.js?v=c74620758b","./js/shared/mic.js":"./js/shared/mic.js?v=5450b68a2d","./js/shared/notenames.js":"./js/shared/notenames.js?v=68a982911d","./js/shared/onsets.js":"./js/shared/onsets.js?v=d8df0b9ef2","./js/shared/practicelog.js":"./js/shared/practicelog.js?v=acd9cd53aa","./js/shared/staffframe.js":"./js/shared/staffframe.js?v=7d869b31d1","./js/shared/tempo.js":"./js/shared/tempo.js?v=1e38af7d3f","./js/shared/values.js":"./js/shared/values.js?v=e240ea1b65","./js/sight/app.js":"./js/sight/app.js?v=c7a72ce169","./js/sight/generator/fingerprint.js":"./js/sight/generator/fingerprint.js?v=9c9903e4f3","./js/sight/generator/generate.js":"./js/sight/generator/generate.js?v=0a2725513f","./js/sight/generator/harmony.js":"./js/sight/generator/harmony.js?v=153a66fd1f","./js/sight/generator/index.js":"./js/sight/generator/index.js?v=f1aee5c391","./js/sight/generator/melody.js":"./js/sight/generator/melody.js?v=262e7dca21","./js/sight/generator/meter.js":"./js/sight/generator/meter.js?v=efdd9ec3e8","./js/sight/generator/musicxml.js":"./js/sight/generator/musicxml.js?v=0cf5774154","./js/sight/generator/random.js":"./js/sight/generator/random.js?v=3b9b511386","./js/sight/generator/rhythm.js":"./js/sight/generator/rhythm.js?v=013f8685d0","./js/sight/generator/theory.js":"./js/sight/generator/theory.js?v=bca3da5ea8","./js/sight/i18n.js":"./js/sight/i18n.js?v=15592073dd","./js/sight/playback.js":"./js/sight/playback.js?v=2f4f886ed6","./js/sight/reading.js":"./js/sight/reading.js?v=9b8c333e75","./js/sight/scoring.js":"./js/sight/scoring.js?v=c1912c76a7","./js/sight/stage.js":"./js/sight/stage.js?v=9ca7fb07ed","./js/sight/stages.js":"./js/sight/stages.js?v=dae636a755","./js/tech/app.js":"./js/tech/app.js?v=957771d17d","./js/tech/exercise.js":"./js/tech/exercise.js?v=565cfe5487","./js/tech/fingering.js":"./js/tech/fingering.js?v=eabf64c8e1","./js/tech/hanon.js":"./js/tech/hanon.js?v=be2621dd7a","./js/tech/musicxml.js":"./js/tech/musicxml.js?v=f077fb5329","./js/tech/patterns.js":"./js/tech/patterns.js?v=efffeb11ac","./js/tech/routes.js":"./js/tech/routes.js?v=67a38c599d","./js/tech/store.js":"./js/tech/store.js?v=b1d795598e","./js/tech/strings.js":"./js/tech/strings.js?v=cd030f40ef","./js/tech/syllabus.js":"./js/tech/syllabus.js?v=cdf3a21898","./js/tech/theory.js":"./js/tech/theory.js?v=ed03457554"}}</script>
 <script type="application/json" id="pdVersions">{"data/aural.json":"2260b8dfee","data/fingerings.json":"01a74f2d0c","data/sight-rules.json":"56549899c8","data/syllabus.json":"30b5443db2"}</script>
 <script src="vendor/opensheetmusicdisplay.min.js?v=4bfeb3d01c"></script>
-<script type="module" src="js/main.js?v=2fa8365485"></script>
+<script type="module" src="js/main.js?v=ee198d45ec"></script>
 </body>
 </html>

@@ -221,6 +221,13 @@ main{
 .q-head,.q-row{display:flex;align-items:center;gap:10px}
 .q-head .q-title{flex:1 1 auto;min-width:0}
 .q-row .q-tags{flex:1 1 auto;min-width:0}
+/* 視奏題目卡(系統化 2026-10,兩個 App 一樣):大標題 → 標籤同一行 → 最右邊 ▶;標籤之間不換行,放不下時整組標籤掉到下一行(不拆兩行、不擠 ▶) */
+.q-ht{flex:1 1 auto;min-width:0;display:flex;flex-wrap:wrap;align-items:center;gap:2px 8px}
+.q-ht .q-title{flex:0 1 auto;min-width:0}
+.q-ht .q-tags{flex:1 0 auto;max-width:100%}   /* 整組一起:放不下就整組掉到下一行(不縮),那一行用滿寬度(標籤縮字的量法才準) */
+/* 題目卡最後一行(技巧;畫面設計 2026-10):左 = 熟練度「會了 / 再練」(次要),右 = 主要動作;放不下時右邊那組換到下一行 */
+.q-last{flex-wrap:wrap;row-gap:6px}
+.q-last .mastery{margin-left:0}
 .play-round{flex:none;width:52px;height:52px;border-radius:50%;border:0;background:var(--gold-fill);color:var(--on-fill);
   display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
 .play-round:disabled{opacity:.35}
@@ -257,7 +264,6 @@ main{
 /* 載入取樣的提示浮在卡片右上角,不佔版面 */
 .loading{position:absolute;top:6px;right:16px;font-size:var(--fs-2xs);color:var(--muted);pointer-events:none}
 /* 自由練習:上方這一列沒有東西就整列收掉(題目直接在最上面) */
-.quiz-top:not(:has(#t-verifyBadge:not([hidden]))):not(:has(.q-actions button:not([hidden]))):has(.count:empty){display:none}
 .quiz-top.blank{display:none}   /* JS 判斷(syncQuizTop):iPhone 上 :has 那條沒生效,題目上方會空一格(使用者反映) */
 
 /* ── 樂譜 ── */
@@ -280,7 +286,7 @@ main{
 .beats{display:flex;gap:6px}
 /* 播放選項:固定三格(中英文排法一樣) */
 /* 窄螢幕:模擬考只留圖示(跟官方大綱標記、隨機抽考放同一列會擠出去) */
-@media (max-width:380px){ .q-actions #t-mockBtn .btn-label{display:none !important} #t-mockBtn{padding:0 9px} .quiz-top #t-verifyBadge{display:none} }
+@media (max-width:380px){ .q-actions #t-mockBtn .btn-label{display:none !important} #t-mockBtn{padding:0 9px} }
 .play-opts{grid-column:1 / -1;display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
 .play-opts .chip{justify-content:center;min-height:34px;height:auto;padding:0 6px;text-align:center}   /* 動態字級很大時換行(平常一行) */
 .play-opts .chip:disabled{opacity:.35}
@@ -441,8 +447,6 @@ header{z-index:60}
   .q-actions{gap:6px}
   .mbtn{height:34px;padding:0 8px 0 6px}
   .mastery{gap:4px;margin-left:auto}
-  .q-row:has(> .mastery){flex-wrap:wrap}   /* 熟練度有小字:標籤放不下時熟練度換到下一行(靠右),標籤不會被擠成「…」 */
-  .q-row:has(> .mastery) .q-tags{flex:1 1 130px}
   .q-row{gap:6px}
   .q-tags{gap:4px}
   .q-tag{padding:3px 6px}
@@ -513,14 +517,16 @@ header{z-index:60}
   .picker,.setup{padding-top:6px;padding-bottom:6px}
   #mod-tech .quiz{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;align-items:center;gap:6px 10px}
   #mod-tech .quiz > *{min-width:0}
-  #mod-tech .quiz-top{grid-column:1 / -1;min-height:30px}
-  #mod-tech .q-head,#mod-tech .q-row{display:contents}
-  #mod-tech .q-title{grid-column:1;grid-row:2;font-size:22px;max-width:46vw;line-height:32px;height:32px}   /* 字級會依長度縮小:行高固定,中英文高度才一樣 */
-  #mod-tech .q-tags{grid-column:2;grid-row:2;min-height:0;height:30px}   /* 標籤字級會縮:高度固定,中英文才一樣 */
+  /* 第一行:標題 | 標籤 | 會了 再練 | ▶(最後一行的熟練度搬上來;檢定頁的按鈕自己一行) */
+  #mod-tech .q-head,#mod-tech .q-ht,#mod-tech .q-last{display:contents}
+  #mod-tech .q-last .count{display:none}
+  #mod-tech .q-last .q-actions{grid-column:1 / -1}
+  #mod-tech .q-title{grid-column:1;grid-row:1;font-size:22px;max-width:46vw;line-height:32px;height:32px}   /* 字級會依長度縮小:行高固定,中英文高度才一樣 */
+  #mod-tech .q-tags{grid-column:2;grid-row:1;min-height:0;height:30px;max-width:none}   /* 標籤字級會縮:高度固定,中英文才一樣 */
   #mod-tech .q-tag{font-size:calc(14px * var(--tag-scale, 1));padding:0 7px;line-height:26px}
-  #mod-tech .mastery{grid-column:3;grid-row:2}
+  #mod-tech .mastery{grid-column:3;grid-row:1}
   #mod-tech .mbtn{height:34px}
-  #mod-tech .play-round{grid-column:4;grid-row:2;width:44px;height:44px}
+  #mod-tech .play-round{grid-column:4;grid-row:1;width:44px;height:44px}
   #mod-tech .quiz .loading{top:2px}
   #t-scoreCard .card-title{margin-bottom:4px}
   #t-scoreCard .seg button{min-height:28px}
@@ -662,15 +668,6 @@ body.land-play #t-stage{flex:1;display:flex;flex-direction:column;justify-conten
 .daily-bar .daily-pause{flex:none;min-width:44px;min-height:44px;height:auto;padding:0;display:inline-flex;align-items:center;justify-content:center}
 /* 內容寬度:技巧、聽音窄一點(按鈕、鍵盤不會又寬又扁);視奏的樂譜要寬 */
 @media (min-width:901px){ main,footer{max-width:900px} body.view-sight main,body.view-sight footer{max-width:1180px} }
-/* 檢定:三個項目的進度(只顯示,不是按鈕;切換用子項目列) */
-.exam-parts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:12px}
-.part{display:flex;flex-direction:column;align-items:flex-start;gap:2px;min-height:52px;padding:8px 10px;border-radius:var(--radius-sm);
-  border:1px solid var(--line);background:var(--surface-inset);color:var(--ivory);font-family:inherit;text-align:left;min-width:0}
-.part b{font-size:var(--fs-sm);color:var(--gold);font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
-.part small{font-size:var(--fs-2xs);color:var(--muted-bright);line-height:1.35;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;min-height:2.7em}
-.part[aria-pressed="true"]{border-color:var(--gold);background:rgba(242,185,75,.1)}
-:root.light .part[aria-pressed="true"]{background:rgba(133,100,24,.08)}
-@media (max-width:360px){ .exam-parts{grid-template-columns:1fr} .part{min-height:44px} .part small{min-height:0} }
 /* 檢定頁的考試卡(不收起來,手機也一直展開;使用者:以前要展開、選系統、再拉下拉選單,很難用):
    摘要一行 → 系統兩顆大鈕 → 級數一排(9 格,跟子項目的分段鈕同一個樣式;js/main.js 的 fillGradeSeg)。第一次的問題的級數列同一個樣式 */
 .exam-card{padding:10px 14px 12px}
@@ -750,7 +747,6 @@ body.land-play #t-stage{flex:1;display:flex;flex-direction:column;justify-conten
   .mod-side .fields{grid-template-columns:1fr}   /* 左欄窄:欄位一個一行(以前四欄擠在一起,分段鈕的字被截斷) */
   /* 檢定頁的考試卡:系統、級數(左)與三項進度(右)排在同一列 */
   #examSetup .exam-body{display:grid;grid-template-columns:minmax(0, 420px) minmax(0, 1fr);gap:16px;align-items:end}
-  #examSetup .exam-parts{margin-top:0}
 }
 /* 兩欄的左欄比較窄:選擇器的選項改固定寬度格子(中英文每列個數一樣,換語言不會多一行;聽音各列另外有自己的寬度) */
 @media (min-width:1100px){
@@ -781,9 +777,6 @@ body.land-play #t-stage{flex:1;display:flex;flex-direction:column;justify-conten
   /* 檢定:考試卡(左)與各模組的檢定說明(右)並排(頁尾排最後:格子裡沒寫 order 的會被排到前面) */
   body.view-exam footer{order:99}
   body.view-exam .mod .setup .fields{grid-template-columns:repeat(2, minmax(0, 1fr))}
-  body.view-exam .exam-parts{grid-template-columns:1fr}
-  body.view-exam .part{min-height:0;flex-direction:row;align-items:baseline;gap:8px}
-  body.view-exam .part small{min-height:0}
   body.view-exam main{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;align-items:start}
   body.view-exam main > .mod:not([hidden]){display:contents}
   body.view-exam main > *{grid-column:1 / -1}
@@ -793,9 +786,9 @@ body.land-play #t-stage{flex:1;display:flex;flex-direction:column;justify-conten
   body.view-exam #t-paneExam,body.view-exam #e-paneExam,body.view-exam #s-setup{grid-column:2 !important}
   /* 視奏題目卡:標題 | 標籤 | ▶ 一行,下面一行說明,再一行操作 */
   #mod-sight .quiz{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:4px 12px}
-  #mod-sight .q-head,#mod-sight .q-row{display:contents}
+  #mod-sight .q-head,#mod-sight .q-ht{display:contents}
   #s-title{grid-column:1;grid-row:1;font-size:24px;height:auto}
-  #mod-sight .q-row .q-tags{grid-column:2;grid-row:1;min-height:0}
+  #mod-sight .q-ht .q-tags{grid-column:2;grid-row:1;min-height:0;max-width:none}
   #s-play{grid-column:3;grid-row:1;width:44px;height:44px}
   #s-message{grid-column:1 / -1;grid-row:2;font-size:var(--fs-sm);min-height:0}
   #s-checklist{grid-column:1 / -1}
@@ -816,6 +809,15 @@ body.land-play #t-stage{flex:1;display:flex;flex-direction:column;justify-conten
 }
 #mod-tech.exam-empty #t-scoreCard,#mod-tech.exam-empty #t-metroCard{display:none}
 #mod-tech.exam-empty #t-listCard{order:3}
+/* 檢定頁還沒選題目的題目卡(PianoDrill 技巧、聽力;.quiz.hint-empty,JS 加):一行 --fs-md 淡色提示,最下面一列 左 次要「模擬考」、右 主要「隨機抽考」;不留空白高度 */
+.quiz.hint-empty > :not(.quiz-top):not(.q-head){display:none}
+.quiz.hint-empty .q-head :is(#t-qTitle,#e-qTitle).empty{font-size:var(--fs-md);font-weight:400;line-height:1.5;letter-spacing:0;color:var(--muted-bright)}
+.quiz.hint-empty .quiz-top{order:9;grid-row:3}
+.quiz.hint-empty .q-actions{flex:1 1 auto;margin-left:0;justify-content:space-between}
+.quiz.hint-empty .quiz-top > :empty{display:none}
+.quiz.hint-empty :is(#t-mockBtn,#e-mockBtn){order:-1}
+.quiz.hint-empty :is(#t-drawBtn,#t-mockBtn,#e-drawBtn,#e-mockBtn){height:auto;min-height:44px;padding:0 16px}
+.quiz.hint-empty :is(#t-drawBtn,#t-mockBtn,#e-drawBtn,#e-mockBtn) .btn-label{display:inline !important}
 /* PianoDrill 聽音(精簡 2026-10):參考音三顆一排;琴鍵最寬 900px、置中(桌機);檢定頁還沒有題目時 ▶ 與「下一題」藏起來,那一列整列收掉 */
 #e-paneNote .opts[data-k="ref"]{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
 #e-paneNote .opts[data-k="ref"] .opt{min-width:0;padding:0 4px;justify-content:center}
@@ -899,7 +901,7 @@ body.view-exam #t-dailyCard,body.view-exam #t-dailyStep{display:none !important}
 .daily-acts .text-btn{margin-top:0;min-height:44px}
 .daily-acts .btn{min-height:44px;min-width:64px;height:auto;white-space:normal}
 @media (orientation:landscape) and (max-height:500px){
-  #mod-tech .quiz .daily-step{grid-column:1 / -1;grid-row:3}
+  #mod-tech .quiz .daily-step{grid-column:1 / -1}
   .daily-list{margin-bottom:8px}   /* 一段一行(兩欄讀起來順序會亂) */
   .daily-btn{min-height:44px}
 }
@@ -978,13 +980,7 @@ body.view-exam #t-dailyCard,body.view-exam #t-dailyStep{display:none !important}
   #t-scoreCard .seg button{min-height:44px}
   .exam-pick .seg button,.exam-pick #systemSeg button{min-height:44px}
   /* 題目卡的白話說明放回大標題(那一行)下面 */
-  #mod-tech .quiz .q-intro{grid-column:1 / -1;grid-row:3;margin-top:0}
-}
-/* 模擬考(檢定頁)的標籤列:放不下時熟練度換到下一行,標籤不被蓋住、不縮成看不到 */
-@media (max-width:600px){
-  body.view-exam .q-row:has(> .mastery){flex-wrap:wrap}
-  body.view-exam .q-row:has(> .mastery) .q-tags{flex:1 1 auto}
-  body.view-exam .q-row:has(> .mastery) .mastery{margin-left:auto}
+  #mod-tech .quiz .q-intro{grid-column:1 / -1;margin-top:0}
 }
 /* 平板、桌機:今日練習那一行(子項目列的位置)跟下面卡片的內容對齊(main 900 − 內距 28;卡片內距 16 + 框 1) */
 @media (min-width:601px) and (min-height:501px){

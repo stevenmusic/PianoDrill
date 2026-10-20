@@ -848,9 +848,10 @@ function renderStage() {
   const names = $('names');
   names.textContent = tr('顯示音名', 'Note names');
   names.setAttribute('aria-pressed', String(!!SS.names[cur]));
-  // 單手的範圍寫在按鈕上:這一行只寫「節奏與調性由 App 依範圍安排」;雙手 1–3 的按鈕只有數字,範圍寫在前面
+  // 單手的範圍寫在按鈕上:這一行不寫(「節奏與調性由 App 依範圍安排」拿掉:畫面設計 2026-10);雙手 1–3 的按鈕只有數字,範圍寫在這一行
   const both = hand === 'both';
-  pairText($('stageNote'), () => (both ? `${tr(`難度 ${stageNow().n}:`, `Level ${stageNow().n}: `)}${rangeText()} · ` : '') + tr('節奏與調性由 App 依範圍安排', 'Rhythm & keys set by the App'));
+  $('stageNote').hidden = !both;
+  if (both) pairText($('stageNote'), () => `${tr(`難度 ${stageNow().n}:`, `Level ${stageNow().n}: `)}${rangeText()}`); else unpair($('stageNote'));
 }
 function setupStage() {
   $('stageSeg').addEventListener('click', (e) => {

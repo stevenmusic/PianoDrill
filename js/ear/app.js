@@ -41,7 +41,9 @@ export function relang(){
 }
 /* 暫時訊息(載入中、載入失敗):記住產生文字的函式,換語言時重寫 */
 const msgs = {};
-function setMsg(id, fn){ msgs[id] = fn || null; $(id).textContent = fn ? fn() : ""; }
+function setMsg(id, fn){ msgs[id] = fn || null; $(id).textContent = fn ? fn() : ""; syncInfoRow(); }
+/* 題目卡標題下那一列(載入進度、連對):兩個都空就整列收掉(標籤在標題同一行) */
+function syncInfoRow(){ const row = $("infoRow"); if (row) row.hidden = !$("loadingMsg").textContent && !$("scoreLine").textContent; }
 function remsg(){ for (const id in msgs) if (msgs[id]) $(id).textContent = msgs[id](); }
 
 function segBind(el, get, set){
@@ -203,6 +205,7 @@ function showMockResult(){
   stopPlayback();
   const m = mock; mock = null; cur = null; A = null;
   lastMock = m;
+  $("quizCard").classList.remove("hint-empty");
   showMockText();
   $("playBtn").disabled = true; $("revealBtn").hidden = true; $("nextBtn").disabled = false; $("nextBtn").hidden = false;   // 下一題 = 再考一次
 }
@@ -253,18 +256,22 @@ function showEmpty(){
   $("qTags").innerHTML = ""; $("stepQ").textContent = ""; $("answers").innerHTML = ""; $("feedback").textContent = ""; $("feedback").className = "feedback";
   $("playBtn").disabled = true; $("nextBtn").disabled = true; $("revealBtn").hidden = true;
   $("playBtn").hidden = $("nextBtn").hidden = true;   // 還沒有題目:▶ 與「下一題」先不出現
+  $("quizCard").classList.add("hint-empty");   // 一行淡色提示 + 最下面一列 模擬考 | 隨機抽一題(app.css 的 .quiz.hint-empty)
   syncScoreLine();
 }
 function emptyText(){ pairText($("qTitle"), () => tr("選一種題型,或按「隨機抽一題」", "Pick a test type, or tap Random")); }
 const session = {};   // 每個分頁這一輪:{ n, ok, streak }
 function syncScoreLine(){
   const s = session[S.tab];
-  $("scoreLine").textContent = s && s.n ? tr(`本輪 ${s.ok}/${s.n} · 連對 ${s.streak}`, `${s.ok}/${s.n} · streak ${s.streak}`) : "";
+  // 只寫「連對 n」(連對 2 題以上才出現;畫面設計 2026-10:本輪幾題對幾題不放)
+  $("scoreLine").textContent = s && s.streak >= 2 ? tr(`連對 ${s.streak}`, `Streak ${s.streak}`) : "";
+  syncInfoRow();
 }
 function setQuestion(q, tab, restore){
   stopPlayback();
   if (!q) { showEmpty(); return; }
   cur = q; tabCur[tab] = q; lastMock = null;
+  $("quizCard").classList.remove("hint-empty");
   if (!restore || !q._A) q._A = { step: 0, results: [], done: false, keys: [], taps: [], played: false };
   A = q._A;
   renderQuestion();
@@ -296,7 +303,7 @@ function renderAnswers(){
     }).join("");
   } else if (q.keys) {
     box.classList.remove("compact");
-    $("stepQ").textContent = q.keys.target.length > 1 ? tr(`在鍵盤上彈出 ${q.keys.target.length} 個音`, `Play the ${q.keys.target.length} notes`) : "";   // 單音:題目已經寫「這是什麼音?」,標籤有「哪個八度都算對」
+    $("stepQ").textContent = q.keys.target.length > 1 ? tr(`在鍵盤上彈出 ${q.keys.target.length} 個音`, `Play the ${q.keys.target.length} notes`) : "";   // 單音:題目已經寫「這是什麼音?」,標籤有「不分八度」
     // 單音題的參考音:琴鍵正上方左邊一顆次要按鈕「這是 C」(不是圓形、不是實心;按了播 C4 / A4、那個鍵亮 1 秒,不算作答)
     const refBtn = q.ref != null ? `<div class="kbd-row"><button class="btn ghost" id="e-refBtn" style="min-height:44px;height:auto">${refLabel(q)}</button></div>` : "";
     box.innerHTML = `<div class="kbd-wrap">${refBtn}<div class="kbd" id="e-kbd">${keyboardHTML(q.keys)}</div>` +

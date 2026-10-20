@@ -105,7 +105,7 @@ function build(tab, pick, it, items){
     const m = pickOne(cands), ref = pick.ref === "C" ? 60 : pick.ref === "A" ? 69 : null;
     return { tab, key: "note:" + it.id, sig: "n" + m, play: playOf([m], "single"), ref,
       keys: { target: [m], lo: 60, hi: 71, pcOnly: true, allowed: items.map(x => x.pc), mute: true },
-      get label(){ return tr("這是什麼音?", "Which note?"); }, get tags(){ return [tr("哪個八度都算對", "Any octave counts")]; }   /* 參考音是琴鍵上方的「這是 C」鈕,標籤只留題目卡獨有的 */, get reveal(){ return noteName(m) + (Math.floor(m / 12) - 1); },
+      get label(){ return tr("這是什麼音?", "Which note?"); }, get tags(){ return [tr("不分八度", "Any octave")]; }   /* 參考音是琴鍵上方的「這是 C」鈕,標籤只留題目卡獨有的 */, get reveal(){ return noteName(m) + (Math.floor(m / 12) - 1); },
       compare: id => playOf([Math.floor(m / 12) * 12 + Number(id)], "single", null) };
   }
   if (tab === "interval") {

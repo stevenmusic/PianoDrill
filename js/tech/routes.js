@@ -75,9 +75,9 @@ const FINGER = [
     check: [C("兩手同時下去", "Hands exactly together"), C("兩手的手指號碼不一樣:先看清楚", "Different fingers: look first")] },
   { id: "PA5", g: "A", name: C("八分音符雙手", "Eighth notes, hands together"), hands: "HT", value: "e", rh: x2("1 2 3 4 5 4 3 2"), lh: x2("5 4 3 2 1 2 3 4"), start: 50, target: 84,
     check: [C("不要越彈越快", "Don't rush"), C("手腕不上下", "Quiet wrists")] },
-  // 兩音圓滑(審查定案 2026-10:A 組最後一關;方法書的「落下—抬起」)
-  { id: "PA6", g: "A", name: C("兩音圓滑:落下—抬起", "Two-note slurs: drop–lift"), hands: "RH", value: "q", rh: "1( 2) 3( 4) | 5( 4) 3( 2)", start: 56, target: 88,
-    check: [C("手腕放下彈第一個音", "Drop the wrist into the first note"), C("抬起放掉第二個音", "Lift off the second note")] },
+  // 兩音圓滑(審查定案 2026-10:A 組最後一關;方法書的「按下—抬起」)
+  { id: "PA6", g: "A", name: C("按下—抬起", "Press–lift"), hands: "RH", value: "q", rh: "1( 2) 3( 4) | 5( 4) 3( 2)", start: 56, target: 88,
+    check: [C("按下第二個音的同時放開第一個音,中間沒有空隙", "Release the first note as the second sounds: no gap"), C("第二個音輕一點,彈完手腕抬起來", "Second note lighter, then lift the wrist")] },
   // B 弱指 4、5(八分音符)
   { id: "PB1", g: "B", name: C("右手 3-4-5-4", "RH 3-4-5-4"), hands: "RH", value: "e", rh: x2("3 4 5 4 3 4 5 4"), start: 50, target: 84,
     check: [C("4、5 指跟 3 指一樣大聲", "4 and 5 as loud as 3"), C("指尖站穩、第一指節不凹", "Firm tips, no caving joint")] },

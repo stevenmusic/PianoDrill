@@ -137,7 +137,7 @@ export function createReading({ $, store, save, onAnswered = () => {} }) {
     if (valOn()) {
       const id = drill.pick(setOf(R.vset)[2], setting(), Math.random, last);
       last = id; q = { id, value: true, name: valueName(id) }; t0 = performance.now();
-      say(() => (R.seenVal ? tr('這是幾拍?', 'How many beats?') : tr('看音符或休止符,點出是幾拍(四分音符 = 1 拍)', 'How many beats? (quarter note = 1)')));
+      say(() => tr('這是幾拍?', 'How many beats?'));
       paintKeys(); paintBeats(); draw();
       return;
     }
@@ -145,9 +145,8 @@ export function createReading({ $, store, save, onAnswered = () => {} }) {
     if (!list.length) { q = null; $('rdScore').innerHTML = ''; say(() => tr('這個範圍沒有符合的音,換一個範圍或位置。', 'No notes match — change the range or position.')); return; }
     const id = drill.pick(list, setting(), Math.random, last);
     last = id; q = { id, ...parse(id) }; t0 = performance.now();
-    // 譜和琴鍵之間這一行不空著:平常寫題目,答了寫對錯
-    // 第一次(還沒答過):寫這一格在練什麼、怎麼作答
-    say(() => (R.seen ? tr('什麼音?', 'Which note?') : tr('看音符,點出是哪個鍵', 'Read the note, tap the key')));
+    // 譜和琴鍵之間這一行不空著:平常寫題目「這是什麼音?」,答了寫對錯
+    say(() => tr('這是什麼音?', 'Which note is this?'));
     paintKeys(); paintBeats();
     draw();
   }

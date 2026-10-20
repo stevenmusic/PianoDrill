@@ -40,7 +40,8 @@ const STR = {
     "Pick a board and grade: Exams opens with scales, sight-reading and aural set to that grade. Change any time in Exams."],
   obYes: ["開始準備考試", "Start exam prep"], obNo: ["不考試,自由練習", "No exam — free practice"],
   obHint: ["不確定考哪個?先選「自由練習」,之後再改", "Not sure? Pick free practice — change it later"],
-  examHelp: ["看檢定書封面或問老師;不考試可以直接用前三個分頁", "Check the exam book or ask your teacher — or just use the other tabs"]
+  examHelp: ["看檢定書封面或問老師;不考試可以直接用前三個分頁", "Check the exam book or ask your teacher — or just use the other tabs"],
+  examInfo: ["考試內容", "Exam details"]   // 檢定頁最下面那張收起來的卡(出處、規格;畫面設計 2026-10)
 };
 // @app-end
 /* 模組的字串:addStrings("tech", { play: ["播放示範", "Play"] }) → "tech.play" */

@@ -64,7 +64,8 @@ const TASKS = [
     next: { sel: "#s-rdScoreTxt, #s-rdMsg", words: ["剩", "答案", "對了", "left", "It was", "Right"] } },
   { name: "考 ABRSM 3 級的人想練這一級的視奏題", store: onboarded({ exam: { system: "abrsm", grade: 3 }, view: "tech" }), steps: [
       { sel: '#tabbar [data-view="exam"]', say: "檢定分頁", wait: 600 },
-      { sel: '#subSeg [data-v="sight"]', say: "視奏(子項目列;這一級的題目直接出)", start: true, wait: 2000 },
+      { sel: '#subSeg [data-v="sight"]', say: "視奏(子項目列;本項卡)", wait: 800 },
+      { sel: "#s-generate", say: "練習一題(本項卡右下)", start: true, wait: 2000 },
       { sel: "#s-prepare", say: "開始 30 秒準備", wait: 2500 }
     ],
     check: async page => page.evaluate(() => (document.querySelector('#gradeSeg [aria-pressed="true"]')?.dataset.v === "3" && !document.getElementById("s-quiz").hidden ? null : "檢定頁沒有出題")),

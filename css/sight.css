@@ -167,3 +167,5 @@
 .rd-row > .rd-hint{grid-column:2;margin-top:-4px;font-size:var(--fs-xs);color:var(--muted-bright);line-height:1.4;overflow-wrap:anywhere}
 @media (max-width:380px){ .rd-row > .rd-hint{grid-column:1;margin-top:0} }
 .rd-seg.rd-vals .opt{white-space:nowrap;padding:4px 2px}
+/* 檢定頁的本項卡(畫面設計 2026-10 版型 B;js/sight/app.js 的 showExamItem):最下面一列只留「練習一題」(靠右) */
+#s-quiz.hint-empty .q-foot > :not(#s-generate):not(span){display:none}

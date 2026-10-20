@@ -57,8 +57,6 @@ const SUBS = {
 const SUB_LABEL = () => ({ tech: tr("技巧項目", "Technique"), sight: tr("讀譜類別", "Reading type"), ear: tr("題型", "Question type"), exam: tr("檢定項目", "Exam section") });
 /* 外框另外給模組的東西(ctx 裡;DrumDrill 用來給考試資料):PianoDrill 的模組自己讀資料,這裡沒有 */
 const appCtx = async () => ({});
-/* 有選考試時考試卡下面那一行「推估 = …」:檢定頁沒有「推估」標籤(視奏的推估說明是整句),不寫 */
-const ASSUMED_HINT = false;
 // @app-end
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
 const GRADES = [0, 1, 2, 3, 4, 5, 6, 7, 8];
@@ -269,8 +267,8 @@ function renderExamCard(){
   syncSystemSeg(); fillGradeSeg($("gradeSeg"), S.exam ? ex.grade : null, S.exam ? ex.system : pickSys || ex.system);
   $("examSum").parentElement.hidden = !!S.exam;
   $("examSum").textContent = S.exam ? "" : pickSys ? tr("再選級數", "Now pick a grade") : tr("先選考試系統和級數", "Pick an exam board and grade");
-  // 級數那排下面一行:沒選考試 = 怎麼知道考哪一級;有選 = 「推估」是什麼意思(@app 的 ASSUMED_HINT:畫面上有「推估」標籤的 App 才寫)
-  const hint = !S.exam ? T("examHelp") : ASSUMED_HINT ? T("examAssumed") : "";
+  // 級數那排下面一行:只有沒選考試時寫(怎麼知道考哪一級);「推估 = …」的說明收在各項的「考試內容」裡(畫面設計 2026-10:考試卡只有系統 + 級數)
+  const hint = !S.exam ? T("examHelp") : "";
   $("examHint").hidden = !hint; $("examHint").textContent = hint;
   // 以前這裡有三格進度(技巧 / 視奏 / 聽力):跟子項目列重複、又寫了練習紀錄與正確率 → 拿掉(2026-10);各項進度在自己的檢定頁(模組的 examStatus 留著,不畫)
 }

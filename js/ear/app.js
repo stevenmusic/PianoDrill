@@ -3,7 +3,7 @@
 import * as store from "./store.js";
 import { ALL_ITEMS, itemLabel, makeQuestion, pcName, isBlack, setSolfege, noteName } from "./ear.js";
 import { makeDrill, drillName, judgeTaps, judgeKeys, lazy } from "./aural.js";
-import { tr, scoped, getLang, pairText } from "../shared/i18n.js";
+import { tr, scoped, getLang, pairText, unpair } from "../shared/i18n.js";
 import * as audio from "../shared/audio.js";
 import { addLog, renderLog as paintLog, today, nextGoal } from "../shared/practicelog.js";
 import "./strings.js";
@@ -33,7 +33,7 @@ export function relang(){
     if (PRACTICE.includes(S.tab)) renderPicker(S.tab);
     if (cur) renderQuestion();
     else if (lastMock) showMockText();
-    else if ($("qTitle").classList.contains("empty")) emptyText();
+    else if ($("quizCard").classList.contains("hint-empty")) emptyText();
     $("playLabel").textContent = play ? T("stop") : starting ? tr("準備中…", "Preparing…") : cur && A && A.played ? T("replay") : T("play");
     renderStats();
   }
@@ -251,15 +251,21 @@ export function leave(){ active = false; stopPlayback(); }
 function showEmpty(){
   stopPlayback();
   cur = null; A = null; lastMock = null;
-  $("qTitle").classList.add("empty");
-  emptyText();
   $("qTags").innerHTML = ""; $("stepQ").textContent = ""; $("answers").innerHTML = ""; $("feedback").textContent = ""; $("feedback").className = "feedback";
   $("playBtn").disabled = true; $("nextBtn").disabled = true; $("revealBtn").hidden = true;
   $("playBtn").hidden = $("nextBtn").hidden = true;   // 還沒有題目:▶ 與「下一題」先不出現
-  $("quizCard").classList.add("hint-empty");   // 一行淡色提示 + 最下面一列 模擬考 | 隨機抽一題(app.css 的 .quiz.hint-empty)
+  $("quizCard").classList.add("hint-empty");   // 本項卡:大標題「聽力」+ 標籤 n 項 + 一句;最下面一列 模擬考 | 隨機抽一題(app.css 的 .quiz.hint-empty)
+  emptyText();
   syncScoreLine();
 }
-function emptyText(){ pairText($("qTitle"), () => tr("選一種題型,或按「隨機抽一題」", "Pick a test type, or tap Random")); }
+/* 本項卡(畫面設計 2026-10 版型 B):大標題 = 聽力、標籤 = 這一級幾項、一句怎麼開始 */
+function emptyText(){
+  unpair($("qTitle")); $("qTitle").classList.remove("empty");
+  $("qTitle").textContent = tr("聽力", "Aural");
+  const g = S.exam && gradeOf(S.exam.system, S.exam.grade);
+  $("qTags").innerHTML = g ? `<span class="q-tag">${tr(`${g.tests.length} 項`, `${g.tests.length} tests`)}</span>` : "";
+  pairText($("hint"), () => tr("選一項,或隨機抽一題", "Pick a test, or tap Random"));
+}
 const session = {};   // 每個分頁這一輪:{ n, ok, streak }
 function syncScoreLine(){
   const s = session[S.tab];

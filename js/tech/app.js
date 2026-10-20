@@ -348,6 +348,7 @@ function renderList(){
   $("listTitle").textContent = sys.mode === "sets" ? tr(`${S.exam.set} 組要求(依序)`, `Set ${S.exam.set} (in order)`) : T("listTitle");
   $("listSub").textContent = tr(`會了 ${good}/${qs.length}`, `✓ ${good}/${qs.length}`);
   $("progressBar").style.width = (qs.length ? 100 * good / qs.length : 0) + "%";
+  paintItemTag();
   const row = (q, i) => {
     const m = S.mastery[q.key] || "", hands = q.motion === "contrary" ? tr("反向", "contrary") : { RH: tr("右手", "RH"), LH: tr("左手", "LH"), HT: tr("雙手", "Both") }[q.hands];
     const extra = [hands, q.range === "5th" ? tr("五度", "5th") : tr(q.octaves + "八度", q.octaves + " oct.")];
@@ -410,7 +411,7 @@ function showEmpty(){
   cur = null; ex = null;
   $("qTitle").classList.add("empty"); $("qTitle").style.fontSize = "";
   emptyTitle = null;
-  emptyText(); $("qTags").innerHTML = ""; renderIntro(null);
+  $("qTags").innerHTML = ""; emptyText(); renderIntro(null);
   $("playBtn").disabled = true; ROOT.querySelectorAll(".mbtn").forEach(b => { b.disabled = true; b.setAttribute("aria-pressed", "false"); });
   if (osmd) { try { osmd.clear(); } catch (e) {} }
   $("osmd").innerHTML = ""; osmd = null; noteXs = []; $("playline").hidden = true;
@@ -422,8 +423,20 @@ function showEmpty(){
 /* 沒有題目時的文字:大標題、抽考範圍(showEmpty 與換語言共用) */
 function emptyText(){
   const sets = S.exam && SY.systems[S.exam.system].mode === "sets";
-  pairText($("qTitle"), emptyTitle || (() => { const d = sets ? tr("隨機抽一項", "Random") : tr("隨機抽考", "Random"); return tr("按「" + d + "」,或從下面的清單選一項", "Tap " + d + ", or pick from the list below"); }));
   $("poolCount").textContent = "";   // 「抽考範圍 n 題」不寫(本級要求就在下面)
+  if (emptyTitle || S.tab !== "exam" || !S.exam) { pairText($("qTitle"), emptyTitle || (() => "")); return; }
+  // 本項卡(畫面設計 2026-10 版型 B):大標題 = 音階琶音、標籤 = 進度、一句怎麼開始;按鈕在最後一行(模擬考 | 隨機抽考)
+  unpair($("qTitle")); $("qTitle").classList.remove("empty");
+  $("qTitle").textContent = tr("音階琶音", "Scales & arpeggios");
+  paintItemTag();
+  const d = () => (sets ? tr("隨機抽一項", "Random") : tr("隨機抽考", "Random"));
+  pairText($("hint"), () => tr(`按「${d()}」,或點下面一項`, `Tap ${d()}, or pick one below`));
+}
+/* 本項卡的標籤:會了 n / m(本級要求清單的數字;清單標題那一個在本項卡出現時藏起來,不重複) */
+function paintItemTag(){
+  if (cur || emptyTitle || S.tab !== "exam" || !S.exam) return;
+  const qs = examQuestions(), good = qs.filter(q => S.mastery[q.key] === "good").length;
+  $("qTags").innerHTML = `<span class="q-tag">${tr(`會了 ${good}/${qs.length}`, `Got it ${good}/${qs.length}`)}</span>`;
 }
 function setQuestion(q, tab){
   stopPlayback();

@@ -12,7 +12,7 @@
 const APP = "pianodrill";
 // @app-end
 /*@precache-begin*/
-const CACHE = APP + "-app-0ecfd7a5";
+const CACHE = APP + "-app-dd4fddb4";
 const PRECACHE = [
   "./",
   "manifest.webmanifest",
@@ -24,21 +24,21 @@ const PRECACHE = [
   "licenses.html",
   "privacy.html",
   "support.html",
-  "css/app.css?v=8ec33b20bf",
-  "css/sight.css?v=b5a18401c3",
+  "css/app.css?v=09afe61e45",
+  "css/sight.css?v=4be8400070",
   "vendor/opensheetmusicdisplay.min.js?v=4bfeb3d01c",
-  "js/ear/app.js?v=9077f928a3",
+  "js/ear/app.js?v=a474b234b4",
   "js/ear/aural.js?v=0c492685b1",
   "js/ear/ear.js?v=b3b3eba738",
   "js/ear/music.js?v=28644129ec",
   "js/ear/store.js?v=cfdd5a5cac",
   "js/ear/strings.js?v=62d5d35316",
-  "js/main.js?v=ee198d45ec",
+  "js/main.js?v=86e589d406",
   "js/shared/audio.js?v=0cb04738a9",
   "js/shared/daily.js?v=90d712e055",
   "js/shared/dailycard.js?v=ca043acf6b",
   "js/shared/drill.js?v=9f698a5f44",
-  "js/shared/i18n.js?v=c74620758b",
+  "js/shared/i18n.js?v=f1ab2db327",
   "js/shared/mic.js?v=5450b68a2d",
   "js/shared/notenames.js?v=68a982911d",
   "js/shared/onsets.js?v=d8df0b9ef2",
@@ -46,7 +46,7 @@ const PRECACHE = [
   "js/shared/staffframe.js?v=7d869b31d1",
   "js/shared/tempo.js?v=1e38af7d3f",
   "js/shared/values.js?v=e240ea1b65",
-  "js/sight/app.js?v=c7a72ce169",
+  "js/sight/app.js?v=90653ea363",
   "js/sight/generator/fingerprint.js?v=9c9903e4f3",
   "js/sight/generator/generate.js?v=0a2725513f",
   "js/sight/generator/harmony.js?v=153a66fd1f",
@@ -63,7 +63,7 @@ const PRECACHE = [
   "js/sight/scoring.js?v=c1912c76a7",
   "js/sight/stage.js?v=9ca7fb07ed",
   "js/sight/stages.js?v=dae636a755",
-  "js/tech/app.js?v=957771d17d",
+  "js/tech/app.js?v=784cdcd2d8",
   "js/tech/exercise.js?v=565cfe5487",
   "js/tech/fingering.js?v=eabf64c8e1",
   "js/tech/hanon.js?v=be2621dd7a",

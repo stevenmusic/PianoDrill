@@ -40,7 +40,9 @@ const SS = (() => {
   const intro = {}; if (s.intro && typeof s.intro === 'object') for (const h of HANDS) if (s.intro[h] === true) intro[h] = true;
   // 視奏分頁的速度:每個子項目的每個難度各自記住({ "right-1": 72 });沒改過 = 預設(難度 1–2 最快 ♩=80)
   const bpm = {}; if (s.bpm && typeof s.bpm === 'object') for (const [k, v] of Object.entries(s.bpm)) if (/^(right|left|both)-[1-4]$/.test(k) && Number.isFinite(v)) bpm[k] = Math.max(30, Math.min(200, Math.round(v)));
-  return { stage, names, read: cleanRead(s.read), log: cleanLog(log), goal: cleanGoal(s.goal), intro, bpm };
+  // 檢定頁每一級練過幾題(本項卡的標籤「已練 n 題」;{ "abrsm-3": 5 }):30 秒準備跑完算一題
+  const xn = {}; if (s.xn && typeof s.xn === 'object') for (const [k, v] of Object.entries(s.xn)) if (/^(abrsm|trinity)-[0-8]$/.test(k) && Number.isInteger(v) && v > 0) xn[k] = Math.min(v, 99999);
+  return { stage, names, read: cleanRead(s.read), log: cleanLog(log), goal: cleanGoal(s.goal), intro, bpm, xn };
 })();
 const saveSS = () => { try { localStorage.setItem('pianodrill.sight.v1', JSON.stringify(SS)); } catch { /* 存不了就算了 */ } };
 const $ = (id) => document.getElementById('s-' + id);
@@ -665,7 +667,7 @@ export async function start(c) {
   window.__scoring = () => (current ? { onsets: expectedOnsets(current.score), secondsPerBar: barTimings(current.score).secondsPerBar } : null);
 
   elements.generate.disabled = false;
-  elements.generate.addEventListener('click', newTest);
+  elements.generate.addEventListener('click', () => { if (xIdle) setExamItem(false); newTest(); });
   elements.prepare.addEventListener('click', startCountdown);
   elements.play.addEventListener('click', togglePlayback);
   elements.playAlong.addEventListener('click', togglePlayAlong);
@@ -738,6 +740,7 @@ export function relang() {
   refreshDynamicText();
   renderSummary();
   if (mode === 'exam') renderUnsupported();
+  if (xIdle && mode === 'exam') showExamItem();   // 本項卡的文字(refreshDynamicText 會用舊題目的調性蓋掉標題)
 }
 export function examStatus() {
   if (!examSupported()) return t('examNotYetShort');
@@ -789,9 +792,32 @@ function syncMode(changed) {
   if (rules) populateKeyOptions();
   renderStage();
   renderSummary();
-  // 換了級數 / 子項目 / 範圍階段(或第一次進來):重新出一題
+  // 換了級數 / 子項目 / 範圍階段(或第一次進來):重新出一題;檢定頁先是本項卡(按「練習一題」才出題,畫面設計 2026-10 版型 B)
   const stale = !current || (mode === 'exam' ? current.free || current.score.grade !== currentGrade() : !current.free || current.key !== freeKey());
+  if (mode === 'exam' && rules && (changed || stale || xIdle)) { showExamItem(); return; }
+  setExamItem(false);
   if (rules && (changed || stale)) newTest();
+}
+/* 檢定頁的本項卡(題目卡的空狀態):大標題 = 視奏、標籤 = 已練 n 題、一句流程;右下「練習一題」(= 出題) */
+let xIdle = false;
+function showExamItem() {
+  stopAll();
+  setExamItem(true);
+  elements.title.classList.remove('empty'); unpair(elements.title);
+  elements.title.textContent = tr('視奏', 'Sight-reading');
+  const n = SS.xn[`${exam.system}-${exam.grade}`] || 0;
+  elements.meta.innerHTML = `<span class="q-tag">${escapeHtml(tr(`已練 ${n} 題`, `${n} practised`))}</span>`;
+  const sec = rules ? rules.exam.preparationSeconds : 30;
+  pairText($('hint'), () => tr(`出一題 → 準備 ${sec} 秒 → 彈一遍`, `Get a test → ${sec} s to prepare → play it`));
+  lastMessage = null;
+}
+function setExamItem(on) {
+  xIdle = on;
+  $('quiz').classList.toggle('hint-empty', on);
+  $('scoreCard').hidden = on;
+  if (on) elements.along.hidden = true;
+  if (on) elements.generate.disabled = !rules;
+  elements.generate.querySelector('.btn-label').textContent = on ? tr('練習一題', 'Get a test') : t('generateLabel');
 }
 function renderUnsupported() {
   const ini = exam.grade === 0;
@@ -1205,6 +1231,7 @@ function runPreparationCountdown() {
       // Continuity outscores accuracy: going back to fix a slip is counted as
       // a second mistake.
       say('prepDone');
+      if (mode === 'exam') { const k = `${exam.system}-${exam.grade}`; SS.xn[k] = (SS.xn[k] || 0) + 1; }
       recordPractice();
       elements.along.hidden = false;
     }

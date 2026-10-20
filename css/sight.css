@@ -126,7 +126,8 @@
 #s-setup.always-open .setup-summary{display:none !important}
 #s-setup.always-open .setup-body{display:block !important;margin-top:0 !important}
 /* 視奏分頁題目卡(.free):最後一行 左 = 小的「新題目」、右 = 大的「彈一遍」(唯一的主要動作);沒有準備倒數 */
-#s-quiz.free #s-generate{order:-1}
+#s-quiz.free:not(.hint-empty) #s-generate{order:-1}
+#mod-sight .s-along-top.counting:disabled{opacity:1;font-variant-numeric:tabular-nums}   /* 看譜倒數:主要按鈕上寫剩幾秒(不變淡) */
 #mod-sight .s-along-top{flex:0 1 auto;min-width:48%;min-height:48px;height:auto;padding:0 22px;font-size:var(--fs-md)}
 #s-quiz.free .q-foot{margin-top:6px}
 /* 手機橫式:認音的題目卡左右排(左 = 譜、右 = 訊息與琴鍵) */
@@ -169,3 +170,18 @@
 .rd-seg.rd-vals .opt{white-space:nowrap;padding:4px 2px}
 /* 檢定頁的本項卡(畫面設計 2026-10 版型 B;js/sight/app.js 的 showExamItem):最下面一列只留「練習一題」(靠右) */
 #s-quiz.hint-empty .q-foot > :not(#s-generate):not(span){display:none}
+
+/* 檢定頁的調性設定卡:不寫「調性」標籤(按鈕本身就是調);展開時摘要列只留圖示與箭頭(不重複「隨機」) */
+#s-keyLbl{display:none}
+#s-setup .prow{grid-template-columns:1fr}
+#s-setup.open .setup-summary .sum{visibility:hidden}
+
+/* ── 檢定頁模擬考的結果:自我檢查(一項一行、整行可以點;勾了右邊出現 ✓)── */
+#s-selfCheck{display:flex;flex-direction:column;gap:6px;margin:8px 0 2px;grid-column:1 / -1}
+#s-selfCheck[hidden]{display:none}
+#s-selfCheck button{display:flex;align-items:center;gap:10px;width:100%;min-height:44px;height:auto;padding:8px 12px;text-align:left;
+  border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--surface-inset);color:var(--ivory);font:inherit;font-size:var(--fs-md);line-height:1.4;cursor:pointer}
+#s-selfCheck button span{flex:1 1 auto;min-width:0}
+#s-selfCheck button i{flex:none;width:1.4em;height:1.4em;border:1.5px solid var(--muted);border-radius:6px;display:grid;place-items:center;font-style:normal;font-weight:700;color:var(--teal)}
+#s-selfCheck button[aria-pressed="true"]{border-color:var(--teal)}
+#s-selfCheck button[aria-pressed="true"] i{border-color:var(--teal)}

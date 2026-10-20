@@ -12,7 +12,7 @@ let bad = 0; const fail = (m) => { bad++; console.log("✗ " + m); };
 
 // @app-begin
 // PianoDrill 技巧:點選擇器、抽題、下一項、模擬考、播放/停止(含連點)、熟練標記、換顯示的手、點清單;
-//   視奏:新題目、30 秒準備、播放/停止、級數、調性;聽音:播放、作答、下一題、顯示答案、選擇器、檢定題型、抽題。
+//   視奏:新題目、看譜 30 秒、播放/停止、級數、調性;聽音:播放、作答、下一題、顯示答案、選擇器、檢定題型、抽題。
 //   檢查:播放狀態跟按鈕文字一致;樂譜跟題目一致(指法數字都在);速度在 30–300 且跟顯示一致
 const APP = "pianodrill", SYSTEMS = ["abrsm", "trinity"], STORE_KEYS = ["pianodrill.v1", "pianodrill.tech.v1", "pianodrill.ear.v1"];
 const appActions = ({ page, tap, tapAny }) => [
@@ -29,7 +29,7 @@ const appActions = ({ page, tap, tapAny }) => [
   [2, "點清單", async () => tapAny("#t-qGroups .qrow")],
   // 視奏
   [5, "視奏 新題目", async () => tap("#s-generate")],
-  [3, "視奏 30 秒準備", async () => tap("#s-prepare")],
+  [3, "視奏 看譜 30 秒 / 彈一遍", async () => tap("#s-playAlongTop")],
   [5, "視奏 播放/停止", async () => tap("#s-play")],
   [2, "視奏 停止", async () => tap("#s-stop")],
   [3, "視奏 級數", async () => (await page.isVisible("#mod-sight")) && tapAny("#subSeg button")],

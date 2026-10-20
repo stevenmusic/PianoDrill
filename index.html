@@ -19,7 +19,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/app.css?v=c658f52533">
-<link rel="stylesheet" href="css/sight.css?v=4be8400070">
+<link rel="stylesheet" href="css/sight.css?v=24de9975cc">
 </head>
 <body>
 <header>
@@ -222,6 +222,9 @@
     <!-- 本項列(檢定頁最上面一行;畫面設計 2026-10 版型 B):左「項目名 [進度]」、右 ghost「模擬考」 -->
     <section class="item-row pane" data-pane="exam" id="s-itemRow" hidden>
       <div class="ir-head"><b class="ir-name" id="s-irName"></b><span class="q-tag" id="s-irTag"></span></div>
+      <button class="btn ghost" id="s-mockBtn" type="button" hidden>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2M9 2h6"/></svg>
+      <span class="btn-label mock-label" id="s-mockLabel">模擬考</span></button>
     </section>
     <!-- 寬螢幕(≥1100)分兩欄:左 = 設定、速度、紀錄;右 = 題目與樂譜/作答。窄螢幕兩個容器都 display:contents,卡片照 order 排成一欄 -->
     <div class="mod-side">
@@ -301,7 +304,7 @@
         <!-- 檢定:這個考試/級數還沒有視奏規則(只照官方範例做了 ABRSM 1–8 級,不自己發明) -->
         <section class="card notice" id="s-unsupported" hidden><p id="s-unsupportedText"></p></section>
 
-        <!-- 題目卡(跟技巧、聽音同一個排法):大標題 = 調性,右邊 ▶;標籤 = 拍號、小節、速度;下面 左:30 秒準備 + 倒數,右:新題目 -->
+        <!-- 題目卡(跟技巧、聽音同一個排法):大標題 = 調性,右邊 ▶;標籤 = 拍號、小節、速度;下面 左:看譜 30 秒 + 倒數,右:新題目 -->
         <section class="card quiz" id="s-quiz" aria-live="polite">
           <div class="q-head">
             <!-- 大標題 → 標籤(同一行;放不下時整組標籤掉到下一行)→ 最右邊 ▶ -->
@@ -315,10 +318,12 @@
           <!-- 檢定頁還沒出題(本項卡):一句流程 -->
           <p class="q-hint" id="s-hint"></p>
           <p class="feedback" id="s-message"></p>
+          <!-- 模擬考結果:自我檢查(勾選;不算分數、不出現等第字眼) -->
+          <div class="s-selfcheck" id="s-selfCheck" role="group" hidden></div>
           <div class="q-foot">
             <button class="btn ghost small" id="s-prepare" disabled>
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9 2h6"/></svg>
-              <span class="btn-label" data-si18n="prepareLabel">開始 30 秒準備</span></button>
+              <span class="btn-label" data-si18n="prepareLabel">看譜 30 秒</span></button>
             <div class="countdown" id="s-countdown" hidden><span id="s-countdownValue">30</span><span class="unit" data-si18n="countdownUnit">秒</span></div>
             <span style="flex:1"></span>
             <button class="btn primary" id="s-generate">
@@ -480,7 +485,7 @@
   </div>
 </div>
 
-<script type="importmap">{"imports":{"./js/ear/app.js":"./js/ear/app.js?v=ec69095bbf","./js/ear/aural.js":"./js/ear/aural.js?v=0c492685b1","./js/ear/ear.js":"./js/ear/ear.js?v=b3b3eba738","./js/ear/music.js":"./js/ear/music.js?v=28644129ec","./js/ear/store.js":"./js/ear/store.js?v=cfdd5a5cac","./js/ear/strings.js":"./js/ear/strings.js?v=62d5d35316","./js/main.js":"./js/main.js?v=3b75bf0f43","./js/shared/audio.js":"./js/shared/audio.js?v=0cb04738a9","./js/shared/daily.js":"./js/shared/daily.js?v=90d712e055","./js/shared/dailycard.js":"./js/shared/dailycard.js?v=ca043acf6b","./js/shared/drill.js":"./js/shared/drill.js?v=9f698a5f44","./js/shared/i18n.js":"./js/shared/i18n.js?v=f1ab2db327","./js/shared/mic.js":"./js/shared/mic.js?v=5450b68a2d","./js/shared/notenames.js":"./js/shared/notenames.js?v=68a982911d","./js/shared/onsets.js":"./js/shared/onsets.js?v=d8df0b9ef2","./js/shared/practicelog.js":"./js/shared/practicelog.js?v=acd9cd53aa","./js/shared/staffframe.js":"./js/shared/staffframe.js?v=7d869b31d1","./js/shared/tempo.js":"./js/shared/tempo.js?v=1e38af7d3f","./js/shared/values.js":"./js/shared/values.js?v=e240ea1b65","./js/sight/app.js":"./js/sight/app.js?v=607f3caba4","./js/sight/generator/fingerprint.js":"./js/sight/generator/fingerprint.js?v=9c9903e4f3","./js/sight/generator/generate.js":"./js/sight/generator/generate.js?v=2bf5f28eae","./js/sight/generator/harmony.js":"./js/sight/generator/harmony.js?v=153a66fd1f","./js/sight/generator/index.js":"./js/sight/generator/index.js?v=f1aee5c391","./js/sight/generator/melody.js":"./js/sight/generator/melody.js?v=90ff930860","./js/sight/generator/meter.js":"./js/sight/generator/meter.js?v=efdd9ec3e8","./js/sight/generator/musicxml.js":"./js/sight/generator/musicxml.js?v=0cf5774154","./js/sight/generator/random.js":"./js/sight/generator/random.js?v=3b9b511386","./js/sight/generator/rhythm.js":"./js/sight/generator/rhythm.js?v=8c72082fc4","./js/sight/generator/theory.js":"./js/sight/generator/theory.js?v=bca3da5ea8","./js/sight/i18n.js":"./js/sight/i18n.js?v=4d6a1c2aeb","./js/sight/playback.js":"./js/sight/playback.js?v=2f4f886ed6","./js/sight/reading.js":"./js/sight/reading.js?v=9b8c333e75","./js/sight/scoring.js":"./js/sight/scoring.js?v=c1912c76a7","./js/sight/stage.js":"./js/sight/stage.js?v=9ca7fb07ed","./js/sight/stages.js":"./js/sight/stages.js?v=1768d14127","./js/tech/app.js":"./js/tech/app.js?v=13ef8ca885","./js/tech/exercise.js":"./js/tech/exercise.js?v=565cfe5487","./js/tech/fingering.js":"./js/tech/fingering.js?v=eabf64c8e1","./js/tech/hanon.js":"./js/tech/hanon.js?v=be2621dd7a","./js/tech/musicxml.js":"./js/tech/musicxml.js?v=f077fb5329","./js/tech/patterns.js":"./js/tech/patterns.js?v=efffeb11ac","./js/tech/routes.js":"./js/tech/routes.js?v=67a38c599d","./js/tech/store.js":"./js/tech/store.js?v=b1d795598e","./js/tech/strings.js":"./js/tech/strings.js?v=cd030f40ef","./js/tech/syllabus.js":"./js/tech/syllabus.js?v=cdf3a21898","./js/tech/theory.js":"./js/tech/theory.js?v=ed03457554"}}</script>
+<script type="importmap">{"imports":{"./js/ear/app.js":"./js/ear/app.js?v=ec69095bbf","./js/ear/aural.js":"./js/ear/aural.js?v=0c492685b1","./js/ear/ear.js":"./js/ear/ear.js?v=b3b3eba738","./js/ear/music.js":"./js/ear/music.js?v=28644129ec","./js/ear/store.js":"./js/ear/store.js?v=cfdd5a5cac","./js/ear/strings.js":"./js/ear/strings.js?v=62d5d35316","./js/main.js":"./js/main.js?v=3b75bf0f43","./js/shared/audio.js":"./js/shared/audio.js?v=0cb04738a9","./js/shared/daily.js":"./js/shared/daily.js?v=90d712e055","./js/shared/dailycard.js":"./js/shared/dailycard.js?v=ca043acf6b","./js/shared/drill.js":"./js/shared/drill.js?v=9f698a5f44","./js/shared/i18n.js":"./js/shared/i18n.js?v=f1ab2db327","./js/shared/mic.js":"./js/shared/mic.js?v=5450b68a2d","./js/shared/notenames.js":"./js/shared/notenames.js?v=68a982911d","./js/shared/onsets.js":"./js/shared/onsets.js?v=d8df0b9ef2","./js/shared/practicelog.js":"./js/shared/practicelog.js?v=acd9cd53aa","./js/shared/staffframe.js":"./js/shared/staffframe.js?v=7d869b31d1","./js/shared/tempo.js":"./js/shared/tempo.js?v=1e38af7d3f","./js/shared/values.js":"./js/shared/values.js?v=e240ea1b65","./js/sight/app.js":"./js/sight/app.js?v=ead34791f0","./js/sight/generator/fingerprint.js":"./js/sight/generator/fingerprint.js?v=9c9903e4f3","./js/sight/generator/generate.js":"./js/sight/generator/generate.js?v=2bf5f28eae","./js/sight/generator/harmony.js":"./js/sight/generator/harmony.js?v=153a66fd1f","./js/sight/generator/index.js":"./js/sight/generator/index.js?v=f1aee5c391","./js/sight/generator/melody.js":"./js/sight/generator/melody.js?v=90ff930860","./js/sight/generator/meter.js":"./js/sight/generator/meter.js?v=efdd9ec3e8","./js/sight/generator/musicxml.js":"./js/sight/generator/musicxml.js?v=0cf5774154","./js/sight/generator/random.js":"./js/sight/generator/random.js?v=3b9b511386","./js/sight/generator/rhythm.js":"./js/sight/generator/rhythm.js?v=8c72082fc4","./js/sight/generator/theory.js":"./js/sight/generator/theory.js?v=bca3da5ea8","./js/sight/i18n.js":"./js/sight/i18n.js?v=c594bd2d91","./js/sight/playback.js":"./js/sight/playback.js?v=2f4f886ed6","./js/sight/reading.js":"./js/sight/reading.js?v=9b8c333e75","./js/sight/scoring.js":"./js/sight/scoring.js?v=c1912c76a7","./js/sight/stage.js":"./js/sight/stage.js?v=9ca7fb07ed","./js/sight/stages.js":"./js/sight/stages.js?v=1768d14127","./js/tech/app.js":"./js/tech/app.js?v=13ef8ca885","./js/tech/exercise.js":"./js/tech/exercise.js?v=565cfe5487","./js/tech/fingering.js":"./js/tech/fingering.js?v=eabf64c8e1","./js/tech/hanon.js":"./js/tech/hanon.js?v=be2621dd7a","./js/tech/musicxml.js":"./js/tech/musicxml.js?v=f077fb5329","./js/tech/patterns.js":"./js/tech/patterns.js?v=efffeb11ac","./js/tech/routes.js":"./js/tech/routes.js?v=17cbf08be4","./js/tech/store.js":"./js/tech/store.js?v=b1d795598e","./js/tech/strings.js":"./js/tech/strings.js?v=cd030f40ef","./js/tech/syllabus.js":"./js/tech/syllabus.js?v=cdf3a21898","./js/tech/theory.js":"./js/tech/theory.js?v=ed03457554"}}</script>
 <script type="application/json" id="pdVersions">{"data/aural.json":"2260b8dfee","data/fingerings.json":"01a74f2d0c","data/sight-rules.json":"b26d7a8fb4","data/syllabus.json":"30b5443db2"}</script>
 <script src="vendor/opensheetmusicdisplay.min.js?v=4bfeb3d01c"></script>
 <script type="module" src="js/main.js?v=3b75bf0f43"></script>

@@ -123,8 +123,8 @@ const FINGER = [
     check: [C("左手短", "LH short"), C("右手連著、不斷掉", "RH connected")] },
   { id: "PF4", g: "F", name: C("右手大聲、左手小聲", "RH loud, LH soft"), hands: "HT", value: "q", dyn: { rh: "f", lh: "p" }, rh: "1 2 3 4 | @h 5 3", lh: "@w 5+1 | 5+1", start: 60, target: 96,
     check: [C("右手唱出來", "RH sings out"), C("左手像背景", "LH in the background")] },
-  { id: "PF5", g: "F", name: C("右手在 &", "RH on the &"), hands: "HT", value: "e", lh: "@q 5 1 5 1 | 5 1 5 1", rh: "r 3 r 3 r 4 r 4 | r 5 r 5 r 4 r 4", start: 50, target: 84,
-    check: [C("右手在 &(唸 and = 拍子的後半)", "RH on the & (second half of the beat)"), C("不被左手拉走", "Don't follow the LH")] },
+  { id: "PF5", g: "F", name: C("右手在反拍", "RH on the off-beats"), hands: "HT", value: "e", lh: "@q 5 1 5 1 | 5 1 5 1", rh: "r 3 r 3 r 4 r 4 | r 5 r 5 r 4 r 4", start: 50, target: 84,
+    check: [C("右手在反拍(每一拍的 &,唸 and = 拍子的後半)", "RH on the off-beats (the & of each beat)"), C("不被左手拉走", "Don't follow the LH")] },
   // 兩對三移到之後再做(審查定案 2026-10);換成兩手輪流接句
   { id: "PF6", g: "F", name: C("兩手輪流接句(右手接左手)", "Pass the phrase, LH to RH"), hands: "HT", value: "e", lh: "5 4 3 2 1 2 3 4 | R", rh: "R | 1 2 3 4 5 4 3 2", start: 56, target: 92,
     check: [C("接的地方不停", "No gap at the hand-over"), C("兩手一樣大聲", "Hands equally loud")] },

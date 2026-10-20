@@ -66,10 +66,10 @@ const TASKS = [
       { sel: '#tabbar [data-view="exam"]', say: "檢定分頁", wait: 600 },
       { sel: '#subSeg [data-v="sight"]', say: "視奏(子項目列;本項卡)", wait: 800 },
       { sel: "#s-generate", say: "練習一題(本項卡右下)", start: true, wait: 2000 },
-      { sel: "#s-prepare", say: "開始 30 秒準備", wait: 2500 }
+      { sel: "#s-playAlongTop", say: "看譜 30 秒(題目卡右下的主要按鈕)", wait: 2500 }
     ],
     check: async page => page.evaluate(() => (document.querySelector('#gradeSeg [aria-pressed="true"]')?.dataset.v === "3" && !document.getElementById("s-quiz").hidden ? null : "檢定頁沒有出題")),
-    next: { sel: "#s-message", words: ["給音", "準備", "pitch", "prep", "Prep"] } },
+    next: { sel: "#s-message", words: ["給音", "讀", "pitch", "Read", "Scroll"] } },
   // 今日練習(兩個 App 同一個任務):打開技巧分頁 → 按「開始今天的練習」→ 第一段(暖身)就在練了;卡片與按鈕在第一個畫面
   { name: "打開技巧分頁、開始今天的練習", store: onboarded({ view: "tech" }),
     first: [{ sel: "#subnav .sub-bar", say: "今日練習(進度一行,在子項目列的位置)" }, { sel: "#t-qTitle", say: "這一段的標題" }, { sel: "#t-playBtn", say: "▶ 示範" }],

@@ -34,7 +34,7 @@ const S = (() => {
     } catch (e) {}
   }
   const s = { view: "tech", exam: null, onboarded: false, theme: "dark", ...saved,
-    sub: { tech: "scale", ear: "note", exam: "tech", sight: "right", ...(saved.sub || {}) } };   // 第一次進視奏 = 右手(階 1)
+    sub: { tech: "today", ear: "note", exam: "tech", sight: "right", ...(saved.sub || {}) } };   // 第一次進視奏 = 右手(階 1)
   // 視奏分頁的子項目 = 認音 / 右手 / 左手 / 雙手(範圍階段在 js/sight/stages.js);舊版存的是級數 1–8 → 雙手
   if (!["read", "right", "left", "both"].includes(s.sub.sight)) s.sub.sight = "both";
   return s;
@@ -47,7 +47,8 @@ export const gradeLabel = (g, sys) => g === 0 ? tr("初級", "Initial") : tr(g +
 const gradeShort = g => (g === 0 ? "I" : String(g));
 /* 子項目分段鈕;檢定分頁三項的名稱 */
 const SUBS = {
-  tech: () => [["scale", tr("音階", "Scales")], ["arp", tr("琶音", "Arpeggios")], ["hanon", tr("哈農", "Hanon")]],
+  // 技巧:第一格「今日」= 今日練習(App 帶著練;畫面設計 2026-10),其他 = 自由練習
+  tech: () => [["today", tr("今日", "Today"), tr("今日練習", "Today's practice")], ["scale", tr("音階", "Scales")], ["arp", tr("琶音", "Arpeggios")], ["hanon", tr("哈農", "Hanon")]],
   // 視奏:照學習順序 認音 → 右手 → 左手 → 雙手(級數只在檢定頁設;範圍階段在視奏分頁的設定卡)
   sight: () => [["read", tr("認音", "Notes")], ["right", tr("右手", "Right")], ["left", tr("左手", "Left")], ["both", tr("雙手", "Both")]],
   ear: () => [["note", tr("單音", "Notes")], ["interval", tr("音程", "Intervals")], ["chord", tr("和弦", "Chords")]],
@@ -128,7 +129,8 @@ function renderSubnav(){
   $("subnav").hidden = !opts.length;
   document.body.classList.toggle("no-subnav", !opts.length);
   const keep = keepFocus($("subSeg"), "data-v");
-  $("subSeg").innerHTML = opts.map(([v, t]) => `<button data-v="${v}" aria-pressed="${!subOff.has(S.view) && S.sub[S.view] === v}">${t}</button>`).join("");
+  // 第三個欄位 = 無障礙名稱(按鈕上的字是短名時,例如「今日」→ 今日練習)
+  $("subSeg").innerHTML = opts.map(([v, t, a]) => `<button data-v="${v}" aria-pressed="${!subOff.has(S.view) && S.sub[S.view] === v}"${a ? ` aria-label="${a}"` : ""}>${t}</button>`).join("");
   $("subSeg").setAttribute("aria-label", SUB_LABEL()[S.view] || "");
   keep();
   const bar = opts.length && subOff.has(S.view) ? subBars[S.view] : null;

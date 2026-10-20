@@ -2042,7 +2042,7 @@
       "keys": {
         "maxAccidentals": 6,
         "allKeys": true,
-        "comment": "所有大小調（最多 6 個升降記號），並可能在曲中轉調"
+        "comment": "所有大小調(最多 6 個升降記號),並可能在曲中轉調;範例書 AB3401 #6 Interrupted Slumber 是升 F 大調(6 個升記號),確認 8 級到 6 個"
       },
       "texture": {
         "handsPlayTogether": true,

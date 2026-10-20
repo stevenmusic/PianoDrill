@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 
 import { generateTest, keyOfBar } from '../../js/sight/generator/generate.js';
 import { fingerprintOf, createHistory, generateUnique } from '../../js/sight/generator/fingerprint.js';
+import { toMusicXml } from '../../js/sight/generator/musicxml.js';
 import { firstChord, lastChord, chordAt, halfCadenceBar } from '../../js/sight/generator/harmony.js';
 import { createKey, degreeOf, chordDegrees } from '../../js/sight/generator/theory.js';
 import { rules, GRADES, expectedDuration, soundingEvents } from './helpers.js';
@@ -899,4 +900,16 @@ test('Initial: first turn ends mostly on the dominant; staccato under any word',
   }
   assert.ok(dominant / total > 0.38 && dominant / total < 0.64, `dominant ${dominant}/${total}`);
   assert.ok(slowDetached > 0, 'no staccato under a slow word');
+});
+
+/* Grade 8 reaches six sharps (specimen AB3401 #6, F# major): spelled with E#, signature of 6. */
+test('Grade 8 F# major: six-sharp signature, leading note spelled E#', () => {
+  for (let i = 0; i < 40; i++) {
+    const score = generateTest(rules, { grade: 8, seed: i * 613 + 3, tonic: 'F#', mode: 'major' });
+    assert.equal(score.key.fifths, 6);
+    assert.match(toMusicXml(score), /<fifths>6<\/fifths>/);
+    const notes = [1, 2].flatMap((s) => score.staves[s].flatMap((bar) => soundingEvents(bar)))
+      .filter((e) => !e.chromatic && !score.keyChange);
+    for (const e of notes) assert.ok(e.pitch.step !== 'F' || e.pitch.alter === 1, `seed ${i}: F natural in F# major`);
+  }
 });

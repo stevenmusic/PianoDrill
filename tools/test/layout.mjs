@@ -69,7 +69,8 @@ async function audit(page, vp, state){
       if (scrollY + innerHeight >= document.documentElement.scrollHeight - 2) break;
     }
     const tb = document.getElementById("tabbar").getBoundingClientRect();
-    const items = [...document.querySelectorAll("main .card, main > footer")].filter(e => !e.closest("[hidden]") && e.getBoundingClientRect().height > 0);
+    // 收起來的 <details> 裡的卡(考試內容的規格卡)看不見、不算(checkVisibility;以前會誤報「被分頁列蓋住」)
+    const items = [...document.querySelectorAll("main .card, main > footer")].filter(e => !e.closest("[hidden]") && e.getBoundingClientRect().height > 0 && (!e.checkVisibility || e.checkVisibility()));
     const lastBottom = Math.max(...items.map(e => e.getBoundingClientRect().bottom));
     const left = Math.min(...items.map(e => e.getBoundingClientRect().left));
     window.scrollTo(0, 0);

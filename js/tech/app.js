@@ -496,9 +496,7 @@ function renderQText(q, tab){
     $("qTitle").textContent = Array.isArray(nm) ? tr(nm[0], nm[1]) : nm;
     const tags = dcard.segTags({ ...dseg, bpm: q.tempo.bpm });
     const hand = questionText(q)[1];   // 關卡名稱已經寫了「右手」:標籤不再寫
-    if (q.type === "route" && dseg.k !== "warm" && !$("qTitle").textContent.includes(hand)) tags.splice(1, 0, hand);   // [手指 第 n 關] [右手] [八分音符] [♩=50 → 84]
-    const vt = valueTag(ex);   // 時值放在標籤(關卡名稱不放時值括號)
-    if (vt) tags.splice(dseg.k === "warm" ? 1 : 2, 0, tr(vt[0], vt[1]));
+    if (q.type === "route" && dseg.k !== "warm" && !$("qTitle").textContent.includes(hand)) tags.splice(1, 0, hand);   // [手指 1 / 33] [右手] [速度 50 → 84](時值不放,譜上看得到)
     $("qTags").innerHTML = tags.map(t => `<span class="q-tag">${t}</span>`).join("");
   }
   syncPlayCap();
@@ -513,16 +511,6 @@ function syncPlayCap(){
 }
 /* 這一段有合奏旋律(今日練習的伴奏關,只有左手的那幾關;patterns.js 的 accMelody) */
 function melOn(){ return !!(dseg && dseg.k !== "warm" && cur && cur.daily && ex && ex.mel); }
-/* 今日練習關卡最短的音符(標籤):三連音 / 十六分 / 八分 / 四分 / 二分 / 全音符(ex.exact 的時值:四分音符 = 12) */
-function valueTag(e){
-  if (!e || !e.exact) return null;
-  let min = Infinity;
-  for (const h of ["rh", "lh"]) for (const n of e[h] || []) if (!n.rest && n.dur) min = Math.min(min, n.dur);
-  if (!isFinite(min)) return null;
-  if (min % 12 && min % 6 && min % 3 === 0 && min < 6) return ["十六分音符", "16th notes"];
-  if (min % 4 === 0 && min % 12 && min % 6) return ["三連音", "Triplets"];
-  return min <= 3 ? ["十六分音符", "16th notes"] : min <= 9 ? ["八分音符", "Eighth notes"] : min <= 18 ? ["四分音符", "Quarter notes"] : min <= 36 ? ["二分音符", "Half notes"] : ["全音符", "Whole notes"];
-}
 /* 第一次進來這個子項目的一行說明(題目卡標籤下):這個子項目播放過一次就不再出現(S.intro[子項目] = true) */
 const INTRO = {
   scale: ["一個調的音由低到高、再回來", "A key's notes up and back down"],
@@ -1061,9 +1049,11 @@ function fitTitle(){
   // 標籤也固定一行:放不下就整排一起縮小
   const g = $("qTags");
   let k = 1; g.style.setProperty("--tag-scale", 1); g.classList.remove("wrap");
-  while (g.scrollWidth > g.clientWidth + 1 && k > 0.82) { k -= 0.04; g.style.setProperty("--tag-scale", k); }
-  // 縮到 0.82 還放不下(折疊機、今日練習四個標籤):換到第二行,不再縮小、不截掉
-  if (g.scrollWidth > g.clientWidth + 1) { g.style.setProperty("--tag-scale", 0.82); g.classList.add("wrap"); }
+  // 量最後一個標籤的右緣(留 2px;scrollWidth 是整數,小數寬度會差 1px 被切掉;跟 DrumDrill 一樣)
+  const over = () => g.scrollWidth > g.clientWidth + 1 || (g.lastElementChild && g.lastElementChild.getBoundingClientRect().right + 2 > g.getBoundingClientRect().right);
+  while (over() && k > 0.82) { k -= 0.04; g.style.setProperty("--tag-scale", k); }
+  // 縮到 0.82 還放不下(折疊機、標籤多的關):換到第二行,不再縮小、不截掉
+  if (over()) { g.style.setProperty("--tag-scale", 0.82); g.classList.add("wrap"); }
 }
 const onStageResize = () => {
   fitTitle();

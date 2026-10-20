@@ -40,7 +40,7 @@ export default function check(ok, FG){
       const at = `${R.id}/${L.id}`;
       ok(!ids.has(L.id), `${at}:id 重複`); ids.add(L.id); lvIds.add(at);
       ok(Array.isArray(L.name) && L.name[0] && L.name[1] && L.name[1].length <= 40, `${at}:名稱中英都要有、英文 ≤ 40 字`);
-      ok(!/[((](四分|八分|十六分|三連音|二分|全音符)/.test(L.name[0]) && !/\((quarters?|eighths?|16ths?|triplets?)/i.test(L.name[1]), `${at}:名稱不放時值括號(時值在標籤):${L.name[0]}`);
+      ok(!/[((](四分|八分|十六分|三連音|二分|全音符)/.test(L.name[0]) && !/\((quarters?|eighths?|16ths?|triplets?)/i.test(L.name[1]), `${at}:名稱不放時值括號:${L.name[0]}`);
       ok(L.start >= 40 && (L.g === "0" ? L.start === L.target : L.start < L.target) && L.target <= 200, `${at}:速度 ${L.start} → ${L.target}`);
       ok(Array.isArray(L.check) && L.check.length >= 2 && L.check.length <= 3 && L.check.every(c => c[0] && c[1]), `${at}:重點要 2–3 項、中英都有`);
       ok(Array.isArray(L.vary) && L.vary.length >= 5, `${at}:複習變化至少 5 種`);

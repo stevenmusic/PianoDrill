@@ -39,8 +39,9 @@ export function segTags(s, m = "♩="){
   const sp = b => fmt("tempo") + " " + (m === "♩=" ? "" : m) + b;
   if (s.k === "review") return [esc(fmt("review")) + " · " + lv, sp(s.bpm)];
   if (s.bpm < s.target) return [lv, `${sp(s.bpm)} → ${s.target}`];
+  // 到了目標速度:「穩 ●○○」併進速度那一格(「速度 80 · 穩 ●○○」),標籤一行放得下
   const need = s.need || 3, k = Math.min(need, s.streak || 0);
-  return [lv, sp(s.bpm), fmt("streakTag", { d: "●".repeat(k) + "○".repeat(need - k) })];
+  return [lv, sp(s.bpm) + " · " + fmt("streakTag", { d: "●".repeat(k) + "○".repeat(need - k) })];
 }
 /* 一次嘗試的結果 → 狀態那一句;過關寫「下一關:名稱」(next = 下一關的名稱 [中, 英],最後一關 = null;good = 「很穩!」/「很好!」) */
 export function resultText(res, s, next = null, good = "很穩!"){

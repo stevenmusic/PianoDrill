@@ -929,7 +929,8 @@ body.view-exam #t-dailyCard,body.view-exam #t-dailyStep{display:none !important}
    縮的是卡片內距、卡片之間、標題與內容、列與列;不縮按鈕點擊範圍(≥ 44,最小 28)、譜面大小、內文字級。手機(≤ 600 寬)優先 */
 .card-title{margin-bottom:8px}
 @media (max-width:600px){
-  main{padding:8px;gap:8px}
+  /* 只縮上、左右;底部留白照分頁列(上面的 main padding-bottom = 分頁列高度 + safe area),不然捲到底最後一行被分頁列蓋住 */
+  main{padding-top:8px;padding-left:max(8px, env(safe-area-inset-left));padding-right:max(8px, env(safe-area-inset-right));gap:8px}
   .card{padding:10px 12px}
   .card-title{margin-bottom:6px}
   .log-stats{gap:4px}

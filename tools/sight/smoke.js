@@ -3,7 +3,7 @@
  * checks that OSMD actually rendered it. OSMD is strict about MusicXML, so
  * this catches serialiser problems that unit tests on the string cannot.
  *
- *   node scripts/smoke.js [--screenshot out.png] [--grade 3]
+ *   node tools/sight/smoke.js [--screenshot out.png] [--grade 3]
  */
 import { chromium } from 'playwright';
 import { createServer } from 'node:http';
@@ -80,11 +80,11 @@ await page.goto(`http://localhost:${port}/index.html`);
 await page.waitForFunction(() => !document.getElementById('s-generate').disabled, { timeout: 15000 });
 
 const only = valueOf('--grade', null);
-const grades = only ? [Number(only)] : [1, 2, 3, 4, 5, 6, 7, 8];
+const grades = only ? [Number(only)] : [0, 1, 2, 3, 4, 5, 6, 7, 8];
 const runsPerGrade = only ? 1 : 3;
 
 for (const grade of grades) {
-  await page.evaluate((g) => document.querySelector(`#subSeg button[data-v=\"${g}\"]`).click(), grade);
+  await page.evaluate((g) => { window.__shell.setExam('abrsm', g); window.__shell.showView('exam', 'sight'); }, grade);
   for (let run = 0; run < runsPerGrade; run++) {
     await page.click('#s-generate');
     await page.waitForFunction(

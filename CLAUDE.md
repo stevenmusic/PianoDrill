@@ -237,7 +237,7 @@ FingerDrill(技巧)、SightDrill(視奏)、EarDrill(聽音)三個工具合併成
 - 不用瀏覽器的測試:
   - `node tools/test/verify.mjs`(技巧:大綱、指法、記譜 + 版本指紋)
   - `node tools/test/ear-verify.mjs`(聽力:檢定、練習、旋律)
-  - `node --test test/sight/*.test.js`(視奏產生器);`node tools/sight/audit.js`(視奏的統計分布,改產生器後要跑)
+  - `node --test test/sight/*.test.js`(視奏產生器);`node tools/sight/audit.js`(視奏的統計分布,改產生器後要跑;預設 1–8 級,初級加 `--grade 0`;改了只影響某幾級時,其他級的輸出要跟改前逐字相同)
 - 瀏覽器測試(`cd tools/test && npm i` 一次;Playwright):
   - `node tools/test/layout.mjs`(19 種尺寸 × 每個畫面;`ONLY=fold-280,se1-320` 只跑幾種)
   - `node tools/test/bilingual.mjs [尺寸]`(中英版面一致)
@@ -245,7 +245,9 @@ FingerDrill(技巧)、SightDrill(視奏)、EarDrill(聽音)三個工具合併成
   - `node tools/test/clip.mjs [尺寸]`(文字被切掉:g j p y 下伸部、上方重音超出 overflow 的範圍;所有分頁 × 中英 × 8 種尺寸)
   - `node tools/test/notation.mjs`(大綱 443 題實際用 OSMD 畫出來比對)
   - `node tools/test/playback.mjs`(技巧、聽力、視奏播放中換語言:不停播,只換文字)
-  - `node tools/sight/smoke.js`、`engraving-check.js`、`highlight-check.js`、`staff-metrics.js`、`mic-check.js`(視奏的繪譜、重疊、播放色塊、麥克風評分)
+  - 視奏(都在檢定頁出題:外框的測試掛鉤 `window.__shell.setExam('abrsm', 級)` + `showView('exam', 'sight')`;視奏分頁已經沒有級數按鈕):
+    `node tools/sight/smoke.js`(初級–8 級各 3 題 OSMD 畫得出來)、`node tools/sight/engraving-exam.js [--grade 0,1,2,8] [--runs 12] [--width 390 --height 844]`(記號重疊:必須 0、圓滑線擦到漸強線有預算;取代舊的 engraving-check.js)、
+    `node tools/sight/highlight-check.js`(播放色塊對齊小節);`staff-metrics.js` 量的是舊規則「譜表大小固定」(考卷排法以後不適用,不用跑)、`mic-check.js` 麥克風藏起來時跳過
 - 上架:`docs/APPSTORE.md`
 
 ## 之後再做(2026-10 審查定案;這一輪不做,兩個 App 一樣)

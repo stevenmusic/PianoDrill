@@ -12,7 +12,10 @@
  * bare `<path>` with nothing to identify it. So anything that is not part of
  * the notes, the stave, or the clef/key/time furniture counts as a marking.
  *
- *   node scripts/engraving-check.js [--runs 6] [--grade 3] [--width 1200]
+ *   node tools/sight/engraving-exam.js [--runs 6] [--grade 0,1,2,8] [--width 1200] [--height 900]
+ *
+ * 檢定頁出題(外框的測試掛鉤 window.__shell 設考試 ABRSM 該級、打開檢定頁的視奏,按「練習一題 / 下一題」);
+ * 取代以前點視奏分頁級數按鈕的 engraving-check.js(視奏分頁已經沒有級數按鈕)。預設 ABRSM 初級–8 級。
  */
 import { chromium } from 'playwright';
 import { createServer } from 'node:http';
@@ -29,7 +32,7 @@ const valueOf = (flag, fallback) => {
 const RUNS = Number(valueOf('--runs', 6));
 const WIDTH = Number(valueOf('--width', 1200));
 const HEIGHT = Number(valueOf('--height', 900));
-const GRADES = valueOf('--grade') ? [Number(valueOf('--grade'))] : [1, 2, 3, 4, 5, 6, 7, 8];
+const GRADES = valueOf('--grade') ? String(valueOf('--grade')).split(',').map(Number) : [0, 1, 2, 3, 4, 5, 6, 7, 8];
 
 const TYPES = {
   '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8',
@@ -212,7 +215,9 @@ let bad = 0;
 let grazeTests = 0;
 const examples = [];
 for (const grade of GRADES) {
-  await page.evaluate((g) => document.querySelector(`#subSeg button[data-v=\"${g}\"]`).click(), grade);
+  // 檢定頁出題(視奏分頁已經沒有級數按鈕):外框的測試掛鉤設考試 ABRSM 該級,打開檢定頁的視奏
+  await page.evaluate((g) => { window.__shell.setExam('abrsm', g); window.__shell.showView('exam', 'sight'); }, grade);
+  await page.waitForTimeout(300);
   for (let run = 0; run < RUNS; run++) {
     await page.click('#s-generate');
     await page.waitForFunction(() => !document.getElementById('s-score').hasAttribute('aria-busy'));

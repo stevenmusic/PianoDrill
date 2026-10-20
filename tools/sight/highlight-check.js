@@ -13,7 +13,7 @@
  * returns the *previous* bar's position. Measuring without waiting reports
  * enormous, entirely fictional errors.
  *
- *   node scripts/highlight-check.js [--grade 3] [--width 1200] [--height 900]
+ *   node tools/sight/highlight-check.js [--grade 3] [--width 1200] [--height 900]
  */
 import { chromium } from 'playwright';
 import { createServer } from 'node:http';
@@ -70,7 +70,7 @@ for (const viewport of VIEWPORTS) {
   await page.waitForFunction(() => window.__osmd);
 
   for (const grade of GRADES) {
-    await page.evaluate((g) => document.querySelector(`#subSeg button[data-v=\"${g}\"]`).click(), grade);
+    await page.evaluate((g) => { window.__shell.setExam('abrsm', g); window.__shell.showView('exam', 'sight'); }, grade);
     await page.click('#s-generate');
     await page.waitForFunction(() => !document.getElementById('s-score').hasAttribute('aria-busy'));
     await page.waitForTimeout(250);

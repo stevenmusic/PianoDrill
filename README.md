@@ -51,7 +51,7 @@ node tools/test/bilingual.mjs              # 中英版面一致
 node tools/test/human.mjs 150 3            # 模擬真人隨機操作
 node tools/test/notation.mjs               # 大綱 443 題實際畫譜比對
 node tools/test/fingers.mjs                # 指法數字位置
-node tools/sight/smoke.js                  # 視奏 1–8 級繪譜;engraving-check / highlight-check / staff-metrics / mic-check
+node tools/sight/smoke.js                  # 視奏初級–8 級繪譜(檢定頁出題);engraving-exam / highlight-check
 node tools/sight/audit.js                  # 視奏的統計分布(改產生器後要跑)
 ```
 

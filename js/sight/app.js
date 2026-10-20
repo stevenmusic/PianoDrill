@@ -50,7 +50,10 @@ const SS = (() => {
 const saveSS = () => { try { localStorage.setItem('pianodrill.sight.v1', JSON.stringify(SS)); } catch { /* 存不了就算了 */ } };
 const $ = (id) => document.getElementById('s-' + id);
 /* 檢定頁的視奏模擬考(下面「模擬考」一節):idle | run(phase = load / prep / play)| result | aborted(說明為什麼中止) */
-const mk = { state: SS.mockRun ? 'aborted' : 'idle', reason: SS.mockRun ? 'reload' : null, id: 0, phase: null, endAt: 0, timer: null, prepT0: 0, checks: [], stopped: false, click: null };
+// 視奏沒有模擬考(2026-10 使用者:跟練習流程「看譜 30 秒 → 彈一遍」重複):mk 一直是 idle;舊版留下的 mockRun 標記直接丟掉
+delete SS.mockRun;
+let xCheck = null;   // 檢定頁彈完一遍的自我檢查(null = 不顯示;paintSelfCheck)
+const mk = { state: 'idle', reason: null, id: 0, phase: null, endAt: 0, timer: null, prepT0: 0, checks: [], stopped: false, click: null };
 const mockOn = () => mk.state === 'run' || mk.state === 'result';
 /* 用麥克風評分節奏:目前版本藏起來(使用者 2026-10:之後再開)。程式與 js/shared/mic.js 留著,改成 true 就回來 */
 const MIC_UI = false;
@@ -687,19 +690,18 @@ export async function start(c) {
     if (xIdle) setExamItem(false);
     newTest();
   });
-  $('mockBtn').addEventListener('click', () => { if (mk.state === 'run') closeMock(); else startMock(); });
+  // 自我檢查(檢定頁彈完一遍出現;勾選、不算分數)
   $('selfCheck').addEventListener('click', (e) => {
     const b = e.target.closest('button[data-i]');
-    if (!b || mk.state !== 'result') return;
+    if (!b || !xCheck) return;
     const i = Number(b.dataset.i);
-    mk.checks[i] = !mk.checks[i];
+    xCheck[i] = !xCheck[i];
     paintSelfCheck();
   });
-  // 測試掛鉤(tools/test、截圖):開始模擬考、跳過準備、提早彈完
+  // 測試掛鉤(tools/test、截圖):提早彈完、看自我檢查
   window.__sight = {
-    startMock, mock: () => mk.state, phase: () => mk.phase, clicks: () => alongClicks,
-    mockSkipPrep: () => { if (mk.state === 'run' && mk.phase === 'prep') mk.endAt = performance.now(); },
-    mockFinishPlay: () => { if (alongStart !== null) alongStart = performance.now() / 1000 - 3600; },   // 彈一遍(模擬考或一般)提早彈完
+    finishPlay: () => { if (alongStart !== null) alongStart = performance.now() / 1000 - 3600; },   // 彈一遍提早彈完
+    selfCheck: () => (xCheck ? [...xCheck] : null),
   };
   elements.prepare.addEventListener('click', startCountdown);
   elements.play.addEventListener('click', togglePlayback);
@@ -847,6 +849,7 @@ function syncMode(changed) {
 /* 本項列(檢定頁最上面一行;畫面設計 2026-10 版型 B):視奏 [已練 n 題] … 模擬考(這一級還沒有題目時不寫標籤、沒有模擬考) */
 function paintItemRow() {
   $('itemRow').hidden = mode !== 'exam' || readOn();
+  if (mode !== 'exam') paintSelfCheck();   // 自我檢查只在檢定頁
   if (mode !== 'exam') return;
   $('irName').textContent = '';   // 子項目列已經寫「視奏」,同一個畫面不重複
   const n = SS.xn[`${exam.system}-${exam.grade}`] || 0;
@@ -871,6 +874,7 @@ function showExamItem() {
 }
 function setExamItem(on) {
   xIdle = on;
+  if (on && xCheck) { xCheck = null; paintSelfCheck(); }
   $('quiz').classList.toggle('hint-empty', on);
   $('scoreCard').hidden = on;
   if (on) elements.along.hidden = true;
@@ -1599,7 +1603,7 @@ async function togglePlayAlong() {
   if (!current || alongStarting) return;
   if (alongStart !== null) {
     if (mk.state === 'run') { finishMock(true); return; }   // 模擬考裡彈到一半按停止:記「中途停止」,照樣到結果
-    stopPlayAlong(freeAlong() ? 'freeDone' : 'alongDone');   // 停下來:下一步 = ▶ 對照
+    stopPlayAlong('alongDone');   // 停下來:下一步 = ▶ 對照(沒彈完,不寫「彈完了」)
     return;
   }
   player.stop();
@@ -1651,8 +1655,9 @@ function finishPlayAlong(scoring) {
   const { score } = current;
   const firstNoteAt = alongStart;
   const free = freeAlong();
-  if (mk.state === 'run') { finishMock(false); return; }
   stopPlayAlong(free ? 'freeDone' : 'alongDone');
+  // 檢定頁:彈完出現自我檢查 4 項(鋼琴不聽你彈,這是彈完唯一的回饋;勾選、不算分數)
+  if (!free && mode === 'exam') { xCheck = SELF_CHECK.map(() => false); paintSelfCheck(); sayFn(() => tr('彈完了,對照下面自己檢查,再按 ▶ 聽一次', 'Done — check yourself below, then tap ▶ to listen')); }
   if (free) { recordPractice(); if (!SS.intro[hand]) { SS.intro[hand] = true; saveSS(); } }   // 視奏分頁沒有準備倒數:彈完一遍算練了一題(第一次的說明不再出現)
   if (!take) return;
   // 麥克風時間軸換算成「距離第一個音幾秒」,跟題目的預期起音同一把尺
@@ -1688,6 +1693,7 @@ function renderRhythmResult() {
 }
 
 function resetAlongResult() {
+  if (xCheck) { xCheck = null; paintSelfCheck(); }
   recorder.cancel();
   lastRhythmResult = null;
   elements.alongResult.hidden = true;
@@ -1724,12 +1730,9 @@ function togglePlayback() {
     .catch((error) => fail('failPlayback', error.message));
 }
 
-/* ══ 模擬考(檢定頁,ABRSM 初級–8 級;照 DrumDrill 的視奏模擬考;本項列右邊「模擬考」)══
-   出一題(隨機調性)→ 看譜 30 秒:倒數照 performance.now() 的終點算(主執行緒卡住也不會變慢),不能暫停、不能提早結束、不能換題
-   → 時間到自動「彈一遍」:1 小節預備拍 + 全曲拍點(xstick,真的響),播放軸帶著走
-   → 結果 = 自我檢查(勾選;不算分數、不出現等第字眼)+ ▶ 聽正確版本;題目卡右下「下一題」回到一般練習。
-   中途切分頁、切到背景、換考試、重新整理 = 中止並說明(這一次不算);按本項列的「停止」= 不算、回到檢定頁。
-   進行中、結果:設定卡(調性)與「推估」說明藏起來(考試內容與清單) */
+/* ══ 視奏沒有模擬考(2026-10:跟練習流程重複 —— 檢定頁的練習就是「看譜 30 秒 → 彈一遍」照考試的方式走一遍)══
+   檢定頁彈完一遍出現自我檢查 4 項(xCheck;勾選、不算分數、不出現等第字眼),出新題或再彈一遍時收起來。
+   mk 留著一直是 idle(下面的 finishMock / abortMock / closeMock 不會被叫到;換考試時 abortMock 回傳 false) */
 let alongClicks = false;
 const SELF_CHECK = [
   () => tr('一路彈到最後,沒有停下來、沒有回頭改', 'Kept going — no stopping, no going back'),
@@ -1744,63 +1747,6 @@ const abortText = (reason) => ({
   load: () => tr('已中止:拍點的聲音載入失敗(第一次要連網路),這一次不算。', "Stopped: the click sound didn't load (needs internet once), not counted."),
 }[reason] ?? (() => tr('已中止(這一次不算)。', 'Stopped (not counted).')));
 
-async function startMock() {
-  if (mode !== 'exam' || !examSupported() || !rules || rendering || mk.state === 'run') return;
-  stopAll();
-  setExamItem(false);
-  const id = ++mk.id;
-  Object.assign(mk, { state: 'run', phase: 'load', reason: null, checks: SELF_CHECK.map(() => false), stopped: false });
-  SS.mockRun = { at: Date.now() };
-  saveSS();
-  // 使用者剛按了按鈕:趁這時候叫醒音訊、先載拍點(30 秒準備時間之內載完)
-  try { const c = audio.ensureAudio(); if (c.state !== 'running') c.resume().catch(() => {}); } catch { /* 沒有音訊也照樣準備 */ }
-  mk.click = audio.loadClick().then(() => true, () => false);
-  paintMock();
-  await newTest({ randomKey: true });
-  if (mk.state !== 'run' || mk.id !== id) return;
-  startMockPrep(id);
-}
-function startMockPrep(id) {
-  const sec = rules.exam.preparationSeconds;
-  mk.phase = 'prep';
-  mk.prepT0 = performance.now();
-  mk.endAt = mk.prepT0 + sec * 1000;
-  xPrep = 'count'; xLeft = sec;
-  paintMock();
-  elements.checklist.hidden = false;
-  elements.checklist.innerHTML = PREPARATION_STEP_KEYS.map((key) => `<li>${escapeHtml(t(key))}</li>`).join('');
-  sayFn(() => tr('不能暫停;時間到自動開始:先響 1 小節預備拍,再跟著拍點彈,不停、不回頭改。',
-    "No pausing. When time's up it starts by itself: one bar of count-in, then play with the click — no stopping or going back."));
-  bringScoreIntoView();
-  const tick = () => {
-    if (mk.state !== 'run' || mk.id !== id) return;
-    const left = Math.max(0, Math.ceil((mk.endAt - performance.now()) / 1000));
-    elements.countdownValue.textContent = String(left);
-    if (left !== xLeft) { xLeft = left; setAlongLabel(); }
-    showPrepFloat(left);
-    if (performance.now() >= mk.endAt) endMockPrep(id);
-  };
-  clearInterval(mk.timer);
-  mk.timer = setInterval(tick, 200);
-  tick();
-}
-async function endMockPrep(id) {
-  clearInterval(mk.timer); mk.timer = null;
-  elements.prepFloat.hidden = true;
-  elements.checklist.hidden = true;
-  xPrep = 'done';
-  addPracticeSec((performance.now() - mk.prepT0) / 1000);
-  const k = `${exam.system}-${exam.grade}`; SS.xn[k] = (SS.xn[k] || 0) + 1;
-  recordPractice();
-  paintItemRow();
-  mk.phase = 'play';
-  const ok = await mk.click;
-  if (mk.state !== 'run' || mk.id !== id) return;
-  if (!ok) { abortMock('load'); return; }
-  paintMock();
-  await togglePlayAlong();
-  if (mk.state === 'run' && mk.id === id && alongStart === null) abortMock('load');   // 樂譜還沒畫好、播放軸跟不了
-}
 /* 預備拍 + 全曲的拍點(xstick;每小節第一拍大聲):x/8 的複拍子每個附點四分一下,其他每拍一下。回傳離第一下拍點還有幾秒 */
 function scheduleClicks(secondsPerBar) {
   const c = audio.ensureAudio();
@@ -1857,7 +1803,7 @@ function closeMock() {
 function paintMock() {
   const run = mk.state === 'run', on = mockOn();
   const btn = $('mockBtn');
-  btn.hidden = mode !== 'exam' || !examSupported() || readOn();
+  btn.hidden = true;   // 視奏沒有模擬考(跟練習流程重複)
   pairText($('mockLabel'), () => (run ? tr('結束', 'End') : tr('模擬考', 'Mock')));
   btn.title = run ? tr('結束模擬考(這一次不算)', 'End the mock exam (not counted)') : tr('模擬考', 'Mock exam');
   btn.setAttribute('aria-label', btn.title);
@@ -1879,11 +1825,11 @@ function paintMock() {
 }
 function paintSelfCheck() {
   const box = $('selfCheck');
-  const show = mk.state === 'result' && mode === 'exam';
+  const show = !!xCheck && mode === 'exam';
   box.hidden = !show;
   if (!show) { box.innerHTML = ''; return; }
   box.setAttribute('aria-label', tr('自我檢查', 'Check yourself'));
-  box.innerHTML = SELF_CHECK.map((fn, i) => `<button type="button" data-i="${i}" aria-pressed="${!!mk.checks[i]}"><span></span><i aria-hidden="true">${mk.checks[i] ? '✓' : ''}</i></button>`).join('');
+  box.innerHTML = SELF_CHECK.map((fn, i) => `<button type="button" data-i="${i}" aria-pressed="${!!xCheck[i]}"><span></span><i aria-hidden="true">${xCheck[i] ? '✓' : ''}</i></button>`).join('');
   box.querySelectorAll('button span').forEach((el, i) => pairText(el, SELF_CHECK[i]));
 }
 

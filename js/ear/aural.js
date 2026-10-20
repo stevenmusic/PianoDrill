@@ -114,7 +114,7 @@ const GEN = {
     const lo = Math.min(...target) - 5, hi = Math.max(...target) + 5;
     const which = () => ({ upper: tr("上聲部", "upper part"), lower: tr("下聲部", "lower part"), lowest3: tr("最低聲部", "lowest part") }[p.part]);
     return { play: { ev: all, clicks: ci.clicks, dur }, keys: { target, lo, hi, octaveOk: true },
-      get tags(){ return [keyName(key), p.part ? tr("彈出", "Play the ") + which() : tr("用鍵盤彈出來", "Play it back")]; },
+      get tags(){ return [keyName(key), ...(p.part ? [tr("彈出", "Play the ") + which()] : [])]; },   // 「在鍵盤上彈出 n 個音」寫在題目,標籤不重複
       reveal: target.map(m => pcName(m)).join(" ") };
   },
   /* 力度:lq 大聲/小聲;fp forte/piano;abrsm 加上突然/漸漸改變;vary(Trinity 2 級起)描述變化 */

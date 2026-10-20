@@ -250,9 +250,9 @@ export function adaptVary(v, { level, box, passed }){
 export const WARM_LEVELS = {
   w0: { id: "w0", name: C("手指號碼(右手)", "finger numbers, RH"), hands: "RH", value: "q", rh: "1 3 2 4 | 5 3 4 2" },
   w5s: { id: "w5s", name: C("五指位置(兩手輪流)", "five fingers, hands in turn"), hands: "HT", value: "q", rh: "1 2 3 4 | 5 4 3 2 | R | R", lh: "R | R | 5 4 3 2 | 1 2 3 4" },
-  w5q: { id: "w5q", name: C("五指位置(雙手)", "five fingers, hands together"), hands: "HT", value: "q", rh: "1 2 3 4 | 5 4 3 2", lh: "5 4 3 2 | 1 2 3 4" },
-  w5e: { id: "w5e", name: C("五指位置(雙手)", "five fingers, hands together"), hands: "HT", value: "e", rh: x2("1 2 3 4 5 4 3 2"), lh: x2("5 4 3 2 1 2 3 4") },
-  wsc: { id: "wsc", name: C("音階一個八度(雙手)", "scale, one octave"), hands: "HT", scale: true }
+  w5q: { id: "w5q", name: C("五指位置", "five fingers"), hands: "HT", value: "q", rh: "1 2 3 4 | 5 4 3 2", lh: "5 4 3 2 | 1 2 3 4" },
+  w5e: { id: "w5e", name: C("五指位置", "five fingers"), hands: "HT", value: "e", rh: x2("1 2 3 4 5 4 3 2"), lh: x2("5 4 3 2 1 2 3 4") },
+  wsc: { id: "wsc", name: C("音階 1 個八度", "scale, one octave"), hands: "HT", scale: true }
 };
 for (const W of Object.values(WARM_LEVELS)) W.q = { type: "route", warm: W.id, hands: W.hands };
 /* 暖身只用已經過的關(系統化規則:不能等於目前或下一關);一關都還沒過(第一天)= 不排暖身,直接從第 0 組開始 */

@@ -238,7 +238,7 @@ export function buildExercise(FG, q){
 }
 
 /* ── 題目文字(考官點題的說法;中英雙語)── */
-const OCT = [["", ""], ["一個八度", "1 octave"], ["兩個八度", "2 octaves"], ["三個八度", "3 octaves"], ["四個八度", "4 octaves"]];
+const OCT = [["", ""], ["1 個八度", "1 octave"], ["2 個八度", "2 octaves"], ["3 個八度", "3 octaves"], ["4 個八度", "4 octaves"]];   // 一律「n 個八度」(選單、清單、標題同一個寫法)
 const FORM = { harmonic: ["和聲小調", "harmonic minor", "harm. minor"], melodic: ["旋律小調", "melodic minor", "mel. minor"], natural: ["自然小調", "natural minor", "nat. minor"] };
 const INV = [["", ""], ["第一轉位", "1st inv."], ["第二轉位", "2nd inv."]];
 const HAND = { RH: ["右手", "RH"], LH: ["左手", "LH"], HT: ["雙手", "Both hands"] };   // 英文不寫 HT(自學者看不懂)

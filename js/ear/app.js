@@ -144,11 +144,12 @@ function renderExam(){
   ensureExam();
   const sys = SY.systems[S.exam.system], g = gradeOf(S.exam.system, S.exam.grade);
   // 考試系統、級數在外框的檢定設定卡;這裡只寫本級有幾項測驗、答對要不要自動下一題
-  $("examSummary").textContent = tr(`${g.tests.length} 項聽力`, `${g.tests.length} aural tests`) + " · " + (S.auto ? tr("答對自動下一題", "Auto next") : tr("手動下一題", "Manual next"));
+  $("examSummary").textContent = S.auto ? tr("答對自動下一題", "Auto next") : tr("手動下一題", "Manual next");   // 幾項在本項列的標籤
   paintItemRow(g);
-  pairText($("examNote"), () => tr(`依據:${sys.syllabus} ${g.source}`, `Source: ${sys.syllabus}, ${g.source}`) + (sys.syllabusNote ? tr("(" + sys.syllabusNote + ")", "") : ""));
+  pairText($("examNote"), () => tr(`依據:${sys.syllabus} ${g.source}`, `Source: ${sys.syllabus}, ${g.source}`));
   $("testsSub").textContent = (getLang() === "en" ? g.paramsEn : g.params) || "";
-  $("testsList").innerHTML = (g.params ? "" : "") + g.tests.map(t => {
+  // 整份聽力共通的說明(Trinity:都根據考官彈的一段音樂)放在清單最上面一行
+  $("testsList").innerHTML = (sys.listNote ? `<p class="exam-hint tests-note"></p>` : "") + g.tests.map(t => {
     const chips = t.drills.map((d, i) => {
       const s = S.stats[examKey(t, d)], pct = s && s.n ? Math.round(100 * s.ok / s.n) + "%" : "";
       const on = examDrill && examDrill.test.id === t.id && examDrill.idx === i;
@@ -158,6 +159,7 @@ function renderExam(){
       (chips ? `<div class="chips">${chips}</div>` : `<p class="self"></p>`) + `</div>`;
   }).join("");
   pairTests(g);
+  const ln = $("testsList").querySelector(".tests-note"); if (ln) pairText(ln, () => tr(...sys.listNote));
   $("testsList").querySelectorAll("p.self").forEach(el => pairText(el, () => tr("這一項要看譜唱或口頭描述,App 不出題;請跟老師練習。", "Needs sight-singing or spoken description — practise with your teacher.")));
 }
 /* 測驗說明:中英文行數不一樣 → 保留比較高的那個高度(pairText),換語言時版面不動 */
@@ -221,7 +223,7 @@ function showMockText(){
     `<div><b>${d.test.id}</b><span>${drillName(d.drill.type)}</span><i class="${m.res[i] ? "ok" : "no"}">${m.res[i] ? "✓" : "✗"}</i></div>`).join("") + `</div>`;
   const fb = $("feedback");
   fb.className = "feedback " + (ok === m.queue.length ? "ok" : "");
-  fb.textContent = ok === m.queue.length ? tr("全部答對!", "All correct!") : tr("錯的項目可以從下方清單再練", "Practise the missed ones from the list below");
+  fb.textContent = ok === m.queue.length ? tr("全部答對!", "All correct!") : tr("錯的可以點下面再練", "Tap a missed one below to practise it");
 }
 /* 外框改了考試系統/級數(exam.auto = 還沒選考試,只是點進檢定分頁看看) */
 export function setExam(ex){
@@ -262,7 +264,7 @@ function showEmpty(){
 /* 題目卡的空狀態(畫面設計 2026-10 版型 B):一句怎麼開始 + 右下「隨機抽一題」;項目名與進度在本項列 */
 function emptyText(){
   unpair($("qTitle")); $("qTitle").textContent = "";
-  pairText($("hint"), () => tr("選下面一項,或隨機抽一題", "Pick a test below, or tap Random"));
+  pairText($("hint"), () => tr("點下面一項開始練", "Or pick one below"));
 }
 /* 題目卡最後一行右邊(檢定頁):還沒有題目、還沒作答 = 「隨機抽一題」,作答後換成「下一題」(同一個位置);模擬考裡只有下一題 */
 function syncFoot(){
@@ -275,14 +277,15 @@ function syncFoot(){
 }
 /* 本項列(檢定頁最上面一行):聽力 [這一級幾項] + 模擬考 */
 function paintItemRow(g){
-  $("irName").textContent = tr("聽力", "Aural");
+  $("irName").textContent = "";   // 子項目列已經寫項目名,本項列只留進度標籤 + 模擬考(同一個畫面不重複)
   $("irTag").textContent = g ? tr(`${g.tests.length} 項`, `${g.tests.length} tests`) : "";
 }
 const session = {};   // 每個分頁這一輪:{ n, ok, streak }
 function syncScoreLine(){
   const s = session[S.tab];
   // 只寫「連對 n」(連對 2 題以上才出現;畫面設計 2026-10:本輪幾題對幾題不放)
-  $("scoreLine").textContent = s && s.streak >= 2 ? tr(`連對 ${s.streak}`, `Streak ${s.streak}`) : "";
+  const mockRes = !!$("answers").querySelector(".mock-res");   // 模擬考結果只寫「3/4」,不寫連對
+  $("scoreLine").textContent = s && s.streak >= 2 && !mockRes ? tr(`連對 ${s.streak}`, `Streak ${s.streak}`) : "";
   syncInfoRow(); syncFoot();
 }
 function setQuestion(q, tab, restore){
@@ -342,8 +345,7 @@ function idleText(){
   const first = INTRO[S.tab] && !S.intro[S.tab];
   if (cur && cur.ref != null) {
     const n = noteName(cur.ref % 12);
-    return first ? tr(`先按「這是 ${n}」記住 ${n},再按 ▶ 聽題目、點出那個鍵`, `Tap “This is ${n}” to hear ${n}, then ▶ and tap the key`)
-      : tr(`先按「這是 ${n}」記住 ${n},再按 ▶ 聽題目`, `Tap “This is ${n}” to hear ${n}, then ▶ to listen`);
+    return tr(`先按「這是 ${n}」,再按 ▶ 聽題目`, `Tap “This is ${n}”, then ▶ to listen`);
   }
   return first ? tr(...INTRO[S.tab]) : tr("先按 ▶ 聽題目", "Press ▶ to listen");
 }
@@ -501,8 +503,8 @@ function showResult(){
   fb.className = "feedback " + (A.ok ? "ok" : "no");
   const ans = cur.steps ? cur.steps.map(s => s.choices.find(c => c.id === s.answer).label).join(" → ") : "";
   const extra = [A.tapRes && A.tapRes.msg, cur.reveal].filter(Boolean).join(" · ");
-  fb.textContent = (A.ok ? tr("✓ 正確", "✓ Correct") : A.revealed ? tr("答案:", "Answer: ") + (ans || "") : tr("✗ 答案是 ", "✗ Answer: ") + (ans || ""))
-    + (extra ? (ans || A.ok ? " · " : "") + extra : "") + (A.done && cur.compare ? tr("(點選項可以比較)", " (tap options to compare)") : "");
+  fb.textContent = (A.ok ? tr("✓ 對了", "✓ Right") : A.revealed ? tr("答案:", "Answer: ") + (ans || "") : tr("✗ 答案是 ", "✗ Answer: ") + (ans || ""))
+    + (extra ? (ans || A.ok ? " · " : "") + extra : "") + (A.done && cur.compare ? (S.tab === "note" ? tr("。點其他鍵聽聽看", ". Tap other keys to hear them") : tr("。點其他選項聽聽看", ". Tap other options to hear them")) : "");
 }
 $("revealBtn").onclick = () => {
   if (!cur || A.done) return;

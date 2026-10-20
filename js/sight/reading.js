@@ -281,9 +281,9 @@ export function createReading({ $, store, save, onAnswered = () => {} }) {
     if (waiting) $('rdStartLbl').textContent = endRes ? tr('再挑戰一次', 'Try again') : k === 'time' ? tr('開始 60 秒挑戰', 'Start 60 s challenge') : tr('開始連對挑戰', 'Start streak challenge');
   }
   function paintMiss() {
-    const t = drill.top(setting());
+    const t = drill.top(setting()).filter((x) => x.n >= 2);   // 錯 2 次以上才寫(只錯 1 次 = 剛剛「答案是…」那一題,不重複)
     const tn = (x) => (valOn() ? valueName(x) : x), an = (x) => (valOn() ? beatText(x) : x);
-    pairText($('rdMiss'), () => (t.length ? tr('最常錯:', 'Most missed: ') + t.map((x) => tr(`把 ${tn(x.target)} 看成 ${an(x.answer)}(${x.n} 次)`, `${tn(x.target)} read as ${an(x.answer)} (${x.n}×)`)).join(tr(';', '; ')) + tr('。下一輪這幾個會多出現。', '. These come up more often next round.') : ''));
+    pairText($('rdMiss'), () => (t.length ? tr('常錯:', 'Often missed: ') + t.map((x) => tr(`${tn(x.target)} 看成 ${an(x.answer)}(${x.n} 次)`, `${tn(x.target)} as ${an(x.answer)} (${x.n}×)`)).join(tr(';', '; ')) + tr(',下一輪會多考', ' — more next round') : ''));
   }
   let wrongName = null;
   function showEnd(res) {

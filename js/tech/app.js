@@ -76,8 +76,8 @@ const MIN_KEYS = ["A", "E", "B", "F#", "C#", "G#", "Eb", "Bb", "F", "C", "G", "D
 const STARTS = ["C", "C#", "D", "Eb", "E", "F", "F#", "G", "Ab", "A", "Bb", "B"];
 const keyOpts = list => list.map(k => [k, noteLabelStr(k)]);
 const HANDS = () => [["RH", tr("右手", "RH")], ["LH", tr("左手", "LH")], ["HT", tr("雙手", "Both")]];
-const ARTS = () => [["legato", tr("圓滑", "Legato")], ["staccato", tr("斷奏", "Staccato")]];
-const OCTS = n => [1, 2, 3, 4].slice(0, n).map(o => [o, tr(o + "八度", o + " oct.")]);
+const ARTS = () => [["legato", tr("圓滑奏", "Legato")], ["staccato", tr("斷奏", "Staccato")]];
+const OCTS = n => [1, 2, 3, 4].slice(0, n).map(o => [o, tr(o + " 個八度", o + " oct.")]);
 /* 級數名稱:初級 / 1 級(Initial / Grade 1) */
 const gradeLabel = g => ctx.gradeLabel(g.grade, S.exam.system);   // 級數名稱只留外框一份(D3)
 
@@ -144,7 +144,7 @@ const PICKERS = {
     rows: p => [
       ["no", tr("曲目", "No."), HANON_NOS()],
       // 音域:原譜兩個八度;一個八度 = 上行、下行各少 7 小節(使用者要求)
-      ["octaves", tr("音域", "Range"), [[2, tr("2八度", "2 oct.")], [1, tr("1八度", "1 oct.")]]],
+      ["octaves", tr("音域", "Range"), [[2, tr("2 個八度", "2 oct.")], [1, tr("1 個八度", "1 oct.")]]],
       // 調:預設只有原譜的 C 大調;「其他調」展開 12 個調(進階,指法照 C 大調原譜)
       ["key", tr("調", "Key"), p.moreKeys || p.key !== "C" ? keyOpts(MAJ_KEYS).concat([["__less", tr("收起", "Less")]])
         : [["C", tr("C(原譜)", "C (orig.)")], ["__more", tr("其他調…", "Other keys…")]]],
@@ -267,10 +267,10 @@ function renderExam(){
   $("catChips").innerHTML = CATEGORIES.filter(c => present.has(c.id)).map(c =>
     `<button class="chip" data-cat="${c.id}" aria-pressed="${S.filter.cats.includes(c.id)}">${tr(c.zh, c.en)}</button>`).join("");
   $("excludeMastered").setAttribute("aria-pressed", String(S.filter.excludeMastered));
-  // 資料來源一行:「ABRSM 2025–2028 p.29 · 已逐項核對」(完整書名在 licenses.html)
-  pairText($("verifyNote"), () => shortSource(g) + " · " + (g.verified ? tr("已逐項核對", "verified") : tr("尚未核對", "not yet checked")));
+  // 資料來源一行:「ABRSM 2025–2028 p.29」(完整書名在 licenses.html;核對紀錄對使用者沒意義,只有還沒核對時才寫)
+  pairText($("verifyNote"), () => shortSource(g) + (g.verified ? "" : " · " + tr("尚未核對", "not yet checked")));
   // 考試系統、級數在外框的檢定設定卡;這裡只寫抽考的設定(Trinity 哪一組、範圍有幾題)
-  $("examSummary").textContent = tr("抽考設定", "Drill options") + (sets ? ` · ${setName(S.exam.set)}` : "") + " · " + tr(`${examPool().length} 題`, `${examPool().length} items`);
+  $("examSummary").textContent = tr("抽考範圍", "Include") + " · " + tr(`${examPool().length} 題`, `${examPool().length} items`);   // Trinity 哪一組:組別鈕亮著(不重複)
   renderList();
   if (S.tab === "exam") syncExamButtons();
 }
@@ -330,7 +330,7 @@ function finishMock(){
   const list = mock.list; mock = null;
   const n = list.length, good = list.filter(q => S.mastery[q.key] === "good").length, weak = list.filter(q => S.mastery[q.key] === "weak").length;
   showEmpty(); syncExamButtons();
-  emptyTitle = () => tr(`模擬考結束:${n} 項中 會了 ${good}、再練 ${weak}`, `Mock done: ${good} got it, ${weak} need work (of ${n})`);
+  emptyTitle = () => tr(`模擬考:${n} 項會了 ${good} 項`, `Mock: ${good} of ${n} got it`) + (weak ? tr(`、再練 ${weak} 項`, `, ${weak} need work`) : "");
   pairText($("qTitle"), emptyTitle);
   syncQuizTop();
 }
@@ -347,13 +347,13 @@ $("nextBtn").onclick = () => {
 function renderList(){
   const sys = SY.systems[S.exam.system], qs = examQuestions();
   const good = qs.filter(q => S.mastery[q.key] === "good").length;
-  $("listTitle").textContent = sys.mode === "sets" ? tr(`${S.exam.set} 組要求(依序)`, `Set ${S.exam.set} (in order)`) : T("listTitle");
-  $("listSub").textContent = tr(`會了 ${good}/${qs.length}`, `✓ ${good}/${qs.length}`);
+  $("listTitle").textContent = sys.mode === "sets" ? tr("本級要求(依序)", "This grade (in order)") : T("listTitle");   // 哪一組:組別鈕亮著
+  $("listSub").textContent = "";   // 「會了 n/m」在本項列(不重複)
   $("progressBar").style.width = (qs.length ? 100 * good / qs.length : 0) + "%";
   paintItemTag();
   const row = (q, i) => {
     const m = S.mastery[q.key] || "", hands = q.motion === "contrary" ? tr("反向", "contrary") : { RH: tr("右手", "RH"), LH: tr("左手", "LH"), HT: tr("雙手", "Both") }[q.hands];
-    const extra = [hands, q.range === "5th" ? tr("五度", "5th") : tr(q.octaves + "八度", q.octaves + " oct.")];
+    const extra = [hands, q.range === "5th" ? tr("五度", "5th") : tr(q.octaves + " 個八度", q.octaves + " oct.")];
     if (q.dynamic) extra.push({ "cresc-dim": "p–f–p" }[q.dynamic] || q.dynamic);
     return `<button class="qrow${cur && !cur.free && cur.key === q.key ? " cur" : ""}" data-i="${i}"><i class="dot ${m}"></i><span>${questionText(q)[0]}${q.articulation === "staccato" ? tr("(斷奏)", " (staccato)") : ""}</span><small>${extra.join(" · ")}</small></button>`;
   };
@@ -430,18 +430,16 @@ function showEmpty(){
 }
 /* 沒有題目時的文字:大標題、抽考範圍(showEmpty 與換語言共用) */
 function emptyText(){
-  const sets = S.exam && SY.systems[S.exam.system].mode === "sets";
   $("poolCount").textContent = "";   // 「抽考範圍 n 題」不寫(本級要求就在下面)
   pairText($("qTitle"), emptyTitle || (() => ""));
   // 題目卡的空狀態(畫面設計 2026-10 版型 B):一句怎麼開始 + 右下「隨機抽考」;項目名與進度在本項列
-  const d = () => (sets ? tr("隨機抽一項", "Random") : tr("隨機抽考", "Random"));
-  pairText($("hint"), () => tr(`按「${d()}」,或點下面一項`, `Tap ${d()}, or pick one below`));
+  pairText($("hint"), () => tr("點下面一項開始練", "Or pick one below"));
 }
 /* 本項列(檢定頁最上面一行):音階琶音 [會了 n/m](本級要求清單標題那一個在沒選題目時藏起來,不重複) */
 function paintItemTag(){
   if (!S.exam) return;
   const qs = examQuestions(), good = qs.filter(q => S.mastery[q.key] === "good").length;
-  $("irName").textContent = tr("音階琶音", "Scales & arpeggios");
+  $("irName").textContent = "";   // 子項目列已經寫項目名,本項列只留進度標籤 + 模擬考(同一個畫面不重複)
   $("irTag").textContent = tr(`會了 ${good}/${qs.length}`, `Got it ${good}/${qs.length}`);
 }
 function setQuestion(q, tab){
@@ -467,7 +465,7 @@ function setQuestion(q, tab){
 /* 標籤(題目卡標題同一行):自由練習不放「右手 / 左手 / 雙手」(譜卡的手切換就是;畫面設計 2026-10);回傳 [文字, parts 的索引 − 1] */
 const HAND_TAGS = () => [tr("右手", "RH"), tr("左手", "LH"), tr("雙手", "Both hands")];
 function tagParts(q, parts){
-  const drop = q.free && !q.daily ? HAND_TAGS() : [];
+  const drop = !q.daily ? HAND_TAGS() : [];   // 手寫在譜卡的手的切換(自由練習、檢定都有),標籤不重複
   return parts.slice(1).map((t, i) => [t, i]).filter(([t]) => !drop.includes(t));
 }
 /* 題目的文字:大標題、標籤、抽考範圍、樂譜下方說明(setQuestion 與換語言共用) */
@@ -497,7 +495,8 @@ function renderQText(q, tab){
     const nm = dseg.k === "warm" ? warmName(dseg.item) : levelName(dseg);
     $("qTitle").textContent = Array.isArray(nm) ? tr(nm[0], nm[1]) : nm;
     const tags = dcard.segTags({ ...dseg, bpm: q.tempo.bpm });
-    if (q.type === "route" && dseg.k !== "warm") tags.splice(1, 0, questionText(q)[1]);   // [手指 第 n 關] [右手] [八分音符] [♩=50 → 84]
+    const hand = questionText(q)[1];   // 關卡名稱已經寫了「右手」:標籤不再寫
+    if (q.type === "route" && dseg.k !== "warm" && !$("qTitle").textContent.includes(hand)) tags.splice(1, 0, hand);   // [手指 第 n 關] [右手] [八分音符] [♩=50 → 84]
     const vt = valueTag(ex);   // 時值放在標籤(關卡名稱不放時值括號)
     if (vt) tags.splice(dseg.k === "warm" ? 1 : 2, 0, tr(vt[0], vt[1]));
     $("qTags").innerHTML = tags.map(t => `<span class="q-tag">${t}</span>`).join("");
@@ -1118,7 +1117,7 @@ function syncTempoUI(){
   } else if (u === "e16") { $("bpmPct").textContent = ""; $("examTempo").textContent = tr("原譜 ♩ 60–108 = ♪ 120–216", "Hanon ♩ 60–108 = ♪ 120–216"); }   // 拍點在選單上
   else if (u === "q.") { $("bpmPct").textContent = ""; $("examTempo").textContent = tr("三連音:每拍 3 個音", "Triplets: 3 notes per beat"); }
   else if (u === "q16" && cur && cur.type !== "hanon") { $("bpmPct").textContent = ""; $("examTempo").textContent = ""; }   // 拍點在選單上,不重複
-  else if (u === "q16") { $("bpmPct").textContent = ""; $("examTempo").textContent = ex && ex.rhythm !== "even" ? tr("每拍 4 個音(附點節奏)· 原譜 60–108", "4 notes per beat (dotted) · Hanon: 60–108") : tr("每拍 4 個十六分音符 · 原譜 60–108", "4 semiquavers per beat · Hanon: 60–108"); }
+  else if (u === "q16") { $("bpmPct").textContent = ""; $("examTempo").textContent = ex && ex.rhythm !== "even" ? tr("附點節奏 · 原譜速度 60–108", "Dotted · Hanon tempo 60–108") : tr("原譜速度 60–108", "Hanon tempo 60–108"); }
   else if (cur && cur.daily) { $("bpmPct").textContent = ""; $("examTempo").textContent = tr("自動調整", "Auto"); }   // 段落:速度卡縮成一行(− 60 +)
   else { $("bpmPct").textContent = ""; $("examTempo").textContent = ex && (ex.timeHidden || ex.exact) ? "" : tr("每拍 2 個八分音符", "2 quavers per beat"); }   // 今日練習的關卡:拍號印在譜上,一拍一下拍點   // 拍點 ♪ 在選單上,不重複
   $("beats").innerHTML = "<i class=\"first\"></i>" + "<i></i>".repeat(beatsPerBar() - 1);
@@ -1460,8 +1459,8 @@ const daily = createDaily({ routes: ROUTES, load: () => S.daily, save: d => { S.
 const dcard = createDailyCard({ $, daily,
   labels: { ok: ["做到了", "Did it"], again: ["還要練", "Not yet"], verb: ["彈", "play"], good: ["很好!", "Good!"],
     // 狀態一句短話(fold-280 不超過兩行);過關規則改成到了目標速度在標籤後面顯示「穩 ●○○」
-    hint: ["▶ 聽示範,跟著拍點彈;做到了按 ✓", "▶ Demo; play along, then ✓"],
-    get solo(){ return melOn() ? ["▶ 拍點和旋律:你彈左手,做到了按 ✓", "Click + melody: play the LH, then ✓"] : ["▶ 只有拍點:自己彈,做到了按 ✓", "Click only: play it, then ✓"]; } },
+    hint: ["跟著彈,做到了按 ✓", "Play along, then ✓"],
+    get solo(){ return melOn() ? ["你彈左手,做到了按 ✓", "You play the LH, then ✓"] : ["自己彈,做到了按 ✓", "Play it yourself, then ✓"]; } },
   warmName, levelName, log: () => S.log,
   onStart: () => { dShow(daily.begin()); window.scrollTo({ top: 0 }); },
   onNext: () => dNext(), onPause: () => dExit(),

@@ -101,6 +101,17 @@ document.addEventListener("click", e => {
   const card = btn.closest(".card"), open = !card.classList.contains("open");
   card.classList.toggle("open", open); btn.setAttribute("aria-expanded", String(open));
 });
+/* 設定卡展開時摘要只留卡名(下面的按鈕自己寫了狀態,不再重複;app.css 的 .sum-name):卡名 = 按鈕的 data-name「中|EN」,沒寫就是「設定」 */
+function sumNames(){
+  document.querySelectorAll(".setup-summary").forEach(b => {
+    let n = b.querySelector(".sum-name");
+    if (!n) { n = document.createElement("span"); n.className = "sum-name"; b.querySelector(".sum").after(n); }
+    const [zh, en] = (b.dataset.name || "設定|Settings").split("|");
+    n.textContent = tr(zh, en);
+  });
+}
+sumNames();
+onLang(sumNames);
 
 /* 無障礙:重畫一排按鈕(innerHTML)時,原本聚焦在裡面的按鈕換成新的同一顆(不然焦點掉回 <body>,鍵盤使用者要從頭 Tab) */
 function keepFocus(box, attr){

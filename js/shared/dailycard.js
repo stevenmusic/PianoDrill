@@ -2,9 +2,9 @@
    不寫死前綴:用模組自己的 $ —— $("dailyCard")(卡片,放在 .mod-main 最上面)、$("dailyStep")(段落面板,放在題目卡裡)。
    卡片三種狀態:
    - 還沒開始 / 暫停:標題「今日練習 · 約 n 分鐘」、一段一行(<ol>,做完的打勾)、還沒開放的路線一行淡字、大按鈕「開始 / 繼續今天的練習」;
-     第一次才有一行「關卡是 App 編排的練習;沒練的日子不扣分」
+     第一次才有一行「漏練幾天沒關係,不會扣分」
    - 進行中(模組正在顯示這一段):縮成一行「今日練習 2/4 ●●○○ 剩約 7 分 [暫停] [下一段 ›]」;有 barHost(外框的 ctx.subBar)時這一行放在子項目列的位置(子項目列藏起來、卡片藏起來)
-   - 練完了:今天練了幾段、幾分鐘、過了幾關、最近 7 天練了幾天、明天練什麼 + 次要按鈕「再練一下」(可以一直按)
+   - 練完了:今天練了幾段、幾分鐘、過了幾關(0 關不寫)、最近 7 天練了幾天、明天練什麼 + 次要按鈕「再練一下」(可以一直按)
    段落面板:狀態 / 下一步一句、為什麼練這個(路線的 why[組]:這一組第一關第一次出現時一句,看過的組記在 daily 的 why)、這次的變化(複習)、重點(關卡的 check)、[回上一關](文字鈕,只在同一速度連續不穩 = seg().suggest 時)…[再練][穩了 ✓](各 App 的字)或 [下一段 ›];
    「穩了 / 做到了」要先用現在的速度播過一輪才能按(App 呼叫 ready(true);沒播之前 disabled,不算嘗試)
    文字都用 i18n 的 daily.*(兩個 App 一樣)+ 模組傳進來的 labels(穩了 / 做到了…);段落文字用 pairText(中英一樣高) */
@@ -78,7 +78,9 @@ export function createDailyCard({ $, daily, labels = {}, warmName = () => "", le
   }
   const tid = card.id + "-title";
   card.setAttribute("role", "region"); card.setAttribute("aria-labelledby", tid);
-  let showing = false, lastStatus = null, lastOpts = {}, okReady = true, whyCur = null;
+  let showing = false, lastStatus = null, lastOpts = {}, okReady = true, whyCur = null, panelNext = false, lastBar = null;
+  /* 面板有主要的「下一段 ›」(過關、複習完)時,進度那一行的「下一段 ›」藏起來(同一畫面不放兩顆) */
+  const syncNext = () => { const b = lastBar && lastBar.querySelector(".daily-next"); if (b) b.hidden = panelNext && !step.hidden; };
   /* 為什麼練這個:路線的 why[組](每組一句);只在這一組的第一關、第一次出現的那一段(同一段重畫、換語言照樣顯示;複習、暖身不寫) */
   function whyOf(s){
     const L = s && s.k === "route" ? s.level : null, R = L && L.route, txt = R && R.why && R.why[L.g];
@@ -132,6 +134,7 @@ export function createDailyCard({ $, daily, labels = {}, warmName = () => "", le
     if (barHost) { bar = document.createElement("div"); bar.className = "daily-bar"; bar.setAttribute("role", "region"); bar.setAttribute("aria-label", fmt("title")); bar.innerHTML = html; barHost(bar); }
     else { card.innerHTML = `<div class="daily-bar">${html}</div>`; bar = card; }
     bar.querySelector(".daily-next").onclick = () => onNext && onNext();
+    lastBar = bar; syncNext();
     const p = bar.querySelector(".daily-pause"); if (p) p.onclick = () => onPause && onPause();
   }
   /* 練完了 */
@@ -143,7 +146,7 @@ export function createDailyCard({ $, daily, labels = {}, warmName = () => "", le
       `<button class="btn daily-more">${esc(fmt("more"))}</button>`;
     // 一段都沒練(全部按「下一段」跳過):只寫「今天還沒練到」;不到 1 分鐘寫秒;最近 7 天 0 天不寫那一行
     const time = () => (s.sec < 60 ? fmt("sec", { n: Math.round(s.sec) }) : fmt("min", { n: Math.round(s.sec / 60) }));
-    pairText(card.querySelector(".daily-sum"), () => (s.segs ? fmt("done", { s: fmt(s.segs === 1 ? "part1" : "parts", { n: s.segs }), t: time(), p: s.passed }) : fmt("none")));
+    pairText(card.querySelector(".daily-sum"), () => (s.segs ? fmt("done", { s: fmt(s.segs === 1 ? "part1" : "parts", { n: s.segs }), t: time(), p: s.passed ? fmt("passedN", { n: s.passed }) : "" }) : fmt("none")));
     const wk = card.querySelector(".daily-sub:not(.daily-tom)");
     if (s.week > 0) pairText(wk, () => fmt("week", { d: s.week })); else wk.remove();
     const tm = card.querySelector(".daily-tom");
@@ -154,7 +157,7 @@ export function createDailyCard({ $, daily, labels = {}, warmName = () => "", le
   /* ── 段落面板(題目卡裡)── status = () => 一句話(換語言重算);result = attempt 的結果(有就顯示結果) ── */
   function renderStep(s, { status = null, passedDone = false } = {}){
     step.querySelectorAll("[data-app-act]").forEach(el => park.appendChild(el));
-    if (!s) { step.hidden = true; step.innerHTML = ""; step.appendChild(park); return; }
+    if (!s) { step.hidden = true; step.innerHTML = ""; step.appendChild(park); panelNext = false; syncNext(); return; }
     lastStatus = status; lastOpts = { status, passedDone };
     step.hidden = false;
     // 重點:關卡的 check(前面加關卡的 handsLine,例如「右手 Hi-hat、左手小鼓」);暖身 = 項目自己的 check
@@ -163,6 +166,7 @@ export function createDailyCard({ $, daily, labels = {}, warmName = () => "", le
     const vary = varyText(s), why = whyOf(s);
     // 暖身:只有進度條上那一顆「下一段 ›」(按鈕列整列不放);過關、複習完 = 主要按鈕「下一段 ›」
     const primaryNext = passedDone;
+    panelNext = !!primaryNext;
     const tip = !warm && !daily.data.tip && s.bpm;   // 第一次:速度的小字說明「速度 56 = 每分鐘 56 拍」(試過一次就不再出現)
     // 重點:每項一行的清單(系統化規則:主要資訊字級 ≥ --fs-md)
     step.innerHTML = `<p class="daily-status"></p>` + (tip ? `<p class="daily-tip"></p>` : "") + (why ? `<p class="daily-why"></p>` : "") + (vary ? `<p class="daily-vary"></p>` : "") +
@@ -180,6 +184,7 @@ export function createDailyCard({ $, daily, labels = {}, warmName = () => "", le
     on(".daily-back", onBack); on(".daily-again", onAgain); on(".daily-ok", onOk); on(".daily-go", onNext);
     step.appendChild(park);
     placeActs(s, lastOpts);
+    syncNext();
   }
   function paintStatus(s){
     const el = step.querySelector(".daily-status"); if (!el) return;

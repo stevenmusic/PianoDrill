@@ -68,7 +68,7 @@ const PICKERS = {
     ["preset", tr("常用", "Common"), Object.keys(PRESETS.note).map(k => [k, PRESET_NAME()[k]])],
     ["set", tr("出哪些音", "Notes"), ALL_ITEMS.note.map(it => [it.id, pcName(it.pc).replace("/", "/​")]), true],
     ["range", tr("音域", "Range"), [["1", tr("1 個八度", "1 oct.")], ["2", tr("2 個八度", "2 oct.")], ["4", tr("4 個八度", "4 oct.")]]],
-    ["ref", tr("參考音", "Reference"), [["C", tr("先聽 C", "C first")], ["A", tr("先聽 A", "A first")], ["none", tr("不給", "None"), tr("不給參考音(絕對音感)", "No reference (absolute pitch)")]]],
+    ["ref", tr("參考音", "Reference"), [["C", "C"], ["A", "A"], ["none", tr("不給", "None"), tr("不給參考音(絕對音感)", "No reference (absolute pitch)")]]],   // 參考音 = 題目卡琴鍵上方的「這是 C」鈕(不跟題目一起播)
     ["naming", tr("音名", "Names"), [["letter", "C D E"], ["solfege", tr("Do Re Mi(固定唱名)", "Do Re Mi (fixed do)")]]],
     OPTS()
   ],
@@ -92,7 +92,10 @@ const paneOf = tab => $({ note: "paneNote", interval: "paneInterval", chord: "pa
 function pickSummary(tab){
   const p = S.pick[tab], items = ALL_ITEMS[tab].filter(it => p.set.includes(it.id));
   const names = items.length > 4 ? tr(`${items.length} 項`, `${items.length} items`) : items.map(it => itemLabel(tab, it)).join("、");
-  const row = k => { const r = PICKERS[tab](p).find(x => x[0] === k); const o = r && r[2].find(x => x[0] === p[k]); return o ? o[1] : ""; };
+  const row = k => {
+    if (k === "ref") return p.ref === "none" ? tr("沒有參考音", "No ref.") : tr(`參考音 ${p.ref}`, `Ref. ${p.ref}`);   // 選項只寫 C / A,摘要要說是參考音
+    const r = PICKERS[tab](p).find(x => x[0] === k); const o = r && r[2].find(x => x[0] === p[k]); return o ? o[1] : "";
+  };
   // 和弦:作答鈕已經寫了和弦名,設定列只寫「原位 · 同時」
   return [tab === "chord" ? null : names, ...({ note: ["range", "ref"], interval: ["dir"], chord: ["inv", "style"] }[tab]).map(row)].filter(Boolean).join(" · ");
 }
@@ -294,7 +297,9 @@ function renderAnswers(){
   } else if (q.keys) {
     box.classList.remove("compact");
     $("stepQ").textContent = q.keys.target.length > 1 ? tr(`在鍵盤上彈出 ${q.keys.target.length} 個音`, `Play the ${q.keys.target.length} notes`) : "";   // 單音:題目已經寫「這是什麼音?」,標籤有「哪個八度都算對」
-    box.innerHTML = `<div class="kbd-wrap"><div class="kbd" id="e-kbd">${keyboardHTML(q.keys)}</div>` +
+    // 單音題的參考音:琴鍵正上方左邊一顆次要按鈕「這是 C」(不是圓形、不是實心;按了播 C4 / A4、那個鍵亮 1 秒,不算作答)
+    const refBtn = q.ref != null ? `<div class="kbd-row"><button class="btn ghost" id="e-refBtn" style="min-height:44px;height:auto">${refLabel(q)}</button></div>` : "";
+    box.innerHTML = `<div class="kbd-wrap">${refBtn}<div class="kbd" id="e-kbd">${keyboardHTML(q.keys)}</div>` +
       (q.keys.target.length > 1 ? `<div class="kbd-row"><div class="kbd-dots" id="e-kbdDots"></div><button class="btn ghost small" id="e-kbdClear">${T("clearKeys")}</button></div>` : "") + `</div>`;
     syncKeys(); fitKeyboard();
   } else if (q.tap) {
@@ -305,8 +310,19 @@ function renderAnswers(){
     syncTap();
   }
   if (A.done) showResult();
-  else $("feedback").textContent = !A.played ? (INTRO[S.tab] && !S.intro[S.tab] ? tr(...INTRO[S.tab]) : tr("先按 ▶ 聽題目", "Press ▶ to listen")) : A.hint ? A.hint() : "";
+  else $("feedback").textContent = !A.played ? idleText() : A.hint ? A.hint() : "";
 }
+/* 還沒聽題目時的狀態:第一次進來寫說明(INTRO),之後寫「先按 ▶ 聽題目」;單音題有參考音時兩句都先提「這是 C」 */
+function idleText(){
+  const first = INTRO[S.tab] && !S.intro[S.tab];
+  if (cur && cur.ref != null) {
+    const n = noteName(cur.ref % 12);
+    return first ? tr(`先按「這是 ${n}」記住 ${n},再按 ▶ 聽題目、點出那個鍵`, `Tap “This is ${n}” to hear ${n}, then ▶ and tap the key`)
+      : tr(`先按「這是 ${n}」記住 ${n},再按 ▶ 聽題目`, `Tap “This is ${n}” to hear ${n}, then ▶ to listen`);
+  }
+  return first ? tr(...INTRO[S.tab]) : tr("先按 ▶ 聽題目", "Press ▶ to listen");
+}
+const refLabel = q => tr("這是 ", "This is ") + noteName(q.ref % 12);
 /* 第一次進來這個子項目(還沒答完一題):狀態那行寫在練什麼、怎麼作答(答完一題就換回「先按 ▶ 聽題目」) */
 const INTRO = {
   note: ["聽一個音,點出是哪個鍵", "Hear a note, tap the key"],
@@ -356,6 +372,7 @@ function syncKeys(){
 }
 $("answers").addEventListener("pointerdown", e => {
   const key = e.target.closest(".k"); if (!key || !cur || !cur.keys) return;
+  if (key.dataset.refOff) return;   // 參考音亮起來時暫時拿掉 .off 的鍵(不是可以作答的音)
   e.preventDefault();
   const m = Number(key.dataset.m), k = cur.keys;
   if (A.done && k.pcOnly) tapNote(m + 12 * Math.round((k.target[0] - m) / 12));   // 單音答完:在題目的八度出聲比較
@@ -375,7 +392,28 @@ function markRightKey(){
   const k = cur.keys; if (k.target.length !== 1) return;
   $("answers").querySelectorAll(".k").forEach(el => { if ((Number(el.dataset.m) - k.target[0]) % 12 === 0) el.classList.add("right"); });
 }
+/* 參考音(單音題):播 C4 / A4、琴鍵上那個鍵亮 1 秒;不算作答、不算「聽過題目」、不影響計時與統計 */
+let refTimer = 0;
+async function playRef(){
+  if (!cur || cur.ref == null) return;
+  const q0 = cur, ref = cur.ref;
+  if (play) stopPlayback();
+  const c = audio.ensureAudio();
+  if (c.state !== "running") await within(c.resume().catch(() => {}), 1500);
+  const ok = await preloadSamples();
+  await within(audio.masterReady, 1500);
+  if (!ok || cur !== q0) return;
+  const t = c.currentTime + 0.02;
+  audio.playPianoNote(ref, t, t + 1.0, t + 1.0, 62, false);
+  const key = $("answers").querySelector(`.k[data-m="${ref}"]`); if (!key) return;
+  clearTimeout(refTimer);
+  $("answers").querySelectorAll(".k[data-ref-off]").forEach(k => { k.classList.add("off"); delete k.dataset.refOff; });
+  if (key.classList.contains("off")) { key.classList.remove("off"); key.dataset.refOff = "1"; }   // 不出題的鍵(.off 的顏色會蓋過 .on)
+  key.classList.add("on");
+  refTimer = setTimeout(() => { key.classList.remove("on"); if (key.dataset.refOff) { key.classList.add("off"); delete key.dataset.refOff; } }, 1000);
+}
 $("answers").addEventListener("click", e => {
+  if (e.target.closest("#e-refBtn")) { playRef(); return; }
   if (e.target.id === "e-kbdClear" && cur && !A.done) { A.keys = []; A.keyResult = null; syncKeys(); }
   if (e.target.id === "e-tapDone" && cur && cur.tap && !A.done) judgeTapNow();
 });

@@ -71,7 +71,7 @@ function voice(root, iv, inv){
   for (let i = 0; i < inv; i++) ns.push(ns.shift() + 12);
   return ns;
 }
-/* 音 → 播放事件:single 單音(可先給參考音)、melodic 一個接一個、block 同時、arp 分解、both 分解再同時 */
+/* 音 → 播放事件:single 單音(ref = 先給參考音;單音題不用,參考音是另一顆鈕)、melodic 一個接一個、block 同時、arp 分解、both 分解再同時 */
 function playOf(notes, mode, ref){
   const ev = []; let t = 0;
   if (ref != null) { ev.push({ t: 0, midi: ref, dur: 1.0, vel: 62 }); t = 1.6; }
@@ -101,10 +101,11 @@ function build(tab, pick, it, items){
     const [lo, hi] = NOTE_RANGES[pick.range];
     const cands = [];
     for (let m = lo; m <= hi; m++) if (((m % 12) + 12) % 12 === it.pc) cands.push(m);
+    // 參考音不放進題目的播放(第一次用的人會以為先響的 C 就是題目):題目卡琴鍵上方另一顆「這是 C」(app.js 的 playRef)
     const m = pickOne(cands), ref = pick.ref === "C" ? 60 : pick.ref === "A" ? 69 : null;
-    return { tab, key: "note:" + it.id, sig: "n" + m, play: playOf([m], "single", ref),
+    return { tab, key: "note:" + it.id, sig: "n" + m, play: playOf([m], "single"), ref,
       keys: { target: [m], lo: 60, hi: 71, pcOnly: true, allowed: items.map(x => x.pc), mute: true },
-      get label(){ return tr("這是什麼音?", "Which note?"); }, get tags(){ return [tr("哪個八度都算對", "Any octave counts")]; }   /* 參考音已經寫在設定列(「先聽 C」),標籤只留題目卡獨有的 */, get reveal(){ return noteName(m) + (Math.floor(m / 12) - 1); },
+      get label(){ return tr("這是什麼音?", "Which note?"); }, get tags(){ return [tr("哪個八度都算對", "Any octave counts")]; }   /* 參考音是琴鍵上方的「這是 C」鈕,標籤只留題目卡獨有的 */, get reveal(){ return noteName(m) + (Math.floor(m / 12) - 1); },
       compare: id => playOf([Math.floor(m / 12) * 12 + Number(id)], "single", null) };
   }
   if (tab === "interval") {

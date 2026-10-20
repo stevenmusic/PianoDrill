@@ -45,12 +45,17 @@
 #mod-sight .along-opt{display:inline-flex;align-items:center;gap:8px;min-height:44px;color:var(--muted-bright);font-size:var(--fs-sm);cursor:pointer}
 #mod-sight .along-opt input{width:20px;height:20px;accent-color:var(--gold)}
 #mod-sight .along-note{flex-basis:100%;color:var(--muted);font-size:var(--fs-xs);line-height:1.5}
-#mod-sight .along-result{flex-basis:100%;border:1px solid var(--line);border-radius:var(--radius-sm);padding:12px 14px;line-height:1.5;background:var(--surface-inset)}
+#mod-sight .along-result{border-top:1px solid var(--line);margin-top:12px;padding-top:10px;line-height:1.5}
 #mod-sight .along-result .big{font-family:"Noto Serif TC",serif;font-size:34px;font-weight:700;color:var(--gold-bright);line-height:1.2}
 #mod-sight .along-result .big small{font-family:"Noto Sans TC",sans-serif;font-size:var(--fs-sm);font-weight:400;color:var(--muted-bright);margin-left:4px}
 #mod-sight .along-result .big small.lead{margin-left:0;margin-right:6px}
 #mod-sight .along-result p{margin-top:4px;color:var(--muted-bright);font-size:var(--fs-sm)}
 #mod-sight .along-result .disclaimer{color:var(--muted);font-size:var(--fs-xs)}
+#mod-sight .along-result .mic-parts{color:var(--text);font-size:var(--fs-md)}
+#mod-sight .along-result .mic-bars{display:flex;align-items:baseline;gap:6px}
+#mod-sight .mic-key{flex:none;display:inline-block;width:12px;height:12px;border-radius:3px;background:rgba(214,69,65,.22);border:1.5px solid rgba(214,69,65,.8);transform:translateY(1px)}
+/* 麥克風打分:有問題的小節在譜上標顏色(樂譜是白紙,深淺主題一樣) */
+#mod-sight .mic-mark{position:absolute;pointer-events:none;border-radius:4px;background:rgba(214,69,65,.12);box-shadow:inset 0 0 0 1.5px rgba(214,69,65,.55);z-index:1}
 
 /* 練習紀錄卡標題列的「清除出題紀錄」靠右 */
 /* 級數鈕只寫數字:一樣寬 */

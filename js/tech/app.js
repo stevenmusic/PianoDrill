@@ -1060,8 +1060,10 @@ function fitTitle(){
   while (el.scrollWidth > el.clientWidth + 1 && fs > min) { fs -= 1; el.style.fontSize = fs + "px"; }
   // 標籤也固定一行:放不下就整排一起縮小
   const g = $("qTags");
-  let k = 1; g.style.setProperty("--tag-scale", 1);
-  while (g.scrollWidth > g.clientWidth + 1 && k > 0.6) { k -= 0.04; g.style.setProperty("--tag-scale", k); }
+  let k = 1; g.style.setProperty("--tag-scale", 1); g.classList.remove("wrap");
+  while (g.scrollWidth > g.clientWidth + 1 && k > 0.82) { k -= 0.04; g.style.setProperty("--tag-scale", k); }
+  // 縮到 0.82 還放不下(折疊機、今日練習四個標籤):換到第二行,不再縮小、不截掉
+  if (g.scrollWidth > g.clientWidth + 1) { g.style.setProperty("--tag-scale", 0.82); g.classList.add("wrap"); }
 }
 const onStageResize = () => {
   fitTitle();

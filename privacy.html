@@ -24,9 +24,9 @@ a{color:#F2B94B}.back{display:inline-flex;align-items:center;min-height:44px;mar
 <li>鋼琴取樣音檔:App 版已內建在 App 裡,不需要連網。網頁版第一次播放時從 GitHub(raw.githubusercontent.com)下載,之後存在裝置上供離線使用;下載時 GitHub 會看到一般的網路連線資訊(IP 位址等),適用 GitHub 的隱私權政策。</li></ul>
 <h2>網頁版的字型</h2>
 <p>網頁版從 Google Fonts(fonts.googleapis.com、fonts.gstatic.com)載入字型(Noto Sans TC、Noto Serif TC),載入時 Google 會看到一般的網路連線資訊(IP 位址、瀏覽器等),適用 Google 的隱私權政策。App 版不載入 Google Fonts,改用裝置內建的字型,不會連到 Google。</p>
-<h2>麥克風(選用;目前版本未開放)</h2>
-<p>目前版本不會使用麥克風(這個功能暫時關閉,之後的版本才會開放)。開放以後的做法如下:</p>
-<p>視奏的「跟著彈」可以選擇用麥克風評分節奏。只有你勾選並允許之後才會使用;聲音只在這台裝置上分析起音的時間,不錄音存檔、不上傳,彈完就丟掉。不勾選就完全不會用到麥克風。</p>
+<h2>麥克風(視奏「彈一遍」自動打分)</h2>
+<p>視奏按「彈一遍」時,App 用麥克風聽你彈,彈完自動打分(節奏、穩定、連貫;初級到 2 級另外看該彈的音有沒有出現)。第一次按「彈一遍」時系統才會問你要不要允許;不允許也可以照常練習,只是不打分。</p>
+<p>聲音只在這台裝置上分析,不錄音存檔、不上傳,打完分就丟掉。不想用可以關掉「用麥克風自動打分」,關掉以後完全不會用到麥克風。</p>
 <h2>兒童</h2><p>本 App 適合所有年齡,不收集兒童的任何資料。</p>
 <h2>回報問題</h2><p>App 不會自動傳送任何資料(沒有當機回報、沒有分析)。在<a href="support.html">支援頁</a>按「回報」時,才會打開預先填好 App 版本、裝置、語言的 GitHub 表單或郵件,你看過、自己按送出才會送出;不包含練習紀錄。GitHub 上的 issue 是公開的。</p>
 <h2>聯絡</h2><p>問題或建議請看<a href="support.html">支援頁</a>,或到 GitHub:github.com/stevenmusic/PianoDrill</p>
@@ -39,9 +39,9 @@ a{color:#F2B94B}.back{display:inline-flex;align-items:center;min-height:44px;mar
 <li>Piano samples are built into the app and need no connection. The web version downloads them from GitHub (raw.githubusercontent.com) the first time they are played and caches them on the device for offline use; GitHub sees ordinary connection information (such as your IP address) under its own privacy policy.</li></ul>
 <h2>Fonts on the web version</h2>
 <p>The web version loads its fonts (Noto Sans TC, Noto Serif TC) from Google Fonts (fonts.googleapis.com, fonts.gstatic.com), so Google sees ordinary connection information (such as your IP address and browser) under its own privacy policy. The app does not load Google Fonts; it uses the fonts built into your device and never connects to Google.</p>
-<h2>Microphone (optional; not in the current version)</h2>
-<p>The current version never uses the microphone (the feature is switched off for now). When it returns, it works as follows:</p>
-<p>Sight-reading's play-along can optionally score your rhythm with the microphone. It is used only after you tick that option and allow access; the sound is analysed on this device for note start times only, never recorded to a file or uploaded, and discarded when you finish. If you don't tick it, the microphone is never used.</p>
+<h2>Microphone (sight-reading “Play it” scoring)</h2>
+<p>When you tap “Play it” in sight-reading, the app listens through the microphone and scores you when you finish (rhythm, steadiness, flow; for Initial to Grade 2 also whether the written notes were played). Your device asks for permission the first time; if you decline, you can still practise, just without a score.</p>
+<p>The sound is analysed on this device only, never recorded to a file or uploaded, and discarded once scored. Switch off “Score me with the microphone” and the microphone is never used.</p>
 <h2>Children</h2><p>The app is suitable for all ages and collects no data from children.</p>
 <h2>Reporting problems</h2><p>The app never sends anything by itself (no crash reporting, no analytics). Only when you press Report on the <a href="support.html">support page</a> does it open a GitHub form or email draft pre-filled with the app version, device and language; nothing is sent until you review it and send it yourself, and no practice history is included. GitHub issues are public.</p>
 <h2>Contact</h2><p>Questions or suggestions: see the <a href="support.html">support page</a> or github.com/stevenmusic/PianoDrill</p>

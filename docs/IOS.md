@@ -12,7 +12,7 @@
 | `<BundleID>` | `io.github.stevenmusic.pianodrill` | `io.github.stevenmusic.drumdrill` |
 | `<repo>` | `stevenmusic/PianoDrill` | `stevenmusic/DrumDrill` |
 | 打包進 App 的取樣(`tools/build/app-samples.mjs`) | 鋼琴 30 個音 × 5 層力度(有 ffmpeg 就截成 6.5 秒)+ 拍點 xstick 3 個:153 個檔、約 35 MB | 小鼓 5 層 × 6 個 + 整組鼓 12 個鼓件(鼓皮每層 3 個、鈸每層 2 個)+ 拍點 + 鼓房殘響:104 個檔、約 10.9 MB |
-| 麥克風(`NSMicrophoneUsageDescription`、第 3b 節的 AudioSession 外掛) | **目前版本未開放**(畫面藏起來,`js/sight/app.js` 的 `MIC_UI`);之後開放時要加(視奏「跟著彈」可選用麥克風評節奏) | **目前版本未開放**(畫面藏起來,`js/shared/micrhythm.js` 的 `MIC_UI`);之後開放時要加(S15:視奏「正式打」、聽力「接著打」可選用麥克風評節奏) |
+| 麥克風(`NSMicrophoneUsageDescription`、第 3b 節的 AudioSession 外掛) | **要加**(2026-10 開放:視奏「彈一遍」用麥克風自動打分,`js/sight/micscore.js`;預設開、可關,第一次按「彈一遍」才問權限) | **目前版本未開放**(畫面藏起來,`js/shared/micrhythm.js` 的 `MIC_UI`);之後開放時要加(S15:視奏「正式打」、聽力「接著打」可選用麥克風評節奏) |
 | 記憶體要特別測的 | 鋼琴取樣(5 層 × 30 音) | 整組鼓(視奏 RSL 4–5、聽力 Groove、Trinity Playback 會載入 12 個鼓件) |
 
 ## 1. 準備(只做一次)
@@ -130,7 +130,7 @@ WebKit 把它對應到 `AVAudioSessionCategoryPlayback`(沒有 mixWithOthers),�
 
 ## 3b. 開麥克風時切換 AVAudioSession(AudioSession 外掛;兩個 App 都要)
 
-> **目前版本未開放麥克風**(兩個 App 的麥克風評分都藏起來,之後再開):這一節、第 4 節的 `NSMicrophoneUsageDescription`、第 8 節第 17–20 項等開放時再做。
+> PianoDrill 已開放麥克風(2026-10,視奏「彈一遍」自動打分):這一節、第 4 節的 `NSMicrophoneUsageDescription`、第 8 節第 17–20 項要做。DrumDrill 的麥克風評分目前藏起來,開放時再做。
 
 麥克風收音(`js/shared/mic.js`,兩個 App 同一份):
 - **網頁版**(Safari 17+):開麥克風前 `navigator.audioSession.type = "play-and-record"`,錄完還原成原本的值。
@@ -224,7 +224,7 @@ iPad 要支援分割畫面與視窗縮放(網頁版面本來就跟著寬度變,`
 
 | App | 英文(`en`,Info.plist 也用這句) | 繁體中文(`zh-Hant`) |
 |---|---|---|
-| PianoDrill | Listens to when you play each note to score your rhythm. Audio is analysed on the device only — never recorded or uploaded. | 用麥克風聽你彈的起音時間來評分節奏;聲音只在裝置上分析,不錄音、不上傳。 |
+| PianoDrill | Listens while you play a sight-reading piece to score it. Audio is analysed on the device only — never recorded or uploaded. | 用麥克風聽你彈視奏,彈完自動打分;聲音只在裝置上分析,不錄音、不上傳。 |
 | DrumDrill | Listens to your drum strokes to score your rhythm (optional). Audio is analysed on the device only — never recorded or uploaded. | 用麥克風聽你打每一下的時間來評分節奏(選用);聲音只在裝置上分析,不錄音、不上傳。 |
 
 **InfoPlist.strings**(權限說明、App 名稱的中英文):
@@ -332,9 +332,9 @@ npm run open                              # = npx cap open ios
 | 14 | 深色 / 淺色、動態字級 | 系統切淺色;設定 ▸ 輔助使用 ▸ 較大字體 | 主題按鈕照常;字級變大不破版(VoiceOver、動態字級的完整檢查在 S16 無障礙另做) |
 | 15 | 長時間播放 | 循環播放 10 分鐘 | 不爆音、不延遲變大、不發燙到降速 |
 | 16 | 頁尾連結 | 點「授權與出處」「隱私權政策」「支援」,再按返回 | 三頁都打得開、返回回到 App;支援頁的「在 GitHub 回報」會開 Safari。返回是回到上一頁(`history.back()`,沒有歷史才開 `index.html`),但 App 會**重新載入**(WebView 一般不保留上一頁的狀態):分頁與設定(存在 localStorage)還在,**正在做的題目狀態會重置**,這是預期行為 |
-| 17 | 麥克風權限 | DrumDrill:視奏「正式打」/ 聽力「回打」勾「用麥克風評分節奏」;PianoDrill:視奏「跟著彈」勾麥克風 → 第一次按開始;再刪掉 App 重裝,這次按「不允許」 | 跳出系統的權限視窗,說明是第 4 節的字串、語言跟系統一樣;不允許 → 畫面說明原因(DrumDrill:這一次照觸控鼓墊評分),其他功能照常、不會一直問;到 設定 ▸ `<App>` ▸ 麥克風 打開後再試可以用 |
+| 17 | 麥克風權限 | DrumDrill:視奏「正式打」/ 聽力「回打」勾「用麥克風評分節奏」;PianoDrill:視奏「彈一遍」(麥克風自動打分預設開)→ 第一次按;再刪掉 App 重裝,這次按「不允許」 | 跳出系統的權限視窗,說明是第 4 節的字串、語言跟系統一樣;不允許 → 畫面說明原因(DrumDrill:這一次照觸控鼓墊評分),其他功能照常、不會一直問;到 設定 ▸ `<App>` ▸ 麥克風 打開後再試可以用 |
 | 18 | 錄音時的聲音路線(第 3b 節) | 開著 Apple Music 放歌,勾麥克風後正式打 / 回打一次;打完再按一般的播放;再把靜音開關打開按播放 | 預備拍從**喇叭**出來(不是聽筒)、音量正常,而且真的有開始(開麥克風時 AudioContext 被打斷也照樣開始);錄完後模擬考要能繼續(DrumDrill:檢定頁的聽力 RSL 模擬考勾麥克風回打 Fill,打完要能選譜、接著做 Groove,不會跳出「模擬考已中止」);錄音時音樂暫停是預期的;打完切回 `.playback` + `.mixWithOthers`:第 1、2 項(靜音開關有聲音、可以跟音樂混音)照樣成立;沒裝外掛(第 3b 節)時記下差在哪 |
-| 19 | 麥克風評分準不準 | iPhone 放在鼓 / 鋼琴旁 1–2 公尺,DrumDrill 用真的鼓或打擊板:照譜打一次、故意整段晚一點一次、亂打一次;小鼓(RSL 0–3)與整組鼓(RSL 4–5)各一題 | 準時分數高;整段晚只寫「整體慢約 … 毫秒(已先扣掉)」不扣分;亂打分數低;記下整體延遲幾毫秒、漏 / 多幾下(DrumDrill 整組鼓:crash 在響時輕的 hi-hat 可能漏,`js/shared/timing.js` 的門檻要用實機錄音再調) |
+| 19 | 麥克風評分準不準 | iPhone 放在鼓 / 鋼琴旁 1–2 公尺,DrumDrill 用真的鼓或打擊板:照譜打一次、故意整段晚一點一次、亂打一次;小鼓(RSL 0–3)與整組鼓(RSL 4–5)各一題 | 準時分數高;整段晚只寫「整體慢約 … 毫秒(已先扣掉)」不扣分;亂打分數低;記下整體延遲幾毫秒、漏 / 多幾下(DrumDrill 整組鼓:crash 在響時輕的 hi-hat 可能漏,`js/shared/timing.js` 的門檻要用實機錄音再調);PianoDrill:iPhone 放在譜架上,照譜彈一次、整段慢一點一次、中途停 2 拍一次、彈錯 2 個音一次(初級–2 級):「你的速度」接近實際、停頓與錯音的小節標出來、慢但穩的準度不低;真鋼琴、電鋼琴(喇叭)各記一次,門檻(`js/sight/micscore.js` 開頭的常數)用實機錄音再調 |
 | 20 | 麥克風 + AirPods | 連著 AirPods 勾麥克風打一次 | 聲音從 AirPods 出來(`.allowBluetoothA2DP`)、麥克風用 iPhone 本身的;不當機;記下整體延遲(藍牙輸出延遲會讓「整體慢約」變大,已先扣掉、不扣分) |
 
 ## 9. Android:不做,用 PWA

@@ -19,7 +19,7 @@
 | 隱私權政策(中英) | `privacy.html` → `https://stevenmusic.github.io/PianoDrill/privacy.html` |
 | 支援頁(中英) | `support.html` → `https://stevenmusic.github.io/PianoDrill/support.html`(常見問題、GitHub 回報;支援信箱設好才顯示寄信) |
 | 授權與出處(中英) | `licenses.html`(Salamander CC BY 3.0、Naked Drums CC BY 4.0 + 修改說明、OSMD BSD-3 全文、檢定要求出處、商標聲明) |
-| 麥克風 | **目前版本未開放**(畫面藏起來,之後再開);開放時視奏「跟著彈」可選用:**要加** `NSMicrophoneUsageDescription` 與中英文 InfoPlist.strings(`docs/IOS.md` 第 4 節)、AudioSession 外掛(第 3b 節) |
+| 麥克風 | **已開放**(2026-10):視奏「彈一遍」用麥克風自動打分(預設開、可關;第一次按才問權限;只在裝置上分析,不存檔、不上傳);**要加** `NSMicrophoneUsageDescription` 與中英文 InfoPlist.strings(`docs/IOS.md` 第 4 節)、AudioSession 外掛(第 3b 節) |
 | 商店截圖(中文,五張) | `app/screenshots/`:iPhone 1290×2796、iPad 13 吋 2064×2752;`cd tools/test && node appshots.mjs` 重新產生(英文版還沒有,第 7 節) |
 
 ### 圖示為什麼這樣設計
@@ -80,7 +80,7 @@
 - No sign-in, no account, no network needed: the piano samples, notation engine, syllabus data and test rules are inside the app. It works fully offline from the first launch.
 - Exam board names (ABRSM, Trinity College London) are used only to describe which syllabus the practice follows. This app is not affiliated with, endorsed by, or sponsored by them; it uses none of their logos, colours or copyrighted test material. Scale and aural requirements cite the public syllabus, and screens say the official syllabus is final.
 - Sight-reading tests are generated on the device from rules modelled on the boards' public specimen tests; scale questions and aural tests (melodies, cadences, modulations) are generated and marked by the app. They are not official test pieces.
-- Microphone: not used in this version (the feature is switched off). When it returns (optional): only in sight-reading "play along", only after the user ticks it and allows access; audio is analysed on the device for note onsets and never recorded or uploaded.
+- Microphone: used only in sight-reading "Play it" to score the performance (note timing, steadiness, flow; Initial–Grade 2 also checks the expected notes are present). Permission is requested the first time the user taps "Play it"; it can be switched off in the app. Audio is analysed on the device only and never recorded or uploaded; declining permission leaves every other feature working.
 - Native functionality beyond a web page: native audio session (plays with the silent switch on), bundled multi-velocity piano samples, instant marking, mock exam, practice statistics, offline use.
 - No data is collected; no tracking; no analytics or advertising SDKs. Practice settings stay on the device.
 - How to test: open the Technique tab and press play; open Exams, choose a board and grade, then try Sight-reading and Aural.

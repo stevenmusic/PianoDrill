@@ -3,8 +3,9 @@ import { toMusicXml } from './generator/musicxml.js';
 import { createHistory, generateUnique } from './generator/fingerprint.js';
 import { createKey, pitchAt } from './generator/theory.js';
 import { createPlayer } from './playback.js';
-import { createRecorder } from '../shared/mic.js';
-import { expectedOnsets, detectOnsets, scoreRhythm } from './scoring.js';
+import { expectedOnsets } from './scoring.js';
+import { createListener } from './miclisten.js';
+import { expectedEvents, scorePerformance, alignOnsets, checkPitches, detectNotes } from './micscore.js';
 import { createStage, barTimings } from './stage.js';
 import { t, applySightStatic } from './i18n.js';
 import { pairText, unpair, tr } from '../shared/i18n.js';
@@ -55,8 +56,8 @@ delete SS.mockRun;
 let xCheck = null;   // 檢定頁彈完一遍的自我檢查(null = 不顯示;paintSelfCheck)
 const mk = { state: 'idle', reason: null, id: 0, phase: null, endAt: 0, timer: null, prepT0: 0, checks: [], stopped: false, click: null };
 const mockOn = () => mk.state === 'run' || mk.state === 'result';
-/* 用麥克風評分節奏:目前版本藏起來(使用者 2026-10:之後再開)。程式與 js/shared/mic.js 留著,改成 true 就回來 */
-const MIC_UI = false;
+/* 用麥克風自動打分(2026-10 使用者確認;js/sight/micscore.js):開關預設開,第一次按「彈一遍」才問權限;使用者可以關 */
+const MIC_UI = true;
 let active = false;
 let mode = 'free';          // 'free' 自由練習 / 'exam' 檢定分頁
 let exam = { system: 'abrsm', grade: 1, auto: true };
@@ -702,6 +703,9 @@ export async function start(c) {
   window.__sight = {
     finishPlay: () => { if (alongStart !== null) alongStart = performance.now() / 1000 - 3600; },   // 彈一遍提早彈完
     selfCheck: () => (xCheck ? [...xCheck] : null),
+    score: () => (current ? current.score : null),   // 麥克風測試(tools/sight/mic-check.js)照這一題算彈奏
+    skipPrep: () => { prepSkip = true; },   // 看譜倒數馬上到
+    mic: () => lastRhythmResult && { ...lastRhythmResult, score: undefined, errs: undefined },
   };
   elements.prepare.addEventListener('click', startCountdown);
   elements.play.addEventListener('click', togglePlayback);
@@ -712,14 +716,12 @@ export async function start(c) {
     if (xPrep === 'before') startCountdown();
     else if (xPrep === 'done') togglePlayAlong();
   });
-  try { elements.alongMic.checked = MIC_UI && readKey('pianodrill.sight.mic') === '1'; } catch { /* 沒有儲存空間就預設關 */ }
-  // 麥克風評分目前藏起來(MIC_UI = false):開關、說明都不顯示,一律不用麥克風
+  // 麥克風自動打分:預設開(存過「關」才關);第一次按「彈一遍」時才問權限
+  elements.alongMic.checked = MIC_UI;
+  try { if (readKey('pianodrill.sight.mic') === '0') elements.alongMic.checked = false; } catch { /* 沒有儲存空間就照預設 */ }
   elements.alongMic.closest('label').hidden = !MIC_UI;
-  // 麥克風說明一行,開關打開時才出現(沒有結果時整張卡只有一行開關)
-  const micNote = () => { $('alongMicNote').hidden = !MIC_UI || !elements.alongMic.checked; };
-  micNote();
+  $('alongMicNote').hidden = !MIC_UI;   // 說明一行一直在開關下面
   elements.alongMic.addEventListener('change', () => {
-    micNote();
     try { localStorage.setItem('pianodrill.sight.mic', elements.alongMic.checked ? '1' : '0'); } catch { /* 不影響使用 */ }
   });
   setAlongLabel();
@@ -877,7 +879,7 @@ function setExamItem(on) {
   if (on && xCheck) { xCheck = null; paintSelfCheck(); }
   $('quiz').classList.toggle('hint-empty', on);
   $('scoreCard').hidden = on;
-  if (on) elements.along.hidden = true;
+  syncAlongCard();
   if (on) elements.generate.disabled = !rules;
   elements.generate.querySelector('.btn-label').textContent = on ? tr('練習一題', 'Get a test') : t('generateLabel');
   setAlongLabel();
@@ -1046,11 +1048,10 @@ async function newTest({ randomKey = false } = {}) {
   alongStart = null;
   played = false;
   setAlongLabel();
-  elements.along.hidden = true;
   resetAlongResult();
   stopFollowing();
   setPlayState(false);
-  elements.along.hidden = !freeAlong() || !MIC_UI;   // 視奏分頁這張卡只有麥克風選項與結果:麥克風藏起來時整張不顯示
+  syncAlongCard();
 
   // Start fetching the piano samples now, so the first press of play is
   // immediate — same moment ScrollScore loads them, once there is a score.
@@ -1078,6 +1079,7 @@ async function newTest({ randomKey = false } = {}) {
   }
   const score = current.score;
   setAlongLabel();
+  syncAlongCard();
   player.preload(score);
 
   loudRender = true;
@@ -1148,6 +1150,7 @@ async function drawTest({ score, xml }, quiet = false) {
 
   await fitScore();
   renderedWidth = window.innerWidth;
+  paintBarMarks();
   // Two frames: the first lets the browser paint the held opacity-0 state
   // (removing `transition: none` alone wouldn't stop the two class changes
   // from collapsing into one paint), the second flips to the visible state
@@ -1212,12 +1215,12 @@ function tonicTriadMidis(scoreKey) {
  * first test exists.
  */
 let prepToken = 0;
+let prepSkip = false;   // 測試掛鉤 __sight.skipPrep
 async function startCountdown() {
   if (!current) return;
   stopCountdown();
   player.stop();
   alongStart = null;
-  elements.along.hidden = !freeAlong() || !MIC_UI;   // 視奏分頁這張卡只有麥克風選項與結果:麥克風藏起來時整張不顯示
   resetAlongResult();
   setAlongLabel();
   elements.checklist.hidden = true;
@@ -1296,8 +1299,10 @@ function runPreparationCountdown() {
   say(scoreFitsViewport() ? 'prepFitsScreen' : 'prepScrolls');
   bringScoreIntoView();
 
+  prepSkip = false;
   countdownTimer = setInterval(() => {
     remaining -= 1;
+    if (prepSkip) remaining = 0;
     if (SS.log) addLog(SS.log, { sec: 1 });   // 準備倒數的每一秒(跑完或停下時存檔)
     elements.countdownValue.textContent = String(Math.max(remaining, 0));
     xLeft = Math.max(remaining, 0); setAlongLabel();
@@ -1312,7 +1317,6 @@ function runPreparationCountdown() {
       say('prepDone');
       if (mode === 'exam') { const k = `${exam.system}-${exam.grade}`; SS.xn[k] = (SS.xn[k] || 0) + 1; paintItemRow(); }
       recordPractice();
-      elements.along.hidden = !MIC_UI;   // 這張卡只剩麥克風選項與結果;彈一遍在題目卡右下
       setAlongLabel();
     }
   }, 1000);
@@ -1585,7 +1589,8 @@ function setAlongLabel() {
 }
 
 function stopPlayAlong(message) {
-  recorder.cancel(); // 手動停止:丟掉這次錄音,不評分
+  if (listen) { stopListening(); if (message) say(message); return; }
+  recorder.cancel();
   if (alongClicks) { alongClicks = false; audio.stopAll(); }
   if (alongStart !== null && freeAlong()) played = true;
   alongStart = null;
@@ -1595,12 +1600,22 @@ function stopPlayAlong(message) {
   if (message) say(message);
 }
 
-const recorder = createRecorder();
+/* 彈一遍旁邊那張卡(麥克風開關 + 說明一行):有題目、能彈的時候才出現 */
+function syncAlongCard() {
+  elements.along.hidden = !MIC_UI || readOn() || !current || (mode === 'exam' && (xIdle || mk.state === 'run')) || (mode !== 'exam' && !freeAlong());
+}
+
+const recorder = createListener();
 let alongStarting = false;
 let lastRhythmResult = null;
 
 async function togglePlayAlong() {
   if (!current || alongStarting) return;
+  if (listen) {
+    // 聽到音以後按停止 = 彈完了,照樣打分;還沒彈就停 = 不算
+    if (listen.notes > 0) finishListening(); else stopPlayAlong(freeAlong() ? freeReadyKey() : 'alongDone');
+    return;
+  }
   if (alongStart !== null) {
     if (mk.state === 'run') { finishMock(true); return; }   // 模擬考裡彈到一半按停止:記「中途停止」,照樣到結果
     stopPlayAlong('alongDone');   // 停下來:下一步 = ▶ 對照(沒彈完,不寫「彈完了」)
@@ -1611,20 +1626,19 @@ async function togglePlayAlong() {
   setPlayState(false);
   resetAlongResult();
 
-  // 選了麥克風評分:先要權限(第一次會跳出系統詢問),拿到才開始數預備拍
-  let scoring = false;
-  if (elements.alongMic.checked) {
+  /* 麥克風自動打分:不放預備拍、不放拍點,照自己的速度彈;第一個音 = 開始,彈完停 2 秒(或按停止)= 結束。
+     拿不到麥克風(拒絕、沒有、不支援)= 這次照原本的方式(預備拍 + 播放軸,檢定頁彈完自我檢查) */
+  if (elements.alongMic.checked && mk.state !== 'run') {
     alongStarting = true;
-    try {
-      await recorder.start();
-      scoring = true;
-    } catch {
-      // 拒絕或找不到麥克風:把原因放在結果區(狀態訊息會馬上被預備拍蓋掉),這次照樣跟著彈、只是不評分
+    const token = ++listenToken;
+    let ok = false;
+    try { await recorder.start((n) => onHeard(token, n)); ok = true; } catch {
       lastRhythmResult = { denied: true };
       renderRhythmResult();
     }
     alongStarting = false;
-    if (!current) { recorder.cancel(); return; }
+    if (!current || token !== listenToken) { recorder.cancel(); return; }
+    if (ok) { startListening(token); return; }
   }
 
   const { secondsPerBar } = barTimings(current.score);
@@ -1638,65 +1652,180 @@ async function togglePlayAlong() {
     const elapsed = performance.now() / 1000 - alongStart;
     if (elapsed < 0) {
       const n = Math.min(beats, Math.ceil((-elapsed / secondsPerBar) * beats));
-      if (n !== alongBeat) { alongBeat = n; say(scoring ? 'alongListening' : 'alongCountIn', { n }); }
+      if (n !== alongBeat) { alongBeat = n; say('alongCountIn', { n }); }
     } else if (alongBeat !== 0) {
       alongBeat = 0;
       say('alongPlaying');
     }
     return elapsed;
-  }, () => finishPlayAlong(scoring));
+  }, () => finishPlayAlong());
   // 沒有可跟的樂譜位置(還沒畫好)時,別讓按鈕卡在「停止彈奏」
   if (followFrame === null) stopPlayAlong();
 }
 
-/** 彈完:停麥克風、評分、顯示結果。 */
-function finishPlayAlong(scoring) {
-  const take = scoring ? recorder.finish() : null;
-  const { score } = current;
-  const firstNoteAt = alongStart;
+/* ── 麥克風聽彈奏 ── */
+const SILENCE_DONE = 2;      // 秒:最後一個音之後多久沒有新的音 = 彈完(聽到的音夠多時)
+const SILENCE_GIVEUP = 6;    // 秒:音還不夠多(中途停下來想)時,等久一點
+const WAIT_FIRST = 20;       // 秒:一直沒有聲音就結束
+let listen = null;           // { token, t0, notes, lastAt, timer, need }
+let listenToken = 0;
+function startListening(token) {
+  const need = Math.max(2, Math.round(expectedEvents(current.score).events.length * 0.8));
+  listen = { token, t0: performance.now(), notes: 0, lastAt: 0, need, timer: setInterval(checkListening, 200) };
+  alongStart = performance.now() / 1000;   // 主要按鈕變「停止」
+  setAlongLabel();
+  say('micListen');
+}
+function onHeard(token, n) {
+  if (!listen || token !== listen.token) return;
+  if (!listen.notes) say('micHeard');
+  listen.notes += n;
+  listen.lastAt = performance.now();
+}
+function checkListening() {
+  if (!listen) return;
+  const now = performance.now();
+  if (!listen.notes) { if (now - listen.t0 > WAIT_FIRST * 1000) finishListening(); return; }
+  const quiet = (now - listen.lastAt) / 1000;
+  if (quiet >= (listen.notes >= listen.need ? SILENCE_DONE : SILENCE_GIVEUP) || now - listen.t0 > 360000) finishListening();
+}
+function stopListening() {
+  if (!listen) return;
+  clearInterval(listen.timer);
+  addPracticeSec((performance.now() - listen.t0) / 1000);
+  listen = null;
+  recorder.cancel();
+  alongStart = null;
+  if (freeAlong()) played = true;
+  setAlongLabel();
+}
+/** 彈完:停麥克風、在裝置上分析、顯示結果 */
+function finishListening() {
+  if (!listen) return;
+  const heard = listen.notes;
+  clearInterval(listen.timer);
+  addPracticeSec((performance.now() - listen.t0) / 1000);
+  listen = null;
+  const take = recorder.finish();
+  alongStart = null;
   const free = freeAlong();
-  stopPlayAlong(free ? 'freeDone' : 'alongDone');
-  // 檢定頁:彈完出現自我檢查 4 項(鋼琴不聽你彈,這是彈完唯一的回饋;勾選、不算分數)
-  if (!free && mode === 'exam') { xCheck = SELF_CHECK.map(() => false); paintSelfCheck(); sayFn(() => tr('彈完了,對照下面自己檢查,再按 ▶ 聽一次', 'Done — check yourself below, then tap ▶ to listen')); }
-  if (free) { recordPractice(); if (!SS.intro[hand]) { SS.intro[hand] = true; saveSS(); } }   // 視奏分頁沒有準備倒數:彈完一遍算練了一題(第一次的說明不再出現)
-  if (!take) return;
-  // 麥克風時間軸換算成「距離第一個音幾秒」,跟題目的預期起音同一把尺
-  const detected = detectOnsets(take.samples, take.sampleRate).map((time) => take.startedAt + time - firstNoteAt);
-  window.__lastTake = { expected: expectedOnsets(score), detected }; // debugging hook for scripts/mic-check.js
-  lastRhythmResult = {
-    silent: detected.length === 0,
-    ...scoreRhythm(expectedOnsets(score), detected, { tempoBpm: score.tempoBpm }),
-  };
-  renderRhythmResult();
+  if (free) played = true;
+  setAlongLabel();
+  if (free) { recordPractice(); if (!SS.intro[hand]) { SS.intro[hand] = true; saveSS(); } }
+  if (!take || !heard) { lastRhythmResult = { silent: true }; renderRhythmResult(); say(free ? 'freeDone' : 'alongDone'); return; }
+  say('micAnalysing');
+  const score = current.score;
+  setTimeout(() => {
+    if (!current || current.score !== score) return;
+    lastRhythmResult = analyseTake(take, score);
+    window.__lastTake = { result: lastRhythmResult }; // 測試掛鉤(tools/sight/mic-check.js)
+    renderRhythmResult();
+    say(free ? 'freeDone' : 'alongDone');
+  }, 30);
+}
+/* 整段錄音 → 結果(micscore.js;初級–2 級加上音高) */
+function analyseTake(take, score) {
+  const exp = expectedEvents(score);
+  const onsets = detectNotes(take.samples, take.sampleRate);
+  if (!onsets.length) return { silent: true };
+  let pitchOk = null;
+  if (score.grade <= 2) {
+    const { pairs } = alignOnsets(exp.events.map((e) => e.beat), onsets);
+    pitchOk = checkPitches(take.samples, take.sampleRate, exp.events, onsets, pairs);
+  }
+  return { ...scorePerformance(exp, onsets, { pitchOk }), score, onsets };
 }
 
+/** 沒用麥克風(關掉或拿不到):播放軸走完 = 彈完 */
+function finishPlayAlong() {
+  const free = freeAlong();
+  stopPlayAlong(free ? 'freeDone' : 'alongDone');
+  // 檢定頁:彈完出現自我檢查 4 項(沒有麥克風的結果時,這是彈完唯一的回饋;勾選、不算分數)
+  if (!free && mode === 'exam') { xCheck = SELF_CHECK.map(() => false); paintSelfCheck(); sayFn(() => tr('彈完了,對照下面自己檢查,再按 ▶ 聽一次', 'Done — check yourself below, then tap ▶ to listen')); }
+  if (free) { recordPractice(); if (!SS.intro[hand]) { SS.intro[hand] = true; saveSS(); } }   // 視奏分頁沒有準備倒數:彈完一遍算練了一題(第一次的說明不再出現)
+}
+
+const ISSUE = {
+  pause: () => tr('停頓', 'paused'),
+  restart: () => tr('重來', 'restarted'),
+  fast: () => tr('變快', 'rushed'),
+  slow: () => tr('變慢', 'dragged'),
+  miss: () => tr('漏音', 'missed notes'),
+  rhythm: () => tr('節奏', 'rhythm'),
+  wrong: () => tr('音不對', 'wrong notes'),
+};
+const ISSUE_ORDER = ['pause', 'restart', 'miss', 'wrong', 'rhythm', 'fast', 'slow'];
 function renderRhythmResult() {
   const r = lastRhythmResult;
-  if (!r) return;
   const box = elements.alongResult;
+  if (!r) { box.hidden = true; paintBarMarks(); return; }
   if (r.denied) {
     box.innerHTML = `<p>${escapeHtml(t('alongMicDenied'))}</p>`;
-  } else if (r.silent) {
+  } else if (r.silent || r.tooFew) {
     box.innerHTML = `<p>${escapeHtml(t('resultSilent'))}</p>`;
   } else {
-    const advice = r.score >= 90 ? 'resultGreat' : r.score >= 70 ? 'resultOk' : 'resultLow';
-    const lag = Math.abs(r.offsetMs) >= 80
-      ? `<p>${escapeHtml(t(r.offsetMs > 0 ? 'resultLate' : 'resultEarly', { ms: Math.abs(r.offsetMs) }))}</p>`
-      : '';
-    box.innerHTML = `<div class="big"><small class="lead">${escapeHtml(t('resultTitle'))}</small>${r.score}<small>/ 100</small></div>`
-      + `<p>${escapeHtml(t('resultHits', { hits: r.hits, total: r.total, missed: r.missed, extra: r.extra, err: r.meanErrorMs, tol: r.toleranceMs }))}</p>`
-      + lag
-      + `<p>${escapeHtml(t(advice))}</p>`
-      + `<p class="disclaimer">${escapeHtml(t('resultDisclaimer'))}</p>`;
+    const parts = [tr(`節奏 ${r.rhythm}`, `Rhythm ${r.rhythm}`), tr(`穩定 ${r.stability}`, `Steady ${r.stability}`), tr(`連貫 ${r.continuity}`, `Flow ${r.continuity}`)];
+    if (r.pitch !== null && r.pitch !== undefined) parts.push(tr(`音 ${r.pitch}`, `Notes ${r.pitch}`));
+    const bpm = Math.round(r.bpmEst);
+    const notes = [];
+    if (r.trend) notes.push(r.trend === 'faster' ? tr('越彈越快', 'sped up') : tr('越彈越慢', 'slowed down'));
+    if (r.unfinished) notes.push(tr('沒彈完', 'not finished'));
+    const bars = Object.keys(r.barIssues).map(Number).sort((a, b) => a - b);
+    for (const bar of bars.slice(0, 4)) {
+      const kinds = ISSUE_ORDER.filter((k) => r.barIssues[bar].includes(k)).slice(0, 2).map((k) => ISSUE[k]());
+      notes.push(tr(`第 ${bar} 小節${kinds.join('、')}`, `bar ${bar} ${kinds.join(', ')}`));
+    }
+    if (bars.length > 4) notes.push('…');
+    box.innerHTML = `<div class="big"><small class="lead">${escapeHtml(t('resultTitle'))}</small>${r.accuracy}<small>/ 100</small></div>`
+      + `<p class="mic-parts">${escapeHtml(parts.join(' · '))}</p>`
+      + `<p>${escapeHtml(tr(`你的速度 ♩≈${bpm}（譜上 ♩=${r.scoreBpm}）`, `Your tempo ♩≈${bpm} (written ♩=${r.scoreBpm})`))}</p>`
+      + (notes.length ? `<p class="mic-bars">${bars.length ? '<i class="mic-key" aria-hidden="true"></i>' : ''}${escapeHtml(notes.join(' · '))}</p>` : '')
+      + (mode === 'exam' ? `<p class="disclaimer">${escapeHtml(tr('練習回饋,不是考試分數', 'Practice feedback, not an exam mark'))}</p>` : '');
   }
   box.hidden = false;
+  paintBarMarks();
+  // 結果沒露出來就捲過去
+  requestAnimationFrame(() => {
+    const rect = box.getBoundingClientRect();
+    if (rect.height && rect.bottom > innerHeight - 70) box.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  });
+}
+
+/* 有問題的小節在譜上標顏色(重畫樂譜、換尺寸以後重新標) */
+function paintBarMarks() {
+  const stageEl = $('stage');
+  for (const el of stageEl.querySelectorAll('.mic-mark')) el.remove();
+  const r = lastRhythmResult;
+  if (!r || !r.barIssues || !current || r.score !== current.score) return;
+  const svg = elements.score.querySelector('svg');
+  if (!svg) return;
+  const frame = stageEl.getBoundingClientRect();
+  for (const bar of Object.keys(r.barIssues)) {
+    let box = null;
+    for (const g of svg.querySelectorAll('g.vf-measure')) {
+      if (Number(g.id) !== Number(bar)) continue;
+      const b = g.getBoundingClientRect();
+      box = box ? { left: Math.min(box.left, b.left), top: Math.min(box.top, b.top), right: Math.max(box.right, b.right), bottom: Math.max(box.bottom, b.bottom) } : { left: b.left, top: b.top, right: b.right, bottom: b.bottom };
+    }
+    if (!box) continue;
+    const mark = document.createElement('div');
+    mark.className = 'mic-mark';
+    mark.style.left = `${box.left - frame.left - stageEl.clientLeft}px`;
+    mark.style.top = `${box.top - frame.top - stageEl.clientTop - 4}px`;
+    mark.style.width = `${box.right - box.left}px`;
+    mark.style.height = `${box.bottom - box.top + 8}px`;
+    stageEl.appendChild(mark);
+  }
 }
 
 function resetAlongResult() {
   if (xCheck) { xCheck = null; paintSelfCheck(); }
+  listenToken++;
+  if (listen) stopListening();
   recorder.cancel();
   lastRhythmResult = null;
   elements.alongResult.hidden = true;
+  paintBarMarks();
 }
 
 function stopFollowing() {
@@ -1820,7 +1949,7 @@ function paintMock() {
     if (!xIdle && current) elements.generate.disabled = elements.play.disabled = false;   // 結果:▶ 聽正確版本
   }
   setAlongLabel();
-  if (mode === 'exam' && on) elements.along.hidden = true;
+  syncAlongCard();
   paintSelfCheck();
 }
 function paintSelfCheck() {

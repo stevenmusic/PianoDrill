@@ -1016,3 +1016,6 @@ body.view-exam #t-paneExam,body.view-exam #e-paneExam{order:7}
 #mod-tech.today-view:not(.daily-on) :is(#t-quizCard,#t-scoreCard,#t-metroCard,#t-picker,#t-paneScale,#t-paneArp,#t-paneHanon,#t-target){display:none !important}
 /* 折疊機 280:子項目列多了「今日」(DrumDrill 5 格):字小一級、不在字中間斷(英文 Diddles) */
 @media (max-width:300px){ #subSeg button{font-size:var(--fs-xs);padding:0 2px;white-space:nowrap} }
+
+/* 標籤縮到 0.82 還放不下就換行(不再縮小、不截掉;tech/app.js 的 fitTitle 加 .wrap) */
+.q-tags.wrap,#mod-tech .q-tags.wrap{flex-wrap:wrap;height:auto;overflow:visible;row-gap:4px}

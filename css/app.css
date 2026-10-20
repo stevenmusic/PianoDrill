@@ -230,6 +230,15 @@ main{
 /* 題目卡最後一行(技巧;畫面設計 2026-10):左 = 熟練度「會了 / 再練」(次要),右 = 主要動作;放不下時右邊那組換到下一行 */
 .q-last{flex-wrap:wrap;row-gap:6px}
 .q-last .mastery{margin-left:0}
+/* 技巧題目卡(含今日練習;2026-10):第一行 = 大標題 + ▶(含小字),標籤列在下一行用滿整行寬度(伸到 ▶ 下面,不碰 ▶ 的小字);
+   手機橫式照下面那段收成一行 */
+#mod-tech .q-head{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:10px;row-gap:2px;align-items:start}
+#mod-tech .q-ht{display:contents}
+#mod-tech .q-title{grid-column:1;grid-row:1;align-self:start;margin-top:max(0px, calc((52px - clamp(26px, 7.4vw, 40px) * 1.45) / 2))}
+#mod-tech .play-round{grid-column:2;grid-row:1}
+#mod-tech .q-tags{grid-column:1 / -1;grid-row:2;max-width:none}
+#mod-tech .q-tags:empty{display:none}
+#mod-tech .q-tag{padding-left:calc(10px * var(--tag-scale, 1));padding-right:calc(10px * var(--tag-scale, 1))}   /* 標籤縮字時左右內距一起縮 */
 .play-round{flex:none;width:52px;height:52px;border-radius:50%;border:0;background:var(--gold-fill);color:var(--on-fill);
   display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
 .play-round:disabled{opacity:.35}
@@ -451,6 +460,7 @@ header{z-index:60}
   .q-row{gap:6px}
   .q-tags{gap:4px}
   .q-tag{padding:3px 6px}
+  #mod-tech .q-tag{padding-left:calc(6px * var(--tag-scale, 1));padding-right:calc(6px * var(--tag-scale, 1))}
   .play-round{width:46px;height:46px}
   .quiz-top .count{display:none}
 }
@@ -523,7 +533,7 @@ header{z-index:60}
   #mod-tech .q-last .count{display:none}
   #mod-tech .q-last .q-actions{grid-column:1 / -1}
   #mod-tech .q-hint,#mod-sight .q-hint,#mod-ear .q-hint{grid-column:1 / -1}
-  #mod-tech .q-title{grid-column:1;grid-row:1;font-size:22px;max-width:46vw;line-height:32px;height:32px}   /* 字級會依長度縮小:行高固定,中英文高度才一樣 */
+  #mod-tech .q-title{grid-column:1;grid-row:1;font-size:22px;max-width:46vw;line-height:32px;height:32px;align-self:center;margin-top:0}   /* 字級會依長度縮小:行高固定,中英文高度才一樣 */
   #mod-tech .q-tags{grid-column:2;grid-row:1;min-height:0;height:30px;max-width:none}   /* 標籤字級會縮:高度固定,中英文才一樣 */
   #mod-tech .q-tag{font-size:calc(14px * var(--tag-scale, 1));padding:0 7px;line-height:26px}
   #mod-tech .mastery{grid-column:3;grid-row:1}
@@ -623,6 +633,7 @@ body.land-play #t-stage{flex:1;display:flex;flex-direction:column;justify-conten
 .test:first-child{border-top:0;padding-top:0}
 .test h3{display:flex;gap:8px;align-items:baseline;font-size:var(--fs-md);color:var(--ivory);font-weight:500;line-height:1.5}
 .test h3 b{flex:none;color:var(--gold);font-family:"Noto Serif TC",serif;min-width:1.4em}
+.test h3 span{min-width:0;overflow-wrap:anywhere}   /* 字級放大時長字(loud/quiet)換行,不超出畫面 */
 .test .chips{margin-top:8px;padding-left:calc(1.4em + 8px)}
 .test .chip.cur{border-color:var(--gold);color:var(--gold)}
 .test .chip .pct{font-size:var(--fs-2xs);color:var(--muted)}
@@ -658,7 +669,7 @@ body.land-play #t-stage{flex:1;display:flex;flex-direction:column;justify-conten
 /* 子項目(音階/琶音/哈農、單音/音程/和弦、檢定的三個項目):跟頂欄一起固定在上方,佔滿一整列 */
 .subnav{flex:1 1 100%;order:3;display:flex;justify-content:center;padding:2px 0 0}
 .subnav .seg{width:min(560px, 100%)}
-.subnav .seg button{min-height:34px}
+.subnav .seg button{min-height:34px;min-width:min-content}   /* 字級放大時長的字(Arpeggios)不被截:那一格寬一點,其他格分剩下的 */
 @media (max-width:600px){ header{flex-wrap:wrap} .subnav .seg button{min-height:32px;padding:0 4px} }
 @media (max-height:420px), (orientation:landscape) and (max-height:500px){
   .subnav{flex:0 1 420px;order:2;padding:0}
@@ -678,6 +689,7 @@ body.land-play #t-stage{flex:1;display:flex;flex-direction:column;justify-conten
 .exam-sum svg{flex:none;color:var(--gold)}
 .exam-sum .sum{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .exam-pick{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+.exam-sum[hidden] + .exam-body .exam-pick{margin-top:0}   /* 已選考試:上面沒有那行提示,不留空 */
 .exam-pick #systemSeg button{min-height:40px}
 .exam-grades{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0, 1fr)}   /* 每格一樣寬(flex 的話第一格少一條框線,窄 1px) */
 .exam-grades button{padding:0;min-height:36px;font-variant-numeric:tabular-nums}
@@ -692,6 +704,12 @@ body.land-play #t-stage{flex:1;display:flex;flex-direction:column;justify-conten
   .modal{padding:8px}
   .modal-card{padding:16px 12px;--bleed:11px}
   #examSetup .exam-pick > .seg,.modal-card .seg{margin-inline:calc(-1 * var(--bleed, 0px))}   /* 系統鈕跟著一起伸,兩排對齊 */
+}
+/* 窄手機(折疊機、SE):考試卡、本項列的間距縮一點,檢定頁的題目卡在畫面上半部(按鈕高度不縮) */
+@media (max-width:360px){
+  #examSetup{padding-top:7px;padding-bottom:7px}
+  .exam-pick{gap:6px}
+  .item-row{row-gap:4px}
 }
 @media (max-height:420px), (orientation:landscape) and (max-height:500px){
   .exam-card{padding:6px 12px 8px}
@@ -850,8 +868,9 @@ details.exam-info .verify-note{margin-top:0}
 @media (max-width:300px){ .modal-card h2{font-size:var(--fs-lg)} }
 /* ══ 自動難度(DrumDrill 的 js/shared/level.js;app.css 兩個 App 同一份):設定卡「難度 3」+ ▼ ▲ 與小字;結果下面「太簡單 / 剛好 / 太難」一排三格 ══ */
 .lvl-row{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;margin-bottom:12px}
-.lvl-row .lvl{display:flex;align-items:center;gap:10px;flex:none}
-.lvl-row .lvl b{font-family:"Noto Serif TC",serif;font-size:var(--fs-xl);color:var(--gold-bright);line-height:1.2;min-width:4.6em;text-align:center;font-variant-numeric:tabular-nums}
+.lvl-row .lvl{display:flex;align-items:center;gap:10px;flex:0 1 auto;min-width:0;max-width:100%}   /* 字級放大時「難度 n / m」可以換行,▲ 不超出畫面 */
+.lvl-row .lvl b{font-family:"Noto Serif TC",serif;font-size:var(--fs-xl);color:var(--gold-bright);line-height:1.2;min-width:min(4.6em, 30vw);flex:0 1 auto;text-align:center;font-variant-numeric:tabular-nums}
+.lvl-row .btn.round{flex:none}
 .lvl-row .btn.round:disabled{opacity:.35}
 .lvl-row .info{flex:1 1 150px;min-width:0;font-size:var(--fs-sm);color:var(--muted-bright);line-height:1.5;overflow-wrap:anywhere}
 .diff-msg{margin-top:8px;font-size:var(--fs-sm);color:var(--gold-bright);overflow-wrap:anywhere}

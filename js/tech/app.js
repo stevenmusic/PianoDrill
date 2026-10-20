@@ -496,7 +496,8 @@ function renderQText(q, tab){
     $("qTitle").textContent = Array.isArray(nm) ? tr(nm[0], nm[1]) : nm;
     const tags = dcard.segTags({ ...dseg, bpm: q.tempo.bpm });
     const hand = questionText(q)[1];   // 關卡名稱已經寫了「右手」:標籤不再寫
-    if (q.type === "route" && dseg.k !== "warm" && !$("qTitle").textContent.includes(hand)) tags.splice(1, 0, hand);   // [手指 1 / 33] [右手] [速度 50 → 84](時值不放,譜上看得到)
+    // 今日練習的標籤一行放得下:英文「Both hands」寫「Both」(跟 RH / LH 一樣短)
+    if (q.type === "route" && dseg.k !== "warm" && !$("qTitle").textContent.includes(hand)) tags.splice(1, 0, hand === "Both hands" ? "Both" : hand);   // [手指 1 / 33] [右手] [速度 50 → 84](時值不放,譜上看得到)
     $("qTags").innerHTML = tags.map(t => `<span class="q-tag">${t}</span>`).join("");
   }
   syncPlayCap();

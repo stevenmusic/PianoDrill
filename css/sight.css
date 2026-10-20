@@ -161,6 +161,7 @@
 }
 /* 視奏分頁的速度:− 數字 +(一行;滑桿不放,設定卡才不會把「彈一遍」擠出第一個畫面) */
 #s-tempoBox{margin-top:10px}
+@media (max-width:600px){ #s-tempoBox{margin-top:6px} }   /* 緊湊:折疊機第一個畫面題目卡在上半部 */
 #s-tempoBox input[type=range]{display:none}
 #s-tempoBox .bpm{display:flex;align-items:baseline;justify-content:center;gap:6px}
 /* 認音的時值模式:作答 ½ 1 2 3 4 一排(取代琴鍵;數字大) */

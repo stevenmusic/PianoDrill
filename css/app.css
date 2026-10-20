@@ -1030,6 +1030,8 @@ body.view-exam #t-dailyCard,body.view-exam #t-dailyStep{display:none !important}
 /* PianoDrill 檢定頁(版型 B):本項卡出現時,本級要求清單標題的「會了 n/m」與進度條不重複;抽考設定放在清單下面 */
 #mod-tech.exam-empty #t-listSub,#mod-tech.exam-empty #t-listCard > .progress{display:none}
 body.view-exam #t-paneExam,body.view-exam #e-paneExam{order:7}
+/* 檢定頁(版型 B):收起來的設定卡(調性、節拍器、抽考範圍,不常改)放在題目卡下面:清單 / 樂譜之後、「考試內容」之前;練習分頁照舊在上面 */
+body.view-exam :is(#s-setup,#e-setup){order:19}
 /* 技巧分頁的「今日」(子項目第一格;畫面設計 2026-10 版型 C,兩個 App 一樣;js/tech/app.js 的 .today-view):
    還沒開始 / 暫停 / 練完 = 今日練習卡 + 練習紀錄;開始後(.daily-on)照舊。其他子項目 = 自由練習,不顯示今日練習卡 */
 #mod-tech:not(.today-view) #t-dailyCard{display:none !important}

@@ -3,7 +3,7 @@
 import * as store from "./store.js";
 import { gradeOf, questionsFor, applyFilter, drawQuestion, CATEGORIES, masteryKey, UNIT_SYM, NOTES_PER_UNIT } from "./syllabus.js";
 import { buildExercise, questionText } from "./exercise.js";
-import { exerciseToMusicXML, playbackEvents } from "./musicxml.js";
+import { exerciseToMusicXML, playbackEvents, melodyEvents } from "./musicxml.js";
 import { noteLabelStr } from "./theory.js";
 import { hanonThirdsKey } from "./fingering.js";
 import { tr, scoped, getLang, pairText, unpair } from "../shared/i18n.js";
@@ -486,8 +486,12 @@ function renderQText(q, tab){
 /* ▶ 下面一行小字:示範 / 示範 + 拍點(今日練習的路線段)/ 拍點(只有拍點的時候) */
 function syncPlayCap(){
   const solo = clickOnlyOn() || !!(dseg && dseg.k !== "warm" && dseg.click && dseg.click !== "every");
-  $("playBtn").dataset.cap = solo ? tr("拍點", "Click") : dseg && dseg.k !== "warm" ? tr("示範 + 拍點", "Demo + click") : tr("示範", "Demo");
+  // 伴奏路線只有左手的關:App 另外彈一條旋律(示範 = 左手 + 旋律;只有拍點的那幾次 = 拍點 + 旋律,學生彈左手跟它合奏)
+  $("playBtn").dataset.cap = melOn() ? (solo ? tr("拍點 + 旋律", "Click + melody") : tr("示範 + 旋律", "Demo + melody"))
+    : solo ? tr("拍點", "Click") : dseg && dseg.k !== "warm" ? tr("示範 + 拍點", "Demo + click") : tr("示範", "Demo");
 }
+/* 這一段有合奏旋律(今日練習的伴奏關,只有左手的那幾關;patterns.js 的 accMelody) */
+function melOn(){ return !!(dseg && dseg.k !== "warm" && cur && cur.daily && ex && ex.mel); }
 /* 今日練習關卡最短的音符(標籤):三連音 / 十六分 / 八分 / 四分 / 二分 / 全音符(ex.exact 的時值:四分音符 = 12) */
 function valueTag(e){
   if (!e || !e.exact) return null;
@@ -1178,7 +1182,7 @@ function preloadSamples(){
   job.p = (async () => {
     try {
       setRing(null);   // 不在這裡建立 AudioContext(要等使用者的手勢,見 audio.js 的 dec())
-      const notes = playbackEvents(ex, cur, "both").map(e => ({ midi: e.midi, vel: e.vel || demoVel() }));
+      const notes = playbackEvents(ex, cur, "both").concat(melOn() ? melodyEvents(ex) : []).map(e => ({ midi: e.midi, vel: e.vel || demoVel() }));
       setMsg("loadingMsg", () => tr("載入鋼琴聲音…", "Loading piano…"));
       await audio.loadPianoFor(notes, 6, p => {
         if (preloadJob !== job) return;
@@ -1209,7 +1213,7 @@ let play = null, starting = 0;   // starting:正在準備播放(載入取樣中)
 /* 排程:從時間 from(秒)之後開始的音與拍點(開始播放時是全部;播放中改速度時只排還沒到的) */
 function schedulePlay(p, from){
   const { t0, beatSec, clickSec, count, pre } = p;
-  for (const h of ["rh", "lh"]) {
+  for (const h of ["rh", "lh", "mel"]) {
     const arr = p.byHand[h];
     arr.forEach(e => {
       const on = t0 + e.beat * beatSec;
@@ -1217,7 +1221,7 @@ function schedulePlay(p, from){
       // 今日練習的關卡(exact):每個音自己的長度、斷奏、力度(按住的音、和弦、休止都照譜)
       if (e.exact) {
         const off = e.stacc ? on + Math.min(0.12, e.len * beatSec * 0.45) : on + e.len * beatSec + 0.015;
-        if (!clickOnlyOn() && !p.solo) audio.playPianoNote(e.midi, on, off, off, e.vel + (Math.random() * 6 - 3), false);
+        if (h === "mel" || (!clickOnlyOn() && !p.solo)) audio.playPianoNote(e.midi, on, off, off, e.vel + (Math.random() * 6 - 3), false);   // 合奏旋律:只有拍點的時候也彈
         return;
       }
       const next = arr.find(x => x.beat > e.beat + 1e-6);   // 同一隻手下一個「不同時」的音(雙音的兩個音同時按)
@@ -1291,7 +1295,7 @@ async function startPlaybackInner(){
   if (starting !== token || cur !== q0 || show !== show0) { if (starting === token) { starting = 0; $("playLabel").textContent = T("play"); } $("playBtn").classList.remove("busy"); return; }
   starting = 0; $("playBtn").classList.remove("busy");
   if (!loaded) { $("playLabel").textContent = T("play"); return; }
-  let events = playbackEvents(ex, cur, show);
+  let events = playbackEvents(ex, cur, show).concat(melOn() ? melodyEvents(ex) : []);
   const u = unitOf(), clickSec = 60 / bpm, noteSec = clickSec / NOTES_PER_UNIT[u];
   const beatSec = noteSec * ex.sub;                      // 樂譜上一個四分音符的秒數
   const count = beatsPerBar(), pre = count * COUNT_IN_BARS;
@@ -1307,7 +1311,7 @@ async function startPlaybackInner(){
   }
   // 漸強再漸弱(p–f–p):前半漸強、後半漸弱
   const velAt = beat => cur.dynamic === "cresc-dim" ? Math.round(42 + 50 * (1 - Math.abs(2 * beat / endBeat - 1))) : demoVel();
-  const byHand = { rh: [], lh: [] };
+  const byHand = { rh: [], lh: [], mel: [] };
   events.forEach(e => byHand[e.hand].push(e));
   play = { t0, beatSec, clickSec, endBeat, raf: 0, byHand, stacc, velAt, count, pre, click: dp ? dp.click : "every", solo: !!(dp && dp.solo), period,
     mark: 0, heard: false, heardQ: 2 * count * clickSec / beatSec };   // 今日練習:預備拍之後播過 2 小節,「做到了」才能按
@@ -1435,7 +1439,7 @@ const dcard = createDailyCard({ $, daily,
   labels: { ok: ["做到了", "Did it"], again: ["還要練", "Not yet"], verb: ["彈", "play"], good: ["很好!", "Good!"],
     // 狀態一句短話(fold-280 不超過兩行);過關規則改成到了目標速度在標籤後面顯示「穩 ●○○」
     hint: ["▶ 聽示範,跟著拍點彈;做到了按 ✓", "▶ Demo; play along, then ✓"],
-    solo: ["▶ 只有拍點:自己彈,做到了按 ✓", "Click only: play it, then ✓"] },
+    get solo(){ return melOn() ? ["▶ 拍點和旋律:你彈左手,做到了按 ✓", "Click + melody: play the LH, then ✓"] : ["▶ 只有拍點:自己彈,做到了按 ✓", "Click only: play it, then ✓"]; } },
   warmName, levelName, log: () => S.log,
   onStart: () => { dShow(daily.begin()); window.scrollTo({ top: 0 }); },
   onNext: () => dNext(), onPause: () => dExit(),
@@ -1461,6 +1465,7 @@ function dailyQ(s){
   q.tempo = s.k === "warm" && s.item.unit ? { unit: s.item.unit, bpm: s.item.bpm } : { unit: hanon ? "q16" : "q", bpm: s.k === "warm" ? s.item.bpm : s.bpm };
   q.sub = q.tempo.unit === "q." ? 3 : hanon ? 4 : 2;
   q.free = true; q.daily = s.k;
+  if (s.k !== "warm") q.mseed = hashDay(daily.today().date);   // 合奏旋律:同一關同一天同一條
   q.key = hanon ? `hanon|${q.no}|${q.tonic}|${q.hands}|${q.rhythm}${q.octaves === 1 ? "|1" : ""}` : masteryKey(q);
   return q;
 }

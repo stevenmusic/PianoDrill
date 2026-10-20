@@ -145,6 +145,58 @@ function rhBar(K, ch, pat, beats, tone){
   throw new Error("不認得的右手型:" + pat);
 }
 
+/* ── 合奏旋律(伴奏路線只有左手的關):App 彈一條簡單的右手旋律,學生彈左手跟它合奏(譜不畫,只播放)──
+   每小節照那一小節的和弦:強拍(第 1 拍;4/4 再加第 3 拍)= 和弦音,弱拍 = 前後兩個音之間的經過音、鄰音或和弦音;
+   四分 / 二分音符(最後一小節 4/4 二分 + 二分、3/4 附點二分),C4–C5 之內,最後一個音停在主音;同一個種子同一條(app 用日期 + 關卡)。
+   回傳 [{ letter, alter, octave, midi, dur, deg }](dur:四分音符 = 12;deg = 相對主音的級數) */
+export const MEL_LO = 60, MEL_HI = 72;
+const MEL_RHY = { 4: [[1, 1, 1, 1], [2, 1, 1], [1, 1, 2], [2, 2]], 3: [[1, 1, 1], [2, 1]] };
+function rng(seed){
+  let a = seed >>> 0;
+  return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+}
+export const idSeed = id => [...String(id)].reduce((h, ch) => (Math.imul(h, 31) + ch.charCodeAt(0)) >>> 0, 7);
+export const isChordTone = (ch, d) => TONES[ch].some(t => ((d - t) % 7 + 7) % 7 === 0);
+export function accMelody(K, prog, beats, seed = 0){
+  const R = rng(seed), pick = a => a[Math.floor(R() * a.length)];
+  const ds = []; for (let d = -7; d <= 10; d++) { const m = degNote(K, d, 4).midi; if (m >= MEL_LO && m <= MEL_HI) ds.push(d); }
+  const lo = ds[0], hi = ds[ds.length - 1], inR = d => d >= lo && d <= hi, n = prog.length;
+  const slots = [];
+  prog.forEach((ch, b) => {
+    const rhy = b === n - 1 ? (beats === 4 ? [2, 2] : [3]) : pick(MEL_RHY[beats] || [[1, 1, 1, 1]]);
+    let p = 0;
+    for (const len of rhy) { slots.push({ b, ch, len, strong: p === 0 || (beats === 4 && p === 2) }); p += len; }
+  });
+  const strong = slots.filter(x => x.strong), last = slots[slots.length - 1];
+  let prev = null;
+  for (const x of strong) {   // 強拍:和弦音;第一個從三音或五音,之後離前一個強拍近(2 級以內隨機,不重複同一個音)
+    const cands = ds.filter(d => isChordTone(x.ch, d));
+    if (x === last) { const t = cands.filter(d => ((d % 7) + 7) % 7 === 0); x.d = t.sort((a, b) => Math.abs(a - prev) - Math.abs(b - prev) || a - b)[0]; }
+    else if (prev == null) { const mid = cands.filter(d => [2, 4].includes(((d - TONES[x.ch][0]) % 7 + 7) % 7)); x.d = pick(mid.length ? mid : cands); }
+    else {
+      const alt = cands.filter(d => d !== prev && !(x.b === n - 1 && ((d % 7) + 7) % 7 === 0))   // 最後一小節第 1 拍不用主音(留給最後一個音)
+        .sort((a, b) => Math.abs(a - prev) - Math.abs(b - prev) || a - b);
+      const near = alt.filter(d => Math.abs(d - prev) <= 2);
+      x.d = near.length ? pick(near) : alt.length && Math.abs(alt[0] - prev) <= 4 ? alt[0] : prev;
+    }
+    prev = x.d;
+  }
+  slots.forEach((x, i) => {   // 弱拍:接在前一個音與下一個強拍之間
+    if (x.strong) return;
+    const a = slots[i - 1].d, nx = slots.slice(i + 1).find(y => y.strong), c = nx ? nx.d : a, gap = c - a;
+    let d;
+    if (Math.abs(gap) === 2 || Math.abs(gap) === 3) d = a + Math.sign(gap);   // 經過音
+    else if (gap === 0) d = inR(a + 1) ? a + 1 : a - 1;                      // 鄰音
+    else {
+      const ct = r => ds.filter(y => isChordTone(x.ch, y) && y !== a && Math.abs(y - a) <= r).sort((p, q) => Math.abs(p - c) - Math.abs(q - c));
+      // 2 級以內的和弦音 → 反方向的鄰音 → 3 級以內的和弦音 → 同一個音
+      d = ct(2).length ? ct(2)[0] : inR(a - Math.sign(gap)) ? a - Math.sign(gap) : ct(3).length ? ct(3)[0] : a;
+    }
+    x.d = inR(d) ? d : a;
+  });
+  return slots.map(x => ({ ...degNote(K, x.d, 4), dur: x.len * 12, deg: x.d }));
+}
+
 /* ── 變化:節奏型(兩個一樣長的音 → 附點 / 反附點)、斷奏、力度 ── */
 function applyRhythm(notes, kind, BAR){
   let pos = 0;
@@ -190,8 +242,10 @@ export function buildRoute(FG, q){
   if (q.touch) { rh = applyTouch(rh, q.touch); lh = applyTouch(lh, q.touch); }
   const dz = q.dyn || null;
   const dyn = dz === "balance" ? { rh: "f", lh: "p" } : dz ? { rh: dz, lh: dz } : L.dyn ? { rh: L.dyn.rh || null, lh: L.dyn.lh || null } : { rh: null, lh: null };
+  // 合奏旋律:伴奏路線只有左手的關(已有右手的關不加);種子 = q.mseed(app:日期)+ 關卡,換調的複習跟著換調
+  const mel = accomp && !L.rh ? accMelody(K, L.prog, beats, ((q.mseed || 0) + idSeed(L.id)) >>> 0) : null;
   return { exact: true, div: DIV, bar: BAR, time, fifths: keyFifths(K.tonic, K.quality), sub: 2, bars, rh, lh, hold, dyn,
-    lhSoft: accomp && !!L.rh, key: K.key, level: L };
+    lhSoft: accomp && !!L.rh, key: K.key, level: L, mel };
 }
 /* 這一題用到的每個音(檢查、預載用) */
 export function allNotes(ex){

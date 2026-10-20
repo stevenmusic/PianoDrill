@@ -77,6 +77,8 @@ const findLevel = (routes, r, id) => { const R = findRoute(routes, r); return R 
 export function cleanDaily(raw, routes, today = null){
   const src = raw && typeof raw === "object" && !Array.isArray(raw) ? raw : {};
   const d = { v: DAILY_V, prog: {}, lv: {}, today: null, last: isDay(src.last) ? src.last : null, seen: src.seen === true, tip: src.tip === true };
+  // 看過「為什麼練這個」的組(「路線/組」;dailycard 只在這一組第一次出現時寫那一句)
+  d.why = Array.isArray(src.why) ? [...new Set(src.why.filter(k => typeof k === "string" && routes.some(R => R.levels.some(l => k === R.id + "/" + l.g))))] : [];
   for (const R of routes) {
     const p = src.prog && src.prog[R.id] && typeof src.prog[R.id] === "object" ? src.prog[R.id] : {};
     const done = p.done === true;
@@ -147,7 +149,7 @@ export function buildPlan({ routes, daily: d, today, extras = {} }){
 
 /* ══ 引擎 ══
    createDaily({ routes, load, save, now, extras })
-   - routes = [{ id, name: [中, 英], unlock?, up?, down?, need?, vary?, levels: [{ id, name, start, target, up?, down?, need?, click?, vary?, check?, review? }] }]
+   - routes = [{ id, name: [中, 英], unlock?, up?, down?, need?, vary?, why?: { 組: [中, 英] }, levels: [{ id, g?(組), name, start, target, up?, down?, need?, click?, vary?, check?, review? }] }]
    - load() → 存的原始資料(各模組 localStorage 的 daily);save(d) 存回去
    - extras.warm(d, today) → 暖身項目(各 App 自己挑;沒有就不排暖身) */
 export function createDaily({ routes, load = () => null, save = () => {}, now = () => new Date(), extras = {} }){
@@ -327,7 +329,10 @@ export function createDaily({ routes, load = () => null, save = () => {}, now = 
       tomorrow, review: rv ? levelOf(rv.r, rv.lv) : null };
   }
   const minutes = () => { const t = ensure(); let s = 0; t.plan.forEach((p, i) => { if (!t.done[i]) s += Math.max(0, p.sec - t.sec[i]); }); return Math.max(1, Math.round(s / 60)); };
+  /* 「為什麼練這個」(每一組一句):看過的組記下來(key = 「路線/組」),之後不再寫 */
+  const whySeen = key => d.why.includes(key);
+  function markWhy(key){ if (!d.why.includes(key)) { d.why.push(key); put(); } }
   return { get data(){ return d; }, plan: () => ensure().plan, today: ensure, state, seg, begin, attempt, back, canBack, addSec, segLeft, next, addExtra,
-    levelOf, bpmFor, reviewBpm, locked, summary, minutes, isOpen: R => isOpen(R, d, routes),
+    levelOf, bpmFor, reviewBpm, locked, summary, minutes, isOpen: R => isOpen(R, d, routes), whySeen, markWhy,
     reset(raw){ d = cleanDaily(raw, routes); put(); } };
 }

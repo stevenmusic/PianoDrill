@@ -5,7 +5,7 @@
      第一次才有一行「關卡是 App 編排的練習;沒練的日子不扣分」
    - 進行中(模組正在顯示這一段):縮成一行「今日練習 2/4 ●●○○ 剩約 7 分 [暫停] [下一段 ›]」;有 barHost(外框的 ctx.subBar)時這一行放在子項目列的位置(子項目列藏起來、卡片藏起來)
    - 練完了:今天練了幾段、幾分鐘、過了幾關、最近 7 天練了幾天、明天練什麼 + 次要按鈕「再練一下」(可以一直按)
-   段落面板:狀態 / 下一步一句、這次的變化(複習)、重點(關卡的 check)、[回上一關](文字鈕,只在同一速度連續不穩 = seg().suggest 時)…[再練][穩了 ✓](各 App 的字)或 [下一段 ›];
+   段落面板:狀態 / 下一步一句、為什麼練這個(路線的 why[組]:這一組第一關第一次出現時一句,看過的組記在 daily 的 why)、這次的變化(複習)、重點(關卡的 check)、[回上一關](文字鈕,只在同一速度連續不穩 = seg().suggest 時)…[再練][穩了 ✓](各 App 的字)或 [下一段 ›];
    「穩了 / 做到了」要先用現在的速度播過一輪才能按(App 呼叫 ready(true);沒播之前 disabled,不算嘗試)
    文字都用 i18n 的 daily.*(兩個 App 一樣)+ 模組傳進來的 labels(穩了 / 做到了…);段落文字用 pairText(中英一樣高) */
 import { tr, T, pairText } from "./i18n.js";
@@ -78,7 +78,15 @@ export function createDailyCard({ $, daily, labels = {}, warmName = () => "", le
   }
   const tid = card.id + "-title";
   card.setAttribute("role", "region"); card.setAttribute("aria-labelledby", tid);
-  let showing = false, lastStatus = null, lastOpts = {}, okReady = true;
+  let showing = false, lastStatus = null, lastOpts = {}, okReady = true, whyCur = null;
+  /* 為什麼練這個:路線的 why[組](每組一句);只在這一組的第一關、第一次出現的那一段(同一段重畫、換語言照樣顯示;複習、暖身不寫) */
+  function whyOf(s){
+    const L = s && s.k === "route" ? s.level : null, R = L && L.route, txt = R && R.why && R.why[L.g];
+    if (!txt || !R.levels.length || R.levels.find(l => l.g === L.g).id !== L.id) return null;
+    const key = R.id + "/" + L.g, at = `${daily.today().date}/${s.i}/${key}`;
+    if (whyCur !== at) { if (daily.whySeen(key)) return null; whyCur = at; daily.markWhy(key); }
+    return txt;
+  }
   const segText = s => (s.k === "warm" ? L2(warmName(s.item)) : `${fmt("level", { n: s.level.n })} · ${L2(levelName(s))}`);
 
   function render(){
@@ -152,12 +160,12 @@ export function createDailyCard({ $, daily, labels = {}, warmName = () => "", le
     // 重點:關卡的 check(前面加關卡的 handsLine,例如「右手 Hi-hat、左手小鼓」);暖身 = 項目自己的 check
     const warm = s.k === "warm", list = warm ? (s.item && s.item.check) || [] : [...(s.level.handsLine ? [s.level.handsLine] : []), ...(s.level.check || [])];
     const check = list.length ? list : null;
-    const vary = varyText(s);
+    const vary = varyText(s), why = whyOf(s);
     // 暖身:只有進度條上那一顆「下一段 ›」(按鈕列整列不放);過關、複習完 = 主要按鈕「下一段 ›」
     const primaryNext = passedDone;
     const tip = !warm && !daily.data.tip && s.bpm;   // 第一次:速度的小字說明「速度 56 = 每分鐘 56 拍」(試過一次就不再出現)
     // 重點:每項一行的清單(系統化規則:主要資訊字級 ≥ --fs-md)
-    step.innerHTML = `<p class="daily-status"></p>` + (tip ? `<p class="daily-tip"></p>` : "") + (vary ? `<p class="daily-vary"></p>` : "") +
+    step.innerHTML = `<p class="daily-status"></p>` + (tip ? `<p class="daily-tip"></p>` : "") + (why ? `<p class="daily-why"></p>` : "") + (vary ? `<p class="daily-vary"></p>` : "") +
       (check ? `<div class="daily-check"><b>${esc(fmt("checkTitle"))}</b><ul>${check.map(() => "<li></li>").join("")}</ul></div>` : "") +
       `<div class="daily-acts"${warm ? " hidden" : ""}>` + (!warm && s.k === "route" && s.suggest && daily.canBack() && !passedDone ? `<button class="text-btn daily-back">${esc(fmt("back"))}</button>` : "") +
       `<span class="daily-sp"></span>` +
@@ -165,6 +173,7 @@ export function createDailyCard({ $, daily, labels = {}, warmName = () => "", le
         : `<button class="btn daily-again">${esc(L2(labels.again))}</button><button class="btn primary daily-ok"${okReady ? "" : " disabled"}>${ICON_OK}<span class="btn-label">${esc(L2(labels.ok))}</span></button>`) + `</div>`;
     paintStatus(s);
     if (tip) pairText(step.querySelector(".daily-tip"), () => fmt("tempoTip", { b: s.bpm }));
+    if (why) pairText(step.querySelector(".daily-why"), () => L2(why));
     if (vary) pairText(step.querySelector(".daily-vary"), () => fmt("vary", { v: varyText(s) }));
     if (check) step.querySelectorAll(".daily-check li").forEach((li, i) => { li.textContent = L2(check[i]); });   // 每項一行(不用 pairText:英文比較長時中文會多出空行;換語言時 relang 重畫)
     const on = (sel, fn) => { const b = step.querySelector(sel); if (b) b.onclick = () => fn && fn(); };

@@ -204,9 +204,26 @@ function finish(route, list){
   });
   return list;
 }
+/* 為什麼練這個(每一組一句;老師的口吻、具體說練了有什麼用,≤ 24 個中文字;dailycard 在這一組第一關第一次出現時寫在段落面板;checks/routes.mjs 檢查) */
+const WHY_FINGER = {
+  "0": C("先認得中央 C 和手指號碼,看譜才找得到鍵", "Know middle C and finger numbers to find notes from the page"),
+  A: C("五指放好不移動,先把每個音彈清楚", "Keep five fingers in place and play every note clearly"),
+  B: C("4、5 指最弱,單獨練才會聽話", "Fingers 4 and 5 are weakest; train them on their own"),
+  C: C("按住一個音,其他手指才練得出獨立", "Hold one note so the other fingers learn to move alone"),
+  D: C("3、4 指最難分開,練好以後快的音群才彈得順", "Fingers 3 and 4 are hardest to separate; fast runs need them"),
+  E: C("學會拇指穿越,才能彈超過五個音的音階", "Thumb-under lets you play scales longer than five notes"),
+  F: C("兩手做不同的事,才能一手彈旋律、一手伴奏", "Hands doing different jobs: one melody, one accompaniment"),
+  G: C("換到別的位置和調,不是 C 大調的歌也彈得了", "New positions and keys, for songs that aren't in C major")
+};
+const WHY_ACCOMP = {
+  A: C("學會 I、IV、V7 三個和弦,很多兒歌就能配伴奏", "With I, IV and V7 you can accompany lots of simple songs"),
+  B: C("同樣的和弦拆開彈,就是古典小奏鳴曲常見的伴奏", "Broken chords like these accompany many classical sonatinas"),
+  C: C("生日快樂歌是三拍子,學會華爾茲伴奏就能配", "Happy Birthday is in 3/4; the waltz bass lets you accompany it"),
+  D: C("很多流行歌用 I–V–vi–IV,學會就能自彈自唱", "Many pop songs use I–V–vi–IV; learn it to play and sing")
+};
 export const ROUTES = [
-  { id: "finger", name: ["手指", "Fingers"], levels: finish("finger", FINGER) },
-  { id: "accomp", name: ["伴奏", "Accomp."], unlock: { route: "finger", passed: "PA5" }, levels: finish("accomp", ACCOMP) }
+  { id: "finger", name: ["手指", "Fingers"], why: WHY_FINGER, levels: finish("finger", FINGER) },
+  { id: "accomp", name: ["伴奏", "Accomp."], unlock: { route: "finger", passed: "PA5" }, why: WHY_ACCOMP, levels: finish("accomp", ACCOMP) }
 ];
 
 /* ══ 複習的變化只用學過的(系統化規則;daily.js 的 extras.vary)══

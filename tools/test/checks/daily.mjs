@@ -203,6 +203,15 @@ export default function check(ok){
   ok(!buildPlan({ routes: zRoutes, daily: zd.data, today: addDays(zd.today().date, 3), extras: {} }).some(p => p.k === "review"), "基礎關:之後不排複習");
   const zx = cleanDaily({ lv: { "z/Z0": { passed: "2026-10-01", box: 2, due: "2026-10-05" } } }, zRoutes);
   ok(zx.lv["z/Z0"].passed && !zx.lv["z/Z0"].due, "基礎關:舊版存的複習盒讀進來拿掉");
+  // 為什麼練這個(每組一句):看過的組記在 why(「路線/組」);消毒只留存在的組、不重複
+  const wRoutes = [{ id: "w", name: ["戊", "W"], why: { A: ["甲", "A"] }, levels: [{ id: "W1", g: "A", name: ["一", "One"], start: 60, target: 63 }, { id: "W2", g: "B", name: ["二", "Two"], start: 60, target: 63 }] }];
+  const wc = cleanDaily({ why: ["w/A", "w/A", "w/Z", "x/A", 3] }, wRoutes);
+  ok(JSON.stringify(wc.why) === '["w/A"]' && JSON.stringify(cleanDaily({}, wRoutes).why) === "[]", "為什麼:消毒只留存在的組:" + JSON.stringify(wc.why));
+  let wSaved = null;
+  const wd = createDaily({ routes: wRoutes, load: () => null, save: d => { wSaved = JSON.parse(JSON.stringify(d)); }, now });
+  ok(!wd.whySeen("w/B"), "為什麼:還沒看過");
+  wd.markWhy("w/B"); wd.markWhy("w/B");
+  ok(wd.whySeen("w/B") && wSaved && JSON.stringify(wSaved.why) === '["w/B"]' && cleanDaily(wSaved, wRoutes).why[0] === "w/B", "為什麼:看過記下來、存回去、讀得回來");
 }
 
 if (process.argv[1] && import.meta.url.endsWith(process.argv[1].split("/").pop())) {

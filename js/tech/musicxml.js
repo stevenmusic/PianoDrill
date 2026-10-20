@@ -422,6 +422,17 @@ function exactToMusicXML(ex, show){
 }
 /* 播放:每個音(和弦每個音、按住的音)一個事件,自己帶力度與斷奏;連結線接起來算一個長音 */
 const DYN_VEL = { p: 44, mf: 64, f: 90 };
+/* 合奏旋律(伴奏路線只有左手的關,patterns.js 的 accMelody):App 彈的右手旋律,比左手示範小聲一點(左手是主角);hand = "mel" */
+export function melodyEvents(ex){
+  if (!ex || !ex.mel) return [];
+  const d = ex.dyn ? ex.dyn.lh : null, total = ex.bars * ex.bar / ex.div;
+  const vel = beat => (d === "cresc" ? Math.round(40 + 54 * beat / total) : d && DYN_VEL[d] ? DYN_VEL[d] : 64) - 14;
+  let pos = 0;
+  return ex.mel.map((n, idx) => {
+    const beat = pos / ex.div, len = n.dur / ex.div; pos += n.dur;
+    return { beat, len, hand: "mel", idx, midi: n.midi, exact: true, voice: 0, stacc: false, vel: Math.max(26, vel(beat)), chord: false };
+  });
+}
 function exactEvents(ex, show){
   const out = [], total = ex.bars * ex.bar / ex.div;
   for (const h of show === "both" ? ["rh", "lh"] : [show]) {

@@ -12,7 +12,7 @@
 import fs from "node:fs";
 import { ROUTES, WARM_LEVELS, warmFor, adaptVary } from "../../../js/tech/routes.js";
 import { buildExercise } from "../../../js/tech/exercise.js";
-import { exerciseToMusicXML, playbackEvents } from "../../../js/tech/musicxml.js";
+import { exerciseToMusicXML, playbackEvents, melodyEvents } from "../../../js/tech/musicxml.js";
 import { chordName, keyInfo, barChords, chordTable, fingerMarks, sameBars, handPositions } from "../../../js/tech/patterns.js";
 
 const LP = [0, 2, 4, 5, 7, 9, 11];
@@ -68,6 +68,50 @@ export default function check(ok, FG){
     const q = { ...W.q, rkey: key, sub: 2 };
     try { const ex = buildExercise(FG, q); checkEx(ok, ex, q, W, `暖身 ${W.id} ${key}`); n++; ok(Math.min(...["rh", "lh"].flatMap(h => ex[h].filter(x => !x.rest).map(x => x.dur))) >= (W.id === "w5s" || W.id === "w5q" ? 12 : 6), `暖身 ${W.id}:初學從四分音符`); }
     catch (e) { ok(false, `暖身 ${W.id} ${key}:${e.message}`); }
+  }
+  // 為什麼練這個(每一組一句):每組都有、中英都有、中文 ≤ 24 字(英數算半個)、英文 ≤ 64 字、沒有多出來的組
+  const zhLen = z => [...z].reduce((a, ch) => a + (ch.charCodeAt(0) > 0x2e7f ? 1 : 0.5), 0), whyBad = [];
+  for (const R of ROUTES) {
+    const gs = [...new Set(R.levels.map(l => l.g))];
+    for (const g of gs) { const w = R.why && R.why[g]; if (!(Array.isArray(w) && w[0] && w[1] && zhLen(w[0]) <= 24 && w[1].length <= 64)) whyBad.push(`${R.id}/${g}`); }
+    for (const g of Object.keys(R.why || {})) if (!gs.includes(g)) whyBad.push(`${R.id}/${g} 沒有這一組`);
+  }
+  ok(!whyBad.length, "為什麼練這個:每一組一句(中文 ≤ 24 字、英文 ≤ 64 字)" + (whyBad.length ? ":" + whyBad.join("、") : ""));
+  // ── 合奏旋律(伴奏路線只有左手的關;patterns.js 的 accMelody,app 播放、譜不畫)──
+  //   每一關 × 每個變化 × 300 個種子:每小節拍數、四分 / 二分(最後附點二分)、強拍(第 1 拍;4/4 加第 3 拍)是那一小節和弦的音、音在調裡、C4–C5、最後停在主音、
+  //   相鄰兩音不超過純五度、同一個種子同一條、已有右手的關沒有旋律、播放事件比左手小聲
+  {
+    const melBad = [], accR = ROUTES.find(r => r.id === "accomp"); let melN = 0;
+    for (const L of accR.levels) [{}, ...L.vary].forEach((v, vi) => {
+      const k = (v.q && v.q.rkey) || L.key || "C";
+      for (let sd = 1; sd <= 300; sd++) {
+        const q = { ...L.q, ...(v.q || {}), sub: 2, mseed: sd * 7919 };
+        const ex = buildExercise(FG, q), at = `${L.id} 變化 ${vi} 種子 ${sd}`;
+        if (L.rh) { if (ex.mel) melBad.push(`${L.id}:有右手的關不加旋律`); break; }
+        const m = ex.mel; melN++;
+        if (!m || !m.length) { melBad.push(at + ":沒有旋律"); break; }
+        if (JSON.stringify(buildExercise(FG, q).mel) !== JSON.stringify(m)) melBad.push(at + ":同一個種子不同一條");
+        const beats = ex.time[0]; let pos = 0;
+        m.forEach((x, i) => {
+          const bar = Math.floor(pos / ex.bar), inBar = pos % ex.bar, ch = L.prog[bar];
+          if (!([12, 24].includes(x.dur) || (x.dur === 36 && beats === 3 && i === m.length - 1))) melBad.push(`${at}:時值 ${x.dur}`);
+          if (inBar + x.dur > ex.bar) melBad.push(`${at}:跨小節線`);
+          if (midiOf(x) !== x.midi || x.midi < 60 || x.midi > 72) melBad.push(`${at}:音域 ${x.midi}`);
+          const pc = ((x.midi % 12) + 12) % 12, deg = scalePcs(k).indexOf(pc);
+          if (deg < 0) melBad.push(`${at}:${x.midi} 不在 ${k} 調裡`);
+          const strong = inBar === 0 || (beats === 4 && inBar === 24);
+          if (strong && !CH[ch].includes(deg)) melBad.push(`${at}:第 ${bar + 1} 小節強拍 ${x.midi} 不是 ${ch} 的音`);
+          if (i && Math.abs(x.midi - m[i - 1].midi) > 7) melBad.push(`${at}:跳太大 ${m[i - 1].midi} → ${x.midi}`);
+          pos += x.dur;
+        });
+        if (pos !== ex.bars * ex.bar) melBad.push(`${at}:總長 ${pos}`);
+        if (scalePcs(k).indexOf(m[m.length - 1].midi % 12) !== 0) melBad.push(`${at}:最後不是主音`);
+        const lh = playbackEvents(ex, q, "lh"), me = melodyEvents(ex);
+        const lhAt = b => lh.filter(e => e.beat <= b + 1e-6).sort((a, c) => c.beat - a.beat)[0];
+        if (me.length !== m.length || me.some(e => e.vel >= lhAt(e.beat).vel)) melBad.push(`${at}:旋律要比左手小聲`);
+      }
+    });
+    ok(!melBad.length && melN > 0, `合奏旋律:伴奏只有左手的關 ${accR.levels.filter(l => !l.rh).length} 關 × 變化 × 300 個種子(${melN} 條):強拍和弦音、在調裡、C4–C5、停在主音、拍數` + (melBad.length ? "\n    " + [...new Set(melBad)].slice(0, 10).join("\n    ") : ""));
   }
   // ── 系統化(2026-10):第 0 組在手指路線最前面、伴奏等手指 PA5 過了才開放、暖身只用已經過的關、複習的變化只用學過的 ──
   const F0 = ROUTES[0].levels;

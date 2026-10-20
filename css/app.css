@@ -884,6 +884,7 @@ body.view-exam #t-dailyCard,body.view-exam #t-dailyStep{display:none !important}
 .daily-step{display:flex;flex-direction:column;gap:6px;border-top:1px solid var(--line);padding-top:10px}
 .daily-status{font-size:var(--fs-md);color:var(--ivory);line-height:1.5}
 .daily-tip{font-size:var(--fs-xs);color:var(--muted-bright);line-height:1.5}
+.daily-why{font-size:var(--fs-sm);color:var(--muted-bright);line-height:1.5}   /* 為什麼練這個(每組一句,這一組第一次出現時) */
 /* 今日練習的關卡標籤「律動 3 / 28」下面一條細進度條 */
 .q-tag:has(> .lv-bar){position:relative}
 .q-tag .lv-bar{position:absolute;left:6px;right:6px;bottom:2px;height:3px;border-radius:2px;background:var(--line);overflow:hidden}

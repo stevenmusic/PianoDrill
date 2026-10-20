@@ -302,8 +302,10 @@ function onExamChange(keepCur){
 }
 function syncExamButtons(){
   const sets = SY.systems[S.exam.system].mode === "sets";
-  $("drawBtn").hidden = !!mock; $("drawLabel").textContent = sets ? tr("隨機抽一項", "Random") : tr("隨機抽考", "Random");
-  $("nextBtn").hidden = !sets && !mock;
+  // 題目卡最後一行右邊只有一顆主要按鈕(畫面設計 2026-10):沒題目 / ABRSM = 隨機抽考;Trinity 出了題目 = 下一題;模擬考 = 下一題 / 結束。模擬考鈕在本項列
+  $("drawBtn").hidden = !!mock || (sets && !!cur); $("drawLabel").textContent = sets ? tr("隨機抽一項", "Random") : tr("隨機抽考", "Random");
+  $("nextBtn").hidden = !mock && !(sets && cur);
+  $("nextBtn").classList.add("primary");
   $("nextLabel").textContent = mock && mock.i === mock.list.length - 1 ? tr("結束", "Finish") : T("next");
   $("drawBtn").disabled = examPool().length === 0;
   $("mockBtn").hidden = false; $("mockBtn").disabled = !mock && examQuestions().length === 0;
@@ -417,6 +419,7 @@ function showEmpty(){
   $("qTitle").classList.add("empty"); $("qTitle").style.fontSize = "";
   emptyTitle = null;
   $("qTags").innerHTML = ""; emptyText(); renderIntro(null);
+  if (S.tab === "exam" && SY && S.exam) syncExamButtons();
   $("playBtn").disabled = true; ROOT.querySelectorAll(".mbtn").forEach(b => { b.disabled = true; b.setAttribute("aria-pressed", "false"); });
   if (osmd) { try { osmd.clear(); } catch (e) {} }
   $("osmd").innerHTML = ""; osmd = null; noteXs = []; $("playline").hidden = true;
@@ -429,19 +432,17 @@ function showEmpty(){
 function emptyText(){
   const sets = S.exam && SY.systems[S.exam.system].mode === "sets";
   $("poolCount").textContent = "";   // 「抽考範圍 n 題」不寫(本級要求就在下面)
-  if (emptyTitle || S.tab !== "exam" || !S.exam) { pairText($("qTitle"), emptyTitle || (() => "")); return; }
-  // 本項卡(畫面設計 2026-10 版型 B):大標題 = 音階琶音、標籤 = 進度、一句怎麼開始;按鈕在最後一行(模擬考 | 隨機抽考)
-  unpair($("qTitle")); $("qTitle").classList.remove("empty");
-  $("qTitle").textContent = tr("音階琶音", "Scales & arpeggios");
-  paintItemTag();
+  pairText($("qTitle"), emptyTitle || (() => ""));
+  // 題目卡的空狀態(畫面設計 2026-10 版型 B):一句怎麼開始 + 右下「隨機抽考」;項目名與進度在本項列
   const d = () => (sets ? tr("隨機抽一項", "Random") : tr("隨機抽考", "Random"));
   pairText($("hint"), () => tr(`按「${d()}」,或點下面一項`, `Tap ${d()}, or pick one below`));
 }
-/* 本項卡的標籤:會了 n / m(本級要求清單的數字;清單標題那一個在本項卡出現時藏起來,不重複) */
+/* 本項列(檢定頁最上面一行):音階琶音 [會了 n/m](本級要求清單標題那一個在沒選題目時藏起來,不重複) */
 function paintItemTag(){
-  if (cur || emptyTitle || S.tab !== "exam" || !S.exam) return;
+  if (!S.exam) return;
   const qs = examQuestions(), good = qs.filter(q => S.mastery[q.key] === "good").length;
-  $("qTags").innerHTML = `<span class="q-tag">${tr(`會了 ${good}/${qs.length}`, `Got it ${good}/${qs.length}`)}</span>`;
+  $("irName").textContent = tr("音階琶音", "Scales & arpeggios");
+  $("irTag").textContent = tr(`會了 ${good}/${qs.length}`, `Got it ${good}/${qs.length}`);
 }
 function setQuestion(q, tab){
   stopPlayback();
@@ -458,7 +459,7 @@ function setQuestion(q, tab){
   bpm = q.free ? q.tempo.bpm : Math.max(30, Math.min(300, Math.round(q.tempo.bpm * S.tempoPct / 100)));
   syncTempoUI();
   renderScore();
-  if (tab === "exam" && S.exam) renderList();
+  if (tab === "exam" && S.exam) { renderList(); syncExamButtons(); }
   if (tab === "scale" || tab === "arp") renderQuick(tab);
   syncQuizTop();
   preloadSamples();

@@ -145,6 +145,7 @@ function renderExam(){
   const sys = SY.systems[S.exam.system], g = gradeOf(S.exam.system, S.exam.grade);
   // 考試系統、級數在外框的檢定設定卡;這裡只寫本級有幾項測驗、答對要不要自動下一題
   $("examSummary").textContent = tr(`${g.tests.length} 項聽力`, `${g.tests.length} aural tests`) + " · " + (S.auto ? tr("答對自動下一題", "Auto next") : tr("手動下一題", "Manual next"));
+  paintItemRow(g);
   pairText($("examNote"), () => tr(`依據:${sys.syllabus} ${g.source}`, `Source: ${sys.syllabus}, ${g.source}`) + (sys.syllabusNote ? tr("(" + sys.syllabusNote + ")", "") : ""));
   $("testsSub").textContent = (getLang() === "en" ? g.paramsEn : g.params) || "";
   $("testsList").innerHTML = (g.params ? "" : "") + g.tests.map(t => {
@@ -208,6 +209,7 @@ function showMockResult(){
   $("quizCard").classList.remove("hint-empty");
   showMockText();
   $("playBtn").disabled = true; $("revealBtn").hidden = true; $("nextBtn").disabled = false; $("nextBtn").hidden = false;   // 下一題 = 再考一次
+  syncFoot();
 }
 function showMockText(){
   const m = lastMock, ok = m.res.filter(Boolean).length;
@@ -235,8 +237,7 @@ function switchTab(tab, keepQuestion){
   stopPlayback();
   S.tab = tab; store.save();
   ROOT.querySelectorAll(".pane").forEach(p => p.hidden = p.dataset.pane !== tab);
-  $("drawBtn").hidden = tab !== "exam"; $("quizTop").hidden = tab !== "exam";
-  $("mockBtn").hidden = tab !== "exam"; mock = null;
+  mock = null;
   if (PRACTICE.includes(tab)) { renderPicker(tab); if (!keepQuestion) { if (tabCur[tab]) setQuestion(tabCur[tab], tab, true); else newPractice(tab); } }
   else { renderExam(); if (!keepQuestion) { if (tabCur.exam) setQuestion(tabCur.exam, "exam", true); else showEmpty(); } }
   renderStats();
@@ -258,20 +259,31 @@ function showEmpty(){
   emptyText();
   syncScoreLine();
 }
-/* 本項卡(畫面設計 2026-10 版型 B):大標題 = 聽力、標籤 = 這一級幾項、一句怎麼開始 */
+/* 題目卡的空狀態(畫面設計 2026-10 版型 B):一句怎麼開始 + 右下「隨機抽一題」;項目名與進度在本項列 */
 function emptyText(){
-  unpair($("qTitle")); $("qTitle").classList.remove("empty");
-  $("qTitle").textContent = tr("聽力", "Aural");
-  const g = S.exam && gradeOf(S.exam.system, S.exam.grade);
-  $("qTags").innerHTML = g ? `<span class="q-tag">${tr(`${g.tests.length} 項`, `${g.tests.length} tests`)}</span>` : "";
-  pairText($("hint"), () => tr("選一項,或隨機抽一題", "Pick a test, or tap Random"));
+  unpair($("qTitle")); $("qTitle").textContent = "";
+  pairText($("hint"), () => tr("選下面一項,或隨機抽一題", "Pick a test below, or tap Random"));
+}
+/* 題目卡最後一行右邊(檢定頁):還沒有題目、還沒作答 = 「隨機抽一題」,作答後換成「下一題」(同一個位置);模擬考裡只有下一題 */
+function syncFoot(){
+  const x = S.tab === "exam";
+  const draw = x && !mock && !lastMock && (!cur || $("nextBtn").disabled);
+  $("drawBtn").hidden = !draw;
+  if (x && cur && draw) $("nextBtn").hidden = true;
+  else if (x && (cur || lastMock)) $("nextBtn").hidden = false;
+  $("nextBtn").classList.toggle("primary", x); $("nextBtn").classList.toggle("ghost", !x);
+}
+/* 本項列(檢定頁最上面一行):聽力 [這一級幾項] + 模擬考 */
+function paintItemRow(g){
+  $("irName").textContent = tr("聽力", "Aural");
+  $("irTag").textContent = g ? tr(`${g.tests.length} 項`, `${g.tests.length} tests`) : "";
 }
 const session = {};   // 每個分頁這一輪:{ n, ok, streak }
 function syncScoreLine(){
   const s = session[S.tab];
   // 只寫「連對 n」(連對 2 題以上才出現;畫面設計 2026-10:本輪幾題對幾題不放)
   $("scoreLine").textContent = s && s.streak >= 2 ? tr(`連對 ${s.streak}`, `Streak ${s.streak}`) : "";
-  syncInfoRow();
+  syncInfoRow(); syncFoot();
 }
 function setQuestion(q, tab, restore){
   stopPlayback();

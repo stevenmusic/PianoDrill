@@ -740,7 +740,8 @@ export function relang() {
   refreshDynamicText();
   renderSummary();
   if (mode === 'exam') renderUnsupported();
-  if (xIdle && mode === 'exam') showExamItem();   // 本項卡的文字(refreshDynamicText 會用舊題目的調性蓋掉標題)
+  if (xIdle && mode === 'exam') showExamItem();   // 空狀態的一句
+  paintItemRow();
 }
 export function examStatus() {
   if (!examSupported()) return t('examNotYetShort');
@@ -767,6 +768,7 @@ function stopAll() {
 }
 /* 自由練習 ↔ 檢定:級數改用考試的;這個考試/級數沒有規則時整個收起來,只留說明 */
 function syncMode(changed) {
+  paintItemRow();
   // 認音:只有認音的兩張卡(題目、設定),視奏的卡片都收起來
   const rd = readOn();
   $('rdCard').hidden = $('rdOpts').hidden = !rd;
@@ -798,15 +800,20 @@ function syncMode(changed) {
   setExamItem(false);
   if (rules && (changed || stale)) newTest();
 }
-/* 檢定頁的本項卡(題目卡的空狀態):大標題 = 視奏、標籤 = 已練 n 題、一句流程;右下「練習一題」(= 出題) */
+/* 本項列(檢定頁最上面一行;畫面設計 2026-10 版型 B):視奏 [已練 n 題](這一級還沒有題目時不寫標籤;沒有模擬考) */
+function paintItemRow() {
+  $('itemRow').hidden = mode !== 'exam' || readOn();
+  if (mode !== 'exam') return;
+  $('irName').textContent = tr('視奏', 'Sight-reading');
+  const n = SS.xn[`${exam.system}-${exam.grade}`] || 0;
+  $('irTag').textContent = examSupported() ? tr(`已練 ${n} 題`, `${n} practised`) : '';
+}
+/* 檢定頁的題目卡空狀態:一句流程 + 右下「練習一題」(= 出題);項目名與進度在本項列 */
 let xIdle = false;
 function showExamItem() {
   stopAll();
   setExamItem(true);
-  elements.title.classList.remove('empty'); unpair(elements.title);
-  elements.title.textContent = tr('視奏', 'Sight-reading');
-  const n = SS.xn[`${exam.system}-${exam.grade}`] || 0;
-  elements.meta.innerHTML = `<span class="q-tag">${escapeHtml(tr(`已練 ${n} 題`, `${n} practised`))}</span>`;
+  paintItemRow();
   const sec = rules ? rules.exam.preparationSeconds : 30;
   pairText($('hint'), () => tr(`出一題 → 準備 ${sec} 秒 → 彈一遍`, `Get a test → ${sec} s to prepare → play it`));
   lastMessage = null;
@@ -1231,7 +1238,7 @@ function runPreparationCountdown() {
       // Continuity outscores accuracy: going back to fix a slip is counted as
       // a second mistake.
       say('prepDone');
-      if (mode === 'exam') { const k = `${exam.system}-${exam.grade}`; SS.xn[k] = (SS.xn[k] || 0) + 1; }
+      if (mode === 'exam') { const k = `${exam.system}-${exam.grade}`; SS.xn[k] = (SS.xn[k] || 0) + 1; paintItemRow(); }
       recordPractice();
       elements.along.hidden = false;
     }

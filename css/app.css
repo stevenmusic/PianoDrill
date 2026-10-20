@@ -286,7 +286,6 @@ main{
 .beats{display:flex;gap:6px}
 /* 播放選項:固定三格(中英文排法一樣) */
 /* 窄螢幕:模擬考只留圖示(跟官方大綱標記、隨機抽考放同一列會擠出去) */
-@media (max-width:380px){ .q-actions #t-mockBtn .btn-label{display:none !important} #t-mockBtn{padding:0 9px} }
 .play-opts{grid-column:1 / -1;display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
 .play-opts .chip{justify-content:center;min-height:34px;height:auto;padding:0 6px;text-align:center}   /* 動態字級很大時換行(平常一行) */
 .play-opts .chip:disabled{opacity:.35}
@@ -606,13 +605,14 @@ body.land-play #t-stage{flex:1;display:flex;flex-direction:column;justify-conten
 .tap-info{font-size:var(--fs-sm);color:var(--muted-bright)}
 
 /* 正確率長條 */
-.stats{display:grid;grid-template-columns:repeat(auto-fill, minmax(220px, 1fr));gap:6px 14px}
-.srow{display:grid;grid-template-columns:7.5em 1fr 4.2em;align-items:center;gap:8px;font-size:var(--fs-sm);min-width:0}
+/* 一張卡的各列共用同一組欄(.srow 是 display:contents):右邊的數字欄 = 整張卡最長的那一個(auto),各列靠右對齊,長條自己縮;數字一行不換行 */
+.stats{display:grid;grid-template-columns:minmax(0, 7.5em) minmax(24px, 1fr) auto;align-items:center;gap:6px 8px;font-size:var(--fs-sm)}
+.srow{display:contents}
 .srow span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .srow .bar{height:8px;border-radius:4px;background:var(--line);overflow:hidden}
 .srow .bar i{display:block;height:100%;background:var(--teal-fill)}
 .srow .bar i.low{background:#E8A25B}
-.srow small{color:var(--muted);text-align:right;font-variant-numeric:tabular-nums}
+.srow small{color:var(--muted);text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
 .stats-empty{font-size:var(--fs-sm);color:var(--muted)}
 #e-statsCard .card-title .btn{margin-left:auto}
 
@@ -626,7 +626,7 @@ body.land-play #t-stage{flex:1;display:flex;flex-direction:column;justify-conten
 .test .chip .pct{font-size:var(--fs-2xs);color:var(--muted)}
 .test .self{margin-top:6px;padding-left:calc(1.4em + 8px);font-size:var(--fs-xs);color:var(--muted)}
 .params{font-size:var(--fs-xs);color:var(--muted-bright);margin-bottom:10px}
-@media (max-width:360px){ .answers{grid-template-columns:repeat(2,1fr)} .srow{grid-template-columns:6em 1fr 3.8em} }
+@media (max-width:360px){ .answers{grid-template-columns:repeat(2,1fr)} .stats{grid-template-columns:minmax(0, 6em) minmax(24px, 1fr) auto} }
 .answers.compact{grid-template-columns:repeat(auto-fit, minmax(56px, 1fr))}
 .answers.compact .ans{font-size:var(--fs-lg);font-family:"Noto Serif TC",serif}
 /* 題目卡精簡:分數、載入進度跟標籤同一列;「隨機抽一題」那列只在檢定分頁出現 */
@@ -783,7 +783,7 @@ body.land-play #t-stage{flex:1;display:flex;flex-direction:column;justify-conten
   body.view-exam main > *{grid-column:1 / -1}
   body.view-exam #examSetup{grid-column:1;grid-row:1}
   body.view-exam .mod-side > *,body.view-exam .mod-main > *{grid-column:1 / -1}
-  body.view-exam :is(.quiz.hint-empty,.item-card){grid-column:2 !important;grid-row:1}   /* 本項卡在考試卡右邊 */
+  body.view-exam .item-row{grid-column:2 !important;grid-row:1;align-self:center}   /* 本項列在考試卡右邊 */
   /* 視奏題目卡:標題 | 標籤 | ▶ 一行,下面一行說明,再一行操作 */
   #mod-sight .quiz{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:4px 12px}
   #mod-sight .q-head,#mod-sight .q-ht{display:contents}
@@ -810,22 +810,25 @@ body.land-play #t-stage{flex:1;display:flex;flex-direction:column;justify-conten
 #mod-tech.exam-empty #t-scoreCard,#mod-tech.exam-empty #t-metroCard{display:none}
 #mod-tech.exam-empty #t-listCard{order:3}
 /* ══ 畫面設計 2026-10 版型 B(檢定頁;兩個 App 一樣)══
-   本項卡 = 題目卡的空狀態(PianoDrill 技巧、聽力、視奏:.quiz.hint-empty;DrumDrill:模擬考卡沒在考的時候 .item-card,js/shared/mock.js 的 paintCard):
-   大標題 = 這一項 + 一個標籤 = 進度;一句 --fs-md 淡色(.q-hint);最後一行 左 次要「模擬考」、右 主要。沒有大字、沒有空白高度 */
+   本項列(.item-row,每個模組的檢定頁最上面一行,不是大卡):左「項目名 [進度標籤]」、右 ghost「模擬考」;空狀態與出了題目都一樣。
+   題目卡的空狀態(PianoDrill 的題目卡 .quiz.hint-empty;DrumDrill 的 .x-empty):一句提示(.q-hint)+ 右下主要按鈕;出了題目 = 版型 A 的題目卡 */
+.item-row{order:-1;display:flex;align-items:center;flex-wrap:wrap;gap:6px 10px;min-height:44px;padding:0 12px;min-width:0}
+.item-row[hidden]{display:none}
+.item-row .ir-head{flex:1 1 auto;display:flex;align-items:center;flex-wrap:wrap;gap:4px 10px;min-width:0}
+.item-row .ir-name{font-family:"Noto Serif TC",serif;font-size:var(--fs-xl);font-weight:700;color:var(--gold-bright);line-height:1.3}
+.item-row .q-tag:empty{display:none}
+.item-row > .btn{flex:none;min-height:44px;height:auto;padding:0 16px}
+.item-row .ir-opts{flex:1 1 100%;display:flex;gap:6px;flex-wrap:wrap}
+.item-row .ir-opts[hidden]{display:none}
+.item-row .ir-opts .chip{min-height:44px;height:auto}
+@media (min-width:1100px){ .item-row{grid-column:1 / -1} }
 .q-hint{display:none}
-.quiz.hint-empty > :not(.quiz-top):not(.q-head):not(.q-hint):not(.q-foot){display:none}
+.quiz.hint-empty > :not(.quiz-top):not(.q-hint):not(.q-foot){display:none}
 .quiz.hint-empty .q-hint{display:block;margin:0;font-size:var(--fs-md);line-height:1.5;color:var(--muted-bright)}
-:is(#t-quizCard,#e-quizCard,#s-quiz).hint-empty .q-title,.item-card .card-title b{font-size:var(--fs-xl);height:auto;line-height:1.3}
-.quiz.hint-empty .play-round{display:none}
-.quiz.hint-empty .q-actions{flex:1 1 auto;margin-left:0;justify-content:space-between}
+.quiz.hint-empty .q-actions{flex:1 1 auto;margin-left:0;justify-content:flex-end}
 .quiz.hint-empty .quiz-top > :empty{display:none}
-.quiz.hint-empty :is(#t-mockBtn,#e-mockBtn){order:-1}
-.quiz.hint-empty :is(#t-drawBtn,#t-mockBtn,#e-drawBtn,#e-mockBtn){height:auto;min-height:44px;padding:0 16px}
-.quiz.hint-empty :is(#t-drawBtn,#t-mockBtn,#e-drawBtn,#e-mockBtn) .btn-label{display:inline !important}
-.item-card .card-title{align-items:center;flex-wrap:wrap;gap:4px 10px}
-.item-card .card-title > .sub:not(:empty){flex:none;font-size:var(--fs-md);font-weight:700;color:var(--gold-bright);background:rgba(242,185,75,.16);border-radius:var(--radius-sm);padding:2px 10px;margin:0;white-space:nowrap}
-:root.light .item-card .card-title > .sub:not(:empty){background:rgba(122,92,22,.12)}
-.item-card .item-hint{font-size:var(--fs-md);line-height:1.5;color:var(--muted-bright);margin-top:4px}
+.quiz.hint-empty :is(#t-drawBtn,#e-drawBtn){height:auto;min-height:44px;padding:0 16px}
+.quiz.hint-empty :is(#t-drawBtn,#e-drawBtn) .btn-label{display:inline !important}
 /* 「考試內容」:一張收起來的 details(一行),考試摘要、規格、推估說明、出處都收在這裡;practiceOnly 在最下面一次 */
 details.exam-info{order:20}
 details.exam-info > summary .sub{font-weight:500}
@@ -835,7 +838,7 @@ details.exam-info .verify-note{margin-top:0}
 #e-paneNote .opts[data-k="ref"]{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
 #e-paneNote .opts[data-k="ref"] .opt{min-width:0;padding:0 4px;justify-content:center}
 #e-answers .kbd-wrap{width:100%;max-width:900px;margin-inline:auto}
-#e-quizCard:has(#e-quizTop) .q-foot:not(:has(> button:not([hidden]))){display:none}
+#e-quizCard .q-foot:not(:has(> button:not([hidden]))){display:none}
 /* 哈農曲目:1–10 一排、11–20 一排(使用者要求);太窄(< 375)放不下 10 個 28px 的鈕 → 每排 5 個,仍是 1–10、11–20 分組 */
 #mod-tech .picker .opts[data-k="no"]{display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:4px}
 #mod-tech .picker .opts[data-k="no"] .opt{min-width:0;padding:0;font-variant-numeric:tabular-nums}

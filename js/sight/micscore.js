@@ -396,9 +396,15 @@ export function checkPitches(samples, rate, events, onsets, pairs, { minMidi = 6
 /* ── 音頭(鋼琴用):頻譜通量 ──
    js/shared/onsets.js 的 detectOnsets 用音量的跳升找音頭,適合鼓和斷奏;鋼琴圓滑奏前一個音還在響,整段音量差不多,幾乎找不到。
    這裡用「頻譜通量」(每個頻率比前一格多出來的量,對數壓縮)+ 往前看的自適應門檻 + 晚 3 格的找峰,
-   一邊錄一邊算(createNoteOnsets:決定什麼時候停)跟整段分析(detectNotes:打分)用同一份程式。 */
+   一邊錄一邊算(createNoteOnsets:決定什麼時候停)跟整段分析(detectNotes:打分)用同一份程式。
+   對數壓縮照這段錄音的琴聲大小調(ON_NORM / 音量):固定的壓縮會把比琴聲小 20 dB 的講話聲放大到跟琴聲差不多;
+   整段分析再用線性的頻譜增加量篩一次(ON_GATE)。門檻照 tools/sight/micscore-stress.mjs(手的誤差、踏板、小聲、放遠、電扇、講話)調的。 */
 const HOP_S = 0.01;
-export function createNoteOnsets(rate, { delta = 0.03, rel = 0.3 } = {}) {
+const ON_NORM = 0.1;       // 對數壓縮:λ = ON_NORM / 琴聲的 RMS(以前固定 100)
+const ON_DELTA = 0.01;     // 頻譜通量要比附近的中位數多出這麼多
+const ON_FLOOR = 0.0004;   // 音量的絕對下限(手機放遠、彈得小聲也要聽得到;以前 0.0015)
+const ON_GATE = 0.15;      // 整段分析:線性頻譜增加量 < 第 80 百分位 × 0.15 的不算
+export function createNoteOnsets(rate, { delta = ON_DELTA, rel = 0.3, level = 0 } = {}) {
   const hop = Math.round(rate * HOP_S);
   const size = 2048;
   const lo = Math.max(1, Math.floor((40 * size) / rate)), hi = Math.min(size / 2, Math.ceil((5000 * size) / rate));
@@ -408,35 +414,37 @@ export function createNoteOnsets(rate, { delta = 0.03, rel = 0.3 } = {}) {
   let filled = 0, sinceHop = 0, frame = 0;
   let zeros = 0, gapAt = -Infinity, validFrom = 0;   // mic.js 在瀏覽器跳過的地方補的靜音(一整段剛好是 0):碰到的那幾格不找音頭
   let prev = null;
-  const flux = [], energy = [];
-  let noise = 1e-4, loud = 0, last = -Infinity;   // 雜音底:一開始就彈也不會把第一個音當成雜音
+  const flux = [], energy = [], linf = [];
+  let noise = 1e-4, loud = level, last = -Infinity;   // 雜音底:一開始就彈也不會把第一個音當成雜音;loud = 琴聲多大(整段分析先給)
   const re = new Float64Array(size), im = new Float64Array(size);
-  const found = [];
+  const found = [], lins = [];
   function analyse() {
     if (filled - gapAt < size + hop) {
       prev = null;
-      flux.push(0); energy.push(0);
+      flux.push(0); energy.push(0); linf.push(0);
       validFrom = flux.length + 1;   // 補的靜音之後:第一格沒有比較對象,再多等幾格才有門檻
       return;
     }
     let e = 0;
     for (let k = 0; k < size; k++) { const x = ring[(filled + k) % size]; re[k] = x * win[k]; im[k] = 0; e += x * x; }
     fft(re, im);
-    const mag = new Float32Array(hi - lo);
-    let f = 0;
+    const rms = Math.sqrt(e / size);
+    loud = Math.max(loud * 0.9997, rms);
+    const lam = ON_NORM / Math.max(loud, 0.002);
+    const raw = new Float32Array(hi - lo);
+    let f = 0, lf = 0;
     const had = !!prev;
     for (let b = lo; b < hi; b++) {
-      const v = Math.log(1 + 100 * Math.hypot(re[b], im[b]));
-      mag[b - lo] = v;
-      if (prev) { const d = v - prev[b - lo]; if (d > 0) f += d; }
+      const m = Math.hypot(re[b], im[b]);
+      raw[b - lo] = m;
+      if (prev) { const d = Math.log(1 + lam * m) - Math.log(1 + lam * prev[b - lo]); if (d > 0) f += d; const dl = m - prev[b - lo]; if (dl > 0) lf += dl; }
     }
-    prev = mag;
+    linf.push(had ? lf : 0);
+    prev = raw;
     if (!had) f = 0;
     flux.push(f / (hi - lo));
-    const rms = Math.sqrt(e / size);
     energy.push(rms);
     noise = Math.min(noise * 1.0005 + 1e-7, Math.max(rms, 1e-6));
-    loud = Math.max(loud * 0.9997, rms);
     // 晚 3 格決定 frame - 3 是不是峰
     const t = flux.length - 1 - 3;
     if (t < validFrom + 6) return;
@@ -444,13 +452,14 @@ export function createNoteOnsets(rate, { delta = 0.03, rel = 0.3 } = {}) {
     for (let d = -3; d <= 3; d++) if (d && flux[t + d] !== undefined && flux[t + d] > v) return;
     const past = flux.slice(Math.max(validFrom, t - 20), t);
     const base = median(past);
-    if (v < base + delta + rel * base) return;
     const en = Math.max(energy[t], energy[t + 1] ?? 0, energy[t + 2] ?? 0);
-    if (en < Math.max(noise * 3, loud * 0.02, 0.0015)) return;
     const time = (t * hop + size / 2) / rate;
+    if (v < base + delta + rel * base) return;
+    if (en < Math.max(noise * 3, loud * 0.02, ON_FLOOR)) return;
     if (time - last < 0.07) return;
     last = time;
     found.push(time);
+    lins.push(Math.max(linf[t - 1] ?? 0, linf[t], linf[t + 1] ?? 0, linf[t + 2] ?? 0));
   }
   return {
     push(chunk) {
@@ -465,13 +474,20 @@ export function createNoteOnsets(rate, { delta = 0.03, rel = 0.3 } = {}) {
       return found.slice(before);
     },
     get onsets() { return found; },
+    get strength() { return lins; },
     get time() { return filled / rate; },
   };
 }
 /** 整段錄音的音頭(秒,從第一個取樣算) */
-export function detectNotes(samples, rate, opts) {
-  const d = createNoteOnsets(rate, opts);
+export function detectNotes(samples, rate, opts = {}) {
+  // 琴聲有多大:整段每 10 ms 的 RMS 取第 95 百分位(第一個音之前的雜音才不會被放大)
+  const hop = Math.round(rate * HOP_S), r = [];
+  for (let k = 0; k + hop <= samples.length; k += hop) { let e = 0; for (let q = k; q < k + hop; q++) e += samples[q] * samples[q]; r.push(Math.sqrt(e / hop)); }
+  r.sort((a, b) => a - b);
+  const d = createNoteOnsets(rate, { ...opts, level: r[Math.floor(r.length * 0.95)] || 0 });
   d.push(samples);
   d.push(new Float32Array(Math.round(rate * 0.05)));
-  return [...d.onsets];
+  // 比這段錄音大部分的音(第 80 百分位)小很多的音頭 = 旁邊的講話聲、雜音,不算
+  const st = d.strength, ref = [...st].sort((a, b) => a - b)[Math.floor(st.length * 0.8)] || 0;
+  return d.onsets.filter((_, k) => st[k] >= ON_GATE * ref);
 }

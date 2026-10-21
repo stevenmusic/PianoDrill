@@ -28,7 +28,8 @@ export function scoreNotes(score) {
 }
 
 /**
- * scenario: { tempo(倍數,1 = 譜上速度), accel(整首從 1 加到 1+accel 倍), pauseAt(在第幾個起音前停 pauseBeats 拍), drop(漏掉第幾個起音), wrong({ 起音序號: 半音 }), jitter(秒), lead(第一個音前幾秒), seed }
+ * scenario: { tempo(倍數,1 = 譜上速度), accel(整首從 1 加到 1+accel 倍), pauseAt(在第幾個起音前停 pauseBeats 拍), drop(漏掉第幾個起音), wrong({ 起音序號: 半音 }), jitter(秒), lead(第一個音前幾秒), seed,
+ *   rubato(速度隨樂句起伏的幅度,0.1 = ±10%,週期 8 拍), vel([最小, 最大] 力度), pedal(踏右踏板:每個音多響 3 拍) }
  * 回傳 { notes, truth: { spb, onsets(每個起音的真實時間,漏掉的是 null) } }
  */
 export function performance(score, s = {}) {
@@ -38,7 +39,10 @@ export function performance(score, s = {}) {
   const total = exp.length ? exp[exp.length - 1].beat + 1 : 1;
   const accel = s.accel ?? 0;
   // 越彈越快:每拍秒數 = spb0 / (1 + accel·b/total),積分算時間
-  const timeOf = (b) => (accel ? (spb0 * total / accel) * Math.log(1 + (accel * b) / total) : spb0 * b);
+  const rub = s.rubato ?? 0;
+  // 越彈越快:每拍秒數 = spb0 / (1 + accel·b/total),積分算時間;rubato:每拍秒數 × (1 + rub·sin(2πb/8)),積分
+  const timeOf = (b) => (accel ? (spb0 * total / accel) * Math.log(1 + (accel * b) / total) : spb0 * b) + (rub ? spb0 * rub * (8 / (2 * Math.PI)) * (1 - Math.cos((2 * Math.PI * b) / 8)) : 0);
+  const [vLo, vHi] = s.vel ?? [62, 84];
   const lead = s.lead ?? 1.0;
   const evTime = exp.map((e, k) => {
     let t = lead + timeOf(e.beat);
@@ -52,7 +56,8 @@ export function performance(score, s = {}) {
     const t = evTime[k];
     const end = lead + timeOf(n.beat + n.len) + (s.pauseAt !== undefined && k >= s.pauseAt ? (s.pauseBeats ?? 2) * spb0 : 0);
     const shift = s.wrong && s.wrong[k] !== undefined && n.midi >= 60 ? s.wrong[k] : 0;
-    notes.push({ midi: n.midi + shift, time: t + (n.staff === 2 ? (r() - 0.5) * 0.02 : 0), dur: Math.max(0.08, (end - t) * 0.92), vel: Math.round(62 + r() * 22) });
+    const pedalEnd = s.pedal ? lead + timeOf(n.beat + n.len + 3) : 0;
+    notes.push({ midi: n.midi + shift, time: t + (n.staff === 2 ? (r() - 0.5) * 0.02 : 0), dur: Math.max(0.08, (end - t) * 0.92, pedalEnd - t), vel: Math.round(vLo + r() * (vHi - vLo)) });
   }
   return { notes, truth: { spb: spb0, onsets: evTime.map((t, k) => (s.drop && s.drop.includes(k) ? null : t)) } };
 }

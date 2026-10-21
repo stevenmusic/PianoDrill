@@ -962,7 +962,8 @@ function measureNotes(){
     const el = c.cursorElement;
     let xs = [];
     try {
-      xs = c.GNotesUnderCursor().filter(n => !(n.sourceNote && n.sourceNote.isRest && n.sourceNote.isRest())).map(n => { const g = n.getSVGGElement && n.getSVGGElement(); const h = g && (g.querySelector(".vf-notehead") || g); const r = h && h.getBoundingClientRect(); return r && r.width ? r.x - ox + r.width / 2 : null; }).filter(v => v != null);
+      const under = c.GNotesUnderCursor().filter(n => !(n.sourceNote && n.sourceNote.IsGraceNote)), isRest = n => !!(n.sourceNote && n.sourceNote.isRest && n.sourceNote.isRest()), notes = under.filter(n => !isRest(n));   // 有音就只看音,只有休止符才用休止符
+      xs = (notes.length ? notes : under).map(n => { const g = n.getSVGGElement && n.getSVGGElement(); if (!g) return null; const hs = [...g.querySelectorAll(".vf-notehead")].filter(e => !e.closest(".vf-modifiers")); const rs = (hs.length ? hs : [g]).map(e => e.getBoundingClientRect()).filter(r => r.width); return rs.length ? rs.reduce((s, r) => s + r.x - ox + r.width / 2, 0) / rs.length : null; }).filter(v => v != null);
     } catch (e) {}
     const x = xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : parseFloat(el.style.left) + (el.offsetWidth || el.width || 0) / 2;
     let sys = 0;
@@ -1550,6 +1551,6 @@ export async function start(c){
   renderLog();
   replanWarm();
   dcard.render();
-  window.__tech = { daily, dcard, get dseg(){ return dseg; }, dTry, dNext, dShow, get cur(){ return cur; }, get ex(){ return ex; }, get osmd(){ return osmd; },
+  window.__tech = { movePlayline, daily, dcard, get dseg(){ return dseg; }, dTry, dNext, dShow, get cur(){ return cur; }, get ex(){ return ex; }, get osmd(){ return osmd; },
     get state(){ return { play: !!play, starting: !!starting, bpm, show, scheduled: audio.scheduledCount(), noteXs: noteXs.length }; }, setQuestion, examQuestions, examPool, switchTab, fitTitle, S, SY };
 }

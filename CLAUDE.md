@@ -276,6 +276,7 @@ FingerDrill(技巧)、SightDrill(視奏)、EarDrill(聽音)三個工具合併成
   - `node tools/test/ear-verify.mjs`(聽力:檢定、練習、旋律)
   - `node --test test/sight/*.test.js`(視奏產生器);`node tools/sight/audit.js`(視奏的統計分布,改產生器後要跑;預設 1–8 級,初級加 `--grade 0`;改了只影響某幾級時,其他級的輸出要跟改前逐字相同)
 - 瀏覽器測試(`cd tools/test && npm i` 一次;Playwright):
+  - `node tools/test/playhead.mjs [寬度]`(播放軸對準符頭正中央:技巧、今日練習、視奏每個音與休止符 ≤ 2 px;兩個 App 同一份;改播放軸、譜面排法要跑)
   - `node tools/test/layout.mjs`(19 種尺寸 × 每個畫面;`ONLY=fold-280,se1-320` 只跑幾種)
   - `node tools/test/bilingual.mjs [尺寸]`(中英版面一致)
   - `node tools/test/human.mjs 150 3`(模擬真人隨機操作;換幾個種子)

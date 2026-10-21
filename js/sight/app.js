@@ -678,6 +678,7 @@ export async function start(c) {
     score: elements.score,
     playline: elements.playline,
     highlight: elements.highlight,
+    osmd: () => osmd,
   });
   window.__stage = stage; // debugging hook, also used by scripts/devices.js
   window.__playback = player; // debugging hook, also used by scripts/loudness.js

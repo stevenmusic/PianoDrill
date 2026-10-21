@@ -3,7 +3,7 @@
    在 createMediaStreamSource 那一步多接一條即時分析(micscore.js 的 createNoteOnsets),
    只用來知道「開始彈了沒、彈完了沒」(最後一個音之後 2 秒沒有新的音)。打分用整段錄音,在裝置上算,不存檔、不上傳。 */
 import { createRecorder } from '../shared/mic.js';
-import { createNoteOnsets } from './micscore.js';
+import { createNoteOnsets, LIVE } from './micscore.js';
 
 export function createListener() {
   let ctx = null, tap = null, live = null, onNotes = null;
@@ -14,7 +14,7 @@ export function createListener() {
       ctx.createMediaStreamSource = (stream) => {
         const source = raw(stream);
         tap = ctx.createScriptProcessor(2048, 1, 1);
-        live = createNoteOnsets(ctx.sampleRate);
+        live = createNoteOnsets(ctx.sampleRate, LIVE);
         tap.onaudioprocess = (event) => {
           if (!live) return;
           const found = live.push(event.inputBuffer.getChannelData(0));

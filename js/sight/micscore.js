@@ -403,8 +403,10 @@ const HOP_S = 0.01;
 const ON_NORM = 0.1;       // 對數壓縮:λ = ON_NORM / 琴聲的 RMS(以前固定 100)
 const ON_DELTA = 0.01;     // 頻譜通量要比附近的中位數多出這麼多
 const ON_FLOOR = 0.0004;   // 音量的絕對下限(手機放遠、彈得小聲也要聽得到;以前 0.0015)
-const ON_GATE = 0.15;      // 整段分析:線性頻譜增加量 < 第 80 百分位 × 0.15 的不算
-export function createNoteOnsets(rate, { delta = ON_DELTA, rel = 0.3, level = 0 } = {}) {
+const ON_GATE = 0.15;      // 整段分析:線性頻譜增加量 < 第 80 百分位 × 0.15 的不算(strength[k] 對應 onsets[k])
+/* 即時版(miclisten.js:只決定「聽到了」「彈完了」)沒有整段篩選,用保守的門檻,講話、雜音才不會一直重設「停 2 秒」的計時 */
+export const LIVE = { delta: 0.03, floor: 0.0015 };
+export function createNoteOnsets(rate, { delta = ON_DELTA, rel = 0.3, level = 0, floor = ON_FLOOR } = {}) {
   const hop = Math.round(rate * HOP_S);
   const size = 2048;
   const lo = Math.max(1, Math.floor((40 * size) / rate)), hi = Math.min(size / 2, Math.ceil((5000 * size) / rate));
@@ -455,7 +457,7 @@ export function createNoteOnsets(rate, { delta = ON_DELTA, rel = 0.3, level = 0 
     const en = Math.max(energy[t], energy[t + 1] ?? 0, energy[t + 2] ?? 0);
     const time = (t * hop + size / 2) / rate;
     if (v < base + delta + rel * base) return;
-    if (en < Math.max(noise * 3, loud * 0.02, ON_FLOOR)) return;
+    if (en < Math.max(noise * 3, loud * 0.02, floor)) return;
     if (time - last < 0.07) return;
     last = time;
     found.push(time);
@@ -488,6 +490,9 @@ export function detectNotes(samples, rate, opts = {}) {
   d.push(samples);
   d.push(new Float32Array(Math.round(rate * 0.05)));
   // 比這段錄音大部分的音(第 80 百分位)小很多的音頭 = 旁邊的講話聲、雜音,不算
-  const st = d.strength, ref = [...st].sort((a, b) => a - b)[Math.floor(st.length * 0.8)] || 0;
+  // 音頭太少(< 6)不篩:第 80 百分位會接近最大的那個,小聲的音會被誤刪
+  const st = d.strength;
+  if (st.length < 6) return [...d.onsets];
+  const ref = [...st].sort((a, b) => a - b)[Math.floor(st.length * 0.8)];
   return d.onsets.filter((_, k) => st[k] >= ON_GATE * ref);
 }

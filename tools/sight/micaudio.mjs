@@ -38,7 +38,6 @@ export function performance(score, s = {}) {
   const spb0 = 60 / score.tempoBpm / (s.tempo ?? 1);
   const total = exp.length ? exp[exp.length - 1].beat + 1 : 1;
   const accel = s.accel ?? 0;
-  // 越彈越快:每拍秒數 = spb0 / (1 + accel·b/total),積分算時間
   const rub = s.rubato ?? 0;
   // 越彈越快:每拍秒數 = spb0 / (1 + accel·b/total),積分算時間;rubato:每拍秒數 × (1 + rub·sin(2πb/8)),積分
   const timeOf = (b) => (accel ? (spb0 * total / accel) * Math.log(1 + (accel * b) / total) : spb0 * b) + (rub ? spb0 * rub * (8 / (2 * Math.PI)) * (1 - Math.cos((2 * Math.PI * b) / 8)) : 0);

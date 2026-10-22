@@ -542,7 +542,7 @@ header{z-index:60}
   #mod-tech .q-last .q-actions{grid-column:1 / -1}
   #mod-tech .q-hint,#mod-sight .q-hint,#mod-ear .q-hint{grid-column:1 / -1}
   #mod-tech .q-title{grid-column:1;grid-row:1;font-size:22px;max-width:46vw;line-height:32px;height:32px;align-self:center;margin-top:0}   /* 字級會依長度縮小:行高固定,中英文高度才一樣 */
-  #mod-tech .q-tags{grid-column:2;grid-row:1;min-height:0;height:30px;max-width:none}   /* 標籤字級會縮:高度固定,中英文才一樣 */
+  #mod-tech .q-tags{grid-column:1 / 3;grid-row:2;min-height:0;height:30px;max-width:none}   /* 標籤一律在標題下面一行(用滿寬度):英文打法名長,跟標題擠同一行會被擠成 0 寬或只有英文掉行;高度固定,中英文才一樣 */
   #mod-tech .q-tag{font-size:calc(14px * var(--tag-scale, 1));padding:0 7px;line-height:26px}
   #mod-tech .mastery{grid-column:3;grid-row:1}
   #mod-tech .mbtn{height:34px}
@@ -550,7 +550,6 @@ header{z-index:60}
   #mod-tech .quiz:has(.mastery:not([hidden])):has(.q-last .q-actions > button:not([hidden])) .mastery{grid-column:1 / 3;grid-row:auto}
   #mod-tech .quiz:has(.mastery:not([hidden])):has(.q-last .q-actions > button:not([hidden])) .q-last .q-actions{grid-column:3 / -1}
   #mod-tech .quiz:has(.mastery:not([hidden])):has(.q-last .q-actions > button:not([hidden])) .q-title{max-width:38vw}
-  #mod-tech .q-tags.wrap{grid-column:1 / 3;grid-row:2}   /* 第一行放不下整組標籤(縮到 0.82 還不夠,fitTitle 加 .wrap):整組到標題下面一行,不擠成 0 寬壓到按鈕 */
   #mod-tech .play-round{grid-column:4;grid-row:1;width:44px;height:44px}
   #mod-tech .quiz .loading{top:2px}
   #t-scoreCard .card-title{margin-bottom:4px}

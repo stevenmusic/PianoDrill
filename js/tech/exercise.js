@@ -238,7 +238,7 @@ export function buildExercise(FG, q){
 }
 
 /* ── 題目文字(考官點題的說法;中英雙語)── */
-const OCT = [["", ""], ["1 個八度", "1 octave"], ["2 個八度", "2 octaves"], ["3 個八度", "3 octaves"], ["4 個八度", "4 octaves"]];   // 一律「n 個八度」(選單、清單、標題同一個寫法)
+const OCT = [["", ""], ["1 個八度", "1 oct."], ["2 個八度", "2 oct."], ["3 個八度", "3 oct."], ["4 個八度", "4 oct."]];   // 一律「n 個八度」/「n oct.」(選單、清單、標題同一個寫法;英文寫全名在折疊機上標籤會變兩行)
 const FORM = { harmonic: ["和聲小調", "harmonic minor", "harm. minor"], melodic: ["旋律小調", "melodic minor", "mel. minor"], natural: ["自然小調", "natural minor", "nat. minor"] };
 const INV = [["", ""], ["第一轉位", "1st inv."], ["第二轉位", "2nd inv."]];
 const HAND = { RH: ["右手", "RH"], LH: ["左手", "LH"], HT: ["雙手", "Both hands"] };   // 英文不寫 HT(自學者看不懂)
@@ -273,7 +273,7 @@ export function questionText(q){
   // 相隔三度/六度放在標籤(取代「雙手」),題目才不會比另一種語言多一行
   const parts = [keyName(q.apart ? { ...q, apart: 0 } : q)];
   parts.push(q.motion === "contrary" ? tr("反向", "Contrary") : q.apart === 3 ? tr("相隔三度", "3rd apart") : q.apart === 6 ? tr("相隔六度", "6th apart") : pick(HAND[q.hands] || HAND.HT));
-  parts.push(q.range === "5th" ? tr("五度範圍", "5th range") : pick(OCT[q.octaves] || [q.octaves + " 個八度", q.octaves + " octaves"]));
+  parts.push(q.range === "5th" ? tr("五度範圍", "5th range") : pick(OCT[q.octaves] || [q.octaves + " 個八度", q.octaves + " oct."]));
   parts.push(q.articulation === "staccato" ? tr("斷奏", "Staccato") : tr("圓滑奏", "Legato"));
   if (q.dynamic) parts.push(DYN[q.dynamic] ? pick(DYN[q.dynamic]) : q.dynamic);
   return parts;

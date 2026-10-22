@@ -173,7 +173,7 @@ export const I18N = {
     prepFitsScreen: 'Read it through, start to end',
     prepScrolls: 'Scroll and read the whole score',
     alongMic: 'Score me with the microphone',
-    alongMicNote: 'Play at your own tempo, scored when you finish; analysed on this device, never saved or uploaded.',
+    alongMicNote: 'Play at your own tempo; scored at the end. Never saved or uploaded.',
     micListen: 'Listening… play at your own tempo — your first note starts it',
     micHeard: 'Got it — pause 2 seconds when you finish to get your score',
     micAnalysing: 'Scoring…',

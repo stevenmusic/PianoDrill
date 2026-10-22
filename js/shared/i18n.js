@@ -53,7 +53,7 @@ addStrings("daily", {
   of: ["第 {i} 段,共 {n} 段", "Part {i} of {n}"],
   warm: ["暖身", "Warm-up"], review: ["複習", "Review"], level: ["第 {n} 關", "Level {n}"], lvOf: ["{r} {n} / {of}", "{r} {n} / {of}"],
   tempo: ["速度", "Tempo"], tempoTip: ["速度 {b} = 每分鐘 {b} 拍", "Tempo {b} = {b} beats a minute"], pause: ["暫停", "Pause"],
-  locked: ["{r}過了第 {n} 關就開始", "Opens after {r} level {n}"],
+  locked: ["{r}過了第 {n} 關就開始", "After {r} level {n}"],
   note: ["漏練幾天沒關係,不會扣分", "Missed days don't count against you"],
   steady: ["{w}下一次速度 {b}", "{w} Next: tempo {b}"], streak: ["{w}再連續 {k} 次就過關", "{w} {k} more in a row to pass"],
   near: ["差一點,同一個速度再一次", "Close. Same tempo again"], down: ["先慢一點:速度 {b}", "Slow down: tempo {b}"],

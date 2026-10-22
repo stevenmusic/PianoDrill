@@ -119,7 +119,7 @@
 .rd-seg4 .opt{white-space:nowrap;font-size:var(--fs-sm);padding:4px 2px}   /* 範圍 / 快捷鈕每顆一行(「C3–G4」不拆成兩行) */
 /* 自訂範圍的 ‹ ›:整個卡片寬度;「最低音 ‹ E1 ›」「最高音 ‹ G6 ›」放得下並排、放不下兩排(每排同樣的欄寬,上下對齊),不會有一顆鈕單獨掉下去 */
 /* 音域一行:最低音、最高音各一欄(上 = 升高、名稱、下 = 降低),中間一條 –;「最多 n 條加線」在右邊(放不下就在這一格換行) */
-.rd-span-ctl{display:grid;grid-template-columns:44px auto 44px minmax(0,1fr);align-items:center;column-gap:8px;min-width:0}
+.rd-span-ctl{display:grid;grid-template-columns:minmax(44px,max-content) auto minmax(44px,max-content) minmax(0,1fr);align-items:center;column-gap:8px;min-width:0}
 .rd-end{display:grid;grid-template-rows:44px auto 44px;justify-items:center;align-items:center;row-gap:2px}   /* 直向三列:⌃ / 音名 / ⌄(箭頭 44 高,音名有自己的一列,不被蓋住) */
 .rd-end b{min-width:3em;text-align:center;font-size:var(--fs-md);line-height:1.3;font-variant-numeric:tabular-nums;color:var(--gold-bright)}
 .rd-dash{color:var(--muted-bright);font-size:var(--fs-md)}
@@ -191,3 +191,15 @@
 #s-selfCheck button i{flex:none;width:1.4em;height:1.4em;border:1.5px solid var(--muted);border-radius:6px;display:grid;place-items:center;font-style:normal;font-weight:700;color:var(--teal)}
 #s-selfCheck button[aria-pressed="true"]{border-color:var(--teal)}
 #s-selfCheck button[aria-pressed="true"] i{border-color:var(--teal)}
+/* 手機(直式與橫放):「顯示音名」與速度併成一行(設定卡矮一點,SE 第一個畫面題目卡在上半部);放不下(雙手有說明那一行)就自己換行 */
+@media (max-width:600px), (orientation:landscape) and (max-height:500px){
+  #mod-sight #s-setup.always-open .setup-body{display:flex !important;flex-wrap:wrap;align-items:center;column-gap:10px}   /* 蓋過上面 always-open 的 display:block !important */
+  #s-stageBox{display:contents}
+  #s-stageBox[hidden]{display:none}
+  #s-stageSeg{flex:1 1 100%}
+  #s-setup .s-stage-foot{flex:0 1 auto;margin-top:8px}
+  #s-setup .s-stage-foot .info:empty{display:none}   /* 空的說明行不佔寬度,速度才接得上同一行 */
+  #s-setup #s-tempoBox{flex:1 1 150px;margin-top:8px;min-width:0;column-gap:6px}
+  #s-setup #s-tempoBox .bpm{gap:4px}
+  #s-setup .setup-body > .rows{flex:1 1 100%}
+}

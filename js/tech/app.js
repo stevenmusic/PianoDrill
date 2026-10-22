@@ -1099,7 +1099,7 @@ function syncTempoUI(){
   const u = unitOf();
   $("bpmRange").max = maxBpm();
   $("bpmVal").textContent = bpm; $("bpmRange").value = bpm;
-  $("bpmUnit").textContent = tr("拍 / 分鐘", "beats / min");   // 拍 = 拍點響一下(每 2 或 4 個音,看選單)
+  $("bpmUnit").textContent = tr("拍 / 分鐘", "BPM");   // 拍 = 拍點響一下(每 2 或 4 個音,看選單)
   const examT = cur && !cur.free ? cur.tempo : null;
   $("bpmReset").hidden = !examT;
   if (examT) {

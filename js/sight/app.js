@@ -902,7 +902,7 @@ function renderTempo() {
   const box = $('tempoBox'), on = mode === 'free' && hand !== 'read' && !!current && !!current.free && current.key === freeKey();
   box.hidden = !on;
   if (!on) return;
-  tempo.sync(tr('拍 / 分鐘', 'beats / min'));
+  tempo.sync(tr('拍 / 分鐘', 'BPM'));
   $('bpmDown').setAttribute('aria-label', tr('慢 1(按住連續減少)', 'Slower (hold to repeat)'));
   $('bpmUp').setAttribute('aria-label', tr('快 1(按住連續增加)', 'Faster (hold to repeat)'));
   $('bpmRange').setAttribute('aria-label', tr('速度', 'Tempo'));

@@ -132,11 +132,32 @@ async function run(vpName, vp){
       const selView = document.querySelector('#tabbar [aria-selected="true"]').dataset.view;
       if (view !== selView) out.push(`分頁不一致 ${view} / ${selView}`);
       const shown = ["tech", "sight", "ear"].filter(m => !document.getElementById("mod-" + m).hidden);
-      if (shown.length !== 1) out.push(`同時顯示 ${shown.length} 個模組`);
-      const want = view === "exam" ? sh.S.sub.exam : view;
+      // 沒選考試時檢定頁不進任何模組(只寫「先選考試系統和級數」)
+      const noExam = view === "exam" && !sh.S.exam;
+      if (shown.length !== (noExam ? 0 : 1)) out.push(`同時顯示 ${shown.length} 個模組`);
+      const want = noExam ? undefined : view === "exam" ? sh.S.sub.exam : view;
       if (shown[0] !== want) out.push(`顯示的模組 ${shown[0]},應該是 ${want}`);
       if (document.getElementById("examSetup").hidden !== (view !== "exam")) out.push("檢定設定卡顯示不對");
-      if (document.documentElement.scrollWidth > window.innerWidth + 1) out.push("橫向捲動");
+      if (document.documentElement.scrollWidth > window.innerWidth + 1) {
+        // 找出超出畫面右邊的元素(最深的那一個),報出 id / class 方便修
+        const over = [...document.querySelectorAll("body *")].filter(e => { const r = e.getBoundingClientRect(); return r.width && r.right + window.scrollX > window.innerWidth + 1; });
+        let leaf = over.filter(e => !over.some(o => o !== e && e.contains(o)));
+        // 元素本身沒超出:可能是 ::before / ::after(畫面右緣 30px 內、有偽元素的)
+        if (!leaf.length) leaf = [...document.querySelectorAll("body *")].filter(e => { const r = e.getBoundingClientRect(); return r.width && r.right > window.innerWidth - 30 && ["::before", "::after"].some(p => { const c = getComputedStyle(e, p).content; return c && c !== "none" && c !== "normal"; }); });
+        if (!leaf.length) {   // 文字超出自己的框(元素的框沒超出,文字超出)
+          const w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT); let n;
+          while ((n = w.nextNode())) { if (!n.textContent.trim()) continue; const rg = document.createRange(); rg.selectNodeContents(n); const r = rg.getBoundingClientRect(); if (r.width && r.right > window.innerWidth + 1) leaf.push(n.parentElement); }
+        }
+        {   // 還是找不到:逐一暫時藏起靠右的元素,看藏誰 scrollWidth 會變回來
+          const sw = () => document.documentElement.scrollWidth;
+          const cand = [...document.querySelectorAll("body *")].filter(e => { const r = e.getBoundingClientRect(); return r.width && r.right > window.innerWidth - 60; });
+          const hit = [];
+          for (const e of cand) { const d = e.style.display; e.style.display = "none"; if (sw() <= window.innerWidth + 1) hit.push(e); e.style.display = d; }
+          const deep = hit.filter(e => !hit.some(o => o !== e && e.contains(o)));
+          if (deep.length) leaf = deep;
+        }
+        out.push(`橫向捲動(${document.documentElement.scrollWidth} / ${window.innerWidth},scrollX ${window.scrollX}):` + leaf.slice(0, 3).map(e => (e.id ? "#" + e.id : e.tagName.toLowerCase() + "." + [...e.classList].join(".")) + " → " + Math.round(e.getBoundingClientRect().right)).join("、"));
+      }
       for (const k of keys) { try { JSON.parse(localStorage.getItem(k) || "null"); } catch (e) { out.push(k + " 壞掉"); } }
       // 離開的模組不能還在播
       if (window.__tech && shown[0] !== "tech" && window.__tech.state.play) out.push("技巧不在畫面上卻還在播放");

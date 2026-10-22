@@ -151,7 +151,7 @@ main{
 
 /* 分段按鈕(照 HarmonyHands) */
 /* 分段鈕 = iOS 原生樣式(2026-10-21 使用者選定):灰底軌道 + 浮起來的選中塊;沒選的格子之間一條淡分隔線 */
-.seg{display:flex;gap:2px;padding:3px;border:0;border-radius:10px;background:var(--seg-track);overflow:hidden}
+.seg{display:flex;gap:0;padding:2px;border:0;border-radius:10px;background:var(--seg-track);overflow:hidden}   /* 內距 2、格子不留間隔:軌道不多吃寬度(折疊機級數 9 格每格 ≥ 28) */
 .seg button{flex:1 1 0;min-width:0;min-height:36px;border:0;background:transparent;color:var(--gold);font-family:inherit;
   font-size:var(--fs-md);font-weight:500;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;padding:0 8px;
   overflow:hidden;overflow-wrap:anywhere;text-align:center;transition:background .15s,color .15s;border-radius:8px}   /* 平常一行放得下;動態字級很大又很窄(折疊機)時換行,不截字(高度用 min-height) */
@@ -675,8 +675,8 @@ body.land-play #t-stage{flex:1;display:flex;flex-direction:column;justify-conten
 /* 子項目(音階/琶音/哈農、單音/音程/和弦、檢定的三個項目):跟頂欄一起固定在上方,佔滿一整列 */
 .subnav{flex:1 1 100%;order:3;display:flex;justify-content:center;padding:2px 0 0}
 .subnav .seg{width:min(560px, 100%)}
-.subnav .seg button{min-height:34px;min-width:min-content}   /* 字級放大時長的字(Arpeggios)不被截:那一格寬一點,其他格分剩下的 */
-@media (max-width:600px){ header{flex-wrap:wrap} .subnav .seg button{min-height:32px;padding:0 4px} }
+.subnav .seg button{min-height:30px;min-width:min-content}   /* 字級放大時長的字(Arpeggios)不被截:那一格寬一點,其他格分剩下的 */
+@media (max-width:600px){ header{flex-wrap:wrap} .subnav .seg button{min-height:28px;padding:0 4px} }   /* + 軌道內距 4 = 跟以前一樣 32 高 */
 @media (max-height:420px), (orientation:landscape) and (max-height:500px){
   .subnav{flex:0 1 420px;order:2;padding:0}
   header{flex-wrap:nowrap}
@@ -704,8 +704,8 @@ body.land-play #t-stage{flex:1;display:flex;flex-direction:column;justify-conten
 /* 題目卡:第一次進來這個子項目的一行說明(練過一次就不再出現;技巧 #t-intro) */
 .q-intro{margin:6px 0 0;font-size:var(--fs-sm);line-height:1.5;color:var(--muted-bright)}
 @media (max-width:600px){ .exam-card{padding:8px 12px 10px} }
-/* 折疊機 280:9 格要 ≥ 28 寬,卡片、對話框的左右內距放不下 → 系統鈕、級數列往兩邊伸到內距裡(離卡片邊框 1px) */
-@media (max-width:300px){
+/* 折疊機 280、SE 320、手機橫放:9 格要 ≥ 28 寬,卡片、對話框的左右內距放不下 → 系統鈕、級數列往兩邊伸到內距裡(離卡片邊框 1px) */
+@media (max-width:360px), (orientation:landscape) and (max-height:500px){
   #examSetup{--bleed:11px}
   .modal{padding:8px}
   .modal-card{padding:16px 12px;--bleed:11px}
@@ -713,8 +713,8 @@ body.land-play #t-stage{flex:1;display:flex;flex-direction:column;justify-conten
 }
 /* 窄手機(折疊機、SE):考試卡、本項列的間距縮一點,檢定頁的題目卡在畫面上半部(按鈕高度不縮) */
 @media (max-width:360px){
-  #examSetup{padding-top:7px;padding-bottom:7px}
-  .exam-pick{gap:6px}
+  #examSetup{padding-top:5px;padding-bottom:5px}
+  .exam-pick{gap:4px}   /* 分段鈕的軌道內距(上下各 2)從這裡省回來 */
   .item-row{row-gap:4px}
 }
 @media (max-height:420px), (orientation:landscape) and (max-height:500px){

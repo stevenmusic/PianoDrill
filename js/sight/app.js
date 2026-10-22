@@ -1219,6 +1219,7 @@ let prepToken = 0;
 let prepSkip = false;   // 測試掛鉤 __sight.skipPrep
 async function startCountdown() {
   if (!current) return;
+  if (freeAlong()) return;   // 視奏分頁沒有準備倒數(按鈕藏起來;官方準備時間只在檢定頁)
   stopCountdown();
   player.stop();
   alongStart = null;

@@ -157,6 +157,10 @@ function fitLine(xs, ys, reject = Infinity) {
  * 打分。expected = expectedEvents(score);onsets = 偵測到的音頭(秒,同一把尺,第一個 = 時間 0 也可以不是)。
  * pitchOk(可選)= checkPitches 的結果(每個譜上的起音 true / false / null)。
  */
+/* 對到譜上的音不到這個比例 = 沒聽到在彈這首(雜音的音頭也會被對到幾個,不能拿來打分) */
+export const MATCH_MIN = 0.4;
+/* pitchMatchRate 低於這個 = 聽不出譜上的音(沒彈琴只有講話、碰撞聲 ≤ 0.38;彈對的琴聲 ≥ 0.70,micscore-check / micscore-stress) */
+export const PM_MIN = 0.5;
 export function scorePerformance(expected, onsets, { pitchOk = null } = {}) {
   const { events, barBeats, bars, bpm } = expected;
   const n = events.length;
@@ -165,7 +169,7 @@ export function scorePerformance(expected, onsets, { pitchOk = null } = {}) {
   const B = events.map((e) => e.beat);
   const T = onsets;
   const { pairs } = alignOnsets(B, T);
-  if (pairs.length < Math.min(3, n)) return { ...base, silent: false, tooFew: true, hits: pairs.length, missed: n - pairs.length, extra: T.length - pairs.length, accuracy: 0 };
+  if (pairs.length < Math.min(n, Math.max(3, Math.ceil(n * MATCH_MIN)))) return { ...base, silent: false, tooFew: true, hits: pairs.length, missed: n - pairs.length, extra: T.length - pairs.length, accuracy: 0 };
 
   const matchOf = new Array(n).fill(-1);
   for (const [i, j] of pairs) matchOf[i] = j;
@@ -352,7 +356,16 @@ function salience(nov, midi, rate, N, H = 6) {
   }
   return s;
 }
-const RELATED = [0, 12, 19, 24, 28, 31, 36, -12, -19, -24];   // 八度、五度泛音:分不出來的不拿來比
+const PM_RATIO = 1;   // pitchMatchRate:譜上的音要比附近 ±9 半音最突出的那個大才算「聽得出來」
+const RELATED = [0, 12, 19, 24, 28, 31, 36, -12, -19, -24];
+/**
+ * 錄到的是不是這首曲子的琴聲:對到的音頭裡,譜上那個音(所有音域)聽得出來的比例(0–1;能比的不到 4 個 = null)。
+ * 講話、碰撞聲、電視的音頭也會被對到譜上,但音高幾乎都對不上;彈錯幾個音不影響(看的是整體比例)。
+ */
+export function pitchMatchRate(samples, rate, events, onsets, pairs, ratio = PM_RATIO) {
+  const ok = checkPitches(samples, rate, events, onsets, pairs, { minMidi: 0, ratio }).filter((v) => v !== null);
+  return ok.length >= 4 ? ok.filter(Boolean).length / ok.length : null;
+}   // 八度、五度泛音:分不出來的不拿來比
 
 /**
  * 每個譜上的起音:預期的音(C4 以上)有沒有出現。true / false / null(沒對到、C4 以下、太短分析不了)。
@@ -404,6 +417,8 @@ const ON_NORM = 0.1;       // 對數壓縮:λ = ON_NORM / 琴聲的 RMS(以前�
 const ON_DELTA = 0.01;     // 頻譜通量要比附近的中位數多出這麼多
 const ON_FLOOR = 0.0004;   // 音量的絕對下限(手機放遠、彈得小聲也要聽得到;以前 0.0015)
 const ON_GATE = 0.15;      // 整段分析:線性頻譜增加量 < 第 80 百分位 × 0.15 的不算(strength[k] 對應 onsets[k])
+const ON_SNR = 3.2;        // 整段分析:音頭之後的音量要比底噪大 3.2 倍(約 10 dB);底噪 = 最安靜的 100 ms,最多到琴聲(第 95 百分位)× ON_NF_CAP
+const ON_NF_CAP = 0.1;     // 按下去就彈、曲子很密(沒有安靜的地方):底噪不會被估成琴聲的延音
 /* 即時版(miclisten.js:只決定「聽到了」「彈完了」)沒有整段篩選,用保守的門檻,講話、雜音才不會一直重設「停 2 秒」的計時 */
 export const LIVE = { delta: 0.03, floor: 0.0015 };
 export function createNoteOnsets(rate, { delta = ON_DELTA, rel = 0.3, level = 0, floor = ON_FLOOR } = {}) {
@@ -483,16 +498,41 @@ export function createNoteOnsets(rate, { delta = ON_DELTA, rel = 0.3, level = 0,
 /** 整段錄音的音頭(秒,從第一個取樣算) */
 export function detectNotes(samples, rate, opts = {}) {
   // 琴聲有多大:整段每 10 ms 的 RMS 取第 95 百分位(第一個音之前的雜音才不會被放大)
-  const hop = Math.round(rate * HOP_S), r = [];
-  for (let k = 0; k + hop <= samples.length; k += hop) { let e = 0; for (let q = k; q < k + hop; q++) e += samples[q] * samples[q]; r.push(Math.sqrt(e / hop)); }
-  r.sort((a, b) => a - b);
+  const hop = Math.round(rate * HOP_S), rms = [];
+  for (let k = 0; k + hop <= samples.length; k += hop) { let e = 0; for (let q = k; q < k + hop; q++) e += samples[q] * samples[q]; rms.push(Math.sqrt(e / hop)); }
+  const r = [...rms].sort((a, b) => a - b);
   const d = createNoteOnsets(rate, { ...opts, level: r[Math.floor(r.length * 0.95)] || 0 });
   d.push(samples);
   d.push(new Float32Array(Math.round(rate * 0.05)));
+  // 底噪 = 最安靜的 100 ms 的音量(麥克風、電扇、冷氣;沒彈的時候一直都在。錄音前後一定有空檔:按下去到第一個音、彈完停 2 秒;
+  // 不用百分位:長又密的曲子安靜的地方不到一成,百分位會落在琴聲的延音上):
+  // 音頭之後 80 ms 內最大聲的地方要比底噪大 ON_SNR 倍,不然是雜音的起伏(沒彈琴也會被當成音)
+  let nf = Infinity;
+  for (let k = 0; k + 10 <= rms.length; k++) { let e = 0; for (let q = k; q < k + 10; q++) e += rms[q] * rms[q]; nf = Math.min(nf, Math.sqrt(e / 10)); }
+  if (!isFinite(nf)) nf = 0;
+  nf = Math.min(nf, ON_NF_CAP * (r[Math.floor(r.length * 0.95)] || 0));
+  const peakAfter = (t) => { let m = 0; const a = Math.max(0, Math.floor(t / HOP_S) - 2); for (let k = a; k <= a + 10 && k < rms.length; k++) m = Math.max(m, rms[k]); return m; };
+  const keep = d.onsets.map((t) => peakAfter(t) >= ON_SNR * nf);
+  const on = d.onsets.filter((_, k) => keep[k]), st = d.strength.filter((_, k) => keep[k]);
   // 比這段錄音大部分的音(第 80 百分位)小很多的音頭 = 旁邊的講話聲、雜音,不算
   // 音頭太少(< 6)不篩:第 80 百分位會接近最大的那個,小聲的音會被誤刪
-  const st = d.strength;
-  if (st.length < 6) return [...d.onsets];
+  if (st.length < 6) return on;
   const ref = [...st].sort((a, b) => a - b)[Math.floor(st.length * 0.8)];
-  return d.onsets.filter((_, k) => st[k] >= ON_GATE * ref);
+  return on.filter((_, k) => st[k] >= ON_GATE * ref);
+}
+
+/**
+ * 整段錄音 → 結果(App 與測試同一條路):音頭 → 對到譜上 → 是不是琴聲(音高)→ 打分(初級–2 級加上音高)。
+ * 沒聽到琴聲(沒有音頭、對到的太少、音高幾乎都對不上)= { silent: true }。
+ */
+export function scoreRecording(samples, rate, score) {
+  const exp = expectedEvents(score);
+  const onsets = detectNotes(samples, rate);
+  if (!onsets.length) return { silent: true };
+  const { pairs } = alignOnsets(exp.events.map((e) => e.beat), onsets);
+  const pm = pitchMatchRate(samples, rate, exp.events, onsets, pairs);
+  if (pm !== null && pm < PM_MIN) return { silent: true, notPiano: true };
+  const pitchOk = score.grade <= 2 ? checkPitches(samples, rate, exp.events, onsets, pairs) : null;
+  const r = scorePerformance(exp, onsets, { pitchOk });
+  return r.tooFew ? { silent: true, tooFew: true, hits: r.hits, total: r.total } : { ...r, onsets };
 }

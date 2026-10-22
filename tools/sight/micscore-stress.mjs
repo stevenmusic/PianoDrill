@@ -6,7 +6,7 @@
 import { readFileSync } from 'node:fs';
 import { open } from '../test/harness.mjs';
 import { generateTest } from '../../js/sight/generator/index.js';
-import { expectedEvents, scorePerformance, alignOnsets, checkPitches, detectNotes } from '../../js/sight/micscore.js';
+import { expectedEvents, scorePerformance, alignOnsets, checkPitches, detectNotes, pitchMatchRate, scoreRecording } from '../../js/sight/micscore.js';
 import { performance as perform, renderInPage } from './micaudio.mjs';
 
 const args = process.argv.slice(2);
@@ -45,6 +45,8 @@ const SC = {
   fan: { ...HUMAN, post: { fan: 0.004 } },
   talk: { ...HUMAN, post: { talk: 0.01 } },   // 同一個房間有人講話:比琴聲小約 20 dB
   home: { ...HUMAN, pedal: true, room: 0.6, vel: [30, 80], post: { gain: 0.3, fan: 0.002 }, noise: 0.001 },
+  wrong3: { ...HUMAN, wrong: Object.fromEntries(Array.from({ length: 400 }, (_, k) => k).filter((k) => k % 3 === 1).map((k) => [k, k % 2 ? 2 : -1])) },   // 初學者:每 3 個音彈錯 1 個(不能當成沒聽到)
+  noLead: { ...HUMAN, pedal: true, room: 0.5, lead: 0.05 },   // 按下去就彈、踩著踏板(底噪不能估成琴聲)
 };
 // 每一份:音頭找回 ≥ 8 成、多抓 ≤ 12%、彈對了準度 ≥ 80、初級–2 級不誤判錯音;每種情況平均找回 ≥ 9 成
 const LIMIT = { recall: 0.8, meanRecall: 0.9, extraRate: 0.12, acc: 80 };
@@ -70,21 +72,45 @@ for (const grade of GRADES) for (let seed = 1; seed <= SEEDS; seed++) {
     const bias = off.length ? off[off.length >> 1] : 0;
     const hit = tr.filter((t) => Math.abs(near(t + bias) - (t + bias)) <= 0.06).length;
     const extra = on.filter((o) => !tr.some((t) => Math.abs(o - bias - t) <= 0.06)).length;
-    let pitchOk = null;
-    if (grade <= 2 && on.length) { const { pairs } = alignOnsets(exp.events.map((e) => e.beat), on); pitchOk = checkPitches(x, RATE, exp.events, on, pairs); }
-    const r = scorePerformance(exp, on, { pitchOk });
+    const pm = on.length ? pitchMatchRate(x, RATE, exp.events, on, alignOnsets(exp.events.map((e) => e.beat), on).pairs) : null;
+    const r = scoreRecording(x, RATE, score);   // App 同一條路(沒聽到琴聲 = silent)
     const trueBpm = score.tempoBpm;
-    const row = { grade, seed, name, n: tr.length, recall: +(hit / tr.length).toFixed(2), extra, acc: r.accuracy ?? '-', R: r.rhythm, S: r.stability, C: r.continuity, P: r.pitch ?? '', wrong: r.wrong ?? '', bpm: r.bpmEst ? Math.round(r.bpmEst) : '-', true: trueBpm };
+    const row = { grade, seed, name, n: tr.length, recall: +(hit / tr.length).toFixed(2), extra, acc: r.accuracy ?? '-', R: r.rhythm, S: r.stability, C: r.continuity, P: r.pitch ?? '', wrong: r.wrong ?? '', bpm: r.bpmEst ? Math.round(r.bpmEst) : '-', true: trueBpm, pm: pm === null ? '-' : +pm.toFixed(2) };
     rows.push(row);
     const tag = `${grade}-${seed} ${name}`;
     if (row.recall < LIMIT.recall) problems.push(`${tag}: 音頭找回率 ${row.recall}`);
     if (extra > Math.max(2, LIMIT.extraRate * tr.length)) problems.push(`${tag}: 多抓 ${extra} 個音頭`);
-    if (!(r.accuracy >= LIMIT.acc)) problems.push(`${tag}: 彈對了準度只有 ${r.accuracy}`);
-    if (grade <= 2 && r.wrong > 0) problems.push(`${tag}: 彈對了卻判 ${r.wrong} 個錯音`);
+    if (r.silent) problems.push(`${tag}: 彈了卻當成沒聽到琴聲`);
+    else if (name !== 'wrong3' && !(r.accuracy >= LIMIT.acc)) problems.push(`${tag}: 彈對了準度只有 ${r.accuracy}`);
+    if (grade <= 2 && r.wrong > 0 && name !== 'wrong3') problems.push(`${tag}: 彈對了卻判 ${r.wrong} 個錯音`);
   }
 }
 await close();
+/* 沒彈琴(按了「彈一遍」卻沒彈):只有麥克風底噪、電扇、講話、家裡的聲音、碰到手機 → 一定要「沒有聽到琴聲」,不能給分數 */
+function addWhite(x, level, seed) { const r = rng(seed); for (let k = 0; k < x.length; k++) x[k] += level * 2 * r(); }
+function addBumps(x, level, seed) {
+  const r = rng(seed);
+  for (let t = 0.7; t < x.length / RATE; t += 0.9 + 2 * (r() + 0.5)) { const k0 = Math.round(t * RATE); for (let k = 0; k < 2400 && k0 + k < x.length; k++) x[k0 + k] += level * Math.exp(-k / 300) * 2 * r(); }
+}
+const QUIET = {
+  quiet: [[addWhite, 0.0003]], mic: [[addWhite, 0.002]], hiss: [[addWhite, 0.006]],
+  fan: [[addWhite, 0.0006], [addFan, 0.004]], talk: [[addWhite, 0.0006], [addTalk, 0.01]], loudTalk: [[addWhite, 0.0006], [addTalk, 0.05]],
+  home: [[addWhite, 0.001], [addFan, 0.002], [addTalk, 0.004]], bumps: [[addWhite, 0.0006], [addBumps, 0.02]],
+};
+const quietRows = {};
+for (const grade of GRADES) for (let seed = 1; seed <= SEEDS; seed++) {
+  const score = generateTest(rules, { grade, seed: grade * 100 + seed + 50 });
+  for (const [name, parts] of Object.entries(QUIET)) {
+    const x = new Float32Array(RATE * 20);
+    parts.forEach(([f, l], i) => f(x, l, seed * 13 + i));
+    const r = scoreRecording(x, RATE, score);
+    const q = (quietRows['沒彈琴 ' + name] ||= { n: 0, scored: 0 });
+    q.n++;
+    if (!r.silent) { q.scored++; problems.push(`${grade}-${seed} 沒彈琴(${name}):給了準度 ${r.accuracy}`); }
+  }
+}
 console.table(rows);
+console.table(quietRows);
 const by = {};
 for (const r of rows) { const b = (by[r.name] ||= { n: 0, recall: 0, extra: 0, acc: 0, wrong: 0 }); b.n++; b.recall += r.recall; b.extra += r.extra; b.acc += Number(r.acc) || 0; b.wrong += Number(r.wrong) || 0; }
 console.table(Object.fromEntries(Object.entries(by).map(([k, b]) => [k, { recall: (b.recall / b.n).toFixed(3), extra: (b.extra / b.n).toFixed(1), acc: (b.acc / b.n).toFixed(1), wrongNotes: b.wrong }])));

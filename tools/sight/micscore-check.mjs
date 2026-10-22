@@ -5,7 +5,7 @@
 import { readFileSync } from 'node:fs';
 import { open } from '../test/harness.mjs';
 import { generateTest } from '../../js/sight/generator/index.js';
-import { expectedEvents, scorePerformance, alignOnsets, checkPitches, detectNotes } from '../../js/sight/micscore.js';
+import { expectedEvents, scoreRecording } from '../../js/sight/micscore.js';
 import { performance as perform, renderInPage } from './micaudio.mjs';
 
 const args = process.argv.slice(2);
@@ -18,14 +18,7 @@ const problems = [];
 const rows = [];
 
 export function analyse(samples, rate, score, grade) {
-  const exp = expectedEvents(score);
-  const onsets = detectNotes(samples, rate);
-  let pitchOk = null;
-  if (grade <= 2 && onsets.length) {
-    const { pairs } = alignOnsets(exp.events.map((e) => e.beat), onsets);
-    pitchOk = checkPitches(samples, rate, exp.events, onsets, pairs);
-  }
-  return scorePerformance(exp, onsets, { pitchOk });
+  return scoreRecording(samples, rate, { ...score, grade });   // App 同一條路(js/sight/app.js 的 analyseTake)
 }
 
 function pickInner(n, k, seed) { const out = []; for (let x = 1; x <= k; x++) out.push(Math.min(n - 2, Math.max(1, Math.round((n * x) / (k + 1)) + (seed % 2)))); return [...new Set(out)]; }

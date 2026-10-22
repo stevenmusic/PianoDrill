@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { generateTest } from '../../js/sight/generator/index.js';
-import { expectedEvents, scorePerformance, detectNotes, createNoteOnsets } from '../../js/sight/micscore.js';
+import { expectedEvents, scorePerformance, detectNotes, createNoteOnsets, scoreRecording } from '../../js/sight/micscore.js';
 import { rules } from './helpers.js';
 
 /* 音頭時間直接給(不經過音訊):對齊、速度、各項目 */
@@ -66,4 +66,19 @@ test('spectral-flux onsets: legato tones and padded gaps', () => {
   const live = createNoteOnsets(rate);
   for (let i = 0; i < out.length; i += 2048) live.push(out.subarray(i, i + 2048));
   hitAll(live.onsets);
+});
+
+/* 按了「彈一遍」卻沒彈:只有麥克風底噪、碰到手機的聲音 → 不能給分數(使用者回報:沒彈也有準度 55) */
+test('no piano (mic hiss, bumps) is reported as silence, not scored', () => {
+  const score = generateTest(rules, { grade: 1, seed: 3 });
+  const rate = 48000;
+  let z = 7;
+  const r = () => { z = (z * 1664525 + 1013904223) >>> 0; return z / 4294967296 - 0.5; };
+  const hiss = new Float32Array(rate * 12);
+  for (let k = 0; k < hiss.length; k++) hiss[k] = 0.012 * r();
+  assert.equal(scoreRecording(hiss, rate, score).silent, true);
+  const bumps = new Float32Array(rate * 12);
+  for (let k = 0; k < bumps.length; k++) bumps[k] = 0.0012 * r();
+  for (let t = 0.7; t < 11; t += 1.3) { const k0 = Math.round(t * rate); for (let k = 0; k < 2400; k++) bumps[k0 + k] += 0.04 * Math.exp(-k / 300) * r(); }
+  assert.equal(scoreRecording(bumps, rate, score).silent, true);
 });

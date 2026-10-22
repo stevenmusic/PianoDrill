@@ -5,7 +5,7 @@ import { createKey, pitchAt } from './generator/theory.js';
 import { createPlayer } from './playback.js';
 import { expectedOnsets } from './scoring.js';
 import { createListener } from './miclisten.js';
-import { expectedEvents, scorePerformance, alignOnsets, checkPitches, detectNotes } from './micscore.js';
+import { expectedEvents, scoreRecording } from './micscore.js';
 import { createStage, barTimings } from './stage.js';
 import { t, applySightStatic } from './i18n.js';
 import { pairText, unpair, tr } from '../shared/i18n.js';
@@ -1726,15 +1726,8 @@ function finishListening() {
 }
 /* 整段錄音 → 結果(micscore.js;初級–2 級加上音高) */
 function analyseTake(take, score) {
-  const exp = expectedEvents(score);
-  const onsets = detectNotes(take.samples, take.sampleRate);
-  if (!onsets.length) return { silent: true };
-  let pitchOk = null;
-  if (score.grade <= 2) {
-    const { pairs } = alignOnsets(exp.events.map((e) => e.beat), onsets);
-    pitchOk = checkPitches(take.samples, take.sampleRate, exp.events, onsets, pairs);
-  }
-  return { ...scorePerformance(exp, onsets, { pitchOk }), score, onsets };
+  const r = scoreRecording(take.samples, take.sampleRate, score);
+  return r.silent ? r : { ...r, score };
 }
 
 /** 沒用麥克風(關掉或拿不到):播放軸走完 = 彈完 */
@@ -1763,7 +1756,7 @@ function renderRhythmResult() {
   if (r.denied) {
     box.innerHTML = `<p>${escapeHtml(t('alongMicDenied'))}</p>`;
   } else if (r.silent || r.tooFew) {
-    box.innerHTML = `<p>${escapeHtml(t('resultSilent'))}</p>`;
+    box.innerHTML = `<p>${escapeHtml(t(r.notPiano ? 'resultNotPiano' : r.tooFew ? 'resultTooFew' : 'resultSilent'))}</p>`;
   } else {
     const parts = [tr(`節奏 ${r.rhythm}`, `Rhythm ${r.rhythm}`), tr(`穩定 ${r.stability}`, `Steady ${r.stability}`), tr(`連貫 ${r.continuity}`, `Flow ${r.continuity}`)];
     if (r.pitch !== null && r.pitch !== undefined) parts.push(tr(`音 ${r.pitch}`, `Notes ${r.pitch}`));

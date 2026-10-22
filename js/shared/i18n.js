@@ -36,7 +36,7 @@ const STR = {
   footer: ["鋼琴 Salamander Grand Piano(CC BY 3.0)· 節拍器 Naked Drums(CC BY 4.0)· 樂譜 OpenSheetMusicDisplay(BSD-3-Clause)",
     "Piano: Salamander Grand Piano (CC BY 3.0) · Click: Naked Drums (CC BY 4.0) · Notation: OpenSheetMusicDisplay (BSD-3-Clause)"],
   obTitle: ["你在準備鋼琴檢定嗎?", "Taking an exam?"],
-  obSub: ["選好後會打開「檢定」分頁,三項都照這一級練。", "The Exams tab will open, set to this grade."],
+  obSub: ["選好後會打開「檢定」分頁,技巧、視奏、聽力都照這一級練。", "Opens the Exams tab; technique, sight-reading and aural use this grade."],
   obYes: ["開始準備考試", "Start exam prep"], obNo: ["不考試,自由練習", "No exam — free practice"],
   obHint: ["不確定?先自由練習,之後再選", "Not sure? Practise freely, choose later"],
   examHelp: ["看檢定書封面或問老師;不考試可以直接用前三個分頁", "Check the exam book or ask your teacher — or just use the other tabs"],

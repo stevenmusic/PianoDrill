@@ -61,7 +61,7 @@ const C = (zh, en) => [zh, en];
 const FINGER = [
   // 0 初學基礎(右手、四分音符;C 位置)
   { id: "P02", g: "0", name: C("找到中央 C", "Find middle C"), hands: "RH", value: "q", rh: "1 1 1 1 | 1 - - -", start: 50, target: 50, need: 2, review: false,
-    check: [C("中央 C:兩個黑鍵左邊的白鍵", "Middle C: the white key left of the two black keys"), C("右手大拇指放在中央 C", "Right thumb on middle C")] },
+    check: [C("中央 C:兩個一組的黑鍵,左邊那個白鍵", "Middle C: white key left of a pair of black keys"), C("右手大拇指放在中央 C", "Right thumb on middle C")] },
   { id: "P01", g: "0", name: C("手指號碼", "Finger numbers"), hands: "RH", value: "q", rh: "1 3 2 4 | 5 3 4 2", start: 50, target: 50, need: 2, review: false,
     check: [C("先看手指號碼再按", "Read the finger number first"), C("大拇指 = 1、小指 = 5", "Thumb = 1, little finger = 5")] },
   // A 五指位置(四分音符 → 最後一關八分音符)

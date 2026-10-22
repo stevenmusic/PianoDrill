@@ -1456,8 +1456,8 @@ function replanWarm(){
 const dcard = createDailyCard({ $, daily,
   labels: { ok: ["做到了", "Did it"], again: ["還要練", "Not yet"], verb: ["彈", "play"], good: ["很好!", "Good!"],
     // 狀態一句短話(fold-280 不超過兩行);過關規則改成到了目標速度在標籤後面顯示「穩 ●○○」
-    hint: ["跟著彈,做到了按 ✓", "Play along, then ✓"],
-    get solo(){ return melOn() ? ["你彈左手,做到了按 ✓", "You play the LH, then ✓"] : ["自己彈,做到了按 ✓", "Play it yourself, then ✓"]; } },
+    hint: ["按 ▶ 跟著彈,做到了按 ✓", "Tap ▶, play along, then ✓"],
+    get solo(){ return melOn() ? ["按 ▶ 你彈左手,做到了按 ✓", "Tap ▶, you play the LH, then ✓"] : ["按 ▶ 自己彈,做到了按 ✓", "Tap ▶, play it yourself, then ✓"]; } },
   warmName, levelName, log: () => S.log,
   onStart: () => { dShow(daily.begin()); window.scrollTo({ top: 0 }); },
   onNext: () => dNext(), onPause: () => dExit(),

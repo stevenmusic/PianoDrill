@@ -208,3 +208,5 @@
   #s-setup .setup-body > .rows{flex:1 1 100%}
 }
 @media (max-width:300px){ #s-setup #s-tempoBox{flex-basis:100%} }   /* 折疊機:速度自己一行(中文「拍 / 分鐘」比 BPM 長,擠在同一行會只有中文換行) */
+/* 手機直式:題目卡標籤(C 大調 · 3/4 · 4 小節 · ♩=76)跟標題同一行;英文「C major」比「C 大調」寬,內距與間距小一點兩種語言才都放得下 */
+@media (max-width:430px){ #mod-sight .q-ht .q-tags{gap:4px} #mod-sight .q-ht .q-tag{padding-left:6px;padding-right:6px} }

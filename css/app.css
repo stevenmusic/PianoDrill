@@ -26,6 +26,7 @@
   --radius-md:14px;
   --radius-lg:18px;
   --radius-pill:999px;
+  --radius-btn:12px;   /* 按鈕一律圓角方形(2026-10-22 使用者看過膠囊 / 圓角方形比較圖後選定;跟分段鈕、卡片同一家);只有圖示的圓形按鈕(主題、語言、▶)維持圓形 */
   /* 字級跟著系統的動態字級(無障礙):根字級 = 17px(預設;iOS 用 -apple-system-body,使用者調大就跟著大),
      代幣 = n/17 rem → 預設跟原本的 px 一模一樣;最多放大到 2 倍(min),版面不破 */
   --fs-2xs:min(calc(11rem / 17), 22px);
@@ -106,7 +107,7 @@ header h1 span{color:var(--ivory);font-weight:600}
   display:inline-flex;align-items:center;justify-content:center;gap:6px;line-height:1;
   border:1px solid var(--gold);background:transparent;color:var(--gold);
   font-family:inherit;font-size:var(--fs-md);font-weight:500;
-  padding:8px 16px;height:38px;border-radius:var(--radius-pill);cursor:pointer;
+  padding:8px 16px;height:38px;border-radius:var(--radius-btn);cursor:pointer;
   transition:background .2s,color .2s;white-space:nowrap;
 }
 .btn svg{flex:none}
@@ -174,7 +175,7 @@ main{
 .field select:focus-visible{outline:2px solid var(--gold-bright);outline-offset:2px}
 .chips{display:flex;flex-wrap:wrap;gap:6px}
 #t-catChips{display:grid;grid-template-columns:repeat(auto-fit, minmax(124px, 1fr))}   /* 固定格子:中英文排法一樣 */
-.chip{height:32px;padding:0 12px;border-radius:var(--radius-pill);border:1px solid var(--line);background:var(--surface-inset);
+.chip{height:32px;padding:0 12px;border-radius:var(--radius-btn);border:1px solid var(--line);background:var(--surface-inset);
   color:var(--muted-bright);font-family:inherit;font-size:var(--fs-sm);cursor:pointer;display:inline-flex;align-items:center;gap:6px}
 .chip[aria-pressed="true"]{border-color:var(--gold);color:var(--gold);background:rgba(242,185,75,.1);font-weight:700}
 :root.light .chip[aria-pressed="true"]{background:rgba(133,100,24,.08)}
@@ -270,7 +271,7 @@ main{
 #t-drawBtn,#e-drawBtn{height:36px}
 .mastery{display:flex;gap:6px;flex:none}
 /* 熟練度:圖示 + 小字(會了 / 待加強),新手才看得懂兩顆在做什麼 */
-.mbtn{min-width:40px;height:40px;padding:0 10px 0 8px;justify-content:center;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--muted-bright);
+.mbtn{min-width:40px;height:40px;padding:0 10px 0 8px;justify-content:center;border-radius:var(--radius-btn);border:1px solid var(--line);background:transparent;color:var(--muted-bright);
   font-family:inherit;font-size:var(--fs-xs);cursor:pointer;display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
 .mbtn svg{flex:none}
 .mbtn[data-m="good"][aria-pressed="true"]{background:var(--teal-fill);border-color:var(--teal-fill);color:var(--on-fill);font-weight:700}
@@ -399,7 +400,7 @@ main{padding-bottom:calc(84px + env(safe-area-inset-bottom))}
 .prow > .lbl{font-size:var(--fs-xs);color:var(--muted-bright)}
 .opts{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding:2px 0;min-width:0}
 .opts::-webkit-scrollbar{display:none}
-.opt{flex:none;height:34px;min-width:40px;padding:0 12px;border-radius:var(--radius-pill);border:1px solid var(--line);background:var(--surface-inset);
+.opt{flex:none;height:34px;min-width:40px;padding:0 12px;border-radius:var(--radius-btn);border:1px solid var(--line);background:var(--surface-inset);
   color:var(--ivory);font-family:inherit;font-size:var(--fs-md);cursor:pointer;white-space:nowrap}
 .opt[aria-pressed="true"]{background:var(--gold-fill);border-color:var(--gold-fill);color:var(--on-fill);font-weight:700}
 .opt:disabled{opacity:.35}
@@ -442,7 +443,7 @@ header{z-index:60}
 @media (max-width:359px){ .tagline{display:none} }
 @media (max-width:480px){ #examChip{display:none !important} }
 /* 主題/語言按鈕一律正方形,窄螢幕也不被擠扁 */
-#themeToggle,#langToggle{aspect-ratio:1;padding:0;min-width:34px;justify-content:center}
+#themeToggle,#langToggle{aspect-ratio:1;padding:0;min-width:34px;justify-content:center;border-radius:50%}
 @media (max-height:420px), (orientation:landscape) and (max-height:500px){ #themeToggle,#langToggle{min-width:30px} }
 /* 速度滑桿:加高點擊區域(滑軌樣式不變) */
 .metro input[type=range]{height:56px;margin:0;-webkit-appearance:none;appearance:none;background:transparent;touch-action:pan-y;cursor:pointer}

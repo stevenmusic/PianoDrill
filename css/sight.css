@@ -8,7 +8,7 @@
 :root.light{ --error:#A33A22; --error-bg:rgba(163,58,34,.08); --error-line:rgba(163,58,34,.35) }
 
 /* ── 設定卡:調性下拉選單 ── */
-#mod-sight .sel{height:34px;min-width:0;max-width:100%;border:1px solid var(--line);border-radius:var(--radius-pill);
+#mod-sight .sel{height:34px;min-width:0;max-width:100%;border:1px solid var(--line);border-radius:var(--radius-btn);
   background:var(--surface-inset);color:var(--ivory);font-family:inherit;font-size:var(--fs-md);padding:0 12px}
 #mod-sight .sel:focus{outline:none;border-color:var(--gold)}
 

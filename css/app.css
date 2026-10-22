@@ -296,7 +296,8 @@ main{
 .metro{display:grid;grid-template-columns:auto 1fr auto;gap:10px 12px;align-items:center}
 .bpm{display:flex;align-items:baseline;gap:6px;min-width:0}
 .bpm b{font-family:"Noto Serif TC",serif;font-size:clamp(30px, 8vw, 40px);color:var(--gold-bright);line-height:1;font-variant-numeric:tabular-nums}
-.bpm small{font-size:var(--fs-xs);color:var(--muted-bright);white-space:nowrap}   /* 「拍 / 分鐘」不拆開(折疊機上中文會換行、英文 BPM 不會)*/
+.bpm small{font-size:var(--fs-xs);color:var(--muted-bright);white-space:nowrap}
+@media (max-width:300px){ .bpm:has(> .beats){flex-wrap:wrap} .bpm > .beats{flex-basis:100%} }   /* 折疊機:拍點燈號自己一行(「拍 / 分鐘」比 BPM 寬,只有中文會把燈號擠下去) */   /* 「拍 / 分鐘」不拆開(折疊機上中文會換行、英文 BPM 不會)*/
 .metro input[type=range]{width:100%;accent-color:var(--gold)}
 .metro .row2{grid-column:1 / -1;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .metro .info{font-size:var(--fs-xs);color:var(--muted-bright);flex:1 1 160px}

@@ -661,6 +661,7 @@ body.land-play #t-stage{flex:1;display:flex;flex-direction:column;justify-conten
 .goal .progress i{background:var(--gold-fill);transition:width .3s}
 .goal .progress i.done{background:var(--teal-fill)}
 .goal .chip{flex:none;font-variant-numeric:tabular-nums;height:auto;min-height:44px}
+.goal .chip.done{border-color:var(--teal);color:var(--teal);font-weight:700}   /* 本週達標(practicelog.js) */
 /* 模擬考結果 */
 .mock-res{grid-column:1 / -1;display:flex;flex-direction:column;gap:6px}
 .mock-res div{display:flex;gap:10px;align-items:center;padding:8px 10px;border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--surface-inset);font-size:var(--fs-md)}

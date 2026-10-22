@@ -56,8 +56,11 @@ export function renderLog($, log, goal){
   $("logToday").textContent = t.n;
   $("goalBar").style.width = Math.min(100, Math.round(100 * min / g)) + "%";
   $("goalBar").classList.toggle("done", min >= g);
-  const label = tr(`每週目標 ${Math.min(min, g)}/${g} 分鐘`, `Weekly ${Math.min(min, g)}/${g} min`);
+  // 達成每週目標:按鈕直接寫「✓ 本週達標」並換成青綠色(跟進度條同色;不跳視窗、不加新的元素)
+  const met = min >= g;
+  const label = met ? tr(`✓ 本週達標 ${g} 分鐘`, `✓ Goal met · ${g} min`) : tr(`每週目標 ${min}/${g} 分鐘`, `Weekly ${min}/${g} min`);
   $("goalBtn").textContent = label;
+  $("goalBtn").classList.toggle("done", met);
   $("goalBtn").setAttribute("aria-label", label + tr("(點一下換目標)", " (tap to change)"));
   const names = getLang() === "en" ? ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"] : ["日", "一", "二", "三", "四", "五", "六"];
   let html = "";

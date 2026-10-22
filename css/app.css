@@ -547,9 +547,10 @@ header{z-index:60}
   #mod-tech .mastery{grid-column:3;grid-row:1}
   #mod-tech .mbtn{height:34px}
   /* 第二行有主要按鈕(檢定頁:隨機抽考 / 下一題):會了 / 再練 放第二行左邊(版型 A 最後一行 左次要 右主要),第一行留給標題與標籤(英文標題長時標籤不被擠到 0 寬、壓到按鈕) */
-  #mod-tech .quiz:has(.q-last .q-actions > button:not([hidden])) .mastery{grid-column:1 / 3;grid-row:auto}
-  #mod-tech .quiz:has(.q-last .q-actions > button:not([hidden])) .q-last .q-actions{grid-column:3 / -1}
-  #mod-tech .quiz:has(.q-last .q-actions > button:not([hidden])) .q-title{max-width:38vw}
+  #mod-tech .quiz:has(.mastery:not([hidden])):has(.q-last .q-actions > button:not([hidden])) .mastery{grid-column:1 / 3;grid-row:auto}
+  #mod-tech .quiz:has(.mastery:not([hidden])):has(.q-last .q-actions > button:not([hidden])) .q-last .q-actions{grid-column:3 / -1}
+  #mod-tech .quiz:has(.mastery:not([hidden])):has(.q-last .q-actions > button:not([hidden])) .q-title{max-width:38vw}
+  #mod-tech .q-tags.wrap{grid-column:1 / 3;grid-row:2}   /* 第一行放不下整組標籤(縮到 0.82 還不夠,fitTitle 加 .wrap):整組到標題下面一行,不擠成 0 寬壓到按鈕 */
   #mod-tech .play-round{grid-column:4;grid-row:1;width:44px;height:44px}
   #mod-tech .quiz .loading{top:2px}
   #t-scoreCard .card-title{margin-bottom:4px}

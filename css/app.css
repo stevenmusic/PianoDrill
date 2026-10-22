@@ -460,7 +460,9 @@ header{z-index:60}
   .fields{grid-template-columns:1fr}
   .seg button{padding:0 4px;font-size:var(--fs-sm)}
   .q-actions{gap:6px}
-  .mbtn{height:34px;padding:0 8px 0 6px}
+  .mbtn{height:34px;padding:0 6px 0 4px}
+  .q-last{column-gap:6px}
+  .q-last .q-actions .btn{padding-left:10px;padding-right:10px}   /* SE 320:英文「Needs work」比「再練」寬,熟練度 + 主要按鈕還要排得下一行 */
   .mastery{gap:4px;margin-left:auto}
   .q-row{gap:6px}
   .q-tags{gap:4px}
@@ -828,6 +830,12 @@ body.land-play #t-stage{flex:1;display:flex;flex-direction:column;justify-conten
 #t-paneScale .opts[data-k="kind"]{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
 #t-paneArp .opts[data-k="kind"]{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
 #t-paneScale .opts:is([data-k="key"],[data-k="motion"],[data-k="kind"]) .opt,#t-paneArp .opts:is([data-k="key"],[data-k="kind"]) .opt{min-width:0;padding:0 2px;justify-content:center;white-space:nowrap}
+/* 拍點 2 欄、範圍 4 欄(≤ 360 寬 2 欄;折疊機拍點 1 欄):中文「每 2 個音響一下」「4 個八度」比英文長,跟著字寬排會只有中文換行 */
+#mod-tech .opts[data-k="pulse"]{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+#mod-tech .opts[data-k="octaves"]{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+#mod-tech .opts:is([data-k="pulse"],[data-k="octaves"]) .opt{min-width:0;padding:0 4px;justify-content:center;white-space:nowrap}
+@media (max-width:360px){ #mod-tech .opts[data-k="octaves"]{grid-template-columns:repeat(2,minmax(0,1fr))} }
+@media (max-width:300px){ #mod-tech .opts[data-k="pulse"]{grid-template-columns:1fr} }
 @media (max-width:340px){
   #t-paneScale .opts[data-k="key"],#t-paneArp .opts[data-k="key"]{gap:4px}
   #t-paneScale .opts[data-k="kind"],#t-paneArp .opts[data-k="kind"]{grid-template-columns:repeat(2,minmax(0,1fr))}
@@ -1047,3 +1055,5 @@ body.view-exam :is(#s-setup,#e-setup){order:19}
 
 /* 標籤縮到 0.82 還放不下就換行(不再縮小、不截掉;tech/app.js 的 fitTitle 加 .wrap) */
 .q-tags.wrap,#mod-tech .q-tags.wrap{flex-wrap:wrap;height:auto;overflow:visible;row-gap:4px}
+/* 折疊機(≤ 300):熟練度「會了 / 再練」+ 主要按鈕排不下一行(英文 Needs work 比再練寬),兩種語言都讓主要按鈕整條在下一行(畫面設計版型 B) */
+@media (max-width:300px){ .q-last:has(> .mastery .mbtn:not([hidden])) > .q-actions:has(> button:not([hidden])){flex:1 1 100%} }

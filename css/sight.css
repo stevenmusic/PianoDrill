@@ -119,7 +119,10 @@
 .rd-seg4 .opt{white-space:nowrap;font-size:var(--fs-sm);padding:4px 2px}   /* 範圍 / 快捷鈕每顆一行(「C3–G4」不拆成兩行) */
 /* 自訂範圍的 ‹ ›:整個卡片寬度;「最低音 ‹ E1 ›」「最高音 ‹ G6 ›」放得下並排、放不下兩排(每排同樣的欄寬,上下對齊),不會有一顆鈕單獨掉下去 */
 /* 音域一行:最低音、最高音各一欄(上 = 升高、名稱、下 = 降低),中間一條 –;「最多 n 條加線」在右邊(放不下就在這一格換行) */
-.rd-span-ctl{display:grid;grid-template-columns:minmax(44px,max-content) auto minmax(44px,max-content) minmax(0,1fr);align-items:center;column-gap:8px;min-width:0}
+/* 音域:最低 – 最高,「最多 n 條加線」在同一行右邊;那一格不到 7em(手機橫放的窄欄)整句換到下一行(不擠成 0 寬溢出畫面) */
+.rd-span-ctl{display:flex;flex-wrap:wrap;align-items:center;column-gap:8px;min-width:0}
+.rd-span-ctl > .rd-end{flex:none;min-width:44px}
+.rd-span-ctl > .rd-ledger{flex:1 1 7em}
 .rd-end{display:grid;grid-template-rows:44px auto 44px;justify-items:center;align-items:center;row-gap:2px}   /* 直向三列:⌃ / 音名 / ⌄(箭頭 44 高,音名有自己的一列,不被蓋住) */
 .rd-end b{min-width:3em;text-align:center;font-size:var(--fs-md);line-height:1.3;font-variant-numeric:tabular-nums;color:var(--gold-bright)}
 .rd-dash{color:var(--muted-bright);font-size:var(--fs-md)}
@@ -201,5 +204,7 @@
   #s-setup .s-stage-foot .info:empty{display:none}   /* 空的說明行不佔寬度,速度才接得上同一行 */
   #s-setup #s-tempoBox{flex:1 1 150px;margin-top:8px;min-width:0;column-gap:6px}
   #s-setup #s-tempoBox .bpm{gap:4px}
+  #s-bpmUnit{white-space:nowrap}
   #s-setup .setup-body > .rows{flex:1 1 100%}
 }
+@media (max-width:300px){ #s-setup #s-tempoBox{flex-basis:100%} }   /* 折疊機:速度自己一行(中文「拍 / 分鐘」比 BPM 長,擠在同一行會只有中文換行) */

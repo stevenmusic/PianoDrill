@@ -463,7 +463,7 @@ function setQuestion(q, tab){
   preloadSamples();
 }
 /* 標籤(題目卡標題同一行):自由練習不放「右手 / 左手 / 雙手」(譜卡的手切換就是;畫面設計 2026-10);回傳 [文字, parts 的索引 − 1] */
-const HAND_TAGS = () => [tr("右手", "RH"), tr("左手", "LH"), tr("雙手", "Both hands")];
+const HAND_TAGS = () => [tr("右手", "RH"), tr("左手", "LH"), tr("雙手", "Both")];
 function tagParts(q, parts){
   const drop = !q.daily ? HAND_TAGS() : [];   // 手寫在譜卡的手的切換(自由練習、檢定都有),標籤不重複
   return parts.slice(1).map((t, i) => [t, i]).filter(([t]) => !drop.includes(t));
@@ -496,8 +496,7 @@ function renderQText(q, tab){
     $("qTitle").textContent = Array.isArray(nm) ? tr(nm[0], nm[1]) : nm;
     const tags = dcard.segTags({ ...dseg, bpm: q.tempo.bpm });
     const hand = questionText(q)[1];   // 關卡名稱已經寫了「右手」:標籤不再寫
-    // 今日練習的標籤一行放得下:英文「Both hands」寫「Both」(跟 RH / LH 一樣短)
-    if (q.type === "route" && dseg.k !== "warm" && !$("qTitle").textContent.includes(hand)) tags.splice(1, 0, hand === "Both hands" ? "Both" : hand);   // [手指 1 / 33] [右手] [速度 50 → 84](時值不放,譜上看得到)
+    if (q.type === "route" && dseg.k !== "warm" && !$("qTitle").textContent.includes(hand)) tags.splice(1, 0, hand);   // [手指 1 / 33] [右手] [速度 50 → 84](時值不放,譜上看得到)
     $("qTags").innerHTML = tags.map(t => `<span class="q-tag">${t}</span>`).join("");
   }
   syncPlayCap();

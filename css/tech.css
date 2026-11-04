@@ -1,0 +1,8 @@
+/* 技巧模組自己的樣式(共用的設計代幣、卡片、樂譜紙張在 css/app.css;這裡只放技巧專用的,一律限定在 #mod-tech 的元素)。
+   譜框左右淡出:一整行的譜比譜框寬時,還有譜的那一側淡出(js/tech/app.js 的 syncFades 加 .fade-l / .fade-r),捲到底就消失。
+   顏色 = 紙張(--paper,深淺主題都一樣);不擋手指滑動;在播放軸(z-index 5)下面 */
+#t-stage .t-fade{position:absolute;top:1px;bottom:1px;width:24px;pointer-events:none;z-index:4;opacity:0;transition:opacity .2s}
+#t-stage .t-fade.l{left:1px;background:linear-gradient(to right,var(--paper),rgba(255,253,246,0))}
+#t-stage .t-fade.r{right:1px;background:linear-gradient(to left,var(--paper),rgba(255,253,246,0))}
+#t-stage.fade-l .t-fade.l, #t-stage.fade-r .t-fade.r{opacity:1}
+@media (prefers-reduced-motion:reduce){ #t-stage .t-fade{transition:none} }

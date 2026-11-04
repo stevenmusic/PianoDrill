@@ -422,7 +422,7 @@ function showEmpty(){
   if (S.tab === "exam" && SY && S.exam) syncExamButtons();
   $("playBtn").disabled = true; ROOT.querySelectorAll(".mbtn").forEach(b => { b.disabled = true; b.setAttribute("aria-pressed", "false"); });
   if (osmd) { try { osmd.clear(); } catch (e) {} }
-  $("osmd").innerHTML = ""; osmd = null; noteXs = []; $("playline").hidden = true;
+  $("osmd").innerHTML = ""; osmd = null; noteXs = []; $("playline").hidden = true; syncFades(0);
   setMsg("paperMsg", () => tr("選一題之後,這裡會顯示五線譜與指法", "Pick an item to see the score and fingering here"));
   $("scoreNote").hidden = true;
   syncTempoUI();
@@ -1024,17 +1024,27 @@ function movePlayline(beat, follow){
   const scroll = $("scroll"), o = $("osmd"), pl = $("playline");
   const x = o.offsetLeft + xAtBeat(beat);
   playlineRow(beat);
-  if (follow && wrapMode()) { if (o.style.transform) o.style.transform = ""; pl.style.transform = `translate3d(${x - 1}px,0,0)`; return; }
+  if (follow && wrapMode()) { if (o.style.transform) o.style.transform = ""; pl.style.transform = `translate3d(${x - 1}px,0,0)`; syncFades(0); return; }
   if (follow) {
     if (scroll.scrollLeft) scroll.scrollLeft = 0;
     const max = Math.max(0, o.offsetLeft + o.offsetWidth - scroll.clientWidth);
     const shift = Math.max(0, Math.min(max, x - scroll.clientWidth * PLAYLINE_RATIO));
     o.style.transform = shift ? `translate3d(${-shift}px,0,0)` : "";
     pl.style.transform = `translate3d(${x - shift - 1}px,0,0)`;
+    syncFades(shift);
     return;
   }
   if (o.style.transform) o.style.transform = "";
   pl.style.transform = `translate3d(${x - scroll.scrollLeft - 1}px,0,0)`;
+  syncFades(scroll.scrollLeft);
+}
+/* 一整行的譜比譜框寬:還有譜的那一側淡出(左右捲的提示;7 歲 / 70 歲看不出能滑),捲到底就消失。
+   left = 現在看到的起點(手滑 = scrollLeft,播放中 = transform 的位移);換行排法、沒有譜都不顯示 */
+function syncFades(left){
+  const scroll = $("scroll"), o = $("osmd"), stage = $("stage");
+  const end = o.offsetLeft + o.offsetWidth, on = !!osmd && !wrapMode() && end > scroll.clientWidth + 1;
+  stage.classList.toggle("fade-l", on && left > 1);
+  stage.classList.toggle("fade-r", on && left + scroll.clientWidth < end - 1);
 }
 $("scroll").addEventListener("scroll", () => { if (!play) movePlayline(0, false); }, { passive: true });
 /* 旋轉螢幕 / 改視窗大小:縮放改了就重畫;播放軸位置重算 */

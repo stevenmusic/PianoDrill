@@ -187,6 +187,8 @@ function renderSubnav(){
   if (bar && bar.parentNode !== $("subnav")) { bar.classList.add("sub-bar"); $("subnav").appendChild(bar); }
   $("subSeg").hidden = !!bar;
   $("subnav").classList.toggle("has-bar", !!bar);
+  // 今日練習的段落進行中(這一頁的子項目都不亮):頁尾藏起來(app.css 的 body.daily-on)
+  document.body.classList.toggle("daily-on", !!opts.length && subOff.has(S.view));
 }
 $("subSeg").onclick = e => {
   const b = e.target.closest("button[data-v]"); if (!b) return;

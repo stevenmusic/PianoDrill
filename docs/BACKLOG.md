@@ -9,7 +9,7 @@
 - [x] [小] 第一次打開 — ABRSM 右邊「)」狀的框 = 自動焦點的焦點框被 `.seg` 的 overflow 切掉 → 焦點改放標題、`.seg` 焦點框畫在裡面(2026-11)
 - [x] [小] 手機橫式今日清單字小 — 誤判:實測已是 `--fs-md`(14px),是拼圖把截圖縮小造成的
 
-- [ ] [中] DrumDrill 同步(2026-11 這一輪的共用檔):app.css(`.seg` 焦點框、`.modal` 遮罩、`.daily-ms`、頁尾 `.foot-link`/`.bak`、`.hint-empty` 一行、one-col 760)、main.js 共用段(第一次打開焦點、balanceCols、備份 / 摘要)+ @app 補 `BACKUP`、`digestData`、i18n.js 共用區段(`bak.`、`digest.`)、新檔 milestone.js / backup.js / digest.js、daily.js、dailycard.js、checks/daily.mjs / backup.mjs / digest.mjs、sync.json、index.html 的 onboardTitle tabindex 與頁尾連結
+- [ ] [中] DrumDrill 同步(2026-11):已在本地完成(37 個共用檔一致、verify 6900 項、tasks / layout / bilingual 過),**等使用者開 DrumDrill 的 push 權限再推**
 - [ ] [小] iOS VoiceOver 實測第一次打開:標題會不會唸兩次(太吵就改把焦點放 `.modal-card`)
 
 - [x] [小] playback.mjs 視奏段:先彈一遍再點 ▶(2026-11)

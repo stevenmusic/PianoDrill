@@ -70,6 +70,12 @@ const lang = async () => { await page.click("#langToggle"); await page.waitForTi
 {
   await page.click('.tabbar [data-view="sight"]');
   await waitFor(() => !document.getElementById("s-play").disabled, null, 60000);
+  // ▶(聽正確版本)要彈過一遍才出現:關麥克風(不問權限)→ 彈一遍 → 提早彈完(__sight.finishPlay)
+  await page.evaluate(() => { const m = document.getElementById("s-alongMic"); if (m && m.checked) m.click(); });
+  await page.click("#s-playAlongTop");
+  await page.waitForTimeout(500);
+  await page.evaluate(() => window.__sight.finishPlay());
+  await waitFor(() => getComputedStyle(document.getElementById("s-play")).visibility !== "hidden", null, 30000);
   await page.click("#s-play");
   await waitFor(() => document.getElementById("s-play").classList.contains("is-active"), null, 30000);
   const before = await page.getAttribute("#s-play", "aria-label");

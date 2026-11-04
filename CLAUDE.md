@@ -16,6 +16,8 @@ FingerDrill(技巧)、SightDrill(視奏)、EarDrill(聽音)三個工具合併成
 
 ## 工作團隊(harness;省 token 的用法)
 - 角色在 `.claude/agents/`:**審查員** `reviewer`(push 前看 diff)、**規劃員** `planner`(大改前排計畫)、**辯論員** `debater`(設計取捨);都用 sonnet、只讀、回覆有字數上限
+- 自動迭代(2026-11 使用者要求):**體驗員** `uxtester`(sonnet;實際截圖、扮演 7 歲 / 70 歲 / 第一次用 / 設計師找問題,只寫 `docs/BACKLOG.md`)→ **迭代員** `iterator`(會改檔;一次拿 BACKLOG 一項、最小改動、跑測試、打勾;不 commit、不 push)→ 審查員看 diff → 主代理 push 並用中文條列回報。
+  外觀、新功能、刪功能放 BACKLOG「要使用者決定」,迭代員不動手;一次派多個迭代員要 `isolation: "worktree"`、一人一項、不碰同一個檔;人手不夠主代理可以再加角色(寫進 `.claude/agents/` 與這一段)
 - 什麼時候叫:
   - 小改(一個字串、一個數字、一個 CSS 值):誰都不叫,自己改、跑快的測試就 push
   - 中改(一個模組裡的功能):做完叫審查員一次

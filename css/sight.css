@@ -132,7 +132,7 @@
 #s-setup.always-open .setup-body{display:block !important;margin-top:0 !important}
 /* 視奏分頁題目卡(.free):最後一行 左 = 小的「新題目」、右 = 大的「彈一遍」(唯一的主要動作);沒有準備倒數 */
 #s-quiz.free:not(.hint-empty) #s-generate{order:-1}
-#mod-sight .s-along-top.counting:disabled{opacity:1;font-variant-numeric:tabular-nums}   /* 看譜倒數:主要按鈕上寫剩幾秒(不變淡) */
+#mod-sight .s-along-top.counting:disabled{opacity:1;background:var(--gold-fill);border-color:var(--gold);color:var(--on-fill);box-shadow:0 6px 22px -8px rgba(242,185,75,.8);font-variant-numeric:tabular-nums}   /* 看譜倒數:主要按鈕上寫剩幾秒(不變淡,不套 .btn:disabled 的灰底) */
 #mod-sight .s-along-top{flex:0 1 auto;min-width:48%;min-height:48px;height:auto;padding:0 22px;font-size:var(--fs-md)}
 #s-quiz.free .q-foot{margin-top:6px}
 /* 手機橫式:認音的題目卡左右排(左 = 譜、右 = 訊息與琴鍵) */

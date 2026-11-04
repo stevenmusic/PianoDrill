@@ -58,7 +58,7 @@ export function resultText(res, s, next = null, good = "很穩!"){
 
 /* createDailyCard({ $, daily, labels, warmName, levelName, log, onStart, onNext, onPause, onMore, onOk, onAgain, onBack, announce, acts, mark, barHost })
    - labels = { ok: [中, 英], again: [中, 英], hint: [中, 英](學的時候的下一步), solo: [中, 英](只有拍點的時候), verb: [中, 英](暖身提示的動詞:打 / 彈),
-     good: [中, 英](穩了的稱讚:鼓「很穩!」、琴「很好!」) }
+     good: [中, 英](穩了的稱讚:鼓「很穩!」、琴「很好!」), wait: [中, 英](「穩了 / 做到了」還不能按時按鈕的 title;沒給就用 hint) }
    - warmName(item) → [中, 英]:暖身項目的名稱(各 App 自己寫)
    - log() → 模組的練習紀錄(最近 7 天練了幾天)
    - mark(s) → 這一段速度的寫法(預設「♩=」;DrumDrill 12/8 的關「♩.=」):標籤、狀態、結果的速度都照這個寫
@@ -182,7 +182,7 @@ export function createDailyCard({ $, daily, labels = {}, warmName = () => "", le
     panelNext = !!primaryNext;
     const tip = !warm && !daily.data.tip && s.bpm;   // 第一次:速度的小字說明「速度 56 = 每分鐘 56 拍」(試過一次就不再出現)
     // 重點:每項一行的清單(系統化規則:主要資訊字級 ≥ --fs-md)
-    step.innerHTML = `<p class="daily-status"></p>` + (tip ? `<p class="daily-tip"></p>` : "") + (why ? `<p class="daily-why"></p>` : "") + (vary ? `<p class="daily-vary"></p>` : "") +
+    step.innerHTML = `<p class="daily-status" id="${step.id}-status"></p>` + (tip ? `<p class="daily-tip"></p>` : "") + (why ? `<p class="daily-why"></p>` : "") + (vary ? `<p class="daily-vary"></p>` : "") +
       (check ? `<div class="daily-check"><b>${esc(fmt("checkTitle"))}</b><ul>${check.map(() => "<li></li>").join("")}</ul></div>` : "") +
       `<div class="daily-acts"${warm ? " hidden" : ""}>` + (!warm && s.k === "route" && s.suggest && daily.canBack() && !passedDone ? `<button class="text-btn daily-back">${esc(fmt("back"))}</button>` : "") +
       `<span class="daily-sp"></span>` +
@@ -195,9 +195,17 @@ export function createDailyCard({ $, daily, labels = {}, warmName = () => "", le
     if (check) step.querySelectorAll(".daily-check li").forEach((li, i) => { li.textContent = L2(check[i]); });   // 每項一行(不用 pairText:英文比較長時中文會多出空行;換語言時 relang 重畫)
     const on = (sel, fn) => { const b = step.querySelector(sel); if (b) b.onclick = () => fn && fn(); };
     on(".daily-back", onBack); on(".daily-again", onAgain); on(".daily-ok", onOk); on(".daily-go", onNext);
+    syncOk();
     step.appendChild(park);
     placeActs(s, lastOpts);
     syncNext();
+  }
+  /* 「穩了 / 做到了」還不能按:title 與 aria-describedby 指到狀態那一句(說為什麼、怎麼讓它亮) */
+  function syncOk(){
+    const b = step.querySelector(".daily-ok"); if (!b) return;
+    b.disabled = !okReady;
+    if (okReady) { b.removeAttribute("title"); b.removeAttribute("aria-describedby"); }
+    else { b.title = L2(labels.wait || labels.hint || ["", ""]); b.setAttribute("aria-describedby", `${step.id}-status`); }
   }
   function paintStatus(s){
     const el = step.querySelector(".daily-status"); if (!el) return;
@@ -218,7 +226,7 @@ export function createDailyCard({ $, daily, labels = {}, warmName = () => "", le
     set showing(v){ showing = !!v; }, get showing(){ return showing; },
     render, renderStep,
     /* 「穩了 / 做到了」能不能按(先用現在的速度播過一輪):App 播過 2 小節呼叫 ready(true);換段、換速度 ready(false) */
-    ready(v){ okReady = !!v; const b = step.querySelector(".daily-ok"); if (b) b.disabled = !okReady; },
+    ready(v){ okReady = !!v; syncOk(); },
     get isReady(){ return okReady; },
     /* 換語言:只重寫文字 */
     relang(s){ render(); if (s && !step.hidden) renderStep(s, lastOpts); },

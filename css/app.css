@@ -1050,9 +1050,10 @@ body.view-exam #t-dailyCard,body.view-exam #t-dailyStep{display:none !important}
 .diff-fb .chip{min-height:44px}
 #t-rlBtn,#t-namesBtn,#s-names{min-height:44px;height:auto}
 #t-nextBtn{min-height:44px;height:auto}
-/* 手機橫式:主要按鈕(開始 / 停止模擬考)、譜卡的手的切換、考試的系統與級數不壓到 28 */
+/* 模擬考卡的開始 / 停止模擬考、關閉(這張卡唯一的按鈕;每種尺寸都 44,手機橫式也不壓到 28) */
+#t-mockBtn,#s-mockBtn,#e-mockBtn,#t-mockClose,#s-mockClose,#e-mockClose{min-height:44px;height:auto}
+/* 手機橫式:譜卡的手的切換、考試的系統與級數不壓到 28 */
 @media (max-height:420px), (orientation:landscape) and (max-height:500px){
-  #t-mockBtn,#s-mockBtn,#e-mockBtn,#t-mockClose,#s-mockClose,#e-mockClose{min-height:44px;height:auto}
   #t-scoreCard .seg button{min-height:44px}
   .exam-pick .seg button,.exam-pick #systemSeg button{min-height:44px}
   /* 題目卡的白話說明放回大標題(那一行)下面 */
@@ -1087,11 +1088,11 @@ body.view-exam :is(#s-setup,#e-setup){order:19}
 #examChip,#themeToggle,#langToggle{position:relative}
 #examChip::after,#themeToggle::after,#langToggle::after{content:"";position:absolute;left:50%;bottom:-4px;width:max(100%, 44px);height:44px;transform:translateX(-50%)}
 @media (max-width:600px){ .header-right{column-gap:10px} }   /* 兩顆圓鈕各往旁邊伸 5,中間要留 10 才不互相蓋住 */
-/* 折疊機(≤ 300):子項目列看起來維持 32(第一個畫面的題目卡才在上半部),點擊區上 6 下 10 = 44;圓鈕往下少伸 1,兩塊剛好接上 */
+/* 折疊機(≤ 300):子項目列看起來維持 32(第一個畫面的題目卡才在上半部),點擊區上 6 下 10 = 44;圓鈕往下少伸 2,兩塊剛好接上 */
 @media (max-width:300px){
   .subnav .seg button{min-height:28px}
   .subnav .seg button::after{inset:-6px 0 -10px}
-  #themeToggle::after,#langToggle::after{bottom:-3px}
+  #themeToggle::after,#langToggle::after{bottom:-2px}   /* 圓鈕 32 高:上 10 − 2 = 0 起、往下伸 2 = 44,剛好接上子項目列的點擊區(上 6) */
 }
 @media (max-height:420px), (orientation:landscape) and (max-height:500px){
   #examChip::after,#themeToggle::after,#langToggle::after{width:max(100%, 36px);height:36px}

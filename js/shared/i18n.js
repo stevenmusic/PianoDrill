@@ -97,6 +97,10 @@ addStrings("bak", {
   err_save: ["沒有存成功,請再試一次", "Couldn't save. Please try again."]
 });
 /* 本週摘要(頁尾「分享本週摘要」;內文在 js/shared/digest.js(純函式,自己帶中英);兩個 App 一樣):分享不了就複製,旁邊寫「已複製」2 秒 */
+/* localStorage 不能寫(私密瀏覽、空間滿;main.js 共用部分啟動時試寫一次):頁尾最上面一行淡字,能寫就不出現(兩個 App 一樣) */
+addStrings("store", {
+  nosave: ["這個瀏覽器不能存紀錄(可能是私密瀏覽),關掉就不見", "This browser can't save your progress (private mode?) — it's gone when you close it"]
+});
 addStrings("digest", {
   link: ["分享本週摘要", "Share this week"],
   copied: ["已複製", "Copied"], fail: ["沒辦法分享", "Couldn't share"]

@@ -112,6 +112,13 @@ $("themeToggle").onclick = () => { S.theme = S.theme === "light" ? "dark" : "lig
 applyTheme();
 applyStatic();
 $("langToggle").onclick = () => setLang(getLang() === "zh" ? "en" : "zh");
+/* localStorage 不能寫(私密瀏覽、空間滿):頁尾最上面一行淡字「這個瀏覽器不能存紀錄…」;能寫就不出現(App 照常用) */
+const canStore = (() => { try { const k = "__store_probe"; localStorage.setItem(k, "1"); localStorage.removeItem(k); return true; } catch (e) { return false; } })();
+if (!canStore) {
+  const p = document.createElement("p");
+  p.className = "store-warn"; p.dataset.i18n = "store.nosave"; p.setAttribute("data-i18n-pair", "");   // 中英一樣高
+  const f = document.querySelector("footer"); if (f) { f.prepend(p); applyStatic(f); }
+}
 onLang(() => {
   renderSubnav(); renderExamCard(); tabbarLabel();
   if (!$("onboard").hidden) fillGradeSeg($("obGradeSeg"), ob.grade, ob.system || DEFAULT_EXAM.system);
@@ -280,10 +287,12 @@ $("examChip").onclick = () => showView("exam");
 
 /* ══ 考試卡(檢定頁;不收起來):系統兩顆大鈕 + 級數一排,點一下就換 ══
    級數列(#gradeSeg、第一次的問題的 #obGradeSeg):role="group",每顆 aria-pressed;按鈕上寫短名(gradeShort:0–8,第一格 I / D),
-   aria-label 寫完整級名(gradeLabel);重畫時焦點留在同一顆(keepFocus) */
+   aria-label 寫完整級名(gradeLabel);重畫時焦點留在同一顆(keepFocus)。
+   無障礙(可見字要在名稱開頭,語音控制說「點 D」才對得上):級名不是以按鈕上的字開頭、按鈕上也不是數字 → 「D (Debut)」「I 初級」 */
+const gradeAria = (g, sys) => { const lab = gradeLabel(g, sys), sh = gradeShort(g, sys); return lab.startsWith(sh) || /^\d+$/.test(sh) ? lab : tr(`${sh} ${lab}`, `${sh} (${lab})`); };
 function fillGradeSeg(seg, grade, sys){
   const keep = keepFocus(seg, "data-v");
-  seg.innerHTML = gradesOf(sys).map(g => `<button type="button" data-v="${g}" aria-pressed="${g === grade}" aria-label="${gradeLabel(g, sys)}">${gradeShort(g, sys)}</button>`).join("");
+  seg.innerHTML = gradesOf(sys).map(g => `<button type="button" data-v="${g}" aria-pressed="${g === grade}" aria-label="${gradeAria(g, sys)}">${gradeShort(g, sys)}</button>`).join("");
   keep();
 }
 const gradeOfClick = e => { const b = e.target.closest("button[data-v]"); return b && !b.disabled ? Number(b.dataset.v) : null; };

@@ -379,9 +379,12 @@ function keyboardHTML(k){
   let b = k.hi; while (isBlack(b)) b++;
   const whites = []; for (let m = a; m <= b; m++) if (!isBlack(m)) whites.push(m);
   const w = 100 / whites.length;
-  let html = whites.map(m => `<div class="k wk${k.allowed && !k.allowed.includes(m % 12) ? " off" : ""}" data-m="${m}">${k.pcOnly ? noteName(m % 12) : m % 12 === 0 ? "C" + (Math.floor(m / 12) - 1) : ""}</div>`).join("");   // 單音題:每個白鍵照「音名」設定標字(跟認音一樣)
+  // 無障礙:每個鍵 role=button、Tab 走得到、aria-label 唸音名(照「音名」設定;不分八度的題不唸八度);停用的鍵 aria-disabled、Tab 跳過
+  const attrs = (m, off) => ` role="button" tabindex="${off ? -1 : 0}" aria-label="${keyName(m, k.pcOnly)}"${off ? ' aria-disabled="true"' : ""}`;
+  const offAt = m => !!(k.allowed && !k.allowed.includes(m % 12));
+  let html = whites.map(m => `<div class="k wk${offAt(m) ? " off" : ""}" data-m="${m}"${attrs(m, offAt(m))}>${k.pcOnly ? noteName(m % 12) : m % 12 === 0 ? "C" + (Math.floor(m / 12) - 1) : ""}</div>`).join("");   // 單音題:每個白鍵照「音名」設定標字(跟認音一樣)
   whites.forEach((m, i) => {
-    if (m + 1 <= b && isBlack(m + 1)) html += `<div class="k bk${k.allowed && !k.allowed.includes((m + 1) % 12) ? " off" : ""}" data-m="${m + 1}" style="left:calc(${(i + 1) * w}% - ${w * 0.31}%);width:${w * 0.62}%"></div>`;
+    if (m + 1 <= b && isBlack(m + 1)) html += `<div class="k bk${offAt(m + 1) ? " off" : ""}" data-m="${m + 1}"${attrs(m + 1, offAt(m + 1))} style="left:calc(${(i + 1) * w}% - ${w * 0.31}%);width:${w * 0.62}%"></div>`;
   });
   return html;
 }
@@ -400,10 +403,28 @@ function syncKeys(){
     return `<i class="${cls}"></i>`;
   }).join("");
 }
+/* 琴鍵的名字(螢幕報讀):白鍵「C」/「Do」、黑鍵「升 C / 降 D」(C sharp / D flat);不分八度的題(pcOnly)不唸八度 */
+function keyName(m, pcOnly){
+  const pc = m % 12, oct = pcOnly ? "" : String(Math.floor(m / 12) - 1);
+  if (!isBlack(pc)) return noteName(pc) + oct;
+  const [up, dn] = noteName(pc).split("/").map(x => x.replace("♯", "").replace("♭", "") + oct);
+  return tr(`升 ${up} / 降 ${dn}`, `${up} sharp / ${dn} flat`);
+}
 $("answers").addEventListener("pointerdown", e => {
   const key = e.target.closest(".k"); if (!key || !cur || !cur.keys) return;
   if (key.dataset.refOff) return;   // 參考音亮起來時暫時拿掉 .off 的鍵(不是可以作答的音)
   e.preventDefault();
+  pressKey(key);
+});
+/* 鍵盤操作(Tab 到琴鍵 + Enter / 空白鍵)= 點那個鍵;不轉給模組的快捷鍵(空白鍵是播放、Enter 是下一題) */
+$("answers").addEventListener("keydown", e => {
+  if (e.key !== "Enter" && e.key !== " ") return;
+  const key = e.target.closest && e.target.closest(".k"); if (!key || !cur || !cur.keys) return;
+  e.preventDefault(); e.stopPropagation();
+  if (e.repeat || key.classList.contains("off") || key.dataset.refOff) return;
+  pressKey(key);
+});
+function pressKey(key){
   const m = Number(key.dataset.m), k = cur.keys;
   if (A.done && k.pcOnly) tapNote(m + 12 * Math.round((k.target[0] - m) / 12));   // 單音答完:在題目的八度出聲比較
   else if (!k.mute) tapNote(m);
@@ -417,7 +438,7 @@ $("answers").addEventListener("pointerdown", e => {
     syncKeys();
     finish(r.ok);
   } else syncKeys();
-});
+}
 function markRightKey(){
   const k = cur.keys; if (k.target.length !== 1) return;
   $("answers").querySelectorAll(".k").forEach(el => { if ((Number(el.dataset.m) - k.target[0]) % 12 === 0) el.classList.add("right"); });

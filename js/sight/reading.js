@@ -233,6 +233,16 @@ export function createReading({ $, store, save, onAnswered = () => {} }) {
       k.classList.toggle('wrong', tapped != null && ok === false && pc === tapped);
       k.classList.toggle('right', tapped != null && q && pc === ((q.m % 12) + 12) % 12);
     }
+    nameKeys();
+  }
+  /* 無障礙:琴鍵 role=button、Tab 走得到、唸音名(白鍵「C」、黑鍵「升 C / 降 D」C sharp / D flat);停用的鍵(只有白鍵時的黑鍵)Tab 跳過 */
+  function nameKeys() {
+    for (const k of $('rdKbd').querySelectorAll('.k')) {
+      const pc = Number(k.dataset.pc), off = k.classList.contains('off');
+      k.setAttribute('role', 'button'); k.tabIndex = off ? -1 : 0;
+      k.setAttribute('aria-label', isBlack(pc) ? tr(`升 ${LETTER[pc]} / 降 ${LETTER[pc + 1]}`, `${LETTER[pc]} sharp / ${LETTER[pc + 1]} flat`) : LETTER[pc]);
+      if (off) k.setAttribute('aria-disabled', 'true'); else k.removeAttribute('aria-disabled');
+    }
   }
 
   /* ── 設定(一直看得到的按鈕)── */
@@ -343,6 +353,14 @@ export function createReading({ $, store, save, onAnswered = () => {} }) {
   addEventListener('resize', () => { if (innerWidth === lastW) return; lastW = innerWidth; clearTimeout(rzT); rzT = setTimeout(() => { if (active) fit(); }, 150); });
   hold('rdLoDown', 'lo', -1); hold('rdLoUp', 'lo', 1); hold('rdHiDown', 'hi', -1); hold('rdHiUp', 'hi', 1);
   $('rdKbd').addEventListener('pointerdown', (e) => { const k = e.target.closest('.k'); if (!k || k.classList.contains('off')) return; e.preventDefault(); answer(Number(k.dataset.pc)); });
+  // 鍵盤操作(Tab 到琴鍵 + Enter / 空白鍵)= 點那個鍵;不轉給外框的快捷鍵
+  $('rdKbd').addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    const k = e.target.closest && e.target.closest('.k'); if (!k) return;
+    e.preventDefault(); e.stopPropagation();
+    if (e.repeat || k.classList.contains('off') || $('rdKbd').classList.contains('idle')) return;
+    answer(Number(k.dataset.pc));
+  });
   $('rdStart').onclick = () => {
     endRes = null; session = { ok: 0, n: 0 };
     drill.start(R.mode, setting(), () => paintTop());
@@ -362,7 +380,7 @@ export function createReading({ $, store, save, onAnswered = () => {} }) {
       if (!q || !!q.value !== valOn()) next(); else { paintBeats(); draw(); }
     },
     leave() { active = false; clearTimeout(nextTimer); if (drill.running) drill.stop(); },
-    relang() { paintOpts(); paintTop(); paintMiss(); if (msgFn) say(msgFn); },
+    relang() { paintOpts(); paintTop(); paintMiss(); nameKeys(); if (msgFn) say(msgFn); },
     onKey(e) {
       if (valOn()) { const d = '1234'.indexOf(e.key); if (d >= 0) { answerBeat(String(d + 1)); return true; } return false; }
       const i = 'cdefgab'.indexOf((e.key || '').toLowerCase());

@@ -38,7 +38,7 @@ const STR = {
   obTitle: ["你在準備鋼琴檢定嗎?", "Taking an exam?"],
   obSub: ["選好後會打開「檢定」分頁,技巧、視奏、聽力都照這一級練。", "Opens the Exams tab; technique, sight-reading and aural use this grade."],
   obYes: ["開始準備考試", "Start exam prep"], obNo: ["不考試,自由練習", "No exam — free practice"],
-  obHint: ["不確定?先自由練習,之後再選", "Not sure? Practise freely, choose later"],
+  obHint: ["不確定?先自由練習,之後再選", "Not sure? Practice freely, choose later"],
   examHelp: ["看檢定書封面或問老師;不考試可以直接用前三個分頁", "Check the exam book or ask your teacher — or just use the other tabs"],
   examInfo: ["考試內容", "Exam details"]   // 檢定頁最下面那張收起來的卡(出處、規格;畫面設計 2026-10)
 };
@@ -70,9 +70,9 @@ addStrings("daily", {
   // 練完了那一行:{s} = parts / part1(英文單複數)、{t} = 分鐘或秒(不到 1 分鐘寫秒,不進位成 1 分鐘)、{p} = passedN(0 關不寫);一段都沒練 = none
   done: ["練完 {s} · {t}{p}。今天到這裡就好", "Done: {s} · {t}{p}. That's enough for today"], passedN: [" · 過了 {n} 關", " · {n} passed"],
   parts: ["{n} 段", "{n} parts"], part1: ["{n} 段", "{n} part"], min: ["{n} 分鐘", "{n} min"], sec: ["{n} 秒", "{n} s"],
-  none: ["今天還沒練到", "Nothing practised today"],
-  week: ["最近 7 天練了 {d} 天", "Practised {d} of the last 7 days"], tomorrow: ["明天:{list}", "Tomorrow: {list}"],
-  more: ["再練一下", "Practise a bit more"]
+  none: ["今天還沒練到", "Nothing practiced today"],
+  week: ["最近 7 天練了 {d} 天", "Practiced {d} of the last 7 days"], tomorrow: ["明天:{list}", "Tomorrow: {list}"],
+  more: ["再練一下", "Practice a bit more"]
 });
 /* 練習紀錄備份(頁尾「備份紀錄」;js/shared/backup.js + main.js 共用部分;兩個 App 一樣):{f} = 檔名;err_* = backup.js 的錯誤代碼 */
 addStrings("bak", {

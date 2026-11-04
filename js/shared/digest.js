@@ -39,7 +39,7 @@ export function build({ app = "", days = [], mods = {}, daily = [], lang = "zh" 
   if (!all.size) {
     lines.push(L("這 7 天還沒有練習紀錄。今天練 5 分鐘就是好的開始。", "No practice in the last 7 days yet. 5 minutes today is a great start."));
   } else {
-    lines.push(L(`練了 ${all.size} / 7 天 · 共 ${mins(total)}`, `Practised ${all.size} of 7 days · ${mins(total)} in all`));
+    lines.push(L(`練了 ${all.size} / 7 天 · 共 ${mins(total)}`, `Practiced ${all.size} of 7 days · ${mins(total)} in all`));
     const none = L("這週沒練", "not this week");
     lines.push(L("技巧:", "Technique: ") + (t.tech.days.size ? mins(t.tech.sec) : none));
     lines.push(L("視奏:", "Sight-reading: ") + (t.sight.days.size ? L(`${t.sight.n} 題 · `, plural(t.sight.n, "question", "questions") + " · ") + mins(t.sight.sec) : none));

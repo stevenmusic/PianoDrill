@@ -858,7 +858,7 @@ function paintItemRow() {
   if (mode !== 'exam') return;
   $('irName').textContent = '';   // 子項目列已經寫「視奏」,同一個畫面不重複
   const n = SS.xn[`${exam.system}-${exam.grade}`] || 0;
-  $('irTag').textContent = examSupported() ? tr(`已練 ${n} 題`, `${n} practised`) : '';
+  $('irTag').textContent = examSupported() ? tr(`已練 ${n} 題`, `${n} practiced`) : '';
   paintMock();
 }
 /* 檢定頁的題目卡空狀態:一句流程 + 右下「練習一題」(= 出題);項目名與進度在本項列 */
@@ -884,7 +884,7 @@ function setExamItem(on) {
   $('scoreCard').hidden = on;
   syncAlongCard();
   if (on) elements.generate.disabled = !rules;
-  elements.generate.querySelector('.btn-label').textContent = on ? tr('練習一題', 'Get a test') : t('generateLabel');
+  elements.generate.querySelector('.btn-label').textContent = on ? tr('練習一題', 'Practice one') : t('generateLabel');
   setAlongLabel();
 }
 function renderUnsupported() {
@@ -990,7 +990,9 @@ function drawNoteNames() {
   return paintNoteNames(svg, osmd, { cls: 's-name', size: nameFontSvg(osmd.zoom) });
 }
 function renderSummary() {
-  const keyText = elements.key.querySelector('button[aria-pressed="true"]')?.textContent ?? t('randomKey');
+  const on = elements.key.querySelector('button[aria-pressed="true"]');
+  // 隨機:收起來時只寫「隨機」看不出是什麼 → 「調 · 隨機」(展開後的按鈕列照舊不寫標籤)
+  const keyText = on && on.dataset.v ? on.textContent : tr('調 · ', 'Key · ') + t('randomKey');
   // 檢定模式:考試與級數已經寫在上面的考試設定卡(和頂欄標籤),這裡只說調性;視奏分頁只寫範圍(不寫級數)
   elements.sum.textContent = mode === 'exam' ? keyText : rangeText();
 }

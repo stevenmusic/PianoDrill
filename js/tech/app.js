@@ -309,7 +309,7 @@ function syncExamButtons(){
   $("nextLabel").textContent = mock && mock.i === mock.list.length - 1 ? tr("結束", "Finish") : T("next");
   $("drawBtn").disabled = examPool().length === 0;
   $("mockBtn").hidden = false; $("mockBtn").disabled = !mock && examQuestions().length === 0;
-  $("mockLabel").textContent = mock ? tr("停止", "Stop") : tr("模擬考", "Mock");
+  $("mockLabel").textContent = mock ? tr("停止", "Stop") : tr("模擬考", "Mock exam");
   $("mockBtn").title = $("mockBtn").ariaLabel = mock ? tr("停止模擬考", "Stop mock exam") : tr("模擬考", "Mock exam");
   syncQuizTop();
 }
@@ -1116,7 +1116,7 @@ function syncTempoUI(){
     $("bpmPct").textContent = pct === 100 ? "" : tr(`考試速度的 ${pct}%`, `${pct}% of exam tempo`);   // 等於考試速度:副標已經寫了,數字後面不再寫「考試」
     // 不寫 ♩ / ♪ 的換算(自學者看不懂):考試速度的數字 + 每拍幾個音
     $("examTempo").textContent = tr(`考試速度 ${examT.bpm}(每拍 ${NOTES_PER_UNIT[u]} 個音${u === "q." ? ",三連音" : ""})`,
-      `Exam tempo ${examT.bpm} (${NOTES_PER_UNIT[u]} ${u === "q." ? "triplet " : ""}notes per beat)`);
+      `Exam ${examT.bpm} (${NOTES_PER_UNIT[u]} per beat${u === "q." ? ", triplets" : ""})`);
   } else if (u === "e16") { $("bpmPct").textContent = ""; $("examTempo").textContent = tr("原譜 ♩ 60–108 = ♪ 120–216", "Hanon ♩ 60–108 = ♪ 120–216"); }   // 拍點在選單上
   else if (u === "q.") { $("bpmPct").textContent = ""; $("examTempo").textContent = tr("三連音:每拍 3 個音", "Triplets: 3 notes per beat"); }
   else if (u === "q16" && cur && cur.type !== "hanon") { $("bpmPct").textContent = ""; $("examTempo").textContent = ""; }   // 拍點在選單上,不重複
@@ -1465,7 +1465,7 @@ function replanWarm(){
 }
 const dcard = createDailyCard({ $, daily,
   labels: { ok: ["做到了", "Did it"], again: ["還要練", "Not yet"], verb: ["彈", "play"], good: ["很好!", "Good!"],
-    // 狀態一句短話(fold-280 不超過兩行);過關規則改成到了目標速度在標籤後面顯示「穩 ●○○」
+    // 狀態一句短話(fold-280 不超過兩行);過關規則改成到了目標速度在標籤後面顯示「穩 0 / 3」
     hint: ["按 ▶ 跟著彈,做到了按 ✓", "Tap ▶, play along, then ✓"],
     get solo(){ return melOn() ? ["按 ▶ 你彈左手,做到了按 ✓", "Tap ▶, you play the LH, then ✓"] : ["按 ▶ 自己彈,做到了按 ✓", "Tap ▶, play it yourself, then ✓"]; } },
   warmName, levelName, log: () => S.log,

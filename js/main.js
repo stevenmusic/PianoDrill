@@ -65,7 +65,7 @@ const SUBS = {
   // 視奏:照學習順序 認音 → 右手 → 左手 → 雙手(級數只在檢定頁設;範圍階段在視奏分頁的設定卡)
   sight: () => [["read", tr("認音", "Notes")], ["right", tr("右手", "Right")], ["left", tr("左手", "Left")], ["both", tr("雙手", "Both")]],
   ear: () => [["note", tr("單音", "Notes")], ["interval", tr("音程", "Intervals")], ["chord", tr("和弦", "Chords")]],
-  exam: () => [["tech", tr("音階琶音", "Scales")], ["sight", tr("視奏", "Sight-reading")], ["ear", tr("聽力", "Aural")]]
+  exam: () => [["tech", tr("音階琶音", "Scales")], ["sight", tr("視奏", "Sight-read")], ["ear", tr("聽力", "Aural")]]
 };
 /* 子項目分段鈕的群組名稱(無障礙:role="group" 的 aria-label) */
 const SUB_LABEL = () => ({ tech: tr("技巧項目", "Technique"), sight: tr("讀譜類別", "Reading type"), ear: tr("題型", "Question type"), exam: tr("檢定項目", "Exam section") });

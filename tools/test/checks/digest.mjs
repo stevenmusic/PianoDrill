@@ -31,7 +31,7 @@ export default function check(ok){
   ok(zh[5] === "今日練習過關:找到中央 C、手指號碼", "zh 過關:" + zh[5]);
   ok(zh[6] === "— PianoDrill" && zh.length === 7, "zh 最後一行 App 名");
   const en = build({ app, days, mods, daily: names, lang: "en" }).split("\n");
-  ok(en[1] === "Practised 4 of 7 days · 14 min in all", "en:" + en[1]);
+  ok(en[1] === "Practiced 4 of 7 days · 14 min in all", "en:" + en[1]);
   ok(en[2] === "Technique: 7 min", "en 技巧:" + en[2]);
   ok(en[3] === "Sight-reading: 1 question · 2 min", "en 單數:" + en[3]);
   ok(en[4] === "Aural: 20 questions · 80% right", "en 複數:" + en[4]);
@@ -43,7 +43,7 @@ export default function check(ok){
   ok(s2[3] === "視奏:這週沒練" && s2[4] === "聽力:這週沒練", "沒練的分頁:" + s2.slice(3, 5));
   ok(!s2.some(l => l.startsWith("今日練習過關")), "沒有過關不寫那一行");
   const e2 = build({ app, days, mods: { ear: { "2026-11-04": { n: 1, sec: 30, hits: 1, total: 1 } } }, lang: "en" }).split("\n");
-  ok(e2[1] === "Practised 1 of 7 days · under 1 min in all" && e2[4] === "Aural: 1 question · 100% right" && e2[2] === "Technique: not this week", "en 單數 / 沒練:" + e2.join(" | "));
+  ok(e2[1] === "Practiced 1 of 7 days · under 1 min in all" && e2[4] === "Aural: 1 question · 100% right" && e2[2] === "Technique: not this week", "en 單數 / 沒練:" + e2.join(" | "));
 
   // 過關最多 5 個
   const many = Array.from({ length: 7 }, (_, i) => [`第${i + 1}關`, `L${i + 1}`]);

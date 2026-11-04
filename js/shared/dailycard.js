@@ -32,7 +32,7 @@ export function varyText(s){
   if (s.vary.fast) parts.push(fmt("fast", { b: s.bpm }));
   return parts.filter(Boolean).join(" · ");
 }
-/* 題目卡的標籤(HTML):[律動 3 / 28 + 細進度條] [速度 68 → 90](學)/ [律動 3 / 28] [速度 90] [穩 ●○○](到了目標速度:連續穩幾次)/ [複習 · 律動 2 / 28] [速度 90](複習)。
+/* 題目卡的標籤(HTML):[律動 3 / 28 + 細進度條] [速度 68 → 90](學)/ [律動 3 / 28] [速度 90] [穩 0 / 3](到了目標速度:連續穩幾次)/ [複習 · 律動 2 / 28] [速度 90](複習)。
    m = 這一段速度的寫法(12/8 的「♩.=」寫在數字前面;一般的只寫數字) */
 export function segTags(s, m = "♩="){
   if (!s || s.k === "warm") return s ? [fmt("warm")] : [];
@@ -41,9 +41,9 @@ export function segTags(s, m = "♩="){
   const sp = b => fmt("tempo") + " " + (m === "♩=" ? "" : m) + b;
   if (s.k === "review") return [esc(fmt("review")) + " · " + lv, sp(s.bpm)];
   if (s.bpm < s.target) return [lv, `${sp(s.bpm)} → ${s.target}`];
-  // 到了目標速度:「穩 ●○○」併進速度那一格(「速度 80 · 穩 ●○○」),標籤一行放得下
+  // 到了目標速度:「穩 0 / 3」併進速度那一格(「速度 80 · 穩 0 / 3」),標籤一行放得下
   const need = s.need || 3, k = Math.min(need, s.streak || 0);
-  return [lv, sp(s.bpm) + " · " + fmt("streakTag", { d: "●".repeat(k) + "○".repeat(need - k) })];
+  return [lv, sp(s.bpm) + " · " + fmt("streakTag", { d: `${k} / ${need}` })];
 }
 /* 一次嘗試的結果 → 狀態那一句;過關寫「下一關:名稱」(next = 下一關的名稱 [中, 英],最後一關 = null;good = 「很穩!」/「很好!」) */
 export function resultText(res, s, next = null, good = "很穩!"){
@@ -204,7 +204,7 @@ export function createDailyCard({ $, daily, labels = {}, warmName = () => "", le
     pairText(el, lastStatus || (() => M(s, defaultStatus(s))));
   }
   /* 還沒試過的時候那一句(短:fold-280 不超過兩行):暖身 / 歡迎回來 / 只有拍點 / 學的時候的下一步。
-     過關的規則(到目標速度後連續穩幾次)不每次寫:到了目標速度,標籤後面顯示「穩 ●○○」 */
+     過關的規則(到目標速度後連續穩幾次)不每次寫:到了目標速度,標籤後面顯示「穩 0 / 3」 */
   function defaultStatus(s){
     if (s.k === "warm") return fmt("warmHint", { v: L2(labels.verb) });
     const parts = [];

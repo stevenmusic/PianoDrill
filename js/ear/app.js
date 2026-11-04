@@ -224,7 +224,7 @@ function showMockText(){
     `<div><b>${d.test.id}</b><span>${drillName(d.drill.type)}</span><i class="${m.res[i] ? "ok" : "no"}">${m.res[i] ? "✓" : "✗"}</i></div>`).join("") + `</div>`;
   const fb = $("feedback");
   fb.className = "feedback " + (ok === m.queue.length ? "ok" : "");
-  fb.textContent = ok === m.queue.length ? tr("全部答對!", "All correct!") : tr("錯的可以點下面再練", "Tap a missed one below to practise it");
+  fb.textContent = ok === m.queue.length ? tr("全部答對!", "All correct!") : tr("錯的可以點下面再練", "Tap a missed one below to practice it");
 }
 /* 外框改了考試系統/級數(exam.auto = 還沒選考試,只是點進檢定分頁看看) */
 export function setExam(ex){

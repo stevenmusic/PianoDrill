@@ -197,7 +197,7 @@ function showView(view, sub){
   balanceSoon();
 }
 /* ══ 寬畫面(≥ 1100)兩欄高度接近(使用者:左欄下面不要空一大塊):練習紀錄卡(id 結尾 logCard)放在比較矮的那一欄最下面
-   (照其他卡片的高度決定,搬過去不會再來回);左欄沒有東西(例如今日練習進行中:選擇器、紀錄都藏起來)= 一欄(.mod.one-col,app.css)。
+   (照其他卡片的高度決定,搬過去不會再來回);左欄沒有東西(例如今日練習進行中:選擇器、紀錄都藏起來)或只剩練習紀錄(今日練習還沒開始:紀錄搬到今日練習卡下面)= 一欄(.mod.one-col,app.css)。
    窄畫面、檢定頁放回原處 */
 const WIDE = matchMedia("(min-width:1100px)");
 function balanceCols(){
@@ -210,11 +210,12 @@ function balanceCols(){
     if (mod.hidden || !WIDE.matches || document.body.classList.contains("view-exam")) { if (!mod.hidden) { home(); mod.classList.remove("one-col"); } continue; }
     const shown = el => !el.hidden && getComputedStyle(el).display !== "none";
     const h = col => [...col.children].filter(c => c !== log && shown(c)).reduce((a, c) => a + c.getBoundingClientRect().height + 16, 0);
+    const others = [...side.children].some(c => c !== log && shown(c));   // 左欄除了練習紀錄還有別的
     if (log && shown(log)) {
-      const want = h(side) <= h(main) ? side : main;
+      const want = others && h(side) <= h(main) ? side : main;
       if (log.parentNode !== want) { if (want === log._home.parent) home(); else want.appendChild(log); }
     }
-    mod.classList.toggle("one-col", ![...side.children].some(shown));
+    mod.classList.toggle("one-col", !others);
   }
 }
 let balanceRaf = 0;

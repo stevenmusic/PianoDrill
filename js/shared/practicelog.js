@@ -2,12 +2,15 @@
      $("logStreak")、$("logToday")、第三格(模組自己寫)、$("goalBar")、$("goalBtn")、$("logWeek")
    - log = { "YYYY-MM-DD": { n, sec, hits?, total? } }(各模組自己的 localStorage;保留 400 天)
        n = 完成幾次 / 幾題;sec = 真的播放、準備、作答的秒數(App 在前景、模組在畫面上的時間);hits / total = 聽力的「今天正確率」
-   - 每週目標:最近 7 天(含今天)練了幾分鐘;目標點一下換 GOALS 裡的下一個(存在模組自己的 localStorage)。練習設定,不是考試要求 */
+   - 每週目標:最近 7 天(含今天)練了幾分鐘;目標點一下換 GOALS 裡的下一個(存在模組自己的 localStorage)。練習設定,不是考試要求
+     預設 = GOAL_DEFAULT;使用者點過才算自己選的(goalSet: true,`tapGoal`)。讀進來用 `loadGoal`:
+     舊資料沒有 goalSet、存的是舊預設 60 → 當作沒選過(換成新預設);存的是 60 以外 → 一定是點過的,照舊 */
 import { tr, getLang } from "./i18n.js";
 
 export const KEEP_DAYS = 400;
-export const GOALS = [15, 30, 60, 90, 120, 180];
-export const GOAL_DEFAULT = 60;
+export const GOALS = [15, 30, 40, 60, 90, 120, 180];
+export const GOAL_DEFAULT = 40;
+const GOAL_OLD_DEFAULT = 60;   // 2026-11 以前的預設(那時沒有 goalSet,沒點過的人也存了 60)
 export const dayKey = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 const cnt = v => (typeof v === "number" && Number.isFinite(v) && v > 0 ? Math.floor(v) : 0);
 
@@ -25,6 +28,15 @@ export function cleanLog(log){
 }
 export const cleanGoal = g => (GOALS.includes(g) ? g : GOAL_DEFAULT);
 export const nextGoal = g => GOALS[(GOALS.indexOf(cleanGoal(g)) + 1) % GOALS.length];
+/* 讀進來的每週目標:saved = 模組存的物件({ goal, goalSet });回傳 { goal, goalSet } */
+export function loadGoal(saved){
+  const g = saved && saved.goal, set = !!(saved && saved.goalSet === true);
+  if (!GOALS.includes(g)) return { goal: GOAL_DEFAULT, goalSet: false };
+  if (set || g !== GOAL_OLD_DEFAULT) return { goal: g, goalSet: true };
+  return { goal: GOAL_DEFAULT, goalSet: false };
+}
+/* 點一下目標鈕:換下一個,記成自己選的 */
+export function tapGoal(st){ st.goal = nextGoal(st.goal); st.goalSet = true; return st.goal; }
 
 /* 記一筆:sec 秒、n 次(完成一次 / 一題)、hits / total(聽力的正確率) */
 export function addLog(log, { sec = 0, n = 0, hits = 0, total = 0 } = {}){
@@ -49,10 +61,17 @@ export function streak(log){
   while (log[dayKey(d)] && log[dayKey(d)].n) { n++; d.setDate(d.getDate() - 1); }
   return n;
 }
+/* 以前練過(今天以前有紀錄),連續天數是 0 時那一格寫「重新開始」;從沒練過的人照舊寫 0 */
+export function freshStart(log){
+  const k = dayKey(new Date());
+  return streak(log) === 0 && Object.entries(log).some(([d, e]) => d < k && e && (e.n || e.sec));
+}
 /* 畫紀錄卡(第三格模組自己寫):連續天數、今天次數、每週目標、最近 7 天 */
 export function renderLog($, log, goal){
   const t = today(log), g = cleanGoal(goal), min = Math.floor(weekSec(log) / 60);
-  $("logStreak").textContent = streak(log);
+  // 「重新開始」放在數字那一格,字比數字小(數字那一行的高度不變,三格的標籤對齊);放不下就換行,中英一樣
+  if (freshStart(log)) $("logStreak").innerHTML = `<span style="font-size:var(--fs-sm);display:inline-block;line-height:1.2">${tr("重新開始", "Fresh start")}</span>`;
+  else $("logStreak").textContent = streak(log);
   $("logToday").textContent = t.n;
   $("goalBar").style.width = Math.min(100, Math.round(100 * min / g)) + "%";
   $("goalBar").classList.toggle("done", min >= g);

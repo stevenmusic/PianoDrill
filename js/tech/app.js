@@ -8,7 +8,7 @@ import { noteLabelStr } from "./theory.js";
 import { hanonThirdsKey } from "./fingering.js";
 import { tr, scoped, getLang, pairText, unpair, loadMsg } from "../shared/i18n.js";
 import * as audio from "../shared/audio.js";
-import { addLog, cleanLog, renderLog as paintLog, today, nextGoal, cleanGoal } from "../shared/practicelog.js";
+import { addLog, cleanLog, renderLog as paintLog, today, tapGoal } from "../shared/practicelog.js";
 import { createDaily, clickPlays } from "../shared/daily.js";
 import { createDailyCard } from "../shared/dailycard.js";
 import { ROUTES, WARM_LEVELS, warmFor, findLevel, KEYS, adaptVary, keyLearned } from "./routes.js";
@@ -1422,7 +1422,7 @@ function renderLog(){
   paintLog($, S.log, S.goal);
   $("logMin").textContent = Math.floor(today(S.log).sec / 60);
 }
-$("goalBtn").onclick = () => { S.goal = nextGoal(S.goal); store.save(); renderLog(); };
+$("goalBtn").onclick = () => { tapGoal(S); store.save(); renderLog(); };
 
 /* 檢定分頁上方的進度:通過幾項 / 本級幾項 */
 export function examStatus(){

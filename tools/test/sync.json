@@ -17,6 +17,7 @@
   ["tools/test/checks/backup.mjs", "tools/test/checks/backup.mjs", "same"],
   ["js/shared/digest.js", "js/shared/digest.js", "same"],
   ["tools/test/checks/digest.mjs", "tools/test/checks/digest.mjs", "same"],
+  ["tools/test/checks/practicelog.mjs", "tools/test/checks/practicelog.mjs", "same"],
   ["js/main.js", "js/main.js", "markers"],
   ["sw.js", "sw.js", "markers"],
   ["tools/build/stamp.mjs", "tools/build/stamp.mjs", "same"],

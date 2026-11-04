@@ -10,7 +10,7 @@ import { createStage, barTimings } from './stage.js';
 import { t, applySightStatic } from './i18n.js';
 import { pairText, unpair, tr, loadMsg } from '../shared/i18n.js';
 import { createReading, cleanRead } from './reading.js';
-import { addLog, cleanLog, renderLog as paintLog, today, streak as logStreak, nextGoal, cleanGoal } from '../shared/practicelog.js';
+import { addLog, cleanLog, renderLog as paintLog, today, streak as logStreak, tapGoal, loadGoal } from '../shared/practicelog.js';
 import { STAGES, HANDS, stageOf, rulesForStage, pickGrade, soloScore, rangeLabel } from './stages.js';
 import { paintNoteNames } from '../shared/notenames.js';
 import { createTempo } from '../shared/tempo.js';
@@ -46,7 +46,7 @@ const SS = (() => {
   const xn = {}; if (s.xn && typeof s.xn === 'object') for (const [k, v] of Object.entries(s.xn)) if (/^(abrsm|trinity)-[0-8]$/.test(k) && Number.isInteger(v) && v > 0) xn[k] = Math.min(v, 99999);
   // 進行中的模擬考標記(正常結束、按停止會拿掉;重新整理之後還在 = 說明「模擬考已中止」)
   const mockRun = s.mockRun && typeof s.mockRun === 'object' && !Array.isArray(s.mockRun) ? { at: Number(s.mockRun.at) || 0 } : undefined;
-  return { stage, names, read: cleanRead(s.read), log: cleanLog(log), goal: cleanGoal(s.goal), intro, bpm, xn, mockRun };
+  return { stage, names, read: cleanRead(s.read), log: cleanLog(log), ...loadGoal(s), intro, bpm, xn, mockRun };
 })();
 const saveSS = () => { try { localStorage.setItem('pianodrill.sight.v1', JSON.stringify(SS)); } catch { /* 存不了就算了 */ } };
 const $ = (id) => document.getElementById('s-' + id);
@@ -2005,7 +2005,7 @@ function updateHistoryInfo() {
   paintLog($, SS.log, SS.goal);
   $('logMin').textContent = Math.floor(today(SS.log).sec / 60);
 }
-$('goalBtn').addEventListener('click', () => { SS.goal = nextGoal(SS.goal); saveSS(); updateHistoryInfo(); });
+$('goalBtn').addEventListener('click', () => { tapGoal(SS); saveSS(); updateHistoryInfo(); });
 
 function escapeHtml(value) {
   return String(value).replace(/[&<>]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[char]));

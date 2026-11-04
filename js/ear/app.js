@@ -5,7 +5,7 @@ import { ALL_ITEMS, itemLabel, makeQuestion, pcName, isBlack, setSolfege, noteNa
 import { makeDrill, drillName, judgeTaps, judgeKeys, lazy } from "./aural.js";
 import { tr, scoped, getLang, pairText, unpair, loadMsg } from "../shared/i18n.js";
 import * as audio from "../shared/audio.js";
-import { addLog, renderLog as paintLog, today, nextGoal } from "../shared/practicelog.js";
+import { addLog, renderLog as paintLog, today, tapGoal } from "../shared/practicelog.js";
 import "./strings.js";
 const T = scoped("ear");
 
@@ -702,7 +702,7 @@ function logAnswer(ok){
   addLog(S.log, { n: 1, sec, hits: ok ? 1 : 0, total: 1 });
   renderLog();
 }
-$("goalBtn").onclick = () => { S.goal = nextGoal(S.goal); store.save(); renderLog(); };
+$("goalBtn").onclick = () => { tapGoal(S); store.save(); renderLog(); };
 function renderLog(){
   paintLog($, S.log, S.goal);
   const t = today(S.log);

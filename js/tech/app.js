@@ -55,8 +55,8 @@ function remsg(){ for (const id in msgs) if (msgs[id]) $(id).textContent = msgs[
 /* 雙音音階的指法說明(fingering.js 照哈農第 48、52 首) */
 function doubleNote(q){
   if (q.articulation === "staccato") return q.type === "thirds"
-    ? () => tr("斷奏三度照哈農第 48 首:右手 2–4、左手 4–2(原譜是 C 大調,其他調用同一個指法)。", "Staccato thirds follow Hanon No. 48: RH 2–4, LH 4–2 (printed in C; same fingering in every key).")
-    : () => tr("斷奏六度照哈農第 48 首:右手 1–5、左手 5–1(原譜是 C 大調,其他調用同一個指法)。", "Staccato sixths follow Hanon No. 48: RH 1–5, LH 5–1 (printed in C; same fingering in every key).");
+    ? () => tr("斷奏三度照哈農第 48 首:右手 2–4、左手 4–2(原譜是 C 大調,其他調用同一個指法)。", "Staccato thirds follow Hanon No. 48: right hand 2–4, left hand 4–2 (printed in C; same fingering in every key).")
+    : () => tr("斷奏六度照哈農第 48 首:右手 1–5、左手 5–1(原譜是 C 大調,其他調用同一個指法)。", "Staccato sixths follow Hanon No. 48: right hand 1–5, left hand 5–1 (printed in C; same fingering in every key).");
   if (q.type === "sixths") return () => tr("哈農沒有圓滑六度音階,所以不標指法,請照老師指定的。", "Hanon has no legato sixths scale, so no fingering is shown; use your teacher's.");
   if (!hanonThirdsKey(q.quality, q.tonic, q.form)) return () => tr("哈農第 52 首只有 C G D A E F B♭ E♭ A♭ 大調與 A D G 和聲小調,這個調沒有,所以不標指法,請照老師指定的。", "Hanon No. 52 only covers C G D A E F B♭ E♭ A♭ major and A D G harmonic minor, so no fingering is shown here; use your teacher's.");
   return q.octaves >= 2 ? () => tr("三度指法照哈農第 52 首逐調照抄(原譜沒印、又推不出來的留空)。", "Thirds fingering copied from Hanon No. 52 key by key (blank where Hanon prints none).")
@@ -75,7 +75,7 @@ const MAJ_KEYS = ["C", "G", "D", "A", "E", "B", "F#", "Db", "Ab", "Eb", "Bb", "F
 const MIN_KEYS = ["A", "E", "B", "F#", "C#", "G#", "Eb", "Bb", "F", "C", "G", "D"];
 const STARTS = ["C", "C#", "D", "Eb", "E", "F", "F#", "G", "Ab", "A", "Bb", "B"];
 const keyOpts = list => list.map(k => [k, noteLabelStr(k)]);
-const HANDS = () => [["RH", tr("右手", "RH")], ["LH", tr("左手", "LH")], ["HT", tr("雙手", "Both")]];
+const HANDS = () => [["RH", tr("右手", "Right")], ["LH", tr("左手", "Left")], ["HT", tr("雙手", "Both")]];
 const ARTS = () => [["legato", tr("圓滑奏", "Legato")], ["staccato", tr("斷奏", "Staccato")]];
 const OCTS = n => [1, 2, 3, 4].slice(0, n).map(o => [o, tr(o + " 個八度", o + " oct.")]);
 /* 級數名稱:初級 / 1 級(Initial / Grade 1) */
@@ -230,7 +230,7 @@ function renderQuick(tab){
 }
 function shortLabel(q){
   const t = questionText(q);
-  const hand = q.hands === "RH" ? tr(" 右", " RH") : q.hands === "LH" ? tr(" 左", " LH") : "";
+  const hand = q.hands === "RH" ? tr(" 右", " Right") : q.hands === "LH" ? tr(" 左", " Left") : "";
   // 英文比較長:快速清單用縮寫,行數才會跟中文一樣
   const name = getLang() === "en" ? t[0].replace(/ scale$/, "").replace("harmonic minor", "harm. minor").replace("melodic minor", "mel. minor").replace(" arpeggio", " arp.") : t[0];
   return name + hand + (q.articulation === "staccato" ? tr(" 斷", " stacc.") : "");
@@ -352,7 +352,7 @@ function renderList(){
   $("progressBar").style.width = (qs.length ? 100 * good / qs.length : 0) + "%";
   paintItemTag();
   const row = (q, i) => {
-    const m = S.mastery[q.key] || "", hands = q.motion === "contrary" ? tr("反向", "contrary") : { RH: tr("右手", "RH"), LH: tr("左手", "LH"), HT: tr("雙手", "Both") }[q.hands];
+    const m = S.mastery[q.key] || "", hands = q.motion === "contrary" ? tr("反向", "contrary") : { RH: tr("右手", "Right"), LH: tr("左手", "Left"), HT: tr("雙手", "Both") }[q.hands];
     const extra = [hands, q.range === "5th" ? tr("五度", "5th") : tr(q.octaves + " 個八度", q.octaves + " oct.")];
     if (q.dynamic) extra.push({ "cresc-dim": "p–f–p" }[q.dynamic] || q.dynamic);
     return `<button class="qrow${cur && !cur.free && cur.key === q.key ? " cur" : ""}" data-i="${i}"><i class="dot ${m}"></i><span>${questionText(q)[0]}${q.articulation === "staccato" ? tr("(斷奏)", " (staccato)") : ""}</span><small>${extra.join(" · ")}</small></button>`;
@@ -463,7 +463,7 @@ function setQuestion(q, tab){
   preloadSamples();
 }
 /* 標籤(題目卡標題同一行):自由練習不放「右手 / 左手 / 雙手」(譜卡的手切換就是;畫面設計 2026-10);回傳 [文字, parts 的索引 − 1] */
-const HAND_TAGS = () => [tr("右手", "RH"), tr("左手", "LH"), tr("雙手", "Both")];
+const HAND_TAGS = () => [tr("右手", "Right"), tr("左手", "Left"), tr("雙手", "Both")];
 function tagParts(q, parts){
   const drop = !q.daily ? HAND_TAGS() : [];   // 手寫在譜卡的手的切換(自由練習、檢定都有),標籤不重複
   return parts.slice(1).map((t, i) => [t, i]).filter(([t]) => !drop.includes(t));
@@ -484,9 +484,9 @@ function renderQText(q, tab){
   if (q.type === "thirds" || q.type === "sixths") notes.push(doubleNote(q));
   if (q.type === "broken") notes.push(() => (q.range === "5th" ? tr("分解三和弦照 Trinity 大綱的譜例(1-3-5-3-1,3/4 拍)。", "Broken triad as in the Trinity syllabus example (1-3-5-3-1 in 3/4).") : tr("分解和弦照 Trinity 大綱 1 級的譜例:三連音,原位 → 第一轉位 → 第二轉位到高八度主音,再反過來,停在五音。", "Broken chord as in the Trinity Grade 1 syllabus example: triplets, root → 1st → 2nd inversion to the upper tonic, then back, ending on the 5th.")));
   if (q.type === "dom7" && q.sys !== "trinity") notes.push(() => tr("屬七和弦琶音最後解決到主音(照 ABRSM 大綱的譜例)。", "The dominant 7th resolves on the tonic (as in the ABRSM syllabus example)."));
-  if (q.apart === 3) notes.push(() => tr("相隔三度:右手比左手高十度(三度 + 八度),左手從主音、右手從第三級開始。", "A third apart: RH plays a tenth above LH — LH starts on the tonic, RH on the 3rd."));
-  if (q.apart === 6) notes.push(() => tr("相隔六度:主音在上方 — 右手從主音、左手從低六度的第三級開始。", "A sixth apart: tonic on top — RH starts on the tonic, LH on the 3rd a sixth below."));
-  if (q.type === "chromatic" && q.lhStart !== q.rhStart) notes.push(() => tr(`兩手從不同的音開始:左手 ${noteLabelStr(q.lhStart)}、右手 ${noteLabelStr(q.rhStart)}。`, `Hands start on different notes: LH ${noteLabelStr(q.lhStart)}, RH ${noteLabelStr(q.rhStart)}.`));
+  if (q.apart === 3) notes.push(() => tr("相隔三度:右手比左手高十度(三度 + 八度),左手從主音、右手從第三級開始。", "A third apart: the right hand plays a tenth above the left — left starts on the tonic, right on the 3rd."));
+  if (q.apart === 6) notes.push(() => tr("相隔六度:主音在上方 — 右手從主音、左手從低六度的第三級開始。", "A sixth apart: tonic on top — right hand starts on the tonic, left on the 3rd a sixth below."));
+  if (q.type === "chromatic" && q.lhStart !== q.rhStart) notes.push(() => tr(`兩手從不同的音開始:左手 ${noteLabelStr(q.lhStart)}、右手 ${noteLabelStr(q.rhStart)}。`, `Hands start on different notes: left ${noteLabelStr(q.lhStart)}, right ${noteLabelStr(q.rhStart)}.`));
   $("scoreNote").hidden = !notes.length;
   pairText($("scoreNote"), () => noteFns.map(f => f()).join(" "));
   renderIntro(q.free && !q.daily ? tab : null);
@@ -778,7 +778,7 @@ function renderMarksUI(){
   hpEl.hidden = !hp.length;
   if (hp.length) {
     const names = [...new Set(hp.map(p => p.keys[0].name))];
-    const say = hp.map(p => p.hand === "rh" ? tr(`右手拇指在${p.mid ? "中央 C" : p.thumb}`, `RH thumb on ${p.mid ? "middle C" : p.thumb}`) : tr(`左手小指在 ${p.low}`, `LH finger 5 on ${p.low}`));
+    const say = hp.map(p => p.hand === "rh" ? tr(`右手拇指在${p.mid ? "中央 C" : p.thumb}`, `right thumb on ${p.mid ? "middle C" : p.thumb}`) : tr(`左手小指在 ${p.low}`, `left finger 5 on ${p.low}`));
     const label = names.join(" → ") + tr(" 位置", " position");
     hpEl.innerHTML = `<span class="hp-lbl"><b>${label}</b><span class="hp-more">${tr(":", ": ")}${[...new Set(say)].join(tr(",", ", "))}</span></span>` + hp.map(miniKeys).join("");
     hpEl.setAttribute("title", label + tr(":", ": ") + [...new Set(say)].join(tr(",", ", ")));
@@ -1467,7 +1467,7 @@ const dcard = createDailyCard({ $, daily,
   labels: { ok: ["做到了", "Did it"], again: ["還要練", "Not yet"], verb: ["彈", "play"], good: ["很好!", "Good!"],
     // 狀態一句短話(fold-280 不超過兩行);過關規則改成到了目標速度在標籤後面顯示「穩 0 / 3」
     hint: ["按 ▶ 跟著彈,做到了按 ✓", "Tap ▶, play along, then ✓"],
-    get solo(){ return melOn() ? ["按 ▶ 你彈左手,做到了按 ✓", "Tap ▶, you play the LH, then ✓"] : ["按 ▶ 自己彈,做到了按 ✓", "Tap ▶, play it yourself, then ✓"]; } },
+    get solo(){ return melOn() ? ["按 ▶ 你彈左手,做到了按 ✓", "Tap ▶, play the left hand, then ✓"] : ["按 ▶ 自己彈,做到了按 ✓", "Tap ▶, play it yourself, then ✓"]; } },
   warmName, levelName, log: () => S.log,
   onStart: () => { dShow(daily.begin()); window.scrollTo({ top: 0 }); },
   onNext: () => dNext(), onPause: () => dExit(),

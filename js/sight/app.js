@@ -914,7 +914,7 @@ function renderTempo() {
 }
 $('bpmReset').addEventListener('click', () => { if (current && current.score) setFreeBpm(current.score.defBpm); });
 /* ── 視奏分頁的範圍階段(js/sight/stages.js):畫面只寫範圍,不寫級數、考試名稱 ── */
-const HAND_NAME = { right: () => tr('右手', 'RH'), left: () => tr('左手', 'LH') };
+const HAND_NAME = { right: () => tr('右手', 'Right'), left: () => tr('左手', 'Left') };
 function rangeText(st = stageNow(), h = hand) {
   const full = st.n === 4;
   if (h !== 'both' && !HAND_NAME[h]) return '';   // 認音(hand = 'read')沒有範圍階段;換語言時 renderSummary 也會呼叫

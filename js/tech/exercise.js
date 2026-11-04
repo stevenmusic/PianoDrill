@@ -241,7 +241,7 @@ export function buildExercise(FG, q){
 const OCT = [["", ""], ["1 個八度", "1 oct."], ["2 個八度", "2 oct."], ["3 個八度", "3 oct."], ["4 個八度", "4 oct."]];   // 一律「n 個八度」/「n oct.」(選單、清單、標題同一個寫法;英文寫全名在折疊機上標籤會變兩行)
 const FORM = { harmonic: ["和聲小調", "harmonic minor", "harm. minor"], melodic: ["旋律小調", "melodic minor", "mel. minor"], natural: ["自然小調", "natural minor", "nat. minor"] };
 const INV = [["", ""], ["第一轉位", "1st inv."], ["第二轉位", "2nd inv."]];
-const HAND = { RH: ["右手", "RH"], LH: ["左手", "LH"], HT: ["雙手", "Both"] };   // 英文不寫 HT(自學者看不懂);寫「Both」跟選單一樣(Both hands 在折疊機上標籤會變兩行)
+const HAND = { RH: ["右手", "Right"], LH: ["左手", "Left"], HT: ["雙手", "Both"] };   // 英文不寫 HT(自學者看不懂);寫「Both」跟選單一樣(Both hands 在折疊機上標籤會變兩行)
 const DYN = { f: ["f", "f"], p: ["p", "p"], mf: ["mf", "mf"], "cresc-dim": ["p–f–p", "p–f–p"] };
 const pick = pair => tr(pair[0], pair[1]);
 const nm = s => noteLabelStr(s);
@@ -250,7 +250,7 @@ const keyQ = q => q.quality === "minor" && q.form ? nm(q.tonic) + " " + pick(FOR
 export function keyName(q){
   switch (q.type) {
     case "chromatic":
-      if (q.lhStart && q.rhStart && q.lhStart !== q.rhStart) return tr(`半音階(左 ${nm(q.lhStart)}、右 ${nm(q.rhStart)})`, `Chromatic, LH ${nm(q.lhStart)} RH ${nm(q.rhStart)}`);
+      if (q.lhStart && q.rhStart && q.lhStart !== q.rhStart) return tr(`半音階(左 ${nm(q.lhStart)}、右 ${nm(q.rhStart)})`, `Chromatic, left ${nm(q.lhStart)}, right ${nm(q.rhStart)}`);
       return tr("從 " + nm(q.tonic) + " 開始的半音階", "Chromatic on " + nm(q.tonic));
     case "wholetone": return tr("從 " + nm(q.tonic) + " 開始的全音音階", "Whole-tone on " + nm(q.tonic));
     case "dim7": return tr(nm(q.tonic) + " 減七和弦琶音", "Dim. 7th on " + nm(q.tonic));

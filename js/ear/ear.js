@@ -133,6 +133,6 @@ function build(tab, pick, it, items){
 /* 題目說明(播放前顯示,不洩漏答案) */
 function questionTags(q){
   if (q.tab === "note") return [q.ref === 60 ? tr("參考音 C4", "Ref. C4") : q.ref === 69 ? tr("參考音 A4", "Ref. A4") : tr("沒有參考音", "No reference")];
-  if (q.tab === "interval") return [{ up: tr("上行", "Ascending"), down: tr("下行", "Descending"), harm: tr("同時", "Harmonic") }[q.dir]];
+  if (q.tab === "interval") return [{ up: tr("上行", "Up"), down: tr("下行", "Down"), harm: tr("同時", "Together") }[q.dir]];
   return [q.mode === "block" ? tr("同時", "Block") : q.mode === "arp" ? tr("分解", "Broken") : tr("分解再同時", "Broken + block")];
 }

@@ -161,7 +161,7 @@ function renderExam(){
   }).join("");
   pairTests(g);
   const ln = $("testsList").querySelector(".tests-note"); if (ln) pairText(ln, () => tr(...sys.listNote));
-  $("testsList").querySelectorAll("p.self").forEach(el => pairText(el, () => tr("這一項要看譜唱或口頭描述,App 不出題;請跟老師練習。", "Needs sight-singing or spoken description — practise with your teacher.")));
+  $("testsList").querySelectorAll("p.self").forEach(el => pairText(el, () => tr("這一項要看譜唱或口頭描述,App 不出題;請跟老師練習。", "Needs sight-singing or spoken description — practice with your teacher.")));
 }
 /* 測驗說明:中英文行數不一樣 → 保留比較高的那個高度(pairText),換語言時版面不動 */
 function pairTests(g){

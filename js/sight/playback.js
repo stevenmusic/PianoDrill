@@ -98,14 +98,14 @@ export function createPlayer({ onStatus } = {}) {
     preload(score) { if (score) loadFor(notesOf(score)); },
     stop,
     /**
-     * 主音三和弦(30 秒準備前給音,像考官先彈主和弦)。回傳 true = 響完;被停止或換題 = false
+     * 主音三和弦(30 秒準備前給音,像考官先彈主和弦)。回傳 true = 響完;被停止或換題 = false;鋼琴聲音沒載入 = null
      * @param {number[]} midis
-     * @returns {Promise<boolean>}
+     * @returns {Promise<boolean|null>}
      */
     async playChord(midis, { duration = 1.3 } = {}) {
       stop();
       const ctx = await ready(midis.map((midi) => ({ midi, vel: 64 })));
-      if (!ctx) return false;
+      if (!ctx) return null;   // 沒有聲音:呼叫的地方照樣開始倒數(看譜不需要聲音)
       const at = ctx.currentTime + 0.08;
       for (const midi of midis) note(midi, at, duration, 1, 0);
       return new Promise((resolve) => {

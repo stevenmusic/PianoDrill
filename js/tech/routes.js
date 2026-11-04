@@ -159,7 +159,7 @@ const ACCOMP = [
   { id: "AB3", g: "B", name: C("Alberti 低音(低高中高)", "Alberti bass"), prog: I4, lh: "alberti", start: 56, target: 96,
     check: [C("手腕左右轉", "Wrist rocks side to side"), C("不要每個手指都用力", "Don't press every finger")] },
   { id: "AB4", g: "B", name: C("Alberti 加右手", "Alberti with a right-hand note"), prog: I4, lh: "alberti", rh: "tones", start: 52, target: 88,
-    check: [C("右手在上面唱、左手在背景", "Right sings, left in the background"), LOUD] },
+    check: [C("右手在上面唱、左手在背景", "Right hand sings, left hand soft"), LOUD] },
   { id: "AB5", g: "B", name: C("G 大調 Alberti", "Alberti in G"), key: "G", prog: I4, lh: "alberti", start: 56, target: 96,
     check: [C("新的調先慢", "New key: start slow"), C("V7 的 F♯ 用小指", "F♯ in V7 with finger 5")] },
   // C 華爾茲(3/4)
@@ -171,7 +171,7 @@ const ACCOMP = [
     check: [C("B♭ 用 2 指", "B♭ with finger 2"), C("第 1 拍重、後兩拍輕", "Beat 1 strong, 2 and 3 light")] },
   // D 流行伴奏
   { id: "AD1", g: "D", name: C("左手根音、右手和弦", "Left roots, right chords"), prog: ["I", "V", "vi", "IV"], lh: "root", rh: "chords4", start: 60, target: 96,
-    check: [C("右手換和弦只動最少的手指", "Right moves as few fingers as possible"), C("左手按滿四拍", "Left hand holds all four beats")] },
+    check: [C("右手換和弦只動最少的手指", "Right hand: move fewest fingers"), C("左手按滿四拍", "Left hand holds all four beats")] },
   { id: "AD2", g: "D", name: C("左手 1-5-8", "Left 1-5-8"), prog: ["I", "V", "vi", "IV"], lh: "r158", rh: "chords2", start: 52, target: 88,
     check: [C("左手撐開時手腕放鬆", "Loose wrist on the stretch"), C("手小可以移過去,不必撐開", "Small hands: move, don't stretch"), LOUD] },
   { id: "AD3", g: "D", name: C("3+3+2 節奏", "3+3+2 rhythm"), prog: ["I", "V", "vi", "IV"], lh: "root", rh: "c332", start: 56, target: 88,

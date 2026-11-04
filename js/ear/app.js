@@ -65,6 +65,7 @@ const PRESETS = {
 const PRESET_NAME = () => ({ __white: tr("白鍵", "White keys"), __all: tr("全部", "All"), __basic: tr("入門", "Basic"), __triads: tr("三和弦", "Triads"), __sevenths: tr("七和弦", "7ths") });
 /* 練習選項(各分頁共用,存在 S.auto / S.adaptive;以前放在題目卡下面佔一整列) */
 const OPTS = () => ["opts", tr("選項", "Options"), [["auto", tr("答對自動下一題", "Auto next")], ["adaptive", tr("加強弱項", "Focus weak")]], "toggle"];
+// 新增選項時也要加進 js/ear/store.js 的 CHOICES(還原 / 讀取時不在表裡的值會被重設成預設)
 const PICKERS = {
   note: p => [
     ["preset", tr("常用", "Common"), Object.keys(PRESETS.note).map(k => [k, PRESET_NAME()[k]])],

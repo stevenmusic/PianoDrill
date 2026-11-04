@@ -917,6 +917,7 @@ $('bpmReset').addEventListener('click', () => { if (current && current.score) se
 const HAND_NAME = { right: () => tr('右手', 'RH'), left: () => tr('左手', 'LH') };
 function rangeText(st = stageNow(), h = hand) {
   const full = st.n === 4;
+  if (h !== 'both' && !HAND_NAME[h]) return '';   // 認音(hand = 'read')沒有範圍階段;換語言時 renderSummary 也會呼叫
   if (h === 'both') return full ? tr('雙手 全範圍', 'Hands together · full range') : `${HAND_NAME.right()} ${rangeLabel(st.rh)} · ${HAND_NAME.left()} ${rangeLabel(st.lh)}`;
   return `${HAND_NAME[h]()} ${full ? tr('全範圍', 'full range') + ' ' : ''}${rangeLabel(h === 'right' ? st.rh : st.lh)}`;
 }

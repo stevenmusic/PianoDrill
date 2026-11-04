@@ -438,6 +438,8 @@ try { const { default: routescheck } = await import("./checks/routes.mjs"); cons
 
 // 練習紀錄備份(js/shared/backup.js;兩個 App 同一份):往返、壞檔、別的 App、惡意 key、太大、寫入失敗還原(checks/backup.mjs)
 try { const { default: bakcheck } = await import("./checks/backup.mjs"); const before = fails; bakcheck(ok); console.log(fails === before ? "練習紀錄備份 ✓" : "練習紀錄備份 ✗"); } catch (e) { fail("練習紀錄備份檢查出錯:" + e.stack); }
+// 本週摘要(js/shared/digest.js;兩個 App 同一份):0 天、有資料、中英、單複數、過關最多 5 個(checks/digest.mjs)
+try { const { default: dgcheck } = await import("./checks/digest.mjs"); const before = fails; dgcheck(ok); console.log(fails === before ? "本週摘要 ✓" : "本週摘要 ✗"); } catch (e) { fail("本週摘要檢查出錯:" + e.stack); }
 
 // 版本指紋(快取):index.html 裡的 ?v= 要跟檔案內容一致
 {

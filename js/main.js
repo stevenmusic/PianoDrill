@@ -11,6 +11,7 @@
 import { tr, T, applyStatic, setLang, getLang, onLang } from "./shared/i18n.js";
 import * as audio from "./shared/audio.js";
 import { exportAll, validate, importAll, MAX_BYTES } from "./shared/backup.js";
+import { build as buildDigest } from "./shared/digest.js";
 import { dayKey } from "./shared/practicelog.js";
 import * as tech from "./tech/app.js";
 import * as sight from "./sight/app.js";
@@ -62,6 +63,22 @@ const SUB_LABEL = () => ({ tech: tr("技巧項目", "Technique"), sight: tr("讀
 const appCtx = async () => ({});
 /* 頁尾「備份紀錄」(js/shared/backup.js):備份檔的 App 名、localStorage 的前綴(pianodrill.*)與語言 key(js/shared/i18n.js 的 LANG_KEY);name = 檔名開頭 */
 const BACKUP = { app: "pianodrill", name: "PianoDrill", prefix: "pianodrill.", langKey: "pianodrill-lang" };
+/* 頁尾「分享本週摘要」(js/shared/digest.js)要的資料:三個分頁的練習紀錄(各模組 localStorage 的 log)+ 這幾天今日練習過了的關卡名稱(技巧的 daily.lv[…].passed)。
+   同步讀(分享面板要在點擊的當下打開);關卡名稱用 js/tech/routes.js(技巧模組本來就載入了) */
+let digestRoutes = [];
+import("./tech/routes.js").then(m => { digestRoutes = m.ROUTES || []; }).catch(() => {});
+function digestData(days){
+  const read = k => { try { const o = JSON.parse(localStorage.getItem(k) || "null"); return o && typeof o === "object" ? o : {}; } catch (e) { return {}; } };
+  const tech = read("pianodrill.tech.v1"), sight = read("pianodrill.sight.v1"), ear = read("pianodrill.ear.v1");
+  const lv = tech.daily && typeof tech.daily.lv === "object" && tech.daily.lv ? tech.daily.lv : {};
+  const passed = Object.entries(lv).filter(([, e]) => e && days.includes(e.passed)).sort((a, b) => (a[1].passed < b[1].passed ? -1 : 1));
+  const daily = [];
+  for (const [k] of passed) {
+    const [r, id] = k.split("/"), R = digestRoutes.find(x => x.id === r), L = R && R.levels.find(l => l.id === id);
+    if (L && L.name) daily.push(L.name);
+  }
+  return { mods: { tech: tech.log, sight: sight.log, ear: ear.log }, daily };
+}
 // @app-end
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
 const GRADES = [0, 1, 2, 3, 4, 5, 6, 7, 8];
@@ -446,6 +463,24 @@ $("bakFile").onchange = async () => {
   toBackground();   // 目前的模組停止播放與計時、存好現在的;之後切到背景 / 重新整理不會再存一次(inBackground)
   if (importAll(localStorage, obj, BAK_OPT)) { toForeground(); bakMsg(T("bak.err_write")); return; }
   location.reload();
+};
+
+/* ══ 頁尾:分享本週摘要(兩個 App 一樣;js/shared/digest.js)══
+   給家長 / 老師的幾行純文字(最近 7 天):App 版用 Capacitor 的 Share 外掛、網頁版 navigator.share;都不能用就複製,旁邊寫「已複製」2 秒 */
+let digestTimer = 0;
+const digestMsg = t => { $("digestMsg").textContent = t || ""; clearTimeout(digestTimer); if (t) digestTimer = setTimeout(() => { $("digestMsg").textContent = ""; }, 2000); };
+$("digestLink").onclick = async () => {
+  const days = [];
+  for (let i = 6; i >= 0; i--) { const d = new Date(); d.setDate(d.getDate() - i); days.push(dayKey(d)); }
+  const text = buildDigest({ app: BACKUP.name, days, ...digestData(days), lang: getLang() });
+  const cancelled = e => e && (e.name === "AbortError" || /cancel/i.test(e.message || ""));
+  const SH = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Share;
+  try {
+    if (SH) { await SH.share({ text }); return; }
+    if (navigator.share) { await navigator.share({ text }); return; }
+  } catch (e) { if (cancelled(e)) return; }   // 其他錯誤(不准分享):改成複製
+  try { await navigator.clipboard.writeText(text); digestMsg(T("digest.copied")); }
+  catch (e) { digestMsg(T("digest.fail")); }
 };
 
 /* ── 啟動 ── */

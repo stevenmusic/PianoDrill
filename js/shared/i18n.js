@@ -90,6 +90,11 @@ addStrings("bak", {
   err_write: ["存不進去(裝置空間可能不夠),原本的紀錄沒有動", "Couldn't restore (the device may be full). Your history is unchanged."],
   err_save: ["沒有存成功,請再試一次", "Couldn't save. Please try again."]
 });
+/* 本週摘要(頁尾「分享本週摘要」;內文在 js/shared/digest.js(純函式,自己帶中英);兩個 App 一樣):分享不了就複製,旁邊寫「已複製」2 秒 */
+addStrings("digest", {
+  link: ["分享本週摘要", "Share week"],
+  copied: ["已複製", "Copied"], fail: ["沒辦法分享", "Couldn't share"]
+});
 export const T = key => (STR[key] ? STR[key][LANG === "en" ? 1 : 0] : key);
 export const scoped = ns => key => (STR[ns + "." + key] ? T(ns + "." + key) : T(key));
 

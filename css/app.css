@@ -1082,3 +1082,6 @@ footer .bak-btns{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
 footer .bak-btns .btn{flex:1 1 10em;height:auto;min-height:44px;white-space:normal;line-height:1.25;text-align:center}
 footer .bak-msg{margin-top:6px}
 footer .bak-msg:empty{display:none}
+/* 頁尾「分享本週摘要」不能分享時複製,旁邊寫「已複製」2 秒(main.js 共用部分) */
+footer .foot-note{margin-left:8px;color:var(--gold);white-space:nowrap}
+footer .foot-note:empty{display:none}

@@ -80,7 +80,7 @@ export function cleanDaily(raw, routes, today = null){
   // 看過「為什麼練這個」的組(「路線/組」;dailycard 只在這一組第一次出現時寫那一句)
   d.why = Array.isArray(src.why) ? [...new Set(src.why.filter(k => typeof k === "string" && routes.some(R => R.levels.some(l => k === R.id + "/" + l.g))))] : [];
   // 里程碑稱讚(milestone.js):看過的 id(只留字串、不重複、最多 30 個)+ 今天顯示的那一句(msDay = { date, id };同一天重畫照樣顯示)
-  d.ms = Array.isArray(src.ms) ? [...new Set(src.ms.filter(k => typeof k === "string" && k.length > 0 && k.length <= 24))].slice(-30) : [];
+  d.ms = Array.isArray(src.ms) ? [...new Set(src.ms.filter(k => typeof k === "string" && /^[a-z]\d{1,4}$/.test(k)))].slice(-30) : [];
   const md = src.msDay;
   d.msDay = md && typeof md === "object" && !Array.isArray(md) && isDay(md.date) && typeof md.id === "string" && d.ms.includes(md.id) ? { date: md.date, id: md.id } : null;
   for (const R of routes) {

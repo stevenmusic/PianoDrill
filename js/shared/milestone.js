@@ -10,10 +10,10 @@ export const MILESTONES = [
   { id: "s14", k: "streak", n: 14, zh: "連續練 14 天,越練越順手!", en: "14 days in a row: it's getting easier!" },
   { id: "s30", k: "streak", n: 30, zh: "連續練 30 天,練習成了習慣!", en: "30 days in a row: practice is a habit!" },
   { id: "s100", k: "streak", n: 100, zh: "連續練 100 天,好有毅力!", en: "100 days in a row: real dedication!" },
-  { id: "p5", k: "passed", n: 5, zh: "過了 5 關,一步一步來!", en: "5 levels passed: one step at a time!" },
-  { id: "p10", k: "passed", n: 10, zh: "過了 10 關,基本功越來越穩!", en: "10 levels passed: your basics are solid!" },
-  { id: "p20", k: "passed", n: 20, zh: "過了 20 關,會的越來越多!", en: "20 levels passed: you can do so much!" },
-  { id: "p30", k: "passed", n: 30, zh: "過了 30 關,慢慢練真的有用!", en: "30 levels passed: slow practice works!" }
+  { id: "p5", k: "passed", n: 5, zh: "累計 5 關,一步一步來!", en: "5 levels in all: step by step!" },
+  { id: "p10", k: "passed", n: 10, zh: "累計 10 關,基本功越來越穩!", en: "10 levels in all: solid basics!" },
+  { id: "p20", k: "passed", n: 20, zh: "累計 20 關,會的越來越多!", en: "20 levels in all: you know so much now!" },
+  { id: "p30", k: "passed", n: 30, zh: "累計 30 關,慢慢練真的有用!", en: "30 levels in all: slow practice works!" }
 ];
 export const MS_IDS = MILESTONES.map(m => m.id);
 const num = v => (typeof v === "number" && Number.isFinite(v) && v > 0 ? Math.floor(v) : 0);

@@ -189,8 +189,10 @@ for (const [from, to] of [["zh", "en"], ["en", "zh"]]) {
     return out;
   };
   const got = await run("zh", true), want = await run("en", false);
-  if (!/Block/.test(got[0].tags) || !/Harmonic/.test(got[1].tags)) fail(`練習分頁:回來後標籤沒換成英文:${got[0].tags} / ${got[1].tags}`);
-  if (same("切到別分頁換語言再回來", got, want)) ok(`切到別分頁換語言再回來:和弦「${got[0].tags}」「${got[0].feedback}」、音程「${got[1].tags}」,跟直接載入一致`);
+  // 標籤只留題目卡獨有的(設定列已經寫的彈法、方向不寫),這裡可能是空的 → 看一定有字的標題與狀態那句
+  const zh = x => !x.title || !x.feedback || /[\u3400-\u9fff]/.test(x.title + x.feedback);
+  if (zh(got[0]) || zh(got[1])) fail(`練習分頁:回來後標題 / 狀態沒換成英文:${got[0].title}「${got[0].feedback}」 / ${got[1].title}「${got[1].feedback}」`);
+  if (same("切到別分頁換語言再回來", got, want)) ok(`切到別分頁換語言再回來:和弦 ${got[0].title}「${got[0].feedback}」、音程 ${got[1].title}「${got[1].feedback}」,跟直接載入一致`);
 }
 
 // 7. 拍子題的提示

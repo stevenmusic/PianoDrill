@@ -275,7 +275,7 @@ FingerDrill(技巧)、SightDrill(視奏)、EarDrill(聽音)三個工具合併成
   預設跟原本 px 一樣,內文最多 2 倍、控制項最多 1.3 倍;新的字級用 `var(--fs-…)`,控制項高度用 `min-height`、放不下換行不截字);小字對比 ≥ 4.5:1(深淺兩種主題);
   外框(main.js 共用部分)的分頁列 tablist / tab + `<main>` tabpanel、方向鍵換分頁、第一次的問題焦點管理與 Esc、子項目分段鈕的群組名稱(@app 的 `SUB_LABEL`);
   `layout.mjs` 有「字級 200%」的狀態。DrumDrill 另外有鼓譜的文字說明與 `#srLive` 播報區(`js/shared/a11y.js`、`tools/test/a11y.mjs`)
-- 快取:改了 css/js/data 一定要跑 `node tools/build/stamp.mjs`(index.html 的 importmap 與 ?v= 版本指紋;verify 會檢查),不然手機會拿到新舊混雜的檔案
+- 快取:改了 css/js/data **或任何 html**(privacy.html、licenses.html 也在 sw.js 預快取清單;2026-11 漏跑讓 CI 失敗)一定要跑 `node tools/build/stamp.mjs`;**每次 push 前一定跑 `DRUMDRILL=/home/user/drumdrill node tools/test/verify.mjs`**(index.html 的 importmap 與 ?v= 版本指紋;verify 會檢查),不然手機會拿到新舊混雜的檔案
 
 ## 工作方式(省 token)
 - 改好、測試沒問題就直接 push 到 main(使用者要求,不用另開分支)

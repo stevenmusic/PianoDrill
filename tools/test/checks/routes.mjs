@@ -67,7 +67,7 @@ export default function check(ok, FG){
   }
   for (const W of Object.values(WARM_LEVELS)) for (const key of ["C", "G", "F", "a"]) {
     const q = { ...W.q, rkey: key, sub: 2 };
-    try { const ex = buildExercise(FG, q); checkEx(ok, ex, q, W, `暖身 ${W.id} ${key}`); n++; ok(Math.min(...["rh", "lh"].flatMap(h => ex[h].filter(x => !x.rest).map(x => x.dur))) >= (W.id === "w5s" || W.id === "w5q" ? 12 : 6), `暖身 ${W.id}:初學從四分音符`); }
+    try { const ex = buildExercise(FG, q); checkEx(ok, ex, q, W, `暖身 ${W.id} ${key}`); n++; ok(Math.min(...["rh", "lh"].flatMap(h => ex[h].filter(x => !x.rest).map(x => x.dur))) >= (/^w5[sq]/.test(W.id) ? 12 : 6), `暖身 ${W.id}:初學從四分音符`); }
     catch (e) { ok(false, `暖身 ${W.id} ${key}:${e.message}`); }
   }
   // 為什麼練這個(每一組一句):每組都有、中英都有、中文 ≤ 24 字(英數算半個)、英文 ≤ 64 字、沒有多出來的組
@@ -122,6 +122,27 @@ export default function check(ok, FG){
   ok(acc.unlock && acc.unlock.route === "finger" && acc.unlock.passed === "PA5", "伴奏:手指路線過了 PA5 才開放");
   const none = () => false, upTo = ids => (r, id) => ids.includes(id);
   ok(warmFor(none) === null && warmFor(upTo(["P02", "P01"])) === "w0" && warmFor(upTo(["P02", "P01", "PA1", "PA2"])) === "w5s" && warmFor(upTo(["PA4", "PA5", "PE3"])) === "wsc", "暖身只用已經過的關(第一天不排暖身)");
+  {
+    // 暖身換手(2026-11):不同天輪流 右 → 左 → 雙手;只出現學過的手(左手 = 過了 PA2);同一天同一個;手指號碼只有右手
+    const days = Array.from({ length: 60 }, (_, i) => new Date(Date.UTC(2026, 10, 1 + i)).toISOString().slice(0, 10));
+    const stages = [["P02", "P01"], ["P02", "P01", "PA1"], ["P02", "P01", "PA1", "PA2"], ["P02", "P01", "PA1", "PA2", "PA3", "PA4"], ["PA4"], ["P01", "PA2", "PA4", "PA5"], ["P01", "PA2", "PA4", "PA5", "PE3"], ["PA4", "PA5", "PE3"]];
+    const bad = [];
+    for (const ids of stages) {
+      const p = upTo(ids), base = warmFor(p), seen = new Set();
+      for (const d of days) {
+        const w = warmFor(p, d), W = WARM_LEVELS[w];
+        if (!W) { bad.push(`${ids.join(",")} ${d}:${w} 不存在`); continue; }
+        if (warmFor(p, d) !== w) bad.push(`${ids.join(",")} ${d}:同一天不一樣`);
+        if (W.hands === "LH" && !ids.includes("PA2")) bad.push(`${ids.join(",")} ${d}:沒學過左手卻排 ${w}`);
+        if (W.hands === "HT" && w !== base) bad.push(`${ids.join(",")} ${d}:雙手要是原本的 ${base}(${w})`);
+        if (base === "w0" && w !== "w0") bad.push(`${ids.join(",")} ${d}:手指號碼要照舊(${w})`);
+        seen.add(W.hands);
+      }
+      const want = base === "w0" ? ["RH"] : ids.includes("PA2") ? ["RH", "LH", "HT"] : ["RH", "HT"];
+      if (want.some(h => !seen.has(h)) || seen.size !== want.length) bad.push(`${ids.join(",")}:輪到的手 ${[...seen].join("/")}(應該 ${want.join("/")})`);
+    }
+    ok(!bad.length, "暖身換手:右 → 左 → 雙手輪流、只用學過的手、同一天同一個" + (bad.length ? "\n    " + bad.slice(0, 8).join("\n    ") : ""));
+  }
   {
     // 今日練習不看考試級數:暖身只照手指路線的進度(warmFor;不會比已經過的關難);app.js 的 warmItem 不讀考試
     const appSrc = fs.readFileSync(new URL("../../../js/tech/app.js", import.meta.url), "utf8");

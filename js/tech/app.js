@@ -1441,7 +1441,7 @@ const warmName = it => it.name || questionText(it.q)[0];   // 本級項目照題
 /* 暖身(今日練習不看考試級數;檢定頁才照級數):照手指路線的進度(routes.js 的 warmFor:五指兩手輪流 → 雙手四分 → 八分 → 一個八度音階),調 = 今天伴奏那一關的調;♩=60 */
 function warmItem(d, today){
   const passed = (r, id) => !!(d.lv[r + "/" + id] && d.lv[r + "/" + id].passed);
-  const wid = warmFor(passed); if (!wid) return null;   // 一關都還沒過(第一天):不排暖身,直接從第 0 組開始
+  const wid = warmFor(passed, today); if (!wid) return null;   // today:不同天輪流換手(右 → 左 → 雙手;只用學過的手)   // 一關都還沒過(第一天):不排暖身,直接從第 0 組開始
   const w = WARM_LEVELS[wid];
   // 調 = 今天伴奏那一關的調,但只用學過的調(還沒學過 → C)
   const acc = d.prog.accomp && findLevel({ r: "accomp", id: d.prog.accomp.at }), k0 = (acc && acc.key) || "C", key = keyLearned(k0, passed) ? k0 : "C";

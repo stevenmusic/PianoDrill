@@ -77,6 +77,8 @@ addStrings("daily", {
   done: ["練完 {s} · {t}{p}。今天到這裡就好", "Done: {s} · {t}{p}. That's enough for today"], passedN: [" · 過了 {n} 關", " · {n} passed"],
   parts: ["{n} 段", "{n} parts"], part1: ["{n} 段", "{n} part"], min: ["{n} 分鐘", "{n} min"], sec: ["{n} 秒", "{n} s"],
   none: ["今天還沒練到", "Nothing practiced today"],
+  // 沒過關但速度有升(升最多的那一關;{a} 今天第一次、{b} 今天最快、{t} 目標):不寫「還差幾格」
+  climb: ["今天速度 {a} → {b},離目標 {t} 再加油", "Tempo today {a} → {b} — keep going toward {t}"], climbTop: ["今天速度 {a} → {b},到目標速度了!", "Tempo today {a} → {b} — target tempo reached!"],
   week: ["最近 7 天練了 {d} 天", "Practiced {d} of the last 7 days"], tomorrow: ["明天:{list}", "Tomorrow: {list}"],
   opened: ["新路線開放了:{r}!", "New route unlocked: {r}!"],
   more: ["再練一下", "Practice a bit more"]

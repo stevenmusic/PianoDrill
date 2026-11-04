@@ -252,12 +252,28 @@ export const WARM_LEVELS = {
   w5s: { id: "w5s", name: C("五指位置(兩手輪流)", "five fingers, hands in turn"), hands: "HT", value: "q", rh: "1 2 3 4 | 5 4 3 2 | R | R", lh: "R | R | 5 4 3 2 | 1 2 3 4" },
   w5q: { id: "w5q", name: C("五指位置", "five fingers"), hands: "HT", value: "q", rh: "1 2 3 4 | 5 4 3 2", lh: "5 4 3 2 | 1 2 3 4" },
   w5e: { id: "w5e", name: C("五指位置", "five fingers"), hands: "HT", value: "e", rh: x2("1 2 3 4 5 4 3 2"), lh: x2("5 4 3 2 1 2 3 4") },
-  wsc: { id: "wsc", name: C("音階 1 個八度", "scale, one octave"), hands: "HT", scale: true }
+  wsc: { id: "wsc", name: C("音階 1 個八度", "scale, one octave"), hands: "HT", scale: true },
+  // 換手(warmFor 的 day):同一個暖身只彈一隻手(五指位置的單手 = 四分;兩手輪流 w5s 的單手也用 w5q 的)
+  w5qR: { id: "w5qR", name: C("五指位置(右手)", "five fingers, right"), hands: "RH", value: "q", rh: "1 2 3 4 | 5 4 3 2" },
+  w5qL: { id: "w5qL", name: C("五指位置(左手)", "five fingers, left"), hands: "LH", value: "q", lh: "5 4 3 2 | 1 2 3 4" },
+  w5eR: { id: "w5eR", name: C("五指位置(右手)", "five fingers, right"), hands: "RH", value: "e", rh: x2("1 2 3 4 5 4 3 2") },
+  w5eL: { id: "w5eL", name: C("五指位置(左手)", "five fingers, left"), hands: "LH", value: "e", lh: x2("5 4 3 2 1 2 3 4") },
+  wscR: { id: "wscR", name: C("音階 1 個八度(右手)", "scale, one octave, right"), hands: "RH", scale: true },
+  wscL: { id: "wscL", name: C("音階 1 個八度(左手)", "scale, one octave, left"), hands: "LH", scale: true }
 };
 for (const W of Object.values(WARM_LEVELS)) W.q = { type: "route", warm: W.id, hands: W.hands };
-/* 暖身只用已經過的關(系統化規則:不能等於目前或下一關);一關都還沒過(第一天)= 不排暖身,直接從第 0 組開始 */
-export function warmFor(passed){
-  return passed("finger", "PE3") ? "wsc" : passed("finger", "PA5") ? "w5e" : passed("finger", "PA4") ? "w5q" : passed("finger", "PA2") ? "w5s" : passed("finger", "P01") ? "w0" : null;
+/* 暖身換手:原本的暖身 → { 右手, 左手 } 的版本(雙手 = 原本那一個) */
+const WARM_HAND = { w5s: { RH: "w5qR", LH: "w5qL" }, w5q: { RH: "w5qR", LH: "w5qL" }, w5e: { RH: "w5eR", LH: "w5eL" }, wsc: { RH: "wscR", LH: "wscL" } };
+/* 暖身只用已經過的關(系統化規則:不能等於目前或下一關);一關都還沒過(第一天)= 不排暖身,直接從第 0 組開始。
+   day(YYYY-MM-DD)= 換手(2026-11):不同天輪流 右手 → 左手 → 雙手(同一天同一個);只用學過的手(右手 = 過了 P01、左手 = 過了 PA2、雙手 = 原本那一個暖身);
+   手指號碼(w0)只有右手,照舊。沒給 day = 原本那一個 */
+export function warmFor(passed, day = null){
+  const wid = passed("finger", "PE3") ? "wsc" : passed("finger", "PA5") ? "w5e" : passed("finger", "PA4") ? "w5q" : passed("finger", "PA2") ? "w5s" : passed("finger", "P01") ? "w0" : null;
+  const v = WARM_HAND[wid], dn = typeof day === "string" && /^\d{4}-\d{2}-\d{2}$/.test(day) ? Math.round(Date.UTC(+day.slice(0, 4), +day.slice(5, 7) - 1, +day.slice(8, 10)) / 864e5) : NaN;
+  if (!v || !Number.isFinite(dn)) return wid;
+  const hands = ["RH", passed("finger", "PA2") ? "LH" : null, "HT"].filter(Boolean);
+  const h = hands[((dn % hands.length) + hands.length) % hands.length];
+  return h === "HT" ? wid : v[h];
 }
 export const KEYS = KEY_NAME;
 export function findLevel(q){

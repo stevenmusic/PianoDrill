@@ -21,6 +21,7 @@
      暖身 = extras.warm 給的項目(不過關、只記時間;各 App 只挑已經過的關或別種技能,沒有就不排暖身)
    - 還沒開放的路線(unlock = { route, passed: 關卡 id })不算一段,它的秒數加到第一條路線那一段;卡片另外寫一行什麼時候開放
    - 每段預計秒數 SEG_SEC(只算真的在練的時間);到了只提示,不強制換段;一段裡過了關、還剩 CONT_SEC 秒以上 → 直接接下一關
+   - 今天的速度進步(練完卡沒過關的那天寫「今天速度 60 → 72」):today.tempo = { 「路線/關」: [今天第一次的速度, 今天最快的速度] }(只記學的段落,複習不算;隔天重置)
    - 隔 WELCOME_DAYS(7)天以上回來:每條路線目前那一關從起始速度開始(關卡、複習盒都不變:沒練的日子不扣分)
    ── 拍點模式(clickPlays)── every 每拍、two-four 只響 2、4 拍(鼓)、one-three 只響 1、3 拍(鋼琴)、one 只響每小節第 1 拍、gap 中途消失 2 小節再回來 */
 export const DAILY_V = 1;
@@ -117,7 +118,13 @@ export function cleanDaily(raw, routes, today = null){
       const arr = (a, lo, hi) => plan.map((_, i) => int(Array.isArray(a) ? a[i] : 0, lo, hi, 0));
       d.today = { date: t.date, plan, i: int(t.i, 0, plan.length, 0), done: arr(t.done, 0, 2), sec: arr(t.sec, 0, 86400),
         started: t.started === true, passed: Array.isArray(t.passed) ? t.passed.filter(k => typeof k === "string" && findLevel(routes, ...k.split("/"))) : [],
-        extra: int(t.extra, 0, 20, 0), welcome: t.welcome === true, tries: arr(t.tries, 0, 1e4) };
+        extra: int(t.extra, 0, 20, 0), welcome: t.welcome === true, tries: arr(t.tries, 0, 1e4), tempo: {} };
+      // 今天的速度進步:{ 「路線/關」: [今天第一次的速度, 今天最快的速度] }
+      if (t.tempo && typeof t.tempo === "object" && !Array.isArray(t.tempo)) for (const [k, v] of Object.entries(t.tempo)) {
+        if (!findLevel(routes, ...k.split("/")) || !Array.isArray(v)) continue;
+        const a = int(v[0], MIN_BPM, MAX_BPM, null), b = int(v[1], MIN_BPM, MAX_BPM, null);
+        if (a != null && b != null) d.today.tempo[k] = [a, Math.max(a, b)];
+      }
     }
   }
   return d;
@@ -176,7 +183,7 @@ export function createDaily({ routes, load = () => null, save = () => {}, now = 
       if (e) { delete e.bpm; e.streak = 0; e.unsteady = 0; e.same = 0; }
     }
     const plan = buildPlan({ routes, daily: d, today: t, extras });
-    d.today = { date: t, plan, i: 0, done: plan.map(() => 0), sec: plan.map(() => 0), tries: plan.map(() => 0), started: false, passed: [], extra: 0, welcome };
+    d.today = { date: t, plan, i: 0, done: plan.map(() => 0), sec: plan.map(() => 0), tries: plan.map(() => 0), started: false, passed: [], extra: 0, welcome, tempo: {} };
     put();
     return d.today;
   }
@@ -250,6 +257,7 @@ export function createDaily({ routes, load = () => null, save = () => {}, now = 
     }
     const need = cfg(R, L, "need", NEED);
     e.tries++;
+    const tp = (t.tempo || (t.tempo = {}))[k] || (t.tempo[k] = [bpm, bpm]); tp[1] = Math.max(tp[1], bpm);   // 今天的速度進步
     let next = bpm;
     if (steady) {
       e.unsteady = 0; e.same = 0; e.best = Math.max(e.best || 0, bpm);
@@ -325,7 +333,16 @@ export function createDaily({ routes, load = () => null, save = () => {}, now = 
   }
   /* 還沒開放的路線:{ route, after: 要先過的那一關 } */
   const locked = () => routes.filter(R => !isOpen(R, d, routes)).map(R => ({ route: R, after: levelOf(R.unlock.route, R.unlock.passed) }));
-  /* 完成畫面:段數、秒數、今天過了幾關、最近 7 天練了幾天(log = 模組的練習紀錄)、明天要練的 */
+  /* 今天速度升最多的那一關(學的段落;沒有升 = null):{ level, from, to, target } */
+  function climb(){
+    const t = ensure(); let best = null;
+    for (const [k, [a, b]] of Object.entries(t.tempo || {})) {
+      const [r, id] = k.split("/"), L = levelOf(r, id);
+      if (L && b > a && (!best || b - a > best.to - best.from)) best = { level: L, from: a, to: b, target: L.target };
+    }
+    return best;
+  }
+  /* 完成畫面:段數、秒數、今天過了幾關、最近 7 天練了幾天(log = 模組的練習紀錄)、明天要練的、今天速度升最多的那一關(climb) */
   function summary(log = {}){
     const t = ensure(), today = t.date;
     let week = 0;
@@ -333,7 +350,7 @@ export function createDaily({ routes, load = () => null, save = () => {}, now = 
     const tomorrow = routes.filter(R => isOpen(R, d, routes) && !d.prog[R.id].done).map(R => levelOf(R.id, d.prog[R.id].at));
     const rv = pickReview(d, addDays(today, 1), routes);
     return { segs: t.done.filter(x => x === 1).length, sec: t.sec.reduce((a, b) => a + b, 0), passed: t.passed.length, week,
-      tomorrow, review: rv ? levelOf(rv.r, rv.lv) : null };
+      tomorrow, review: rv ? levelOf(rv.r, rv.lv) : null, climb: climb() };
   }
   const minutes = () => { const t = ensure(); let s = 0; t.plan.forEach((p, i) => { if (!t.done[i]) s += Math.max(0, p.sec - t.sec[i]); }); return Math.max(1, Math.round(s / 60)); };
   /* 「為什麼練這個」(每一組一句):看過的組記下來(key = 「路線/組」),之後不再寫 */

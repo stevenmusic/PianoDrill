@@ -19,7 +19,7 @@ for (const vp of only) {
     const out = [], R = window.__tech.daily.levelOf(r, r === "finger" ? "PA1" : "AA1").route;
     for (const L of R.levels) out.push([r, L.id, L.vary.length]);
     return out;
-  }).concat(["w5s", "w5q", "w5e", "wsc"].flatMap(id => ["C", "G", "F"].map(k => ["warm", id + ":" + k, 0]))));
+  }).concat(["w5s", "w5q", "w5e", "wsc", "w5qR", "w5qL", "w5eR", "w5eL", "wscR", "wscL"].flatMap(id => ["C", "G", "F"].map(k => ["warm", id + ":" + k, 0]))));
   const fails = [];
   for (const [r, id, nv] of list) {
     const boxes = r === "warm" ? [0] : full.has(vp) ? [0, ...Array.from({ length: nv }, (_, i) => i + 1)] : [0, 4];
@@ -29,7 +29,7 @@ for (const vp of only) {
         const T = window.__tech, L = r === "warm" ? null : T.daily.levelOf(r, id);
         const v = box ? L.vary[box - 1] : null;
         const [wid, wk] = id.split(":");
-        const s = r === "warm" ? { k: "warm", item: { q: { type: "route", warm: wid, hands: "HT", rkey: wk }, name: ["暖身", "Warm-up"], bpm: 60 }, i: 0, of: 3, tries: 0 } : box ? { k: "review", r, lv: id, level: L, vary: v, bpm: L.target, click: v.click || "every", i: 1, of: 3, tries: 0 }
+        const s = r === "warm" ? { k: "warm", item: { q: { type: "route", warm: wid, hands: /R$/.test(wid) ? "RH" : /L$/.test(wid) ? "LH" : "HT", rkey: wk }, name: ["暖身", "Warm-up"], bpm: 60 }, i: 0, of: 3, tries: 0 } : box ? { k: "review", r, lv: id, level: L, vary: v, bpm: L.target, click: v.click || "every", i: 1, of: 3, tries: 0 }
           : { k: "route", r, lv: id, level: L, bpm: L.start, target: L.target, need: 3, click: "every", i: 1, of: 3, tries: 0, streak: 0 };
         const k0 = window.__scoreReady || 0; T.dShow(s);
         for (let i = 0; i < 200 && (window.__scoreReady || 0) === k0; i++) await new Promise(r => setTimeout(r, 25));

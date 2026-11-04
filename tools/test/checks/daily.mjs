@@ -191,6 +191,17 @@ export default function check(ok){
   const m = mk(null, {}); m.d.begin(); m.d.attempt({ bpm: 60, self: "ok" });
   const again = createDaily({ routes: ROUTES, load: () => m.store, now });
   ok(again.bpmFor("a", "A1") === 63 && again.state() === "run" && again.seg().lv === "A1", "存檔 → 讀回來接著練");
+  // 今天的速度進步(練完卡沒過關那天的進步句):今天第一次 → 今天最快,升最多的那一關;存回去讀得回來;消毒;隔天重置
+  ok(m.d.summary().climb === null, "速度進步:60 穩一次還沒彈過 63 → 沒有升");
+  m.d.attempt({ bpm: 63, self: "ok" }); m.d.attempt({ bpm: 66, self: "again" });
+  const cl = m.d.summary().climb;
+  ok(cl && cl.level.id === "A1" && cl.from === 60 && cl.to === 66 && cl.target === 69, "速度進步:今天 60 → 66(目標 69):" + JSON.stringify(cl && { id: cl.level.id, from: cl.from, to: cl.to }));
+  const ccl = createDaily({ routes: ROUTES, load: () => m.store, now }).summary().climb;
+  ok(ccl && ccl.from === 60 && ccl.to === 66, "速度進步:存檔讀回來一樣");
+  const ct = cleanDaily({ today: { date: "2026-10-19", plan: [{ k: "route", r: "a", lv: "A1" }], tempo: { "a/A1": [60, 999], "a/A2": [70, 50], "q/Q1": [60, 66], "a/A3": "x" } } }, ROUTES, "2026-10-19").today.tempo;
+  ok(eq(ct, { "a/A1": [60, 300], "a/A2": [70, 70] }), "速度進步:消毒(數字夾住、最快不低於第一次、未知關丟掉):" + JSON.stringify(ct));
+  ok(eq(cleanDaily({ today: { date: "2026-10-19", plan: [{ k: "warm" }], tempo: 5 } }, ROUTES, "2026-10-19").today.tempo, {}), "速度進步:亂資料 → 空的");
+  { const c0 = clock; clock = new Date(2026, 9, 20, 9, 0); ok(createDaily({ routes: ROUTES, load: () => m.store, now }).summary().climb === null, "速度進步:隔天重置"); clock = c0; }
   ok(dayNum("2026-10-20") - dayNum("2026-10-19") === 1 && addDays("2026-12-31", 1) === "2027-01-01" && addDays("2026-03-01", -1) === "2026-02-28", "日期換算");
   ok(REVIEW_GAPS.join() === "1,3,7,14,30", "複習間隔 1、3、7、14、30 天");
   // 節拍器刻度:往上 / 往下一格;不在刻度上的速度、刻度以外

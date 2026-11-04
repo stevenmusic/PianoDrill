@@ -12,7 +12,7 @@
 const APP = "pianodrill";
 // @app-end
 /*@precache-begin*/
-const CACHE = APP + "-app-905b9053";
+const CACHE = APP + "-app-b7215598";
 const PRECACHE = [
   "./",
   "manifest.webmanifest",

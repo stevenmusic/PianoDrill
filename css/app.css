@@ -166,7 +166,7 @@ main{
 .field{display:flex;flex-direction:column;gap:4px;min-width:0}
 .field.wide{grid-column:span 2}
 .field.full{grid-column:1 / -1}
-.field label,.field .lbl{font-size:var(--fs-2xs);color:var(--muted-bright);letter-spacing:.04em}
+.field label,.field .lbl{font-size:var(--fs-xs);color:var(--muted-bright);letter-spacing:.04em}
 .field select{
   width:100%;min-width:0;height:36px;border:1px solid var(--line);border-radius:var(--radius-sm);
   background:var(--surface-inset);color:var(--ivory);font-family:inherit;font-size:var(--fs-md);padding:0 10px;
@@ -257,7 +257,7 @@ main{
 /* ▶ 下面一行小字寫它是什麼(示範 / 題目 / 正確版本 / 示範 + 拍點;模組設 data-cap):不佔寬度,下面留出一行 */
 .play-round[data-cap]{margin-bottom:18px}
 .play-round[data-cap]::after{content:attr(data-cap);position:absolute;top:calc(100% + 7px);left:50%;transform:translateX(-50%);white-space:nowrap;
-  font-size:var(--fs-2xs);font-weight:500;line-height:1.2;color:var(--muted-bright);pointer-events:none}
+  font-size:min(var(--fs-xs), 15px);font-weight:500;line-height:1.2;color:var(--muted-bright);pointer-events:none}
 .play-round .play-ring{position:absolute;inset:-6px;width:calc(100% + 12px);height:calc(100% + 12px);fill:none;transform:rotate(-90deg);
   opacity:0;transition:opacity .2s;pointer-events:none}
 .play-round.busy .play-ring{opacity:1}
@@ -1134,3 +1134,4 @@ footer .foot-note:empty{display:none}
 @media (max-height:420px), (orientation:landscape) and (max-height:500px){
   #mod-tech .quiz .q-load,#mod-sight .quiz .q-load{grid-column:1 / -1;margin-top:0}
 }
+#obSystem button{min-height:44px}   /* 第一次打開最先按的系統鈕(2026-11 DrumDrill 健檢:原本 36) */

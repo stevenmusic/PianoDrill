@@ -92,7 +92,7 @@ addStrings("bak", {
 });
 /* 本週摘要(頁尾「分享本週摘要」;內文在 js/shared/digest.js(純函式,自己帶中英);兩個 App 一樣):分享不了就複製,旁邊寫「已複製」2 秒 */
 addStrings("digest", {
-  link: ["分享本週摘要", "Share week"],
+  link: ["分享本週摘要", "Share this week"],
   copied: ["已複製", "Copied"], fail: ["沒辦法分享", "Couldn't share"]
 });
 export const T = key => (STR[key] ? STR[key][LANG === "en" ? 1 : 0] : key);

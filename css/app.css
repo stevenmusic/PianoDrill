@@ -879,6 +879,7 @@ body.land-play #t-stage{flex:1;display:flex;flex-direction:column;justify-conten
 .quiz.hint-empty .quiz-top > :empty{display:none}
 .quiz.hint-empty :is(#t-drawBtn,#e-drawBtn){height:auto;min-height:44px;padding:0 16px}
 .quiz.hint-empty :is(#t-drawBtn,#e-drawBtn) .btn-label{display:inline !important}
+@media (max-width:300px){ .quiz.hint-empty .q-hint{flex-basis:100%} }   /* 折疊機:提示自己一行、按鈕在下一行右邊(中英一樣高;中文放得下、英文放不下會不一樣) */
 /* 「考試內容」:一張收起來的 details(一行),考試摘要、規格、推估說明、出處都收在這裡;practiceOnly 在最下面一次 */
 details.exam-info{order:20}
 details.exam-info > summary .sub{font-weight:500}
@@ -1076,7 +1077,7 @@ body.view-exam :is(#s-setup,#e-setup){order:19}
 @media (max-width:300px){ .q-last:has(> .mastery .mbtn:not([hidden])) > .q-actions:has(> button:not([hidden])){flex:1 1 100%} }
 
 /* 頁尾「備份紀錄」(js/shared/backup.js、main.js 共用部分;兩個 App 一樣):文字連結的樣子;點了在頁尾下面展開一小塊(不跳視窗),兩顆按鈕 ≥ 44、中英一樣高 */
-footer .foot-link{display:inline-flex;align-items:center;min-height:32px;padding:0;border:0;background:none;font:inherit;color:var(--muted-bright);text-decoration:underline;cursor:pointer}
+footer .foot-link{display:inline-flex;align-items:center;min-height:44px;padding:0;border:0;background:none;font:inherit;color:var(--muted-bright);text-decoration:underline;cursor:pointer}
 footer .bak{margin-top:4px;padding:10px 0 4px;border-top:1px solid var(--line);font-size:var(--fs-sm);color:var(--muted-bright)}
 footer .bak-btns{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
 footer .bak-btns .btn{flex:1 1 10em;height:auto;min-height:44px;white-space:normal;line-height:1.25;text-align:center}

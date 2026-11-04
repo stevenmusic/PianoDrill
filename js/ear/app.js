@@ -224,7 +224,7 @@ function showMockText(){
     `<div><b>${d.test.id}</b><span>${drillName(d.drill.type)}</span><i class="${m.res[i] ? "ok" : "no"}">${m.res[i] ? "✓" : "✗"}</i></div>`).join("") + `</div>`;
   const fb = $("feedback");
   fb.className = "feedback " + (ok === m.queue.length ? "ok" : "");
-  fb.textContent = ok === m.queue.length ? tr("全部答對!", "All correct!") : tr("錯的可以點下面再練", "Tap a missed one below to practice it");
+  setFb(() => ok === m.queue.length ? tr("全部答對!", "All correct!") : tr("錯的可以點下面再練", "Tap a missed one below to practice it"));
 }
 /* 外框改了考試系統/級數(exam.auto = 還沒選考試,只是點進檢定分頁看看) */
 export function setExam(ex){
@@ -255,7 +255,7 @@ export function leave(){ active = false; stopPlayback(); }
 function showEmpty(){
   stopPlayback();
   cur = null; A = null; lastMock = null;
-  $("qTags").innerHTML = ""; $("stepQ").textContent = ""; $("answers").innerHTML = ""; $("feedback").textContent = ""; $("feedback").className = "feedback";
+  $("qTags").innerHTML = ""; $("stepQ").textContent = ""; $("answers").innerHTML = ""; setFb(null); $("feedback").className = "feedback";
   $("playBtn").disabled = true; $("nextBtn").disabled = true; $("revealBtn").hidden = true;
   $("playBtn").hidden = $("nextBtn").hidden = true;   // 還沒有題目:▶ 與「下一題」先不出現
   $("quizCard").classList.add("hint-empty");   // 本項卡:大標題「聽力」+ 標籤 n 項 + 一句;最下面一列 模擬考 | 隨機抽一題(app.css 的 .quiz.hint-empty)
@@ -341,7 +341,7 @@ function renderAnswers(){
     syncTap();
   }
   if (A.done) showResult();
-  else $("feedback").textContent = !A.played ? idleText() : A.hint ? A.hint() : "";
+  else setFb(!A.played ? idleText : A.hint);
 }
 /* 還沒聽題目時的狀態:第一次進來寫說明(INTRO),之後寫「先按 ▶ 聽題目」;單音題有參考音時兩句都先提「這是 C」 */
 function idleText(){
@@ -456,7 +456,7 @@ function syncTap(){
 $("answers").addEventListener("pointerdown", e => {
   const pad = e.target.closest("#e-tapPad"); if (!pad || !cur || !cur.tap || A.done) return;
   e.preventDefault();
-  if (!A.played) { $("feedback").textContent = tr("先按 ▶ 聽題目", "Press ▶ to listen"); return; }
+  if (!A.played) { setFb(() => tr("先按 ▶ 聽題目", "Press ▶ to listen")); return; }
   const now = audio.audioNow();
   // 拍出節奏:只算播完之後(回聲);跟著打拍子:只算播放中
   if (cur.tap.kind === "rhythm" && play && now < play.t0 + play.dur - 0.05) return;
@@ -504,10 +504,18 @@ function autoNext(q0){
 function showResult(){
   const fb = $("feedback");
   fb.className = "feedback " + (A.ok ? "ok" : "no");
-  const ans = cur.steps ? cur.steps.map(s => s.choices.find(c => c.id === s.answer).label).join(" → ") : "";
-  const extra = [A.tapRes && A.tapRes.msg, cur.reveal].filter(Boolean).join(" · ");
-  fb.textContent = (A.ok ? tr("✓ 對了", "✓ Right") : A.revealed ? tr("答案:", "Answer: ") + (ans || "") : tr("✗ 答案是 ", "✗ Answer: ") + (ans || ""))
-    + (extra ? (ans || A.ok ? " · " : "") + extra : "") + (A.done && cur.compare ? (S.tab === "note" ? tr("。點其他鍵聽聽看", ". Tap other keys to hear them") : tr("。點其他選項聽聽看", ". Tap other options to hear them")) : "");
+  setFb(() => {   // 標籤、答案名稱是 getter:pairText 用中文、英文各跑一次
+    const ans = cur.steps ? cur.steps.map(s => s.choices.find(c => c.id === s.answer).label).join(" → ") : "";
+    const extra = [A.tapRes && A.tapRes.msg, cur.reveal].filter(Boolean).join(" · ");
+    return (A.ok ? tr("✓ 對了", "✓ Right") : A.revealed ? tr("答案:", "Answer: ") + (ans || "") : tr("✗ 答案是 ", "✗ Answer: ") + (ans || ""))
+      + (extra ? (ans || A.ok ? " · " : "") + extra : "") + (A.done && cur.compare ? (S.tab === "note" ? tr("。點其他鍵聽聽看", ". Tap other keys to hear them") : tr("。點其他選項聽聽看", ". Tap other options to hear them")) : "");
+  });
+}
+/* 狀態那一句:中英一樣高(pairText;英文比較長多一行時,中文也保留那一行);fn = null 或空字串就清掉 */
+function setFb(fn){
+  const el = $("feedback");
+  if (!fn || !fn()) { unpair(el); el.textContent = ""; return; }
+  pairText(el, fn);
 }
 $("revealBtn").onclick = () => {
   if (!cur || A.done) return;
@@ -596,7 +604,7 @@ async function startPlayback(){
   if (cur.tap) { A.taps = []; syncTap(); A.tapStart = t0; A.tapEnd = t0 + cur.play.dur; }
   // 作答提示記成函式(A.hint),換語言、切走再回來時 renderAnswers 照目前的語言重寫
   A.hint = cur.tap && cur.tap.kind === "pulse" ? () => tr("跟著拍子按「拍」", "Tap along") : null;
-  if (!A.done) $("feedback").textContent = A.hint ? A.hint() : "";
+  if (!A.done) setFb(A.hint);
   $("playIcon").innerHTML = '<rect x="6" y="6" width="12" height="12" rx="1.5"/>';
   $("playLabel").textContent = T("stop");
   const tick = () => {
@@ -614,11 +622,11 @@ function stopPlayback(natural){
     // 跟著打拍子:播完就批改
     if (natural && cur && cur.tap && cur.tap.kind === "pulse" && !A.done) judgeTapNow();
     if (A) A.hint = null;   // 「跟著拍子按」只在播放中(手動停止就拿掉,不然留著過時的提示)
-    if (!natural && cur && A && !A.done) $("feedback").textContent = "";
+    if (!natural && cur && A && !A.done) setFb(null);
     if (natural && cur && cur.tap && cur.tap.kind === "rhythm" && !A.done) {
       const n = cur.tap.n;
       A.hint = () => tr(`現在按出節奏(${n} 下)`, `Now tap the rhythm (${n} taps)`);
-      $("feedback").textContent = A.hint();
+      setFb(A.hint);
     }
   }
   $("playIcon").innerHTML = '<path d="M7 4v16l13-8z"/>';

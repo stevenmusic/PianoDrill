@@ -61,8 +61,17 @@ for (const [name, w, h, mobile] of VPS) {
   for (const [t, pane] of [["scale", "#t-paneScale"], ["arp", "#t-paneArp"]]) { await sub(t); await expand(pane); await compare(page, name, t); }
   await sub("hanon"); await compare(page, name, "哈農");
   await tab("sight"); await page.waitForTimeout(1200); await expand("#s-setup"); await compare(page, name, "視奏");
+  // 彈一遍 → 停止(沒有麥克風:結果區寫原因);同一題切中英
+  await page.click("#s-playAlongTop"); await page.waitForTimeout(2500); await page.click("#s-playAlongTop"); await page.waitForTimeout(1200);
+  await compare(page, name, "視奏 彈一遍後");
+  await sub("read"); await page.waitForTimeout(800); await compare(page, name, "認音");
   await tab("ear");
   for (const [t, pane] of [["note", "#e-paneNote"], ["interval", "#e-paneInterval"], ["chord", "#e-paneChord"]]) { await sub(t); await expand(pane); await compare(page, name, "聽音 " + t); }
+  // 音程答錯:狀態那句(英文比較長)
+  await sub("interval");
+  await page.click("#e-playBtn"); await page.waitForTimeout(2500);
+  await page.evaluate(() => { const a = window.__ear.cur.steps[0].answer; [...document.querySelectorAll("#e-answers .ans")].find(b => b.dataset.id !== String(a)).click(); });
+  await page.waitForTimeout(600); await compare(page, name, "聽音 音程答錯");
   await tab("exam"); await sub("tech");
   // 大綱每一題的題目與標籤:中英文行數一樣(用檢定分頁的題目卡實際排版量)
   const diff = await page.evaluate(async () => {

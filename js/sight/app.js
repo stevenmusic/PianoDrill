@@ -1759,13 +1759,17 @@ function renderRhythmResult() {
   const r = lastRhythmResult;
   const box = elements.alongResult;
   if (!r) { box.hidden = true; paintBarMarks(); return; }
+  // 一句話的段落用 pairText(中英一樣高:英文比較長多一行時,中文也保留那一行的高度)
+  const pairs = [];
+  const para = (fn, cls = '') => { pairs.push(fn); return `<p${cls ? ` class="${cls}"` : ''} data-pair="${pairs.length - 1}"></p>`; };
   if (r.denied) {
-    box.innerHTML = `<p>${escapeHtml(t('alongMicDenied'))}</p>`;
+    box.innerHTML = para(() => t('alongMicDenied'));
   } else if (r.silent || r.tooFew) {
-    box.innerHTML = `<p>${escapeHtml(t(r.notPiano ? 'resultNotPiano' : r.tooFew ? 'resultTooFew' : 'resultSilent'))}</p>`;
+    const key = r.notPiano ? 'resultNotPiano' : r.tooFew ? 'resultTooFew' : 'resultSilent';
+    box.innerHTML = para(() => t(key));
   } else {
-    const parts = [tr(`節奏 ${r.rhythm}`, `Rhythm ${r.rhythm}`), tr(`穩定 ${r.stability}`, `Steady ${r.stability}`), tr(`連貫 ${r.continuity}`, `Flow ${r.continuity}`)];
-    if (r.pitch !== null && r.pitch !== undefined) parts.push(tr(`音 ${r.pitch}`, `Notes ${r.pitch}`));
+    const parts = () => [tr(`節奏 ${r.rhythm}`, `Rhythm ${r.rhythm}`), tr(`穩定 ${r.stability}`, `Steady ${r.stability}`), tr(`連貫 ${r.continuity}`, `Flow ${r.continuity}`)]
+      .concat(r.pitch !== null && r.pitch !== undefined ? [tr(`音 ${r.pitch}`, `Notes ${r.pitch}`)] : []);
     const bpm = Math.round(r.bpmEst);
     const notes = [];
     if (r.trend) notes.push(r.trend === 'faster' ? tr('越彈越快', 'sped up') : tr('越彈越慢', 'slowed down'));
@@ -1777,12 +1781,13 @@ function renderRhythmResult() {
     }
     if (bars.length > 4) notes.push('…');
     box.innerHTML = `<div class="big"><small class="lead">${escapeHtml(t('resultTitle'))}</small>${r.accuracy}<small>/ 100</small></div>`
-      + `<p class="mic-parts">${escapeHtml(parts.join(' · '))}</p>`
-      + `<p>${escapeHtml(tr(`你的速度 ♩≈${bpm}（譜上 ♩=${r.scoreBpm}）`, `Your tempo ♩≈${bpm} (written ♩=${r.scoreBpm})`))}</p>`
+      + para(() => parts().join(' · '), 'mic-parts')
+      + para(() => tr(`你的速度 ♩≈${bpm}（譜上 ♩=${r.scoreBpm}）`, `Your tempo ♩≈${bpm} (written ♩=${r.scoreBpm})`))
       + (notes.length ? `<p class="mic-bars">${bars.length ? '<i class="mic-key" aria-hidden="true"></i>' : ''}${escapeHtml(notes.join(' · '))}</p>` : '')
       + (mode === 'exam' ? `<p class="disclaimer">${escapeHtml(tr('練習回饋,不是考試分數', 'Practice feedback, not an exam mark'))}</p>` : '');
   }
   box.hidden = false;
+  box.querySelectorAll('p[data-pair]').forEach((el) => pairText(el, pairs[Number(el.dataset.pair)]));
   paintBarMarks();
   // 結果沒露出來就捲過去
   requestAnimationFrame(() => {

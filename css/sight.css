@@ -74,7 +74,7 @@
 #s-stageBox[hidden]{display:none}
 /* 難度 = 分段鈕(app.css 的 .seg.small:灰底軌道 + 浮起來的選中塊 + 淡分隔線;七個目標第 3 條);這裡只放每顆一行與窄畫面 2 × 2 */
 .s-stage-row button{padding:0 4px}
-.s-stage-row button b{font-size:var(--fs-sm);line-height:1.2;white-space:nowrap;font-weight:inherit}   /* 每顆一行:雙手 1 / 2 / 3 / 4、單手 1 · C4–G4 */
+.s-stage-row button b{font-size:min(var(--fs-sub), 16.9px);line-height:1.2;white-space:nowrap;font-weight:inherit}   /* 每顆一行:雙手 1 / 2 / 3 / 4、單手 1 · C4–G4(字級 200% 時最多 16.9:4 顆一排放得下) */
 @media (max-width:380px){ .s-stage-row button b{font-size:var(--fs-xs);letter-spacing:-.02em} }
 /* 單手「1 · C4–G4」四格一排太擠:窄畫面 2 × 2(第二排第一格不畫左邊的分隔線) */
 @media (max-width:340px){ #s-stageSeg:not(.both){display:grid;grid-template-columns:repeat(2,minmax(0,1fr))} #s-stageSeg:not(.both) button b{font-size:var(--fs-sm);letter-spacing:0}

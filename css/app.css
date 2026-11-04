@@ -104,8 +104,8 @@ button,input,select,textarea{line-height:inherit}
 header{
   display:flex;align-items:center;flex-wrap:wrap;
   gap:8px 14px;justify-content:space-between;
-  padding:10px 14px;border-bottom:1px solid var(--line);
-  background:var(--panel);
+  padding:10px 14px;border-bottom:0;
+  background:var(--bg);   /* 跟頁面同一層(設計規格 B:不用框線分層) */
   position:sticky;top:0;z-index:20;
 }
 .header-left,.header-right{display:flex;align-items:center;flex-wrap:wrap;gap:8px 10px}
@@ -151,19 +151,22 @@ header h1 span{color:var(--ivory);font-weight:600}
 
 /* ── 版面 ── */
 main{
-  flex:1;display:flex;flex-direction:column;gap:14px;
+  flex:1;display:flex;flex-direction:column;gap:12px;
   padding:14px;max-width:1400px;width:100%;margin:0 auto;min-width:0;
 }
 .card{
-  background:var(--panel);border:1px solid var(--line);
-  border-radius:var(--radius-md);padding:var(--card-py) var(--card-px);min-width:0;
-  background-image:linear-gradient(180deg, var(--card-tint), transparent 90px);
+  background:var(--panel);border:1px solid transparent;   /* 用陰影浮起來,不畫框線;框保留 1px 透明(內容位置不變) */
+  border-radius:var(--radius-card);padding:var(--card-py) var(--card-px);min-width:0;
+  box-shadow:var(--shadow-card);
 }
+/* 題目卡:頂端淡金漸層(不能超過 .05:--muted 小字對比要 ≥ 4.5) */
+.card.quiz{background:linear-gradient(180deg, rgba(242,185,75,.05), transparent 140px), var(--panel)}
+:root.light .card.quiz{background:linear-gradient(180deg, rgba(122,92,22,.05), transparent 140px), var(--panel)}
 .card-title{
   font-size:var(--fs-2xs);letter-spacing:.14em;color:var(--muted);
   text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;
 }
-.card-title b{font-family:"Noto Serif TC",serif;font-size:var(--fs-lg);letter-spacing:.06em;color:var(--gold);text-transform:none;font-weight:700}
+.card-title b{font-family:inherit;font-size:var(--fs-body);letter-spacing:.02em;color:var(--ivory);text-transform:none;font-weight:700}
 .card-title .sub{letter-spacing:.04em;text-transform:none;font-size:var(--fs-xs);color:var(--muted-bright);flex:1 1 0;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
 /* 分段按鈕(照 HarmonyHands) */
@@ -305,7 +308,7 @@ main{
 /* ── 樂譜 ── */
 .score-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px}
 .score-head .seg{flex:0 1 220px}
-.paper{background:var(--paper);border-radius:var(--radius-sm);padding:8px 4px;min-height:160px;overflow:hidden;position:relative;
+.paper{background:var(--paper);border-radius:12px;padding:8px 4px;min-height:160px;overflow:hidden;position:relative;
   box-shadow:inset 0 0 0 1px rgba(0,0,0,.06)}
 #t-osmd{width:100%;color:#16130D}
 .paper-msg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#6f6450;font-size:var(--fs-sm);padding:16px;text-align:center}
@@ -750,7 +753,7 @@ body.land-play #t-stage{flex:1;display:flex;flex-direction:column;justify-conten
   .exam-pick .seg button,.exam-pick #systemSeg button{min-height:30px}
 }
 /* 模組:卡片之間的間距跟 main 一樣 */
-.mod{display:flex;flex-direction:column;gap:14px;min-width:0}
+.mod{display:flex;flex-direction:column;gap:12px;min-width:0}
 @media (max-width:600px){ .mod{gap:10px} }
 @media (max-height:420px), (orientation:landscape) and (max-height:500px){ .mod{gap:8px} }
 .notice p{font-size:var(--fs-md);line-height:1.7;color:var(--muted-bright)}
@@ -795,8 +798,8 @@ body.land-play #t-stage{flex:1;display:flex;flex-direction:column;justify-conten
 /* 兩欄(平板橫式 1180、筆電、桌機):左欄 = 設定、速度、紀錄(設定直接攤開);右欄 = 題目 + 樂譜/作答,盡量寬 */
 @media (min-width:1100px){
   main,footer,body.view-sight main,body.view-sight footer{max-width:1480px}
-  .mod{display:grid;grid-template-columns:minmax(300px, 360px) minmax(0, 1fr);gap:16px;align-items:start}
-  .mod-side,.mod-main{display:flex;flex-direction:column;gap:16px;min-width:0}
+  .mod{display:grid;grid-template-columns:minmax(300px, 360px) minmax(0, 1fr);gap:12px;align-items:start}
+  .mod-side,.mod-main{display:flex;flex-direction:column;gap:12px;min-width:0}
   .mod-side .prow{grid-template-columns:1fr;gap:4px}
   .mod-side .fields{grid-template-columns:1fr}   /* 左欄窄:欄位一個一行(以前四欄擠在一起,分段鈕的字被截斷) */
   /* 檢定頁的考試卡:系統、級數(左)與三項進度(右)排在同一列 */
@@ -969,7 +972,7 @@ body.view-exam #t-dailyCard,body.view-exam #t-dailyStep{display:none !important}
 .daily-bar .daily-next{flex:none;min-height:44px;height:auto}
 @media (max-width:340px){ .daily-dots{display:none} }
 /* 段落面板(題目卡裡) */
-.daily-step{display:flex;flex-direction:column;gap:6px;border-top:1px solid var(--line);padding-top:10px}
+.daily-step{display:flex;flex-direction:column;gap:8px;padding-top:2px}   /* 不畫上框線(卡片已經分層) */
 .daily-status{font-size:var(--fs-md);color:var(--ivory);line-height:1.5}
 .daily-tip{font-size:var(--fs-xs);color:var(--muted-bright);line-height:1.5}
 .daily-why{font-size:var(--fs-sm);color:var(--muted-bright);line-height:1.5}   /* 為什麼練這個(每組一句,這一組第一次出現時) */
@@ -1010,7 +1013,7 @@ body.view-exam #t-dailyCard,body.view-exam #t-dailyStep{display:none !important}
   .metro{gap:6px 10px}
   .metro input[type=range]{height:44px}
   .daily-list{margin-bottom:8px}
-  .daily-step{gap:4px;padding-top:8px}
+  .daily-step{gap:8px}
 }
 /* 今日練習的段落進行中(#mod-tech.daily-on):練習紀錄卡藏起來(段落結束 / 暫停 / 練完再出現);
    速度卡縮成一行「速度 今日練習會自動調整 … − 60 +」(滑桿、循環播放、只聽拍點、回到考試速度都不用) */

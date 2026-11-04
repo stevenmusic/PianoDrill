@@ -24,7 +24,7 @@ const PRECACHE = [
   "licenses.html",
   "privacy.html",
   "support.html",
-  "css/app.css?v=9f31290431",
+  "css/app.css?v=8f286dbbd5",
   "css/tech.css?v=bbaf61f7f1",
   "css/sight.css?v=3375adf52f",
   "vendor/opensheetmusicdisplay.min.js?v=4bfeb3d01c",

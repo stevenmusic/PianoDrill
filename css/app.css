@@ -1011,6 +1011,10 @@ body.view-exam #t-dailyCard,body.view-exam #t-dailyStep{display:none !important}
   .mod.one-col > .mod-side{display:none}
   .mod.one-col > .mod-main{width:100%;max-width:1100px;margin:0 auto}
   #mod-tech.today-view:not(.daily-on).one-col > .mod-main{max-width:760px}   /* 今日還沒開始:只有今日卡 + 紀錄,1100 寬會把 7 天的點拉太開 */
+  /* 頁尾跟上面的卡片同寬置中,字的左邊切齊卡片內文(卡片框 1 + 內距 16) */
+  footer{padding-left:17px;padding-right:17px}
+  main:has(> .mod.one-col:not([hidden])) > footer{max-width:1100px}
+  main:has(> #mod-tech.today-view.one-col:not(.daily-on):not([hidden])) > footer{max-width:760px}
 }
 #mod-tech.daily-on #t-metroCard .card-title{flex-wrap:nowrap}
 #mod-tech.daily-on #t-metroCard .card-title b{white-space:nowrap}

@@ -31,7 +31,7 @@ const KEY_NAME = { C: ["C 大調", "C major"], G: ["G 大調", "G major"], F: ["
 const VNAME = {
   rhythm: { dotted: ["附點節奏", "Dotted rhythm"], reverse: ["反附點", "Reverse dotted"] },
   touch: { stacc: ["斷奏", "Staccato"], legato: ["圓滑奏", "Legato"] },
-  dyn: { p: ["小聲(p)", "Soft (p)"], f: ["大聲(f)", "Loud (f)"], cresc: ["漸強", "Crescendo"], balance: ["右手大聲、左手小聲", "Right louder than left"] }
+  dyn: { p: ["小聲(p)", "Soft (p)"], f: ["大聲(f)", "Loud (f)"], cresc: ["愈彈愈大聲", "Louder and louder"], balance: ["右手大聲、左手小聲", "Right louder than left"] }
 };
 export function varyName(q){
   const parts = [];
@@ -66,17 +66,17 @@ const FINGER = [
     check: [C("先看手指號碼再按", "Read the finger number first"), C("大拇指 = 1、小指 = 5", "Thumb = 1, little finger = 5")] },
   // A 五指位置(四分音符 → 最後一關八分音符)
   { id: "PA1", g: "A", name: C("右手五指上下", "Right: five fingers up and down"), hands: "RH", value: "q", rh: "1 2 3 4 | 5 4 3 2", start: 60, target: 100,
-    check: [C("手指彎、用指尖", "Curved fingers, tips"), C("每個音一樣大", "Every note even"), C("前一個放開、下一個才按", "Lift one as the next goes down")] },
+    check: [C("手指彎彎的、用指尖按", "Curved fingers, play on the tips"), C("每個音一樣大", "Every note even"), C("前一個放開、下一個才按", "Lift one as the next goes down")] },
   { id: "PA2", g: "A", name: C("左手五指上下", "Left: five fingers up and down"), hands: "LH", value: "q", lh: "5 4 3 2 | 1 2 3 4", start: 60, target: 100,
-    check: [C("手指彎、用指尖", "Curved fingers, tips"), C("小指不要塌", "Finger 5 stays firm"), C("每個音一樣大", "Every note even")] },
-  { id: "PA3", g: "A", name: C("雙手反向(同一個手指)", "Mirror: same fingers"), hands: "HT", value: "q", rh: "1 2 3 4 | 5 4 3 2", lh: "1 2 3 4 | 5 4 3 2", start: 60, target: 96,
+    check: [C("手指彎彎的、用指尖按", "Curved fingers, play on the tips"), C("小指不要塌", "Finger 5 stays firm"), C("每個音一樣大", "Every note even")] },
+  { id: "PA3", g: "A", name: C("雙手反方向(同一個手指)", "Mirror: same fingers"), hands: "HT", value: "q", rh: "1 2 3 4 | 5 4 3 2", lh: "1 2 3 4 | 5 4 3 2", start: 60, target: 96,
     check: [C("兩手同一個手指一起按", "Same finger in both hands"), C("兩手一樣大聲", "Hands equally loud")] },
   { id: "PA4", g: "A", name: C("雙手同方向", "Hands together, same way"), hands: "HT", value: "q", rh: "1 2 3 4 | 5 4 3 2", lh: "5 4 3 2 | 1 2 3 4", start: 56, target: 92,
     check: [C("兩手同時下去", "Hands exactly together"), C("兩手的手指號碼不一樣:先看清楚", "Different fingers: look first")] },
-  { id: "PA5", g: "A", name: C("八分音符雙手", "Eighth notes, hands together"), hands: "HT", value: "e", rh: x2("1 2 3 4 5 4 3 2"), lh: x2("5 4 3 2 1 2 3 4"), start: 50, target: 84,
+  { id: "PA5", g: "A", name: C("雙手一拍彈兩個音", "Hands together, two notes a beat"), hands: "HT", value: "e", rh: x2("1 2 3 4 5 4 3 2"), lh: x2("5 4 3 2 1 2 3 4"), start: 50, target: 84,
     check: [C("不要越彈越快", "Don't rush"), C("手腕不上下", "Quiet wrists")] },
   // 兩音圓滑(審查定案 2026-10:A 組最後一關;方法書的「按下—抬起」)
-  { id: "PA6", g: "A", name: C("按下—抬起", "Press–lift"), hands: "RH", value: "q", rh: "1( 2) 3( 4) | 5( 4) 3( 2)", start: 56, target: 88,
+  { id: "PA6", g: "A", name: C("兩個音一組:按下—抬起", "Two-note slurs: press–lift"), hands: "RH", value: "q", rh: "1( 2) 3( 4) | 5( 4) 3( 2)", start: 56, target: 88,
     check: [C("按下第二個音的同時放開第一個音,中間沒有空隙", "Release the first note as the second sounds: no gap"), C("第二個音輕一點,彈完手腕抬起來", "Second note lighter, then lift the wrist")] },
   // B 弱指 4、5(八分音符)
   { id: "PB1", g: "B", name: C("右手 3-4-5-4", "Right 3-4-5-4"), hands: "RH", value: "e", rh: x2("3 4 5 4 3 4 5 4"), start: 50, target: 84,

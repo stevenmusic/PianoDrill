@@ -1,6 +1,6 @@
 // 今日練習引擎(js/shared/daily.js)的檢查;兩個 App 同一份(sync.json same),verify.mjs 會呼叫;也可以單獨跑:node tools/test/checks/daily.mjs
 //   菜單(暖身第一、順序固定、還沒開放的路線、到期複習一天一題)、慢練優先、速度階梯、連續 N 次穩才過關、失手重算、退速度、建議回上一關、
-//   快速通道(開 / 關)、回上一關、歡迎回來(≥ 7 天)、複習盒與變化(穩 → 下一盒、不穩 → 上一盒隔天)、拍點模式、跨午夜換日、消毒、沒練不扣分
+//   快速通道(開 / 關)、回上一關、歡迎回來(≥ 7 天)、複習盒與變化(穩 → 下一盒、不穩 → 上一盒隔天)、拍點模式、跨午夜換日、消毒、沒練不扣分、新路線開放那一天
 import { pick as pickMs, byId as msById, MILESTONES } from "../../../js/shared/milestone.js";
 import { createDaily, cleanDaily, buildPlan, clickPlays, gapBars, verdictOf, addDays, dayNum, DEFAULT_VARY, REVIEW_GAPS, SEG_SEC, METRO, tempoUp, tempoDown } from "../../../js/shared/daily.js";
 
@@ -78,6 +78,11 @@ export default function check(ok){
   const sum = d.summary({ "2026-10-19": { n: 1, sec: 300 }, "2026-10-17": { n: 2, sec: 60 }, "2026-10-01": { n: 1, sec: 1 } });
   ok(sum.segs === 2 && sum.passed === 1 && sum.week === 2 && sum.tomorrow.map(l => l.id).join() === "A2,B1" && sum.review && sum.review.id === "A1",
     "完成摘要:2 段、過 1 關、最近 7 天 2 天、明天 A2 + B1 + 複習 A1:" + JSON.stringify({ ...sum, tomorrow: sum.tomorrow.map(l => l.id), review: sum.review && sum.review.id }));
+  // 新路線開放(練完卡一句;開放條件那一關今天過的才說,一輩子一次)
+  ok(d.opened().map(R => R.id).join() === "b" && d.data.open.b === "2026-10-19" && d.opened().length === 1, "今天開放的路線 = b(記在 open,同一天重畫照樣有)");
+  ok(cleanDaily({ open: { b: "2026-10-19", a: "2026-10-19", zz: "2026-10-19" } }, ROUTES).open.b === "2026-10-19" && Object.keys(cleanDaily({ open: { b: "2026-10-19", a: "2026-10-19", zz: "2026-10-19" } }, ROUTES).open).join() === "b"
+    && Object.keys(cleanDaily({ open: { b: "x" } }, ROUTES).open).length === 0 && Object.keys(cleanDaily({ open: [1] }, ROUTES).open).length === 0, "新路線開放:消毒(只留有 unlock 的路線、日期)");
+  ok(mk({ lv: { "a/A1": { passed: "2026-10-01" } } }).d.opened().length === 0, "新路線開放:以前就開放的不補說");
   // 再練一下:約 5 分鐘 = 還沒過的那一關(進度比較慢的路線:b 剛開放)+ 一題沒到期的複習(不改排程)
   s = d.addExtra();
   ok(s && s.r === "b" && s.lv === "B1" && d.state() === "run" && d.plan().length === 4 && d.plan()[3].k === "review" && d.plan()[3].extra && d.plan()[3].lv === "A1",
@@ -92,6 +97,7 @@ export default function check(ok){
   plan = d.plan();
   ok(plan.length === 4 && plan[0].k === "warm" && plan.some(p => p.k === "review" && p.lv === "A1" && p.box === 1) && plan.some(p => p.r === "b" && p.k === "route"), "隔天:暖身 + a + b + 複習:" + JSON.stringify(plan));
   ok(d.state() === "idle", "換日重排(還沒開始)");
+  ok(d.opened().length === 0, "新路線開放:隔天不再說");
   const orders = new Set();
   for (let i = 0; i < 6; i++) orders.add(buildPlan({ routes: ROUTES, daily: d.data, today: addDays("2026-10-20", i), extras: { warm: () => ({}) } }).map(p => p.k + (p.r || "")).join(","));
   ok(orders.size === 1 && [...orders][0] === "warm,routea,routeb,reviewa", "每天順序固定:暖身 → 主要路線 → 第二條路線 → 複習:" + [...orders].join(" | "));

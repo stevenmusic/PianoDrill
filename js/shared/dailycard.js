@@ -4,8 +4,8 @@
    - 還沒開始 / 暫停:標題「今日練習 · 約 n 分鐘」、一段一行(<ol>,做完的打勾)、還沒開放的路線一行淡字、大按鈕「開始 / 繼續今天的練習」;
      第一次才有一行「漏練幾天沒關係,不會扣分」
    - 進行中(模組正在顯示這一段):縮成一行「今日練習 2/4 ●●○○ 剩約 7 分 [暫停] [下一段 ›]」;有 barHost(外框的 ctx.subBar)時這一行放在子項目列的位置(子項目列藏起來、卡片藏起來)
-   - 練完了:今天練了幾段、幾分鐘、過了幾關(0 關不寫)、最近 7 天練了幾天、明天練什麼、里程碑稱讚(milestone.js;一天最多一句,有練到才算)+ 次要按鈕「再練一下」(可以一直按)
-   段落面板:狀態 / 下一步一句、為什麼練這個(路線的 why[組]:這一組第一關第一次出現時一句,看過的組記在 daily 的 why)、這次的變化(複習)、重點(關卡的 check)、[回上一關](文字鈕,只在同一速度連續不穩 = seg().suggest 時)…[再練][穩了 ✓](各 App 的字)或 [下一段 ›];
+   - 練完了:今天練了幾段、幾分鐘、過了幾關(0 關不寫)、最近 7 天練了幾天、新路線開放了(開放那一天)、明天練什麼、里程碑稱讚(milestone.js;一天最多一句,有練到才算)+ 次要按鈕「再練一下」(可以一直按)
+   段落面板:狀態 / 下一步一句、為什麼練這個(路線的 why[組]:這一組第一關第一次出現時一句,看過的組記在 daily 的 why)、這次的變化(複習)、重點(關卡的 check;過關、複習完藏起來)、[回上一關](文字鈕,只在同一速度連續不穩 = seg().suggest 時)…[再練][穩了 ✓](各 App 的字)或 [下一段 ›];
    「穩了 / 做到了」要先用現在的速度播過一輪才能按(App 呼叫 ready(true);沒播之前 disabled,不算嘗試)
    文字都用 i18n 的 daily.*(兩個 App 一樣)+ 模組傳進來的 labels(穩了 / 做到了…);段落文字用 pairText(中英一樣高) */
 import { tr, T, pairText } from "./i18n.js";
@@ -145,8 +145,10 @@ export function createDailyCard({ $, daily, labels = {}, warmName = () => "", le
     const s = daily.summary(log() || {});
     const tom = s.tomorrow.map(l => `${L2(l.route.name)} ${fmt("level", { n: l.n })}`).concat(s.review ? [fmt("review")] : []);
     const ms = s.segs ? milestone(log() || {}, s) : null;
+    const news = s.segs ? daily.opened() : [];   // 今天開放的路線(開放那一天一次;daily.js 的 opened)
     card.innerHTML = `<div class="card-title"><b id="${tid}">${esc(fmt("title"))}${s.segs ? " ✓" : ""}</b></div>` +   // 一段都沒練:不打勾
-      `<p class="daily-sum"></p><p class="daily-sub"></p>` + (tom.length ? `<p class="daily-sub daily-tom"></p>` : "") + (ms ? `<p class="daily-sum daily-ms"></p>` : "") +
+      `<p class="daily-sum"></p><p class="daily-sub"></p>` + (news.length ? `<p class="daily-sum daily-ms daily-new"></p>` : "") +
+      (tom.length ? `<p class="daily-sub daily-tom"></p>` : "") + (ms ? `<p class="daily-sum daily-ms"></p>` : "") +
       `<button class="btn daily-more">${esc(fmt("more"))}</button>`;
     // 一段都沒練(全部按「下一段」跳過):只寫「今天還沒練到」;不到 1 分鐘寫秒;最近 7 天 0 天不寫那一行
     const time = () => (s.sec < 60 ? fmt("sec", { n: Math.round(s.sec) }) : fmt("min", { n: Math.round(s.sec / 60) }));
@@ -155,7 +157,8 @@ export function createDailyCard({ $, daily, labels = {}, warmName = () => "", le
     if (s.week > 0) pairText(wk, () => fmt("week", { d: s.week })); else wk.remove();
     const tm = card.querySelector(".daily-tom");
     if (tm) pairText(tm, () => fmt("tomorrow", { list: s.tomorrow.map(l => `${L2(l.route.name)} ${fmt("level", { n: l.n })}`).concat(s.review ? [fmt("review")] : []).join(" · ") }));
-    if (ms) pairText(card.querySelector(".daily-ms"), () => tr(ms.zh, ms.en));
+    if (news.length) pairText(card.querySelector(".daily-new"), () => news.map(R => fmt("opened", { r: L2(R.name) })).join(" "));
+    if (ms) pairText(card.querySelector(".daily-ms:not(.daily-new)"), () => tr(ms.zh, ms.en));
     card.querySelector(".daily-more").onclick = () => onMore && onMore();
   }
   /* 里程碑稱讚:今天已經有一句 → 同一句(重畫、換語言);還沒有 → 挑一句,當下記成看過(milestone.js;連續天數照練習紀錄卡) */
@@ -175,7 +178,7 @@ export function createDailyCard({ $, daily, labels = {}, warmName = () => "", le
     step.hidden = false;
     // 重點:關卡的 check(前面加關卡的 handsLine,例如「右手 Hi-hat、左手小鼓」);暖身 = 項目自己的 check
     const warm = s.k === "warm", list = warm ? (s.item && s.item.check) || [] : [...(s.level.handsLine ? [s.level.handsLine] : []), ...(s.level.check || [])];
-    const check = list.length ? list : null;
+    const check = list.length && !passedDone ? list : null;   // 過關、複習完:重點是剛練完那一關的,藏起來(狀態寫「下一關:…」,下一段 / 下一關才出現新的重點)
     const vary = varyText(s), why = whyOf(s);
     // 暖身:只有進度條上那一顆「下一段 ›」(按鈕列整列不放);過關、複習完 = 主要按鈕「下一段 ›」
     const primaryNext = passedDone;

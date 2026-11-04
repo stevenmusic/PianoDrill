@@ -71,13 +71,14 @@ addStrings("daily", {
   revOk: ["複習穩了 ✓ 下次間隔更久", "Review steady ✓ Next one later"], revBack: ["明天再複習一次", "Review again tomorrow"],
   revExtra: ["加練(不改複習日期)", "Extra (reviews unchanged)"],
   vary: ["這次:{v}", "This time: {v}"], fast: ["最快:速度 {b}", "fastest: tempo {b}"], check: ["重點:{list}", "Check: {list}"], checkTitle: ["重點", "Check"],
-  click_two_four: ["拍點只響 2、4 拍", "click on 2 & 4 only"], click_one_three: ["拍點只響 1、3 拍", "click on 1 & 3 only"],
-  click_one: ["拍點只響第 1 拍", "click on beat 1 only"], click_gap: ["拍點中途消失 2 小節", "click drops out for 2 bars"],
+  click_two_four: ["拍點只在第 2、4 拍響", "click on beats 2 & 4 only"], click_one_three: ["拍點只在第 1、3 拍響", "click on beats 1 & 3 only"],
+  click_one: ["拍點只在第 1 拍響", "click on beat 1 only"], click_gap: ["拍點中途消失 2 小節", "click drops out for 2 bars"],
   // 練完了那一行:{s} = parts / part1(英文單複數)、{t} = 分鐘或秒(不到 1 分鐘寫秒,不進位成 1 分鐘)、{p} = passedN(0 關不寫);一段都沒練 = none
   done: ["練完 {s} · {t}{p}。今天到這裡就好", "Done: {s} · {t}{p}. That's enough for today"], passedN: [" · 過了 {n} 關", " · {n} passed"],
   parts: ["{n} 段", "{n} parts"], part1: ["{n} 段", "{n} part"], min: ["{n} 分鐘", "{n} min"], sec: ["{n} 秒", "{n} s"],
   none: ["今天還沒練到", "Nothing practiced today"],
   week: ["最近 7 天練了 {d} 天", "Practiced {d} of the last 7 days"], tomorrow: ["明天:{list}", "Tomorrow: {list}"],
+  opened: ["新路線開放了:{r}!", "New route unlocked: {r}!"],
   more: ["再練一下", "Practice a bit more"]
 });
 /* 練習紀錄備份(頁尾「備份紀錄」;js/shared/backup.js + main.js 共用部分;兩個 App 一樣):{f} = 檔名;err_* = backup.js 的錯誤代碼 */

@@ -1447,12 +1447,12 @@ function warmItem(d, today){
   const acc = d.prog.accomp && findLevel({ r: "accomp", id: d.prog.accomp.at }), k0 = (acc && acc.key) || "C", key = keyLearned(k0, passed) ? k0 : "C";
   return { q: { ...w.q, rkey: key }, name: [KEYS[key][0] + w.name[0], KEYS[key][1] + " " + w.name[1]], bpm: 60 };
 }
-/* 伴奏的關名寫實際和弦(「C 和 G7(I、V7)」;chordName 的關):換調複習自動換和弦名 */
+/* 伴奏的關名寫實際和弦(「C 和 G7」;chordName 的關;級數 I、V7 小孩看不懂,不寫):換調複習自動換和弦名 */
 function levelName(s){
   const L = s.level; if (!L || !L.chordName) return L ? L.name : "";
   const k = (s.vary && s.vary.q && s.vary.q.rkey) || L.key || "C", K = keyInfo(k), uniq = [...new Set(L.prog)], names = uniq.map(ch => chordName(K, ch));
   const join = (a, sep, and) => (a.length < 2 ? a.join("") : a.slice(0, -1).join(sep) + and + a[a.length - 1]);
-  return [`${join(names, "、", " 和 ")}(${uniq.join("、")})`, `${join(names, ", ", " and ")} (${uniq.join(", ")})`];
+  return [join(names, "、", " 和 "), join(names, ", ", " and ")];
 }
 const daily = createDaily({ routes: ROUTES, load: () => S.daily, save: d => { S.daily = d; store.save(); }, extras: { warm: warmItem, vary: adaptVary } });
 /* 舊版用考試項目排的暖身(item.exam):今天的暖身還沒開始就照路線進度重排;沒有能用的暖身(第一天)→ 拿掉這一段 */

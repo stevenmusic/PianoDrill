@@ -83,6 +83,9 @@ export function cleanDaily(raw, routes, today = null){
   d.ms = Array.isArray(src.ms) ? [...new Set(src.ms.filter(k => typeof k === "string" && /^[a-z]\d{1,4}$/.test(k)))].slice(-30) : [];
   const md = src.msDay;
   d.msDay = md && typeof md === "object" && !Array.isArray(md) && isDay(md.date) && typeof md.id === "string" && d.ms.includes(md.id) ? { date: md.date, id: md.id } : null;
+  // 路線開放的那一天(練完卡一句「新路線開放了:…!」,一輩子一次):{ 路線 id: 那一天 };只留有 unlock 的路線
+  d.open = {};
+  if (src.open && typeof src.open === "object" && !Array.isArray(src.open)) for (const R of routes) if (R.unlock && isDay(src.open[R.id])) d.open[R.id] = src.open[R.id];
   for (const R of routes) {
     const p = src.prog && src.prog[R.id] && typeof src.prog[R.id] === "object" ? src.prog[R.id] : {};
     const done = p.done === true;
@@ -344,7 +347,17 @@ export function createDaily({ routes, load = () => null, save = () => {}, now = 
     if (d.ms.length > 30) d.ms = d.ms.slice(-30);
     d.msDay = { date: todayKey(), id }; put();
   }
+  /* 今天開放的路線(開放條件那一關是今天過的):第一次問到就記在 d.open(一輩子一次;同一天重畫、換語言照樣有;以前就開放的不補說) */
+  function opened(){
+    const today = todayKey(), out = [];
+    for (const R of routes) {
+      if (!R.unlock || !isOpen(R, d, routes)) continue;
+      if (!d.open[R.id]) { const e = d.lv[keyOf(R.unlock.route, R.unlock.passed)]; if (!e || e.passed !== today) continue; d.open[R.id] = today; put(); }
+      if (d.open[R.id] === today) out.push(R);
+    }
+    return out;
+  }
   return { get data(){ return d; }, plan: () => ensure().plan, today: ensure, state, seg, begin, attempt, back, canBack, addSec, segLeft, next, addExtra,
-    levelOf, bpmFor, reviewBpm, locked, summary, minutes, isOpen: R => isOpen(R, d, routes), whySeen, markWhy, passedAll, msToday, markMs,
+    levelOf, bpmFor, reviewBpm, locked, summary, minutes, isOpen: R => isOpen(R, d, routes), whySeen, markWhy, passedAll, msToday, markMs, opened,
     reset(raw){ d = cleanDaily(raw, routes); put(); } };
 }

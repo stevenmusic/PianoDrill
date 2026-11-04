@@ -30,14 +30,14 @@
 - [x] [小] 手機橫式 視奏認音 — 譜號、範圍快捷 `.opt` 高 36(規則寫 ≥ 44 的常用設定)→ 橫式右欄可捲動,改 44
 
 ### 第 3 輪健檢(體驗員 2026-11-04;英文 + 深色 + 第一次流程;iphone 390 / fold 280 / iPad 820 量過 getBoundingClientRect / getComputedStyle;截圖在 scratchpad/ux3/;深色邊框、對比都正常,沒有看不清的)
-- [ ] [小] 折疊機 280 英文檢定音階 — 速度說明「Exam tempo 80 (2 notes per beat)」被 `text-overflow` 切成「…」(`#t-examTempo` scrollWidth > clientWidth)→ 允許換行或縮成「Exam 80 (2 per beat)」,中英都不被切
+- [x] [小] 折疊機英文檢定速度說明不再被切:「Exam 80 (2 per beat)」(2026-11)
 - [ ] [小] 英文答案鈕小字 — 聽力音程鈕第二行「C–D / C–E…」實測 11px(中文「Do–Re」也是 11),第 2 輪規則是小字 ≥ 12 → 升到 12
 - [ ] [小] 第一次打開對話框(英文)— 說明 `.modal-sub` 實測 13px、提示 `.exam-hint` 12px,是這個畫面唯一的說明 → 說明升到 `--fs-md`(14)
-- [ ] [小] 英文用詞不一致 — 「Practise freely」(第一次的提示)、「0 practised」(檢定視奏)是英式,其他地方都是 practice → 統一成「Practice」;分頁列「Sight-read」跟子項目「Sight-reading」同一件事不同字 → 分頁改「Sight-reading」放不下就兩邊都用「Sight-read」
-- [ ] [小] 英文用詞 7 歲 / 70 歲 — 今日卡「Accomp. After Fingers level 7」縮寫看不懂 → 「Left-hand accompaniment」或「Chords」;檢定視奏按鈕「Get a test」(test 像考試)→ 「Practice one」(中文是「練習一題」);「Mock」(音階頁)與「Mock exam」(聽力頁)同一顆鈕兩種寫法 → 都寫「Mock exam」(折疊機放不下才縮成「Mock」,兩頁一樣)
-- [ ] [小] 今日練習英文標籤「Tempo 50 · Steady ○○」— 「Steady」加兩個空心點,沒說明是「再穩 2 次過關」→ 寫「Steady 0 / 2」或第一次小字說明(中文「穩 ●○○」同一個問題)
+- [x] [小] 英文用詞統一:Practice(美式);分頁與子項目都用 Sight-read(Sight-reading 放不下)(2026-11)
+- [x] [小] 英文:Get a test → Practice one;Mock → Mock exam;Accomp. 保留(全字在折疊機會擠成兩行,Left hand 不對:有的伴奏關有右手)(2026-11)
+- [x] [小] 今日練習「穩 ●○○」→「穩 0 / 3」/「Steady 0 / 3」(2026-11)
 - [ ] [小] 今日練習「Did it」沒播之前 disabled,深色實測對比約 3:1,而且只有上面那句「Tap ▶, play along, then ✓」暗示為什麼 → disabled 時不要降到 .45 透明度,改成同色淡一點但字 ≥ 4.5:1(disabled 也要看得出字)
-- [ ] [小] 檢定視奏(英文、深色)出題前的調性卡 — 只寫一個「Random」加下拉箭頭,沒有標籤,7 歲看不出是「調」→ 摘要寫「Key · Random」(規則「調性卡不寫『調性』標籤」是展開後的按鈕列,摘要列還是要說是什麼)
+- [x] [小] 檢定視奏調性卡摘要:「調 · 隨機」/「Key · Random」(2026-11)
 - [ ] [小] 中英高度不一樣 — 視奏右手 iphone 整頁中 1466 / 英 1352(差 114)、視奏認音 1596 / 1551、折疊機視奏右手 1476 / 1370、聽力音程 938 / 987 → 查是哪一段 `pairText` 沒套(多半是難度說明或第一次說明),補成兩語言同高
 - [ ] [小] 頁尾連結(Licenses / Privacy / Support / 授權與出處)高 32、支援寬 24-46 → 跟其他控制項一樣透明擴大到 44(頁尾是 7 歲 70 歲都會點的備份 / 分享旁邊的字)
 

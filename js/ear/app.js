@@ -271,8 +271,10 @@ function syncFoot(){
   const x = S.tab === "exam";
   const draw = x && !mock && !lastMock && (!cur || $("nextBtn").disabled);
   $("drawBtn").hidden = !draw;
+  // 還沒作答(不能按)的「下一題」不出現:灰掉的按鈕在淺色主題幾乎看不見、像壞掉;答完才出現在同一個位置
+  // (那一列沒有別的按鈕就整列收掉,題目卡下面不留空白;琴鍵、選項在上面,不會跟著動)
   if (x && cur && draw) $("nextBtn").hidden = true;
-  else if (x && (cur || lastMock)) $("nextBtn").hidden = false;
+  else if (cur || lastMock) $("nextBtn").hidden = $("nextBtn").disabled;
   $("nextBtn").classList.toggle("primary", x); $("nextBtn").classList.toggle("ghost", !x);
 }
 /* 本項列(檢定頁最上面一行):聽力 [這一級幾項] + 模擬考 */

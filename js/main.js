@@ -10,6 +10,8 @@
    - 切到背景(visibilitychange / pagehide)或聲音被系統打斷:目前的模組 leave() + 全部停止;回到前景再 enter() */
 import { tr, T, applyStatic, setLang, getLang, onLang } from "./shared/i18n.js";
 import * as audio from "./shared/audio.js";
+import { exportAll, validate, importAll, MAX_BYTES } from "./shared/backup.js";
+import { dayKey } from "./shared/practicelog.js";
 import * as tech from "./tech/app.js";
 import * as sight from "./sight/app.js";
 import * as ear from "./ear/app.js";
@@ -58,6 +60,8 @@ const SUBS = {
 const SUB_LABEL = () => ({ tech: tr("技巧項目", "Technique"), sight: tr("讀譜類別", "Reading type"), ear: tr("題型", "Question type"), exam: tr("檢定項目", "Exam section") });
 /* 外框另外給模組的東西(ctx 裡;DrumDrill 用來給考試資料):PianoDrill 的模組自己讀資料,這裡沒有 */
 const appCtx = async () => ({});
+/* 頁尾「備份紀錄」(js/shared/backup.js):備份檔的 App 名、localStorage 的前綴(pianodrill.*)與語言 key(js/shared/i18n.js 的 LANG_KEY);name = 檔名開頭 */
+const BACKUP = { app: "pianodrill", name: "PianoDrill", prefix: "pianodrill.", langKey: "pianodrill-lang" };
 // @app-end
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
 const GRADES = [0, 1, 2, 3, 4, 5, 6, 7, 8];
@@ -391,6 +395,58 @@ document.addEventListener("keydown", e => {
   if ((e.code === "Space" || e.key === "Enter") && e.target.closest && e.target.closest("button, a, [role=tab]") && e.target.matches(":focus-visible")) return;
   if (curMod) MODS[curMod].onKey(e);
 });
+
+/* ══ 頁尾:備份紀錄(兩個 App 一樣;js/shared/backup.js)══
+   「備份紀錄」點了在頁尾下面展開一小塊(不跳視窗):一行說明 + 「存成檔案」「從檔案還原」。
+   存:App 版(Capacitor 的 Filesystem + Share 外掛)寫到暫存再打開分享面板(可以存到「檔案」、傳給自己);
+       網頁版手機能分享檔案就用分享面板,其他(桌機)直接下載。檔名「PianoDrill-紀錄-2026-11-04.json」
+   還原:選檔 → 檢查(壞檔在這一塊寫一句原因)→ 確認 → 先讓目前的模組停下來(跟切到背景一樣,不會再把舊的紀錄存回去)→ 寫入 → 重新整理 */
+const BAK_OPT = { app: BACKUP.app, prefix: BACKUP.prefix, langKey: BACKUP.langKey };
+const bakMsg = t => { $("bakMsg").textContent = t; };
+$("bakLink").onclick = () => {
+  const open = $("bakPanel").hidden;
+  $("bakPanel").hidden = !open; $("bakLink").setAttribute("aria-expanded", String(open)); bakMsg("");
+  if (open) requestAnimationFrame(() => window.scrollTo({ top: document.documentElement.scrollHeight }));   // 頁尾在最下面:捲到底,這一塊不被分頁列蓋住
+};
+async function saveFile(name, text){
+  const cap = window.Capacitor && window.Capacitor.Plugins, FS = cap && cap.Filesystem, SH = cap && cap.Share;
+  if (FS && SH) {
+    const { uri } = await FS.writeFile({ path: name, data: text, directory: "CACHE", encoding: "utf8" });
+    await SH.share({ title: name, files: [uri] });
+    return;
+  }
+  // 網頁版:手機(觸控)能分享檔案就用分享面板(iPhone 可以「儲存到檔案」);桌機的分享面板不能存檔,直接下載
+  const file = typeof File === "function" ? new File([text], name, { type: "application/json" }) : null;
+  if (file && matchMedia("(pointer:coarse)").matches && navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: name }); return; }
+  const url = URL.createObjectURL(new Blob([text], { type: "application/json" }));
+  const a = document.createElement("a"); a.href = url; a.download = name; a.hidden = true;
+  document.body.appendChild(a); a.click();
+  setTimeout(() => { a.remove(); URL.revokeObjectURL(url); }, 30000);
+}
+$("bakSave").onclick = async () => {
+  bakMsg("");
+  const name = `${BACKUP.name}-${T("bak.file")}-${dayKey(new Date())}.json`;
+  try {
+    await saveFile(name, JSON.stringify(exportAll(localStorage, BAK_OPT)));
+    bakMsg(T("bak.saved").replace("{f}", name));
+  } catch (e) {
+    if (e && (e.name === "AbortError" || /cancel/i.test(e.message || ""))) return;   // 使用者關掉分享面板:不算失敗
+    bakMsg(T("bak.err_save"));
+  }
+};
+$("bakLoad").onclick = () => { bakMsg(""); $("bakFile").value = ""; $("bakFile").click(); };
+$("bakFile").onchange = async () => {
+  const f = $("bakFile").files && $("bakFile").files[0]; if (!f) return;
+  if (f.size >= MAX_BYTES) { bakMsg(T("bak.err_toolarge")); return; }
+  let obj = null;
+  try { obj = JSON.parse(await f.text()); } catch (e) { bakMsg(T("bak.err_notfile")); return; }
+  const err = validate(obj, BAK_OPT);
+  if (err) { bakMsg(T("bak.err_" + err)); return; }
+  if (!confirm(T("bak.confirm"))) return;
+  toBackground();   // 目前的模組停止播放與計時、存好現在的;之後切到背景 / 重新整理不會再存一次(inBackground)
+  if (importAll(localStorage, obj, BAK_OPT)) { toForeground(); bakMsg(T("bak.err_write")); return; }
+  location.reload();
+};
 
 /* ── 啟動 ── */
 async function init(){

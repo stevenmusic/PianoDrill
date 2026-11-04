@@ -31,11 +31,13 @@
 ```bash
 git clone https://github.com/<repo>.git     # 要完整的 git 歷史(不要 --depth),build 號用 commit 數(第 6 節)
 cd <repo>/app
-npm install                 # Capacitor 8(@capacitor/core、ios、cli)
+npm install                 # Capacitor 8(@capacitor/core、ios、cli + filesystem、share 兩個外掛,見下面)
 npm run www                 # = node ../tools/build/app-www.mjs:複製網頁到 app/www + 打包取樣(第一次要連網下載取樣)
 node ../tools/test/app-www.mjs --no-build    # 檢查 app/www 完整(檔案、importmap、取樣、Google Fonts 已拿掉)
 npx cap add ios             # 產生 app/ios(Xcode 專案)
 ```
+
+- `@capacitor/filesystem` + `@capacitor/share`(npm 套件的外掛,`cap sync` 自動註冊,不用改原生碼):頁尾「備份紀錄」把練習紀錄寫成 JSON 到 App 的暫存資料夾(Cache),再打開系統的分享面板(存到「檔案」、AirDrop、傳給自己);「從檔案還原」用網頁的選檔,不用外掛(`js/main.js` 共用部分,沒有外掛時改用網頁的分享 / 下載)。
 
 `npx cap add ios`(@capacitor/cli 8.5.3)實際產生的東西(2026-10-18 在雲端用同一個 `app/package.json` 試跑確認):
 - 預設用 **Swift Package Manager**(`app/ios/App/CapApp-SPM/Package.swift`),不用 CocoaPods;要 CocoaPods 才加 `--packagemanager CocoaPods`(不需要)。
@@ -270,6 +272,7 @@ File ▸ New ▸ File from Template ▸ **App Privacy**,命名 `PrivacyInfo.xcpr
 ```
 
 - Capacitor 8 的 `Capacitor`、`CapacitorCordova` 套件各自帶了 `PrivacyInfo.xcprivacy`(內容也是全部空的,2026-10-18 看 `@capacitor/ios` 8.5.3 確認),不用另外處理。
+- `@capacitor/filesystem`、`@capacitor/share`(備份紀錄)照外掛自己帶的隱私清單;Archive 後用下面的 Privacy Report 確認沒有收集的資料類型。
 - 之後加了外掛(例如 `@capacitor/preferences` 會用到 UserDefaults,要加 `NSPrivacyAccessedAPICategoryUserDefaults` + 理由 `CA92.1`)要照外掛的說明補。
 - 檢查:Archive 之後在 Organizer 對那個 Archive 按右鍵 ▸ **Generate Privacy Report**,報告裡不應該有任何收集的資料類型。
 - App Store Connect 的「App 隱私」填「不收集資料」(Data Not Collected),要跟這份清單一致。

@@ -74,6 +74,22 @@ addStrings("daily", {
   week: ["最近 7 天練了 {d} 天", "Practised {d} of the last 7 days"], tomorrow: ["明天:{list}", "Tomorrow: {list}"],
   more: ["再練一下", "Practise a bit more"]
 });
+/* 練習紀錄備份(頁尾「備份紀錄」;js/shared/backup.js + main.js 共用部分;兩個 App 一樣):{f} = 檔名;err_* = backup.js 的錯誤代碼 */
+addStrings("bak", {
+  link: ["備份紀錄", "Backup"],
+  why: ["換手機或清除資料前先存一份", "Save a copy before you change phones or clear data"],
+  save: ["存成檔案", "Save to file"], load: ["從檔案還原", "Restore from file"],
+  file: ["紀錄", "backup"],
+  saved: ["存好了:{f}", "Saved: {f}"],
+  confirm: ["會用檔案裡的紀錄取代這台裝置現在的紀錄,確定嗎?", "This will replace the practice history on this device with the one in the file. Continue?"],
+  err_notfile: ["這不是備份檔,請選「存成檔案」存下來的那個檔", "That isn't a backup file. Pick the file you saved with “Save to file”."],
+  err_otherapp: ["這是別的 App 的備份檔,不能還原到這裡", "That backup is from a different app."],
+  err_newer: ["這個檔是新版 App 存的,請先更新 App", "That file is from a newer version. Please update the app first."],
+  err_damaged: ["這個檔壞掉了,沒辦法還原", "That file is damaged and can't be restored."],
+  err_toolarge: ["檔案太大,不是備份檔", "That file is too big to be a backup."],
+  err_write: ["存不進去(裝置空間可能不夠),原本的紀錄沒有動", "Couldn't restore (the device may be full). Your history is unchanged."],
+  err_save: ["沒有存成功,請再試一次", "Couldn't save. Please try again."]
+});
 export const T = key => (STR[key] ? STR[key][LANG === "en" ? 1 : 0] : key);
 export const scoped = ns => key => (STR[ns + "." + key] ? T(ns + "." + key) : T(key));
 

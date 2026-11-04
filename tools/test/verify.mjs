@@ -436,6 +436,9 @@ try { const before = fails; dailycheck(ok); console.log(fails === before ? "今�
 // 今日練習的關卡(js/tech/routes.js + patterns.js):手指 33 關、伴奏 17 關、每個複習變化、暖身(checks/routes.mjs;另外照樂理寫一份互相核對)
 try { const { default: routescheck } = await import("./checks/routes.mjs"); const before = fails; const n = routescheck(ok, FG); console.log(fails === before ? `今日練習關卡 ${n} 題 ✓` : "今日練習關卡 ✗"); } catch (e) { fail("今日練習關卡檢查出錯:" + e.stack); }
 
+// 練習紀錄備份(js/shared/backup.js;兩個 App 同一份):往返、壞檔、別的 App、惡意 key、太大、寫入失敗還原(checks/backup.mjs)
+try { const { default: bakcheck } = await import("./checks/backup.mjs"); const before = fails; bakcheck(ok); console.log(fails === before ? "練習紀錄備份 ✓" : "練習紀錄備份 ✗"); } catch (e) { fail("練習紀錄備份檢查出錯:" + e.stack); }
+
 // 版本指紋(快取):index.html 裡的 ?v= 要跟檔案內容一致
 {
   const { execFileSync } = await import("node:child_process");

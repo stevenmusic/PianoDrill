@@ -1074,3 +1074,11 @@ body.view-exam :is(#s-setup,#e-setup){order:19}
 .q-tags.wrap,#mod-tech .q-tags.wrap{flex-wrap:wrap;height:auto;overflow:visible;row-gap:4px}
 /* 折疊機(≤ 300):熟練度「會了 / 再練」+ 主要按鈕排不下一行(英文 Needs work 比再練寬),兩種語言都讓主要按鈕整條在下一行(畫面設計版型 B) */
 @media (max-width:300px){ .q-last:has(> .mastery .mbtn:not([hidden])) > .q-actions:has(> button:not([hidden])){flex:1 1 100%} }
+
+/* 頁尾「備份紀錄」(js/shared/backup.js、main.js 共用部分;兩個 App 一樣):文字連結的樣子;點了在頁尾下面展開一小塊(不跳視窗),兩顆按鈕 ≥ 44、中英一樣高 */
+footer .foot-link{display:inline-flex;align-items:center;min-height:32px;padding:0;border:0;background:none;font:inherit;color:var(--muted-bright);text-decoration:underline;cursor:pointer}
+footer .bak{margin-top:4px;padding:10px 0 4px;border-top:1px solid var(--line);font-size:var(--fs-sm);color:var(--muted-bright)}
+footer .bak-btns{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+footer .bak-btns .btn{flex:1 1 10em;height:auto;min-height:44px;white-space:normal;line-height:1.25;text-align:center}
+footer .bak-msg{margin-top:6px}
+footer .bak-msg:empty{display:none}

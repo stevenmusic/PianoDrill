@@ -13,6 +13,8 @@
   ["js/shared/dailycard.js", "js/shared/dailycard.js", "same"],
   ["js/shared/milestone.js", "js/shared/milestone.js", "same"],
   ["tools/test/checks/daily.mjs", "tools/test/checks/daily.mjs", "same"],
+  ["js/shared/backup.js", "js/shared/backup.js", "same"],
+  ["tools/test/checks/backup.mjs", "tools/test/checks/backup.mjs", "same"],
   ["js/main.js", "js/main.js", "markers"],
   ["sw.js", "sw.js", "markers"],
   ["tools/build/stamp.mjs", "tools/build/stamp.mjs", "same"],

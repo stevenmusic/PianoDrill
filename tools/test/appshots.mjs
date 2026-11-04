@@ -10,6 +10,8 @@ for (const lang of ["zh", "en"]) {
   const OUT = `${ROOT}${lang}/`; fs.mkdirSync(OUT, { recursive: true });
   for (const [dev, w, h, dpr] of [["iphone", 430, 932, 3], ["ipad13", 1032, 1376, 2]]) {
     const { page, close, errors } = await open({ viewport: { width: w, height: h }, mobile: true, dpr });
+    // 固定亂數種子(每次載入從頭):中英、iPhone / iPad 抽到同一題(視奏的譜、檢定抽考)
+    await page.addInitScript(() => { let s = 20261104; Math.random = () => { s = (s + 0x6D2B79F5) | 0; let t = Math.imul(s ^ (s >>> 15), 1 | s); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; });
     const go = async (shell, extra) => {
       await page.evaluate(([shell, techLog, lang]) => {
         localStorage.clear(); localStorage.setItem("pianodrill-lang", lang);

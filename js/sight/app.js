@@ -120,7 +120,8 @@ const player = createPlayer({
 });
 const history = createHistory({
   capacity: 60,
-  load: () => JSON.parse(readKey(STORAGE_KEY) ?? '[]'),
+  // 讀進來消毒(手改過的備份檔):不是字串陣列 → 從頭記
+  load: () => { try { const a = JSON.parse(readKey(STORAGE_KEY) ?? '[]'); return Array.isArray(a) ? a.filter((x) => typeof x === 'string') : []; } catch { return []; } },
   save: (entries) => localStorage.setItem(STORAGE_KEY, JSON.stringify(entries)),
 });
 
@@ -160,7 +161,8 @@ const history = createHistory({
  */
 const layoutCache = (() => {
   try {
-    return JSON.parse(readKey(LAYOUT_STORAGE_KEY) ?? '{}');
+    const c = JSON.parse(readKey(LAYOUT_STORAGE_KEY) ?? '{}');
+    return c && typeof c === 'object' && !Array.isArray(c) ? c : {};   // 不是物件(手改過的備份檔)→ 重新量
   } catch {
     return {};
   }

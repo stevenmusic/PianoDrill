@@ -19,7 +19,14 @@ let state = null;
 export function load(){
   let saved = {};
   try { saved = JSON.parse(localStorage.getItem(KEY) || localStorage.getItem(OLD_KEY) || "{}") || {}; } catch (e) {}
-  state = { ...DEFAULTS, ...saved, filter: { ...DEFAULTS.filter, ...(saved.filter || {}) }, mastery: { ...(saved.mastery || {}) } };
+  // 讀進來消毒(手改過的備份檔):不是物件 → 空的;抽考範圍的類別不是字串陣列 → 預設
+  const obj = v => (v && typeof v === "object" && !Array.isArray(v) ? v : {});
+  const strs = v => (Array.isArray(v) ? v.filter(x => typeof x === "string") : null);
+  saved = obj(saved);
+  const filter = { ...DEFAULTS.filter, ...obj(saved.filter) };
+  filter.cats = strs(filter.cats) || [...DEFAULTS.filter.cats];
+  if (filter.seen !== undefined) filter.seen = strs(filter.seen) || [];
+  state = { ...DEFAULTS, ...saved, filter, mastery: { ...obj(saved.mastery) } };
   state.log = cleanLog(state.log); state.goal = cleanGoal(state.goal);   // 練習紀錄、每週目標(分鐘;js/shared/practicelog.js)
   // 第一次進來各子項目的一行說明:播放過一次的子項目 = true
   const intro = {}; if (saved.intro && typeof saved.intro === "object") for (const k of ["scale", "arp", "hanon"]) if (saved.intro[k] === true) intro[k] = true;

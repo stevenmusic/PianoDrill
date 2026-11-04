@@ -17,13 +17,31 @@ const DEFAULTS = {
   log: {},                // "YYYY-MM-DD" → { n, sec, hits, total }(舊版 { n, ok } 讀進來換成 hits / total)
   theme: "dark"
 };
+/* 設定列每一項可以選的值(js/ear/app.js 的選單;讀進來消毒用) */
+const CHOICES = {
+  note: { range: ["1", "2", "4"], ref: ["C", "A", "none"], naming: ["letter", "solfege"] },
+  interval: { dir: ["up", "down", "harm", "mix"], root: ["rand", "C"] },
+  chord: { inv: ["root", "all"], style: ["block", "arp", "both", "mix"], root: ["rand", "C"] }
+};
 let state = null;
 export function load(){
   let saved = {};
   try { saved = JSON.parse(localStorage.getItem(KEY) || localStorage.getItem(OLD_KEY) || "{}") || {}; } catch (e) {}
-  const pick = {};
-  for (const k of Object.keys(DEFAULTS.pick)) pick[k] = { ...DEFAULTS.pick[k], ...((saved.pick || {})[k] || {}) };
-  state = { ...DEFAULTS, ...saved, pick, stats: { ...(saved.stats || {}) }, log: { ...(saved.log || {}) } };
+  // 讀進來消毒(手改過的備份檔):不是物件 → 空的;每個題型的設定不是選單裡有的(CHOICES)→ 預設(set = 字串陣列、至少一項);
+  // 正確率不是 { n, ok } 數字 → 丟掉那一筆
+  const obj = v => (v && typeof v === "object" && !Array.isArray(v) ? v : {});
+  saved = obj(saved);
+  const pick = {}, sp = obj(saved.pick);
+  for (const [k, d] of Object.entries(DEFAULTS.pick)) {
+    const p = { ...d, ...obj(sp[k]) };
+    for (const [f, ok] of Object.entries(CHOICES[k])) if (!ok.includes(String(p[f]))) p[f] = d[f];
+    const set = Array.isArray(p.set) ? p.set.filter(x => typeof x === "string") : [];
+    p.set = set.length ? set : [...d.set];
+    pick[k] = p;
+  }
+  const stats = {};
+  for (const [k, v] of Object.entries(obj(saved.stats))) if (v && Number.isFinite(v.n) && Number.isFinite(v.ok)) stats[k] = v;
+  state = { ...DEFAULTS, ...saved, pick, stats, log: { ...obj(saved.log) } };
   // 練習紀錄換成跟 DrumDrill 一樣的格式;每日目標(題數)換成每週目標(分鐘):舊的題數不沿用
   for (const v of Object.values(state.log)) if (v && typeof v === "object" && !("total" in v) && "ok" in v) { v.total = v.n; v.hits = v.ok; }
   state.log = cleanLog(state.log);

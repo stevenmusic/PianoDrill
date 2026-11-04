@@ -26,6 +26,7 @@ const KEY = "pianodrill.v1";
 const S = (() => {
   let saved = null;
   try { saved = JSON.parse(localStorage.getItem(KEY) || "null"); } catch (e) {}
+  if (saved && (typeof saved !== "object" || Array.isArray(saved))) saved = {};   // 手改過的備份檔:整份不是物件 → 當作空的(不重問第一次的問題)
   if (!saved) {   // 第一次打開:同一個網域上用過舊工具(FingerDrill / EarDrill)的,沿用主題與考試設定
     saved = {};
     try {
@@ -36,8 +37,17 @@ const S = (() => {
       }
     } catch (e) {}
   }
+  const sub0 = saved.sub && typeof saved.sub === "object" && !Array.isArray(saved.sub) ? saved.sub : {};
   const s = { view: "tech", exam: null, onboarded: false, theme: "dark", ...saved,
-    sub: { tech: "today", ear: "note", exam: "tech", sight: "right", ...(saved.sub || {}) } };   // 第一次進視奏 = 右手(階 1)
+    sub: { tech: "today", ear: "note", exam: "tech", sight: "right", ...sub0 } };   // 第一次進視奏 = 右手(階 1)
+  // 讀進來消毒(手改過的備份檔):考試不是 { 系統, 級數 } → 沒選考試;分頁、子項目不是有的那幾個(下面的 SYSTEMS、SUBS)→ 預設
+  const ex = s.exam;
+  if (!(ex && typeof ex === "object" && ["abrsm", "trinity"].includes(ex.system) && Number.isInteger(ex.grade) && ex.grade >= 0 && ex.grade <= 8)) s.exam = null;
+  else s.exam = { system: ex.system, grade: ex.grade };
+  if (!["tech", "sight", "ear", "exam"].includes(s.view)) s.view = "tech";
+  if (!["today", "scale", "arp", "hanon"].includes(s.sub.tech)) s.sub.tech = "today";
+  if (!["note", "interval", "chord"].includes(s.sub.ear)) s.sub.ear = "note";
+  if (!["tech", "sight", "ear"].includes(s.sub.exam)) s.sub.exam = "tech";
   // 視奏分頁的子項目 = 認音 / 右手 / 左手 / 雙手(範圍階段在 js/sight/stages.js);舊版存的是級數 1–8 → 雙手
   if (!["read", "right", "left", "both"].includes(s.sub.sight)) s.sub.sight = "both";
   return s;

@@ -42,6 +42,7 @@
   --card-tint:rgba(255,255,255,.035);
   --stage-glow:#171208;
   --paper:#FFFDF6;        /* 樂譜紙張:深色/淺色主題都一樣 */
+  --card-py:14px;--card-px:16px;   /* 卡片內距(上下、左右):每一張卡(含設定卡、考試卡)同一組;手機 10 / 12、手機橫式 8 / 12 在下面的 media 換值(第 5 輪健檢) */
   color-scheme:dark;
 }
 /* ══ 淺色主題:同一組語意變數換一套值 ══ */
@@ -139,7 +140,7 @@ main{
 }
 .card{
   background:var(--panel);border:1px solid var(--line);
-  border-radius:var(--radius-md);padding:14px 16px;min-width:0;
+  border-radius:var(--radius-md);padding:var(--card-py) var(--card-px);min-width:0;
   background-image:linear-gradient(180deg, var(--card-tint), transparent 90px);
 }
 .card-title{
@@ -161,7 +162,6 @@ main{
 .seg.small button{min-height:44px;font-size:var(--fs-sm)}
 
 /* ── 設定 ── */
-.setup{padding:10px 14px 12px}
 .fields{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px 12px}
 .field{display:flex;flex-direction:column;gap:4px;min-width:0}
 .field.wide{grid-column:span 2}
@@ -370,7 +370,6 @@ body{background:
 .tabbar{--fs-2xs:11px;--fs-xs:12px;--fs-sm:13px;--fs-md:14px}
 @media (max-width:600px){
   main{padding:10px;gap:10px}
-  .card{padding:12px}
   .qlist{grid-template-columns:1fr}
   .q-actions .btn-label{display:none}
   #t-drawBtn .btn-label,#t-nextBtn .btn-label,#t-mockBtn .btn-label,#e-drawBtn .btn-label,#e-mockBtn .btn-label{display:inline}   /* 「›」一定寫字(下一題) */
@@ -403,7 +402,6 @@ main{padding-bottom:calc(84px + env(safe-area-inset-bottom))}
 #examChip{max-width:44vw;white-space:nowrap}   /* 字很短(「ABRSM 3 級」),不截;overflow 不能藏:點擊區要伸到外面(第 2 輪健檢) */
 
 /* 選擇器:每一列 = 標籤 + 一排按鈕(太多時橫向捲動,頁面不橫向捲) */
-.picker{padding:10px 14px 12px}
 .picker .rows{display:flex;flex-direction:column;gap:10px}
 .prow{display:grid;grid-template-columns:5.2em 1fr;align-items:center;gap:8px;min-width:0}
 .prow > .lbl{font-size:var(--fs-xs);color:var(--muted-bright)}
@@ -539,7 +537,7 @@ header{z-index:60}
    題目卡收成一行:題目 | 標籤 | ✓ ⚠ | 播放;卡片間距、內距縮小 */
 @media (max-height:420px), (orientation:landscape) and (max-height:500px){
   main{gap:8px;padding-top:8px}
-  .card{padding:8px 12px}
+  :root{--card-py:8px;--card-px:12px}
   .setup-summary{min-height:44px;padding-top:0;padding-bottom:0}
   .picker,.setup{padding-top:6px;padding-bottom:6px}
   #mod-tech .quiz{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;align-items:center;gap:6px 10px}
@@ -705,7 +703,6 @@ body.land-play #t-stage{flex:1;display:flex;flex-direction:column;justify-conten
 @media (min-width:901px){ main,footer{max-width:900px} body.view-sight main,body.view-sight footer{max-width:1180px} }
 /* 檢定頁的考試卡(不收起來,手機也一直展開;使用者:以前要展開、選系統、再拉下拉選單,很難用):
    摘要一行 → 系統兩顆大鈕 → 級數一排(9 格,跟子項目的分段鈕同一個樣式;js/main.js 的 fillGradeSeg)。第一次的問題的級數列同一個樣式 */
-.exam-card{padding:10px 14px 12px}
 .exam-sum{display:flex;align-items:center;gap:8px;min-height:24px;font-size:var(--fs-sm);color:var(--ivory)}
 .exam-sum svg{flex:none;color:var(--gold)}
 .exam-sum .sum{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -718,7 +715,6 @@ body.land-play #t-stage{flex:1;display:flex;flex-direction:column;justify-conten
 .exam-hint{margin:0;font-size:var(--fs-sm);line-height:1.5;color:var(--muted-bright)}
 /* 題目卡:第一次進來這個子項目的一行說明(練過一次就不再出現;技巧 #t-intro) */
 .q-intro{margin:6px 0 0;font-size:var(--fs-sm);line-height:1.5;color:var(--muted-bright)}
-@media (max-width:600px){ .exam-card{padding:8px 12px 10px} }
 /* 折疊機 280、SE 320、手機橫放:9 格要 ≥ 28 寬,卡片、對話框的左右內距放不下 → 系統鈕、級數列往兩邊伸到內距裡(離卡片邊框 1px) */
 @media (max-width:360px), (orientation:landscape) and (max-height:500px){
   #examSetup{--bleed:11px}
@@ -778,7 +774,7 @@ body.land-play #t-stage{flex:1;display:flex;flex-direction:column;justify-conten
   .setup-summary,.picker .setup-summary{display:flex}
   .setup:not(.open) .setup-body,.picker:not(.open) .setup-body{display:none}
   .setup.open .setup-body,.picker.open .setup-body{margin-top:8px}
-  .picker,.setup{padding:8px 12px}
+  .picker,.setup{padding:min(10px, var(--card-py)) var(--card-px)}   /* 收成一行:上下 10(手機橫式 8),左右跟其他卡片一樣(內容左邊切齊) */
 }
 /* 兩欄(平板橫式 1180、筆電、桌機):左欄 = 設定、速度、紀錄(設定直接攤開);右欄 = 題目 + 樂譜/作答,盡量寬 */
 @media (min-width:1100px){
@@ -882,7 +878,7 @@ body.land-play #t-stage{flex:1;display:flex;flex-direction:column;justify-conten
 .quiz.hint-empty .q-hint{display:block;margin:0;flex:1 1 auto;font-size:var(--fs-md);line-height:1.5;color:var(--muted-bright)}
 .quiz.hint-empty .q-actions{flex:1 1 auto;margin-left:0;justify-content:flex-end}
 .quiz.hint-empty .quiz-top > :empty{display:none}
-.quiz.hint-empty :is(#t-drawBtn,#e-drawBtn){height:auto;min-height:44px;padding:0 16px}
+.quiz.hint-empty :is(#t-drawBtn,#e-drawBtn){height:auto;padding:0 16px}
 .quiz.hint-empty :is(#t-drawBtn,#e-drawBtn) .btn-label{display:inline !important}
 @media (max-width:300px){ .quiz.hint-empty .q-hint{flex-basis:100%} }   /* 折疊機:提示自己一行、按鈕在下一行右邊(中英一樣高;中文放得下、英文放不下會不一樣) */
 /* 「考試內容」:一張收起來的 details(一行),考試摘要、規格、推估說明、出處都收在這裡;practiceOnly 在最下面一次 */
@@ -939,7 +935,7 @@ body.view-exam #t-dailyCard,body.view-exam #t-dailyStep{display:none !important}
 .daily-list li.locked{color:var(--muted-bright)}
 .daily-list li.locked .daily-k,.daily-list li.locked .daily-t{color:var(--muted-bright);font-weight:500}
 .daily-list li.locked .daily-mark{border-style:dashed}
-.daily-btn{width:100%;min-height:48px;height:auto;font-size:var(--fs-lg);white-space:normal}
+.daily-btn{width:100%;min-height:48px;height:auto;white-space:normal}
 .daily-note,.daily-sub{font-size:var(--fs-xs);color:var(--muted-bright);line-height:1.5;margin-top:8px}
 .daily-sum{font-size:var(--fs-md);color:var(--ivory);line-height:1.5}
 .daily-ms{margin-top:8px}   /* 里程碑稱讚(練完了卡最後一行;milestone.js) */
@@ -986,7 +982,7 @@ body.view-exam #t-dailyCard,body.view-exam #t-dailyStep{display:none !important}
 @media (max-width:600px){
   /* 只縮上、左右;底部留白照分頁列(上面的 main padding-bottom = 分頁列高度 + safe area),不然捲到底最後一行被分頁列蓋住 */
   main{padding-top:8px;padding-left:max(8px, env(safe-area-inset-left));padding-right:max(8px, env(safe-area-inset-right));gap:8px}
-  .card{padding:10px 12px}
+  :root{--card-py:10px;--card-px:12px}
   .card-title{margin-bottom:6px}
   .log-stats{gap:4px}
   .log-stats b{font-size:clamp(min(calc(20rem / 17), 40px, calc(11vw - 4px)),5.6vw,min(calc(26rem / 17), 52px));line-height:1.15}   /* 手機:最多 2 倍,但不超過一格寬的 2/5(折疊機 200% 的「100%」放得進一格) */
@@ -1135,3 +1131,22 @@ footer .foot-note:empty{display:none}
   #mod-tech .quiz .q-load,#mod-sight .quiz .q-load{grid-column:1 / -1;margin-top:0}
 }
 #obSystem button{min-height:44px}   /* 第一次打開最先按的系統鈕(2026-11 DrumDrill 健檢:原本 36) */
+
+/* ══ 第 5 輪健檢(2026-11;設計一致性,兩個 App 一樣)══ */
+/* 主要按鈕:每個畫面那一顆一樣高、一樣大的字(48 / --fs-md;手機橫式 44,第一個畫面放得下譜) */
+.mod .btn.primary{min-height:48px;height:auto;font-size:var(--fs-md)}
+@media (max-height:420px), (orientation:landscape) and (max-height:500px){ .mod .btn.primary{min-height:44px} }
+/* 次要按鈕(ghost、外框、圓形 − +):每種寬度同一個字級 --fs-sm(跟 chip 一樣;熟練度的小字 --fs-xs 照舊) */
+.mod .btn:not(.primary){font-size:var(--fs-sm)}
+/* 選項(chip、選擇器的選項、卡片裡的分段鈕):桌機也 44 高,同一個畫面一樣高(滑鼠、觸控都一樣) */
+.chip,.opt,.card .seg button{min-height:44px;height:auto}
+.quick .qhead .chip{font-size:var(--fs-sm)}
+/* 清單小標(檢定頁本級要求的「音階 / 琶音」)跟卡片標題同一個樣子(.card-title) */
+.group h3{font-size:var(--fs-2xs);letter-spacing:.14em;color:var(--muted);text-transform:uppercase;font-weight:400}
+/* 小圖示兩種大小:跟字放在一起的 16(箭頭、摘要、按鈕裡的圖示),只有圖示的按鈕 20(▶、音域箭頭) */
+main :is(.btn,.chip,.mbtn,.setup-summary,.exam-sum,summary) svg:not(.play-ring){width:16px;height:16px}
+main .btn.rd-arrow svg{width:20px;height:20px}
+/* 像 App:捲到頂 / 底不整頁彈跳(譜框自己的左右捲不受影響);一般文字不能長按選取,輸入框、頁尾、考試內容(出處)可以選取複製 */
+html,body{overscroll-behavior-y:none}
+body{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+input,textarea,footer,.exam-info{-webkit-user-select:text;user-select:text;-webkit-touch-callout:default}

@@ -10,6 +10,7 @@ model: sonnet
 2. 截圖:寫一支小腳本放在主代理給的暫存資料夾(沒給就 `$TMPDIR`),`import { open } from "<repo>/tools/test/harness.mjs"`(用法看 `tools/test/appshots.mjs` 前 40 行),
    尺寸 iphone 390×844、fold 280×653、iphone 橫 844×390、iPad 820×1180、桌機 1400×900;中文、深淺主題各看一次。
    第一次打開(不寫 localStorage)→ 技巧今日 → 音階 → 視奏認音 / 右手 → 聽力單音 → 檢定(ABRSM 3 級)。截圖用 Read 看;多張先拼成一張再看(省 token)。
+   **字級、間距、對比一律用 `getComputedStyle` / `getBoundingClientRect` 量實際數字再寫**(拼圖會縮小截圖,用眼睛估會誤判;2026-11 就把 14px 看成 11px)。
 3. 每個畫面問:7 歲 / 70 歲 10 秒內知道按哪裡嗎?字夠大嗎?有沒有對不齊、間距不一、顏色不一致、像拼起來的地方?有沒有違反 5 條標準?
 4. 已經在 BACKLOG 的不重複寫。新的照格式加進 BACKLOG 對應區(`- [ ] [小/中/大] 畫面 — 問題 → 建議`;外觀、新功能放「要使用者決定」區)。
 

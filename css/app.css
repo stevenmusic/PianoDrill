@@ -224,10 +224,10 @@ main{
 .quiz-top .count{font-size:var(--fs-xs);color:var(--muted);white-space:nowrap;margin-left:auto;min-width:0;overflow:hidden;text-overflow:ellipsis}
 .quiz-top{flex-wrap:nowrap;min-height:36px}
 .q-title{font-family:"Noto Serif TC",serif;font-weight:700;color:var(--gold-bright);
-  font-size:clamp(26px, 7.4vw, 40px);line-height:1.45;letter-spacing:.02em;overflow-wrap:anywhere}
+  font-size:var(--fs-title);line-height:1.35;letter-spacing:.02em;overflow-wrap:anywhere}
 .q-title:not(.empty){white-space:nowrap;overflow:hidden;text-overflow:ellipsis;overflow-wrap:normal;
-  height:calc(clamp(26px, 7.4vw, 40px) * 1.45);display:flex;align-items:center}
-.q-title.empty{color:var(--muted);font-size:var(--fs-xl);font-family:inherit;font-weight:500}
+  height:calc(var(--fs-title) * 1.35);display:flex;align-items:center}
+.q-title.empty{color:var(--muted);font-size:var(--fs-head);font-family:inherit;font-weight:500}
 .q-tags{display:flex;flex-wrap:nowrap;gap:6px;overflow:hidden;align-items:center;min-height:calc(var(--fs-sub) * 1.4 + 8px)}
 /* 題目標籤(拍號、小節數、速度、播放方式…):只是說明、不能點 → 中性膠囊(灰底、淡字、沒有金色),跟金色淡底的按鈕分得開(設計規格 B) */
 .q-tag{flex:none;font-size:calc(var(--fs-sub) * var(--tag-scale, 1));font-weight:500;color:var(--muted-bright);background:var(--fill-tag);border:0;
@@ -237,7 +237,7 @@ main{
 /* 練習紀錄:三格數字 + 最近 7 天(固定格子,中英文一樣) */
 .log-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center}
 /* 數字跟著系統字級(下限、上限是 rem;預設跟原本 px 一樣);寬畫面兩欄時一格可能只有 100 寬,最多 1.3 倍 */
-.log-stats b{display:block;font-family:"Noto Serif TC",serif;font-size:clamp(min(calc(22rem / 17), 28.6px),6vw,min(calc(30rem / 17), 39px));line-height:1.4;color:var(--gold-bright);font-variant-numeric:tabular-nums}
+.log-stats b{display:block;font-family:inherit;font-weight:700;font-size:clamp(min(calc(22rem / 17), 28.6px),6vw,min(calc(30rem / 17), 39px));line-height:1.4;color:var(--ivory);font-variant-numeric:tabular-nums}
 /* 標籤:字級放大時最多兩行、兩行一樣長(不會剩一個「率」)、行距收緊;預設跟原本一模一樣(22.4 = 外層 16px × 1.4 那一行;數字照原本的 1.4) */
 .log-stats > div{text-wrap:balance;line-height:max(22.4px, 1.15em)}
 .log-stats small{line-height:1;font-size:var(--fs-xs);color:var(--muted-bright)}
@@ -260,7 +260,7 @@ main{
    手機橫式照下面那段收成一行 */
 #mod-tech .q-head{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:10px;row-gap:2px;align-items:start}
 #mod-tech .q-ht{display:contents}
-#mod-tech .q-title{grid-column:1;grid-row:1;align-self:start;margin-top:max(0px, calc((52px - clamp(26px, 7.4vw, 40px) * 1.45) / 2))}
+#mod-tech .q-title{grid-column:1;grid-row:1;align-self:start;margin-top:max(0px, calc((52px - var(--fs-title) * 1.35) / 2))}
 #mod-tech .play-round{grid-column:2;grid-row:1}
 #mod-tech .q-tags{grid-column:1 / -1;grid-row:2;max-width:none}
 #mod-tech .q-tags:empty{display:none}
@@ -315,7 +315,7 @@ main{
 /* ── 節拍器 ── */
 .metro{display:grid;grid-template-columns:auto 1fr auto;gap:10px 12px;align-items:center}
 .bpm{display:flex;align-items:baseline;gap:6px;min-width:0}
-.bpm b{font-family:"Noto Serif TC",serif;font-size:clamp(30px, 8vw, 40px);color:var(--gold-bright);line-height:1;font-variant-numeric:tabular-nums}
+.bpm b{font-family:inherit;font-weight:700;font-size:var(--fs-title);color:var(--ivory);line-height:1;font-variant-numeric:tabular-nums}
 .bpm small{font-size:var(--fs-xs);color:var(--muted-bright);white-space:nowrap}
 @media (max-width:300px){ .bpm:has(> .beats){flex-wrap:wrap} .bpm > .beats{flex-basis:100%} }   /* 折疊機:拍點燈號自己一行(「拍 / 分鐘」比 BPM 寬,只有中文會把燈號擠下去) */   /* 「拍 / 分鐘」不拆開(折疊機上中文會換行、英文 BPM 不會)*/
 .metro input[type=range]{width:100%;accent-color:var(--gold)}
@@ -393,7 +393,7 @@ body{background:
 }
 /* 手機橫向 */
 @media (max-height:420px), (orientation:landscape) and (max-height:500px){
-  .q-title{font-size:24px}
+  .q-title{font-size:calc(var(--fs-title) * .92)}
 }
 /* iPhone 瀏海/底部安全區 */
 header{padding-top:max(10px, env(safe-area-inset-top))}
@@ -564,7 +564,7 @@ header{z-index:60}
   #mod-tech .q-last .count{display:none}
   #mod-tech .q-last .q-actions{grid-column:1 / -1}
   #mod-tech .q-hint,#mod-sight .q-hint,#mod-ear .q-hint{grid-column:1 / -1}
-  #mod-tech .q-title{grid-column:1;grid-row:1;font-size:22px;max-width:46vw;line-height:32px;height:32px;align-self:center;margin-top:0}   /* 字級會依長度縮小:行高固定,中英文高度才一樣 */
+  #mod-tech .q-title{grid-column:1;grid-row:1;font-size:calc(var(--fs-title) * .85);max-width:46vw;line-height:32px;height:32px;align-self:center;margin-top:0}   /* 字級會依長度縮小:行高固定,中英文高度才一樣 */
   #mod-tech .q-tags{grid-column:1 / 3;grid-row:2;min-height:0;height:30px;max-width:none}   /* 標籤一律在標題下面一行(用滿寬度):英文打法名長,跟標題擠同一行會被擠成 0 寬或只有英文掉行;高度固定,中英文才一樣 */
   #mod-tech .q-tag{font-size:calc(var(--fs-sub) * var(--tag-scale, 1));padding:0 7px;line-height:26px}
   #mod-tech .mastery{grid-column:3;grid-row:1}
@@ -606,8 +606,8 @@ body.land-play #t-stage{flex:1;display:flex;flex-direction:column;justify-conten
 :root.light .feedback.no{color:#A33A22}
 .q-foot{display:flex;align-items:center;gap:8px}
 .q-foot .btn{height:auto;min-height:44px}   /* 新題目 / 下一題 / 看答案 / 準備:點擊區域 ≥ 44 */
-#mod-ear .q-title{font-size:clamp(22px, 6vw, 32px)}
 #mod-ear .q-title:not(.empty){height:auto;white-space:normal}
+@media (max-width:300px){ #mod-ear .q-title:not(.empty){font-size:calc(var(--fs-title) * .92)} }   /* 折疊機:英文「Which interval?」在 26 會換成兩行(中英要一樣高) */
 
 /* 鋼琴鍵盤(回答用):照 ScrollScore 的鍵盤畫法(漸層白鍵 + 頂端高光、光澤黑鍵 + 投影、按下時金色光暈)
    白鍵長寬比 5.2:1(ScrollScore 的 WHITE_KEY_ASPECT),高度由 JS 依寬度算(fitKeyboard) */
@@ -646,7 +646,7 @@ body.land-play #t-stage{flex:1;display:flex;flex-direction:column;justify-conten
 /* 節拍鍵(跟著打拍子、拍出節奏) */
 .tap-wrap{grid-column:1 / -1;display:flex;flex-direction:column;align-items:center;gap:8px}
 .tap-pad{width:min(100%, 320px);height:120px;border-radius:var(--radius-lg);border:2px solid var(--gold);background:rgba(242,185,75,.08);color:var(--gold);
-  font-family:"Noto Serif TC",serif;font-size:28px;font-weight:700;cursor:pointer;touch-action:none;transition:background .06s}
+  font-family:"Noto Serif TC",serif;font-size:var(--fs-title);font-weight:700;cursor:pointer;touch-action:none;transition:background .06s}
 .tap-pad.hit{background:var(--gold-fill);color:var(--on-fill)}
 .tap-pad:disabled{opacity:.4}
 .tap-info{font-size:var(--fs-sm);color:var(--muted-bright)}
@@ -716,6 +716,7 @@ body.land-play #t-stage{flex:1;display:flex;flex-direction:column;justify-conten
 }
 /* 今日練習進行中:子項目列換成今日練習的那一行(main.js 的 ctx.subBar;進度、暫停、下一段) */
 .subnav .sub-bar{width:min(560px, 100%);padding:0 2px}
+.subnav.has-bar{min-width:0}   /* 那一行放不下時「剩約 n 分」縮成 …(不撐出畫面;折疊機 280) */
 .daily-bar .daily-pause{flex:none;min-width:44px;min-height:44px;height:auto;padding:0;display:inline-flex;align-items:center;justify-content:center}
 /* 內容寬度:技巧、聽音窄一點(按鈕、鍵盤不會又寬又扁);視奏的樂譜要寬 */
 @media (min-width:901px){ main,footer{max-width:900px} body.view-sight main,body.view-sight footer{max-width:1180px} }
@@ -732,7 +733,7 @@ body.land-play #t-stage{flex:1;display:flex;flex-direction:column;justify-conten
 /* 級數那排下面一行小字(檢定頁:怎麼知道考哪一級 / 推估的意思;第一次的問題:不確定就先自由練習) */
 .exam-hint{margin:0;font-size:var(--fs-sm);line-height:1.5;color:var(--muted-bright)}
 /* 題目卡:第一次進來這個子項目的一行說明(練過一次就不再出現;技巧 #t-intro) */
-.q-intro{margin:6px 0 0;font-size:var(--fs-sm);line-height:1.5;color:var(--muted-bright)}
+.q-intro{margin:6px 0 0;font-size:var(--fs-sub);line-height:1.5;color:var(--muted-bright)}
 /* 折疊機 280、SE 320、手機橫放:9 格要 ≥ 28 寬,卡片、對話框的左右內距放不下 → 系統鈕、級數列往兩邊伸到內距裡(離卡片邊框 1px) */
 @media (max-width:360px), (orientation:landscape) and (max-height:500px){
   #examSetup{--bleed:11px}
@@ -771,10 +772,7 @@ body.land-play #t-stage{flex:1;display:flex;flex-direction:column;justify-conten
 #mod-ear .opts[data-k="inv"]{--cw:94px}
 #mod-ear .opts[data-k="style"]{--cw:98px}
 #mod-ear .opts[data-k="opts"]{--cw:126px}
-/* 三個模組的題目大標題同一個大小(以前技巧 26–40、聽音 22–32,看起來像兩個 App) */
-.q-title,#mod-ear .q-title{font-size:clamp(24px, 6.6vw, 36px)}
-/* 行高 1.45:Noto Serif 的 g j p y 下伸部會超出 1.2 倍的行框,overflow:hidden 會切掉(使用者回報;tools/test/clip.mjs 檢查) */
-.q-title:not(.empty){height:calc(clamp(24px, 6.6vw, 36px) * 1.45)}
+/* 三個模組的題目大標題同一個大小(--fs-title,上面 .q-title);行高 1.35:Noto Serif 的 g j p y 下伸部不能被 overflow:hidden 切掉(tools/test/clip.mjs 檢查) */
 #mod-ear .q-title:not(.empty){height:auto}
 /* 聽力測驗的題型:固定寬度的格子(中英文每列個數一樣,換語言不換行) */
 #mod-ear .test .chips{display:grid;grid-template-columns:repeat(auto-fit, minmax(150px, 1fr));gap:6px}
@@ -842,7 +840,7 @@ body.land-play #t-stage{flex:1;display:flex;flex-direction:column;justify-conten
   /* 視奏題目卡:標題 | 標籤 | ▶ 一行,下面一行說明,再一行操作 */
   #mod-sight .quiz{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:4px 12px}
   #mod-sight .q-head,#mod-sight .q-ht{display:contents}
-  #s-title{grid-column:1;grid-row:1;font-size:24px;height:auto}
+  #s-title{grid-column:1;grid-row:1;font-size:calc(var(--fs-title) * .92);height:auto}
   #mod-sight .q-ht .q-tags{grid-column:2;grid-row:1;min-height:0;max-width:none}
   #s-play{grid-column:3;grid-row:1;width:44px;height:44px}
   #s-message{grid-column:1 / -1;grid-row:2;font-size:var(--fs-sm);min-height:0}
@@ -961,7 +959,7 @@ body.view-exam #t-dailyCard,body.view-exam #t-dailyStep{display:none !important}
 /* 進行中:一行進度 */
 .daily.daily-run{padding-top:6px;padding-bottom:6px}
 .daily-bar{display:flex;align-items:center;gap:8px;min-height:44px;min-width:0}
-.daily-bar b{flex:none;font-family:"Noto Serif TC",serif;font-size:var(--fs-md);color:var(--gold);white-space:nowrap;font-variant-numeric:tabular-nums}
+.daily-bar b{flex:none;font-family:inherit;font-weight:700;font-size:var(--fs-sub);color:var(--ivory);white-space:nowrap;font-variant-numeric:tabular-nums}
 .daily-dots{display:flex;gap:4px;flex:none}
 .daily-dots i{width:10px;height:10px;border-radius:50%;border:1px solid var(--muted)}
 .daily-dots i.on{background:var(--gold-fill);border-color:var(--gold-fill)}
@@ -970,17 +968,18 @@ body.view-exam #t-dailyCard,body.view-exam #t-dailyStep{display:none !important}
 .daily-left.up{color:var(--gold)}
 .daily-bar .daily-next{flex:none;min-height:44px;height:auto}
 @media (max-width:340px){ .daily-dots{display:none} }
+@media (max-width:300px){ .daily-bar{gap:4px} }   /* 折疊機:按鈕字 14 以後,「剩約 6 分」還放得下 */
 /* 段落面板(題目卡裡) */
 .daily-step{display:flex;flex-direction:column;gap:8px;padding-top:2px}   /* 不畫上框線(卡片已經分層) */
-.daily-status{font-size:var(--fs-md);color:var(--ivory);line-height:1.5}
-.daily-tip{font-size:var(--fs-xs);color:var(--muted-bright);line-height:1.5}
-.daily-why{font-size:var(--fs-sm);color:var(--muted-bright);line-height:1.5}   /* 為什麼練這個(每組一句,這一組第一次出現時) */
+.daily-status{font-size:var(--fs-body);font-weight:500;color:var(--ivory);line-height:1.5}
+.daily-tip{font-size:var(--fs-sub);color:var(--muted-bright);line-height:1.5}
+.daily-why{font-size:var(--fs-sub);color:var(--muted-bright);line-height:1.5}   /* 為什麼練這個(每組一句,這一組第一次出現時) */
 /* 今日練習的關卡標籤「律動 3 / 28」下面一條細進度條 */
 .q-tag:has(> .lv-bar){position:relative}
 .q-tag .lv-bar{position:absolute;left:11px;right:11px;bottom:1px;height:2px;border-radius:2px;background:var(--line);overflow:hidden}
 .q-tag .lv-bar b{display:block;height:100%;min-width:3px;background:var(--gold)}
 .daily-vary{font-size:var(--fs-sm);color:var(--gold);font-weight:700;line-height:1.5}
-.daily-check{font-size:var(--fs-md);color:var(--ivory);line-height:1.45}
+.daily-check{font-size:var(--fs-sub);color:var(--ivory);line-height:1.45}
 .daily-check b{display:block;font-size:var(--fs-xs);font-weight:500;color:var(--muted-bright)}
 .daily-check ul{margin:2px 0 0;padding-left:1.2em}
 .daily-check li + li{margin-top:2px}
@@ -1020,7 +1019,6 @@ body.view-exam #t-dailyCard,body.view-exam #t-dailyStep{display:none !important}
 #mod-tech.daily-on #t-metroCard{display:flex;align-items:center;flex-wrap:wrap;gap:6px 10px;padding-top:8px;padding-bottom:8px}
 #mod-tech.daily-on #t-metroCard .card-title{margin:0;flex:1 1 0;min-width:0}
 #mod-tech.daily-on #t-metroCard .metro{display:flex;align-items:center;gap:8px;flex:none;margin-left:auto}
-#mod-tech.daily-on #t-metroCard .bpm b{font-size:clamp(24px,6vw,30px)}
 #mod-tech.daily-on #t-metroCard .bpm small:not(:empty){display:none}
 #mod-tech.daily-on #t-bpmRange,#mod-tech.daily-on #t-metroCard .play-opts,#mod-tech.daily-on #t-bpmReset,#mod-tech.daily-on #t-bestTempo{display:none}
 #mod-tech.daily-on #t-metroCard .row2{display:contents}

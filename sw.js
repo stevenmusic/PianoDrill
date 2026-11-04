@@ -26,7 +26,7 @@ const PRECACHE = [
   "support.html",
   "css/app.css?v=8f286dbbd5",
   "css/tech.css?v=bbaf61f7f1",
-  "css/sight.css?v=3375adf52f",
+  "css/sight.css?v=160b8cfe04",
   "vendor/opensheetmusicdisplay.min.js?v=4bfeb3d01c",
   "js/ear/app.js?v=6569839dd0",
   "js/ear/aural.js?v=883d7b67eb",

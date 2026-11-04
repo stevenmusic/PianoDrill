@@ -395,7 +395,7 @@ main{padding-bottom:calc(84px + env(safe-area-inset-bottom))}
 .tabbar button[aria-selected="true"]{color:var(--gold)}
 .tabbar button[aria-selected="true"] span{font-weight:700}
 /* 寬畫面(平板橫式、電腦)也跟直式一樣滿版貼底、四格平均分配整個寬度(使用者要求) */
-#examChip{max-width:44vw;overflow:hidden;text-overflow:ellipsis}
+#examChip{max-width:44vw;white-space:nowrap}   /* 字很短(「ABRSM 3 級」),不截;overflow 不能藏:點擊區要伸到外面(第 2 輪健檢) */
 
 /* 選擇器:每一列 = 標籤 + 一排按鈕(太多時橫向捲動,頁面不橫向捲) */
 .picker{padding:10px 14px 12px}
@@ -685,12 +685,12 @@ body.land-play #t-stage{flex:1;display:flex;flex-direction:column;justify-conten
 /* 子項目(音階/琶音/哈農、單音/音程/和弦、檢定的三個項目):跟頂欄一起固定在上方,佔滿一整列 */
 .subnav{flex:1 1 100%;order:3;display:flex;justify-content:center;padding:2px 0 0}
 .subnav .seg{width:min(560px, 100%)}
-.subnav .seg button{min-height:30px;min-width:min-content}   /* 字級放大時長的字(Arpeggios)不被截:那一格寬一點,其他格分剩下的 */
-@media (max-width:600px){ header{flex-wrap:wrap} .subnav .seg button{min-height:28px;padding:0 4px} }   /* + 軌道內距 4 = 跟以前一樣 32 高 */
+.subnav .seg button{min-height:32px;min-width:min-content}   /* 字級放大時長的字(Arpeggios)不被截:那一格寬一點,其他格分剩下的 */
+@media (max-width:600px){ header{flex-wrap:wrap} .subnav .seg button{min-height:32px;padding:0 4px} }   /* + 軌道內距 4 = 36 高(主導覽看起來最多 36;點擊區另外伸到 44) */
 @media (max-height:420px), (orientation:landscape) and (max-height:500px){
   .subnav{flex:0 1 420px;order:2;padding:0}
   header{flex-wrap:nowrap}
-  .subnav .seg button{min-height:28px;font-size:var(--fs-sm)}
+  .subnav .seg button{min-height:28px;font-size:var(--fs-sm)}   /* 橫式在頂欄同一行:看起來 32(頂欄不增高),點擊區上下各伸 8 = 44 */
   .subnav .sub-bar,.subnav .sub-bar .btn{min-height:36px}
 }
 /* 今日練習進行中:子項目列換成今日練習的那一行(main.js 的 ctx.subBar;進度、暫停、下一段) */
@@ -1074,6 +1074,38 @@ body.view-exam :is(#s-setup,#e-setup){order:19}
 #mod-tech.today-view:not(.daily-on) :is(#t-quizCard,#t-scoreCard,#t-metroCard,#t-picker,#t-paneScale,#t-paneArp,#t-paneHanon,#t-target){display:none !important}
 /* 折疊機 280:子項目列多了「今日」(DrumDrill 5 格):字小一級、不在字中間斷(英文 Diddles) */
 @media (max-width:300px){ #subSeg button{font-size:var(--fs-xs);padding:0 2px;white-space:nowrap} }
+
+/* ══ 第 2 輪健檢(2026-11;兩個 App 一樣):點擊區 ≥ 44,看起來的大小不變 ══
+   做法:按鈕自己 position:relative,::after 是透明的一塊伸到按鈕外面(點到它 = 點到按鈕);只伸到頂欄的內距裡,頂欄不增高 */
+/* 子項目列(主導覽):看起來 32 + 軌道 4 = 36,點擊區上 4 下 8 = 44(上面少伸一點:不蓋到主題 / 語言鈕伸下來的那一塊) */
+.subnav .seg{overflow:visible}
+.subnav .seg button{position:relative;overflow:visible}
+.subnav .seg button::after{content:"";position:absolute;inset:-4px 0 -8px}
+@media (max-height:420px), (orientation:landscape) and (max-height:500px){ .subnav .seg button::after{inset:-8px 0} }   /* 橫式在頂欄同一行(看起來 28 + 軌道 4,頂欄不增高):上下各 8 */
+/* 頂欄的考試標籤、主題、語言:44 × 44(手機橫式 36 × 36);往上伸得比往下多(上面內距 10、下面是子項目列) */
+#examChip,#themeToggle,#langToggle{position:relative}
+#examChip::after,#themeToggle::after,#langToggle::after{content:"";position:absolute;left:50%;bottom:-4px;width:max(100%, 44px);height:44px;transform:translateX(-50%)}
+@media (max-width:600px){ .header-right{column-gap:10px} }   /* 兩顆圓鈕各往旁邊伸 5,中間要留 10 才不互相蓋住 */
+/* 折疊機(≤ 300):子項目列看起來維持 32(第一個畫面的題目卡才在上半部),點擊區上 6 下 10 = 44;圓鈕往下少伸 1,兩塊剛好接上 */
+@media (max-width:300px){
+  .subnav .seg button{min-height:28px}
+  .subnav .seg button::after{inset:-6px 0 -10px}
+  #themeToggle::after,#langToggle::after{bottom:-3px}
+}
+@media (max-height:420px), (orientation:landscape) and (max-height:500px){
+  #examChip::after,#themeToggle::after,#langToggle::after{width:max(100%, 36px);height:36px}
+  /* 今日練習進行中的那一行(在頂欄裡):暫停、下一段看起來 36,點擊區 44 */
+  .subnav .daily-bar .daily-pause,.subnav .daily-bar .daily-next{position:relative}
+  .subnav .daily-bar .daily-pause::after,.subnav .daily-bar .daily-next::after{content:"";position:absolute;inset:-5px -1px}   /* 從框線裡面算:框 1 + 4 */
+}
+/* 折疊機:級數 9 格一排只有 28 寬 → 兩排(I 1 2 3 4 / 5 6 7 8),每格 ≥ 32 */
+@media (max-width:300px){
+  .exam-grades{grid-auto-flow:row;grid-template-columns:repeat(5, minmax(0, 1fr))}
+  .exam-grades button:nth-child(6):not([aria-pressed="true"]){background:transparent}   /* 第二排第一格左邊不畫分隔線 */
+}
+/* 清單:檢定音階的每一題、檢定聽力的每一項 44 高(iPad 也是觸控) */
+.qrow{min-height:44px}
+#mod-ear .test .chip{height:auto;min-height:44px}
 
 /* 標籤縮到 0.82 還放不下就換行(不再縮小、不截掉;tech/app.js 的 fitTitle 加 .wrap) */
 .q-tags.wrap,#mod-tech .q-tags.wrap{flex-wrap:wrap;height:auto;overflow:visible;row-gap:4px}

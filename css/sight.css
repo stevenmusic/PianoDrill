@@ -42,7 +42,7 @@
 #mod-sight .along{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px}
 #mod-sight .along .btn{height:44px;padding:0 18px}
 @media (max-width:600px){ #mod-sight .along .btn{width:100%} }
-#mod-sight .along-opt{display:inline-flex;align-items:center;gap:8px;min-height:44px;color:var(--muted-bright);font-size:var(--fs-sm);cursor:pointer}
+#mod-sight .along-opt{display:inline-flex;flex:1 1 auto;align-items:center;gap:8px;min-height:44px;color:var(--muted-bright);font-size:var(--fs-sm);cursor:pointer}   /* 整列(框 + 字)都是點擊區(第 2 輪健檢) */
 #mod-sight .along-opt input{width:20px;height:20px;accent-color:var(--gold)}
 #mod-sight .along-note{flex-basis:100%;color:var(--muted);font-size:var(--fs-xs);line-height:1.5}
 #mod-sight .along-result{border-top:1px solid var(--line);margin-top:12px;padding-top:10px;line-height:1.5}
@@ -154,7 +154,6 @@
   #mod-sight:has(#s-rdCard:not([hidden])) #s-rdOpts{grid-column:2;grid-row:1 / span 2}
   #s-rdOpts .rd-row{grid-template-columns:4em minmax(0,1fr);gap:6px}
   #s-rdOpts .rd-row + .rd-row{margin-top:6px}
-  #s-rdOpts .rd-seg .opt{min-height:36px}
   #s-rdOpts .rd-note{display:none}
   #s-rdOpts .rd-seg .opt{font-size:var(--fs-sm);padding:2px 4px}
   #s-rdOpts .rd-end{row-gap:0}

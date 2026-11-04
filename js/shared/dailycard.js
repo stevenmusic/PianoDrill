@@ -4,11 +4,13 @@
    - 還沒開始 / 暫停:標題「今日練習 · 約 n 分鐘」、一段一行(<ol>,做完的打勾)、還沒開放的路線一行淡字、大按鈕「開始 / 繼續今天的練習」;
      第一次才有一行「漏練幾天沒關係,不會扣分」
    - 進行中(模組正在顯示這一段):縮成一行「今日練習 2/4 ●●○○ 剩約 7 分 [暫停] [下一段 ›]」;有 barHost(外框的 ctx.subBar)時這一行放在子項目列的位置(子項目列藏起來、卡片藏起來)
-   - 練完了:今天練了幾段、幾分鐘、過了幾關(0 關不寫)、最近 7 天練了幾天、明天練什麼 + 次要按鈕「再練一下」(可以一直按)
+   - 練完了:今天練了幾段、幾分鐘、過了幾關(0 關不寫)、最近 7 天練了幾天、明天練什麼、里程碑稱讚(milestone.js;一天最多一句,有練到才算)+ 次要按鈕「再練一下」(可以一直按)
    段落面板:狀態 / 下一步一句、為什麼練這個(路線的 why[組]:這一組第一關第一次出現時一句,看過的組記在 daily 的 why)、這次的變化(複習)、重點(關卡的 check)、[回上一關](文字鈕,只在同一速度連續不穩 = seg().suggest 時)…[再練][穩了 ✓](各 App 的字)或 [下一段 ›];
    「穩了 / 做到了」要先用現在的速度播過一輪才能按(App 呼叫 ready(true);沒播之前 disabled,不算嘗試)
    文字都用 i18n 的 daily.*(兩個 App 一樣)+ 模組傳進來的 labels(穩了 / 做到了…);段落文字用 pairText(中英一樣高) */
 import { tr, T, pairText } from "./i18n.js";
+import { streak } from "./practicelog.js";
+import { pick as pickMs, byId as msById } from "./milestone.js";
 
 const fmt = (key, o = {}) => T("daily." + key).replace(/\{(\w+)\}/g, (_, k) => (o[k] != null ? o[k] : ""));
 const L2 = v => (Array.isArray(v) ? tr(v[0], v[1]) : v == null ? "" : String(v));
@@ -142,8 +144,9 @@ export function createDailyCard({ $, daily, labels = {}, warmName = () => "", le
   function renderDone(){
     const s = daily.summary(log() || {});
     const tom = s.tomorrow.map(l => `${L2(l.route.name)} ${fmt("level", { n: l.n })}`).concat(s.review ? [fmt("review")] : []);
+    const ms = s.segs ? milestone(log() || {}, s) : null;
     card.innerHTML = `<div class="card-title"><b id="${tid}">${esc(fmt("title"))}${s.segs ? " ✓" : ""}</b></div>` +   // 一段都沒練:不打勾
-      `<p class="daily-sum"></p><p class="daily-sub"></p>` + (tom.length ? `<p class="daily-sub daily-tom"></p>` : "") +
+      `<p class="daily-sum"></p><p class="daily-sub"></p>` + (tom.length ? `<p class="daily-sub daily-tom"></p>` : "") + (ms ? `<p class="daily-sum daily-ms"></p>` : "") +
       `<button class="btn daily-more">${esc(fmt("more"))}</button>`;
     // 一段都沒練(全部按「下一段」跳過):只寫「今天還沒練到」;不到 1 分鐘寫秒;最近 7 天 0 天不寫那一行
     const time = () => (s.sec < 60 ? fmt("sec", { n: Math.round(s.sec) }) : fmt("min", { n: Math.round(s.sec / 60) }));
@@ -152,7 +155,16 @@ export function createDailyCard({ $, daily, labels = {}, warmName = () => "", le
     if (s.week > 0) pairText(wk, () => fmt("week", { d: s.week })); else wk.remove();
     const tm = card.querySelector(".daily-tom");
     if (tm) pairText(tm, () => fmt("tomorrow", { list: s.tomorrow.map(l => `${L2(l.route.name)} ${fmt("level", { n: l.n })}`).concat(s.review ? [fmt("review")] : []).join(" · ") }));
+    if (ms) pairText(card.querySelector(".daily-ms"), () => tr(ms.zh, ms.en));
     card.querySelector(".daily-more").onclick = () => onMore && onMore();
+  }
+  /* 里程碑稱讚:今天已經有一句 → 同一句(重畫、換語言);還沒有 → 挑一句,當下記成看過(milestone.js;連續天數照練習紀錄卡) */
+  function milestone(lg, s){
+    const id = daily.msToday();
+    if (id) return msById(id);
+    const m = pickMs({ streak: streak(lg), passed: daily.passedAll(), passedToday: s.passed, seen: daily.data.ms });
+    if (m) daily.markMs(m.id, m.also);
+    return m;
   }
 
   /* ── 段落面板(題目卡裡)── status = () => 一句話(換語言重算);result = attempt 的結果(有就顯示結果) ── */

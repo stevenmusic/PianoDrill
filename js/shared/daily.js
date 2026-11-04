@@ -79,6 +79,10 @@ export function cleanDaily(raw, routes, today = null){
   const d = { v: DAILY_V, prog: {}, lv: {}, today: null, last: isDay(src.last) ? src.last : null, seen: src.seen === true, tip: src.tip === true };
   // 看過「為什麼練這個」的組(「路線/組」;dailycard 只在這一組第一次出現時寫那一句)
   d.why = Array.isArray(src.why) ? [...new Set(src.why.filter(k => typeof k === "string" && routes.some(R => R.levels.some(l => k === R.id + "/" + l.g))))] : [];
+  // 里程碑稱讚(milestone.js):看過的 id(只留字串、不重複、最多 30 個)+ 今天顯示的那一句(msDay = { date, id };同一天重畫照樣顯示)
+  d.ms = Array.isArray(src.ms) ? [...new Set(src.ms.filter(k => typeof k === "string" && k.length > 0 && k.length <= 24))].slice(-30) : [];
+  const md = src.msDay;
+  d.msDay = md && typeof md === "object" && !Array.isArray(md) && isDay(md.date) && typeof md.id === "string" && d.ms.includes(md.id) ? { date: md.date, id: md.id } : null;
   for (const R of routes) {
     const p = src.prog && src.prog[R.id] && typeof src.prog[R.id] === "object" ? src.prog[R.id] : {};
     const done = p.done === true;
@@ -332,7 +336,15 @@ export function createDaily({ routes, load = () => null, save = () => {}, now = 
   /* 「為什麼練這個」(每一組一句):看過的組記下來(key = 「路線/組」),之後不再寫 */
   const whySeen = key => d.why.includes(key);
   function markWhy(key){ if (!d.why.includes(key)) { d.why.push(key); put(); } }
+  /* 里程碑稱讚:今日練習累計過了幾關;今天顯示的那一句(記成看過,同一天重畫照樣顯示) */
+  const passedAll = () => Object.values(d.lv).filter(e => e.passed).length;
+  const msToday = () => (d.msDay && d.msDay.date === todayKey() ? d.msDay.id : null);
+  function markMs(id, also = []){
+    for (const k of [...also, id]) if (typeof k === "string" && !d.ms.includes(k)) d.ms.push(k);
+    if (d.ms.length > 30) d.ms = d.ms.slice(-30);
+    d.msDay = { date: todayKey(), id }; put();
+  }
   return { get data(){ return d; }, plan: () => ensure().plan, today: ensure, state, seg, begin, attempt, back, canBack, addSec, segLeft, next, addExtra,
-    levelOf, bpmFor, reviewBpm, locked, summary, minutes, isOpen: R => isOpen(R, d, routes), whySeen, markWhy,
+    levelOf, bpmFor, reviewBpm, locked, summary, minutes, isOpen: R => isOpen(R, d, routes), whySeen, markWhy, passedAll, msToday, markMs,
     reset(raw){ d = cleanDaily(raw, routes); put(); } };
 }

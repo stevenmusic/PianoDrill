@@ -1,6 +1,7 @@
 // 今日練習引擎(js/shared/daily.js)的檢查;兩個 App 同一份(sync.json same),verify.mjs 會呼叫;也可以單獨跑:node tools/test/checks/daily.mjs
 //   菜單(暖身第一、順序固定、還沒開放的路線、到期複習一天一題)、慢練優先、速度階梯、連續 N 次穩才過關、失手重算、退速度、建議回上一關、
 //   快速通道(開 / 關)、回上一關、歡迎回來(≥ 7 天)、複習盒與變化(穩 → 下一盒、不穩 → 上一盒隔天)、拍點模式、跨午夜換日、消毒、沒練不扣分
+import { pick as pickMs, byId as msById, MILESTONES } from "../../../js/shared/milestone.js";
 import { createDaily, cleanDaily, buildPlan, clickPlays, gapBars, verdictOf, addDays, dayNum, DEFAULT_VARY, REVIEW_GAPS, SEG_SEC, METRO, tempoUp, tempoDown } from "../../../js/shared/daily.js";
 
 const ROUTES = [
@@ -212,6 +213,40 @@ export default function check(ok){
   ok(!wd.whySeen("w/B"), "為什麼:還沒看過");
   wd.markWhy("w/B"); wd.markWhy("w/B");
   ok(wd.whySeen("w/B") && wSaved && JSON.stringify(wSaved.why) === '["w/B"]' && cleanDaily(wSaved, wRoutes).why[0] === "w/B", "為什麼:看過記下來、存回去、讀得回來");
+
+  // ── 里程碑稱讚(js/shared/milestone.js):一次一句、每個 id 只出現一次、剛達成的先、數字大的先、比它小的一起算看過;中英長度;消毒 ──
+  for (const m of MILESTONES) {
+    ok([...m.zh].length <= 16 && m.en.length <= 40, `里程碑 ${m.id}:中文 ≤ 16、英文 ≤ 40:${[...m.zh].length} / ${m.en.length}`);
+    ok(!/徽章|badge|恭喜|congrat|比別人|than others/i.test(m.zh + m.en), `里程碑 ${m.id}:不寫徽章、恭喜、比較`);
+  }
+  ok(new Set(MILESTONES.map(m => m.id)).size === MILESTONES.length, "里程碑 id 不重複");
+  ok(pickMs({ streak: 2, passed: 4 }) === null && pickMs() === null, "里程碑:沒到門檻不說");
+  ok(pickMs({ streak: 3 }).id === "s3" && pickMs({ streak: 7 }).id === "s7" && pickMs({ passed: 5, passedToday: 1 }).id === "p5", "里程碑:到門檻說那一句");
+  ok(pickMs({ streak: 3, seen: ["s3"] }) === null, "里程碑:看過的不再說");
+  {
+    let seen = [], said = [];
+    for (let day = 1; day <= 120; day++) { const m = pickMs({ streak: day, passed: Math.floor(day / 3), passedToday: day % 3 === 0 ? 1 : 0, seen }); if (m) { said.push(m.id); seen.push(...m.also, m.id); } }
+    ok(said.length === new Set(said).size && said.length === MILESTONES.length, "里程碑:120 天每個 id 只出現一次、全部都說到:" + said.join(","));
+  }
+  ok(pickMs({ streak: 7, passed: 10, passedToday: 0 }).id === "s7", "里程碑:剛達成的(連續 7 天)先於以前就到的(10 關)");
+  ok(pickMs({ streak: 8, passed: 10, passedToday: 1 }).id === "p10", "里程碑:今天剛過第 10 關先說");
+  const big = pickMs({ streak: 31 });
+  ok(big.id === "s30" && JSON.stringify(big.also) === '["s3","s7","s14"]', "里程碑:數字大的先、比它小的一起算看過:" + JSON.stringify(big));
+  ok(pickMs({ streak: "7", passed: -3, seen: "s7" }) === null && pickMs({ streak: NaN, passed: Infinity }) === null, "里程碑:壞資料不出句子");
+  ok(msById("s7").zh === MILESTONES[1].zh && msById("zz") === null, "里程碑:id 找得回句子");
+  const mc = cleanDaily({ ms: ["s3", "s3", 7, null, "", "x".repeat(40), ...Array.from({ length: 40 }, (_, i) => "k" + i)], msDay: { date: "2026-10-19", id: "k39" } }, ROUTES);
+  ok(mc.ms.length === 30 && new Set(mc.ms).size === 30 && mc.ms.every(k => typeof k === "string" && k && k.length <= 24) && mc.msDay && mc.msDay.id === "k39", "里程碑:消毒只留字串、不重複、最多 30 個:" + mc.ms.length);
+  ok(cleanDaily({ msDay: { date: "2026-1-9", id: "s3" }, ms: ["s3"] }, ROUTES).msDay === null && cleanDaily({ msDay: { date: "2026-10-19", id: "s7" }, ms: ["s3"] }, ROUTES).msDay === null
+    && cleanDaily({ ms: "s3", msDay: [1] }, ROUTES).ms.length === 0 && cleanDaily({}, ROUTES).msDay === null, "里程碑:今天那一句消毒(日期不對、不在看過裡的丟掉)");
+  {
+    const md = mk(); const dd = md.d;
+    ok(dd.msToday() === null && dd.passedAll() === 0, "里程碑:一開始今天沒有句子、累計 0 關");
+    dd.markMs("s7", ["s3"]);
+    ok(dd.msToday() === "s7" && eq(md.store.ms, ["s3", "s7"]) && md.store.msDay.id === "s7", "里程碑:記成看過、今天那一句存起來");
+    ok(cleanDaily(md.store, ROUTES).msDay.id === "s7", "里程碑:讀得回來(同一天重畫同一句)");
+    clock = new Date(clock.getTime() + 864e5);
+    ok(dd.msToday() === null, "里程碑:隔天不再顯示昨天那一句");
+  }
 }
 
 if (process.argv[1] && import.meta.url.endsWith(process.argv[1].split("/").pop())) {

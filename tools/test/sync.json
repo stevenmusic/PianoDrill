@@ -11,6 +11,7 @@
   ["js/shared/practicelog.js", "js/shared/practicelog.js", "same"],
   ["js/shared/daily.js", "js/shared/daily.js", "same"],
   ["js/shared/dailycard.js", "js/shared/dailycard.js", "same"],
+  ["js/shared/milestone.js", "js/shared/milestone.js", "same"],
   ["tools/test/checks/daily.mjs", "tools/test/checks/daily.mjs", "same"],
   ["js/main.js", "js/main.js", "markers"],
   ["sw.js", "sw.js", "markers"],

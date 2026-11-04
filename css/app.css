@@ -932,6 +932,7 @@ body.view-exam #t-dailyCard,body.view-exam #t-dailyStep{display:none !important}
 .daily-btn{width:100%;min-height:48px;height:auto;font-size:var(--fs-lg);white-space:normal}
 .daily-note,.daily-sub{font-size:var(--fs-xs);color:var(--muted-bright);line-height:1.5;margin-top:8px}
 .daily-sum{font-size:var(--fs-md);color:var(--ivory);line-height:1.5}
+.daily-ms{margin-top:8px}   /* 里程碑稱讚(練完了卡最後一行;milestone.js) */
 .daily-more{width:100%;min-height:44px;height:auto;margin-top:12px;white-space:normal}
 /* 進行中:一行進度 */
 .daily.daily-run{padding-top:6px;padding-bottom:6px}

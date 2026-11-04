@@ -1100,11 +1100,7 @@ body.view-exam :is(#s-setup,#e-setup){order:19}
   .subnav .daily-bar .daily-pause,.subnav .daily-bar .daily-next{position:relative}
   .subnav .daily-bar .daily-pause::after,.subnav .daily-bar .daily-next::after{content:"";position:absolute;inset:-5px -1px}   /* 從框線裡面算:框 1 + 4 */
 }
-/* 折疊機:級數 9 格一排只有 28 寬 → 兩排(I 1 2 3 4 / 5 6 7 8),每格 ≥ 32 */
-@media (max-width:300px){
-  .exam-grades{grid-auto-flow:row;grid-template-columns:repeat(5, minmax(0, 1fr))}
-  .exam-grades button:nth-child(6):not([aria-pressed="true"]){background:transparent}   /* 第二排第一格左邊不畫分隔線 */
-}
+/* 折疊機:級數 9 格維持一排(每格 28 寬、44 高;2026-11 試過兩排,DrumDrill 檢定頁題目卡會被擠出畫面上半部,首屏優先) */
 /* 清單:檢定音階的每一題、檢定聽力的每一項 44 高(iPad 也是觸控) */
 .qrow{min-height:44px}
 #mod-ear .test .chip{height:auto;min-height:44px}

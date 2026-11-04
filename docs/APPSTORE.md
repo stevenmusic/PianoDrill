@@ -20,7 +20,7 @@
 | 支援頁(中英) | `support.html` → `https://stevenmusic.github.io/PianoDrill/support.html`(常見問題、GitHub 回報;支援信箱設好才顯示寄信) |
 | 授權與出處(中英) | `licenses.html`(Salamander CC BY 3.0、Naked Drums CC BY 4.0 + 修改說明、OSMD BSD-3 全文、檢定要求出處、商標聲明) |
 | 麥克風 | **已開放**(2026-10):視奏「彈一遍」用麥克風自動打分(預設開、可關;第一次按才問權限;只在裝置上分析,不存檔、不上傳);**要加** `NSMicrophoneUsageDescription` 與中英文 InfoPlist.strings(`docs/IOS.md` 第 4 節)、AudioSession 外掛(第 3b 節) |
-| 商店截圖(中文,五張) | `app/screenshots/`:iPhone 1290×2796、iPad 13 吋 2064×2752;`cd tools/test && node appshots.mjs` 重新產生(英文版還沒有,第 7 節) |
+| 商店截圖(中英各五張) | `app/screenshots/{zh,en}/`:iPhone 1290×2796、iPad 13 吋 2064×2752;`node tools/test/appshots.mjs` 重新產生(固定亂數種子,中英同一題;2026-11-04 改版後重拍) |
 
 ### 圖示為什麼這樣設計
 - 三個工具合併後,原本的耳朵、手、眼睛都只代表一部分;硬把三個符號擠在一起,縮到 40px 就糊了。改畫三者的共同點:**鋼琴(三白兩黑鍵)+ 考試結果(勾 = 答對、通過)**,勾也跟 App 裡的自動批改同一個意思。
@@ -95,9 +95,9 @@
 
 | 尺寸 | 像素(直式) | 狀態 |
 |---|---|---|
-| iPhone 6.9 吋 | 1320×2868(或 1290×2796、1260×2736) | 中文已有(`app/screenshots/iphone-*.png`,1290×2796);英文要做 |
+| iPhone 6.9 吋 | 1320×2868(或 1290×2796、1260×2736) | 中英都有(`app/screenshots/{zh,en}/iphone-*.png`,1290×2796) |
 | iPhone 6.5 吋 | 1284×2778(或 1242×2688) | 要做(沒有 6.9 吋時才是必填,一起準備比較保險) |
-| iPad 13 吋 | 2064×2752(或 2048×2732) | 中文已有(`app/screenshots/ipad13-*.png`);英文要做 |
+| iPad 13 吋 | 2064×2752(或 2048×2732) | 中英都有(`app/screenshots/{zh,en}/ipad13-*.png`) |
 
 - 每個尺寸 1–10 張,PNG / JPEG,**不能有透明通道**。Apple 會把最大尺寸縮給較小的裝置用。
 - Apple 的規格頁(2026-10)同時寫了「iPhone 至少一張 Dynamic Island(中尺寸,6.3 吋 1206×2622)」;上傳時看 App Store Connect 實際要求哪一格,要的話用同一組畫面輸出 1206×2622。

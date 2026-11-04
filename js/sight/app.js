@@ -8,7 +8,7 @@ import { createListener } from './miclisten.js';
 import { expectedEvents, scoreRecording } from './micscore.js';
 import { createStage, barTimings } from './stage.js';
 import { t, applySightStatic } from './i18n.js';
-import { pairText, unpair, tr } from '../shared/i18n.js';
+import { pairText, unpair, tr, loadMsg } from '../shared/i18n.js';
 import { createReading, cleanRead } from './reading.js';
 import { addLog, cleanLog, renderLog as paintLog, today, streak as logStreak, nextGoal, cleanGoal } from '../shared/practicelog.js';
 import { STAGES, HANDS, stageOf, rulesForStage, pickGrade, soloScore, rangeLabel } from './stages.js';
@@ -112,11 +112,21 @@ const elements = {
 const PLAY_ICON_D = 'M8 5v14l11-7z';
 const PAUSE_ICON_D = 'M6 5h4v14H6zM14 5h4v14h-4z';
 
+/* 鋼琴聲音:按了 ▶ 還沒載入好 / 載入失敗,寫在題目卡標題下面那一行(#s-loadingMsg,跟技巧、聽力同一句、同一個位置);
+   背景載入不寫字(不蓋掉狀態那一句)。載入失敗就不播(沒有備援的合成音) */
+let loadKind = null;   // 'wait' | 'fail' | null;換語言時重寫
+function showLoad(kind) {
+  loadKind = kind;
+  const el = document.getElementById('s-loadingMsg');
+  if (el) el.textContent = kind ? loadMsg(kind === 'wait') : '';
+}
 const player = createPlayer({
-  // Only loading progress and failures; play() reports the rest. playback.js
-  // passes i18n keys (not already-localized text) so a language switch mid
-  // load still re-renders correctly — see `refreshDynamicText`.
-  onStatus: (key) => { if (key) say(key); },
+  // playback.js 傳狀態:'waiting'(按了播放、還在載入)、'samplesFailed'、null(載好了);'loadingSamples'(背景載入)不寫字
+  onStatus: (key) => {
+    if (key === 'waiting') showLoad('wait');
+    else if (key === 'samplesFailed') { if (loadKind === 'wait') showLoad('fail'); }   // 按了播放才寫(背景載入失敗不寫:▶ 還沒出現,按了會重載)
+    else if (key === null) showLoad(null);
+  },
 });
 const history = createHistory({
   capacity: 60,
@@ -1008,6 +1018,7 @@ function renderSummary() {
  * each piece guards on the state it actually needs.
  */
 function refreshDynamicText() {
+  showLoad(loadKind);
   if (lastMessage) {
     if (lastMessage.kind === 'say') say(lastMessage.key, lastMessage.params);
     else if (lastMessage.kind === 'fn') sayFn(lastMessage.fn);
@@ -1856,7 +1867,8 @@ function togglePlayback() {
       setPlayState(false);
     },
   })
-    .then(() => {
+    .then((ok) => {
+      if (ok === false) { if (!player.playing) setPlayState(false); return; }   // 鋼琴聲音沒載入:不播(題目卡寫原因)
       if (!player.playing) return;
       say('playingStatus');
       startFollowing();

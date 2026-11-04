@@ -45,10 +45,10 @@ export function createPlayer({ onStatus } = {}) {
   const loadFor = (notes) => {
     const key = notes.map((n) => n.midi).sort((a, b) => a - b).join(',');
     if (preloadJob && preloadJob.key === key) return preloadJob.p;
-    onStatus?.('loadingSamples');
+    onStatus?.('loadingSamples');   // 背景載入(app.js 不寫字;按了播放還沒好才報 'waiting')
     const job = { key, p: null };
     job.p = audio.loadPianoFor(notes, 6)
-      .then(() => { if (preloadJob === job) onStatus?.(null); return true; })
+      .then(() => { job.ok = true; if (preloadJob === job) onStatus?.(null); return true; })
       .catch(() => { if (preloadJob === job) { preloadJob = null; onStatus?.('samplesFailed'); } return false; });
     preloadJob = job;
     return job.p;
@@ -56,7 +56,9 @@ export function createPlayer({ onStatus } = {}) {
   const ready = async (notes) => {
     const ctx = audio.ensureAudio();
     if (ctx.state !== 'running') await within(ctx.resume().catch(() => {}), 1500);
-    const ok = await loadFor(notes);
+    const p = loadFor(notes);
+    if (!preloadJob?.ok) onStatus?.('waiting');   // 按了播放還在載入:好了接著播(載入失敗 = 不播,沒有備援聲音)
+    const ok = await p;
     await within(audio.masterReady, 1500);
     return ok ? ctx : null;
   };
@@ -122,7 +124,7 @@ export function createPlayer({ onStatus } = {}) {
     async play(score, options = {}) {
       stop();
       const ctx = await ready(notesOf(score));
-      if (!ctx) throw new Error('piano samples');
+      if (!ctx) return false;   // 鋼琴聲音沒載入(onStatus 已經報 samplesFailed):不播
 
       const bpm = score.tempoBpm * (options.tempoScale ?? 1);
       const secondsPerDivision = 60 / bpm / score.divisions;

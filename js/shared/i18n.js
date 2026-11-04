@@ -40,8 +40,14 @@ const STR = {
   obYes: ["開始準備考試", "Start exam prep"], obNo: ["不考試,自由練習", "No exam — free practice"],
   obHint: ["不確定?先自由練習,之後再選", "Not sure? Practice freely, choose later"],
   examHelp: ["看檢定書封面或問老師;不考試可以直接用前三個分頁", "Check the exam book or ask your teacher — or just use the other tabs"],
-  examInfo: ["考試內容", "Exam details"]   // 檢定頁最下面那張收起來的卡(出處、規格;畫面設計 2026-10)
+  examInfo: ["考試內容", "Exam details"],   // 檢定頁最下面那張收起來的卡(出處、規格;畫面設計 2026-10)
+  // 按了 ▶ 鋼琴聲音還沒載入好 / 載入失敗(技巧、視奏、聽力同一句,題目卡標題下面一行 .q-load;2026-11 第 4 輪健檢)
+  loadWait: ["鋼琴聲音載入中,好了會自動播放", "Loading the piano — plays when ready"],
+  loadOffline: ["現在沒有網路,連上網路後再按 ▶", "No internet — connect, then tap ▶"],
+  loadFailed: ["鋼琴聲音沒有載入成功,再按一次 ▶ 試試", "The piano didn't load — tap ▶ to try again"]
 };
+/* wait = true:按了 ▶ 還在載入;false:載入失敗(沒有網路跟其他失敗分開說) */
+export const loadMsg = wait => T(wait ? "loadWait" : typeof navigator !== "undefined" && navigator.onLine === false ? "loadOffline" : "loadFailed");
 // @app-end
 /* 模組的字串:addStrings("tech", { play: ["播放示範", "Play"] }) → "tech.play" */
 export function addStrings(ns, dict){ for (const [k, v] of Object.entries(dict)) STR[ns + "." + k] = v; }

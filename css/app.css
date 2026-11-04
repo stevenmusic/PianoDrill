@@ -1123,3 +1123,11 @@ footer .bak-msg:empty{display:none}
 /* 頁尾「分享本週摘要」不能分享時複製,旁邊寫「已複製」2 秒(main.js 共用部分) */
 footer .foot-note{margin-left:8px;color:var(--gold);white-space:nowrap}
 footer .foot-note:empty{display:none}
+
+/* 鋼琴聲音載入中 / 載入失敗(2026-11 第 4 輪健檢;技巧、視奏、聽力同一個位置、同一個樣子):題目卡標題列下面一行,在版面裡(不蓋標題);
+   背景載入只轉 ▶ 外圈不寫字,按了 ▶ 還沒好或失敗才有字;空的不佔位 */
+.quiz .q-load{margin:6px 0 0;font-size:var(--fs-sm);line-height:1.45;color:var(--muted-bright)}
+.quiz .q-load:empty{display:none}
+@media (max-height:420px), (orientation:landscape) and (max-height:500px){
+  #mod-tech .quiz .q-load,#mod-sight .quiz .q-load{grid-column:1 / -1;margin-top:0}
+}

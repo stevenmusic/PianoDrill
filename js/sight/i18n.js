@@ -99,8 +99,6 @@ export const I18N = {
     practiceStats: '今日 {today} 題・連續 {streak} 天',
     confidencePartial: '這一級的小節數與調號範圍依官方範例推估',
     confidenceInferred: '這一級的設定是推估的,大綱沒寫清楚',
-    loadingSamples: '載入鋼琴聲音…',
-    samplesFailed: '鋼琴聲音載入失敗,暫用備援聲音',
 
     prepStep1: '調號 — 幾個升降記號?主音在哪?',
     prepStep2: '拍號 — 幾拍子?複拍子用大拍感覺(6/8 是兩大拍)',
@@ -202,8 +200,6 @@ export const I18N = {
     practiceStats: 'Today {today} · {streak}-day streak',
     confidencePartial: 'Length and key range estimated from ABRSM specimens',
     confidenceInferred: 'Settings for this grade are assumed; the syllabus is not clear',
-    loadingSamples: 'Loading piano…',
-    samplesFailed: 'Piano samples failed to load, using a fallback sound',
 
     prepStep1: 'Key signature — how many sharps/flats? Where is the tonic?',
     prepStep2: 'Time signature — how many beats? Feel compound time in big beats (6/8 is two)',

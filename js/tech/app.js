@@ -6,7 +6,7 @@ import { buildExercise, questionText } from "./exercise.js";
 import { exerciseToMusicXML, playbackEvents, melodyEvents } from "./musicxml.js";
 import { noteLabelStr } from "./theory.js";
 import { hanonThirdsKey } from "./fingering.js";
-import { tr, scoped, getLang, pairText, unpair } from "../shared/i18n.js";
+import { tr, scoped, getLang, pairText, unpair, loadMsg } from "../shared/i18n.js";
 import * as audio from "../shared/audio.js";
 import { addLog, cleanLog, renderLog as paintLog, today, nextGoal, cleanGoal } from "../shared/practicelog.js";
 import { createDaily, clickPlays } from "../shared/daily.js";
@@ -1198,6 +1198,7 @@ function setRing(p){
 }
 /* 同一題只載一次:打開網頁時已經在背景載,按播放就接著等同一個工作(以前會再開一份,手機網路慢時要等兩倍) */
 let preloadJob = null;
+let waitMsg = false;   // 題目卡上正寫著「鋼琴聲音載入中,好了會自動播放」:按停止、換題就收掉(不會播了)
 /* 回傳這一題的取樣有沒有載好(以前用全域的 samplesReady:上一題載好、這一題載失敗時會靜音播放) */
 function preloadSamples(){
   if (!cur) return Promise.resolve(false);
@@ -1207,20 +1208,16 @@ function preloadSamples(){
     try {
       setRing(null);   // 不在這裡建立 AudioContext(要等使用者的手勢,見 audio.js 的 dec())
       const notes = playbackEvents(ex, cur, "both").concat(melOn() ? melodyEvents(ex) : []).map(e => ({ midi: e.midi, vel: e.vel || demoVel() }));
-      setMsg("loadingMsg", () => tr("載入鋼琴聲音…", "Loading piano…"));
-      await audio.loadPianoFor(notes, 6, p => {
-        if (preloadJob !== job) return;
-        setRing(p * 0.95);
-        setMsg("loadingMsg", () => tr("載入鋼琴聲音… ", "Loading piano… ") + Math.round(p * 100) + "%");
-      });
+      // 背景載入只轉 ▶ 外圈(不寫字、版面不動);按了 ▶ 還沒好才寫一句(startPlaybackInner)
+      await audio.loadPianoFor(notes, 6, p => { if (preloadJob === job) setRing(p * 0.95); });
       await audio.loadClick().catch(() => {});
-      samplesReady = true;
+      samplesReady = true; job.ok = true;
       if (preloadJob === job) { setRing(1); setMsg("loadingMsg", null); }
       return true;
     } catch (e) {
       if (preloadJob === job) {
         preloadJob = null;   // 失敗的不留著:下次按播放重新載
-        setMsg("loadingMsg", () => tr("鋼琴聲音載入失敗,再按一次播放重試(需要網路,之後會存在裝置上)", "Could not load the piano — tap play to retry (needs internet once; then cached)"));
+        if (waitMsg) setMsg("loadingMsg", () => loadMsg(false));   // 按了 ▶ 才寫(背景載入失敗不寫:按 ▶ 會重載)
       }
       return false;
     }
@@ -1313,7 +1310,10 @@ async function startPlaybackInner(){
   const ctx = audio.ensureAudio();
   $("playLabel").textContent = tr("準備中…", "Preparing…"); $("playBtn").classList.add("busy");
   if (ctx.state !== "running") await within(ctx.resume().catch(() => {}), 1500);
-  const loaded = await preloadSamples();
+  const lp = preloadSamples();
+  if (!preloadJob?.ok) { waitMsg = true; setMsg("loadingMsg", () => loadMsg(true)); }   // 好了照樣自動播(下面接著播)
+  const loaded = await lp;
+  waitMsg = false;
   await within(audio.masterReady, 1500);
   // 準備期間換了題目、換了手、按了停止 → 不播
   if (starting !== token || cur !== q0 || show !== show0) { if (starting === token) { starting = 0; $("playLabel").textContent = T("play"); } $("playBtn").classList.remove("busy"); return; }
@@ -1362,6 +1362,7 @@ async function startPlaybackInner(){
 }
 function stopPlayback(natural, keepView){
   starting = 0; $("playBtn").classList.remove("busy");
+  if (waitMsg) { waitMsg = false; setMsg("loadingMsg", null); }
   // 手機橫放:播完(或停止)捲回播放前的位置、分頁列放回來;循環的下一輪不捲
   if (!keepView && landScroll != null) {
     document.body.classList.remove("land-play");

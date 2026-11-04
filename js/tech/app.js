@@ -621,6 +621,7 @@ function refit(){ if (wrapMode()) { fitWrap(); measureNotes(); return true; } os
    每行 3–4 小節要在正常大小的 85% 以上才用(不然字太小),每行 2 小節最小 WRAP_MIN,最後才一小節一行(最小 WRAP_MIN1);
    手機橫放時再照「樂譜框到畫面底」縮(只縮不放大)。播放軸照每一行(系統)上下移動 */
 const WRAP_MIN = 0.55, WRAP_MIN1 = 0.45;   // 0.55 = 視奏考卷排法的下限(口袋總譜大小)
+const WRAP_FILL = 1.35, WRAP_FILL_H = 0.34;   // 短譜放大:最多正常大小的 1.35 倍、譜高 ≤ 畫面高的 34%(docs/DESIGN.md 第 5 節)
 const wrapMode = () => !!(cur && cur.daily && cur.type === "route" && ex && ex.exact);
 let wrapW = 0;
 function systemsOf(){ try { return osmd.GraphicSheet.MusicPages.flatMap(p => p.MusicSystems); } catch (e) { return []; } }
@@ -659,6 +660,24 @@ function fitWrap(){
     break;
   }
   if (!pick) pick = { n: 1, z: WRAP_MIN1 };
+  // 短譜(整份一行、原本的大小就放得下):放大到用滿寬度,最多 WRAP_FILL 倍、譜高不超過畫面的 WRAP_FILL_H(第一個畫面還看得到題目卡與主要按鈕);手機橫放照舊只縮不放
+  if (!isPhoneLand() && pick.n === bars && pick.z >= base) {
+    const fills = z => {
+      wrapRender(pick.n, z);
+      if (!wrapFits(pick.n, bars)) return false;
+      const svg = $("osmd").querySelector("svg");
+      if (!svg) return true;
+      if (svg.getBoundingClientRect().height > innerHeight * WRAP_FILL_H) return false;
+      // 指法、×N、和弦名(畫完譜才加上去的)也不能超出畫布(一小節一行放大時最右邊的 ×N 會被切掉)
+      drawFingerings(); drawChordNames(svg);
+      const vb = svg.viewBox && svg.viewBox.baseVal, bb = svg.getBBox();
+      return !(vb && vb.width) || (bb.x + bb.width <= vb.x + vb.width + 1 && bb.y >= vb.y - 1 && bb.y + bb.height <= vb.y + vb.height + 1);
+    };
+    let lo = pick.z, hi = base * WRAP_FILL;
+    if (fills(hi)) lo = hi;
+    else for (let k = 0; k < 6; k++) { const mid = (lo + hi) / 2; if (fills(mid)) lo = mid; else hi = mid; }
+    pick.z = Math.floor(lo * 100) / 100;
+  }
   // 手機橫放:第一個畫面(或播放中貼頂欄時)放得下整份;只縮不放大,不小於這個排法的下限
   if (isPhoneLand()) {
     wrapRender(pick.n, pick.z);

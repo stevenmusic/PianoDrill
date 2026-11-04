@@ -122,7 +122,7 @@ header h1 span{color:var(--ivory);font-weight:600}
 @media (max-width:600px){ .tagline{display:none} }
 .btn{
   display:inline-flex;align-items:center;justify-content:center;gap:6px;line-height:1;
-  border:1px solid var(--gold);background:transparent;color:var(--gold);
+  border:1px solid transparent;background:var(--fill-btn);color:var(--gold);   /* 次要按鈕:無框、金色淡底(設計規格 B) */
   font-family:inherit;font-size:var(--fs-md);font-weight:500;
   padding:8px 16px;height:38px;border-radius:var(--radius-btn);cursor:pointer;
   transition:background .2s,color .2s;white-space:nowrap;
@@ -130,9 +130,10 @@ header h1 span{color:var(--ivory);font-weight:600}
 .btn svg{flex:none}
 .btn:active{background:var(--gold-fill);color:var(--on-fill)}
 .btn.primary{background:var(--gold-fill);color:var(--on-fill);font-weight:700}
-.btn.ghost{border-color:var(--line);color:var(--muted-bright)}
+.btn.ghost{color:var(--gold)}   /* ghost 也能按:跟次要按鈕一樣 */
 .btn.small{height:32px;padding:0 12px;font-size:var(--fs-sm)}
 .btn[aria-pressed="true"]{background:var(--gold-fill);color:var(--on-fill)}
+#themeToggle,#langToggle{background:var(--fill-tag);color:var(--muted-bright)}
 #themeToggle[aria-pressed="true"]{background:var(--gold-fill);color:var(--on-fill)}
 #langToggle{aspect-ratio:1;padding:0}
 #langToggle[aria-pressed="true"]{background:var(--gold-fill);color:var(--on-fill)}
@@ -194,10 +195,9 @@ main{
 .field select:focus-visible{outline:2px solid var(--gold-bright);outline-offset:2px}
 .chips{display:flex;flex-wrap:wrap;gap:6px}
 #t-catChips{display:grid;grid-template-columns:repeat(auto-fit, minmax(124px, 1fr))}   /* 固定格子:中英文排法一樣 */
-.chip{height:32px;padding:0 12px;border-radius:var(--radius-btn);border:1px solid var(--line);background:var(--surface-inset);
+.chip{height:32px;padding:0 12px;border-radius:var(--radius-btn);border:1px solid transparent;background:var(--fill-btn);
   color:var(--muted-bright);font-family:inherit;font-size:var(--fs-sm);cursor:pointer;display:inline-flex;align-items:center;gap:6px}
-.chip[aria-pressed="true"]{border-color:var(--gold);color:var(--gold);background:rgba(242,185,75,.1);font-weight:700}
-:root.light .chip[aria-pressed="true"]{background:rgba(133,100,24,.08)}
+.chip[aria-pressed="true"]{border-color:transparent;color:var(--on-fill);background:var(--gold-fill);font-weight:700}
 .setup-summary{display:none;width:100%;align-items:center;gap:8px;border:0;background:transparent;color:var(--ivory);
   font-family:inherit;font-size:var(--fs-sm);text-align:left;cursor:pointer;padding:2px 0;min-height:44px}   /* 會用到的點擊區域 ≥ 44 */
 .setup-summary span{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -267,7 +267,7 @@ main{
 #mod-tech .q-tags{grid-column:1 / -1;grid-row:2;max-width:none}
 #mod-tech .q-tags:empty{display:none}
 #mod-tech .q-tag{padding-left:calc(10px * var(--tag-scale, 1));padding-right:calc(10px * var(--tag-scale, 1))}   /* 標籤縮字時左右內距一起縮 */
-.play-round{flex:none;width:52px;height:52px;border-radius:50%;border:0;background:var(--gold-fill);color:var(--on-fill);
+.play-round{flex:none;width:52px;height:52px;border-radius:50%;border:0;background:var(--gold-fill);color:var(--on-fill);box-shadow:var(--shadow-play);
   display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
 .play-round:disabled{opacity:.35}
 /* 準備中(載入鋼琴取樣):外圈照載入百分比畫一圈(從 12 點順時針);還不知道進度時轉一小段 */
@@ -275,8 +275,8 @@ main{
 .play-round svg{fill:currentColor}
 /* ▶ 下面一行小字寫它是什麼(示範 / 題目 / 正確版本 / 示範 + 拍點;模組設 data-cap):不佔寬度,下面留出一行 */
 .play-round[data-cap]{margin-bottom:18px}
-.play-round[data-cap]::after{content:attr(data-cap);position:absolute;top:calc(100% + 7px);left:50%;transform:translateX(-50%);white-space:nowrap;
-  font-size:min(var(--fs-xs), 15px);font-weight:500;line-height:1.2;color:var(--muted-bright);pointer-events:none}
+.play-round[data-cap]::after{content:attr(data-cap);position:absolute;top:calc(100% + 7px);right:0;text-align:right;white-space:nowrap;   /* 右緣對齊 ▶(不超出卡片內距) */
+  font-size:min(var(--fs-cap), 15px);font-weight:500;line-height:1.2;color:var(--muted-bright);pointer-events:none}
 .play-round .play-ring{position:absolute;inset:-6px;width:calc(100% + 12px);height:calc(100% + 12px);fill:none;transform:rotate(-90deg);
   opacity:0;transition:opacity .2s;pointer-events:none}
 .play-round.busy .play-ring{opacity:1}
@@ -294,7 +294,7 @@ main{
 #t-drawBtn,#e-drawBtn{height:36px}
 .mastery{display:flex;gap:6px;flex:none}
 /* 熟練度:圖示 + 小字(會了 / 待加強),新手才看得懂兩顆在做什麼 */
-.mbtn{min-width:40px;height:40px;padding:0 10px 0 8px;justify-content:center;border-radius:var(--radius-btn);border:1px solid var(--line);background:transparent;color:var(--muted-bright);
+.mbtn{min-width:40px;height:40px;padding:0 10px 0 8px;justify-content:center;border-radius:var(--radius-btn);border:1px solid transparent;background:var(--fill-btn);color:var(--muted-bright);
   font-family:inherit;font-size:var(--fs-xs);cursor:pointer;display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
 .mbtn svg{flex:none}
 .mbtn[data-m="good"][aria-pressed="true"]{background:var(--teal-fill);border-color:var(--teal-fill);color:var(--on-fill);font-weight:700}
@@ -370,7 +370,7 @@ body{background:
   radial-gradient(ellipse 70% 45% at 0% 100%, rgba(242,185,75,.16), transparent 70%),
   radial-gradient(ellipse 60% 40% at 100% 100%, rgba(63,191,174,.12), transparent 70%),
   var(--bg);background-attachment:fixed}
-.btn.primary{box-shadow:0 6px 22px -8px rgba(242,185,75,.8)}
+.btn.primary{box-shadow:var(--shadow-primary)}
 .btn,.seg button,.chip,.mbtn{transition-property:background,color,border-color,box-shadow,transform;transition-duration:.15s,.15s,.15s,.2s,.09s}
 .btn:active,.seg button:active,.chip:active,.mbtn:active{transform:scale(.95)}
 .btn:disabled,.btn.primary:disabled{opacity:1;pointer-events:none;background:var(--seg-track);border-color:transparent;color:var(--muted-bright);box-shadow:none}   /* 還不能按:淡灰底、沒有框線與金色,字對比 ≥ 4.5(深淺主題;原本整顆 opacity .45 只有 3.0 / 2.4,第 3 輪健檢) */
@@ -426,9 +426,9 @@ main{padding-bottom:calc(84px + env(safe-area-inset-bottom))}
 .prow > .lbl{font-size:var(--fs-xs);color:var(--muted-bright)}
 .opts{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding:2px 0;min-width:0}
 .opts::-webkit-scrollbar{display:none}
-.opt{flex:none;height:34px;min-width:40px;padding:0 12px;border-radius:var(--radius-btn);border:1px solid var(--line);background:var(--surface-inset);
+.opt{flex:none;height:34px;min-width:40px;padding:0 12px;border-radius:var(--radius-btn);border:1px solid transparent;background:var(--fill-btn);
   color:var(--ivory);font-family:inherit;font-size:var(--fs-md);cursor:pointer;white-space:nowrap}
-.opt[aria-pressed="true"]{background:var(--gold-fill);border-color:var(--gold-fill);color:var(--on-fill);font-weight:700}
+.opt[aria-pressed="true"]{background:var(--gold-fill);border-color:transparent;color:var(--on-fill);font-weight:700}
 .opt:disabled{opacity:.35}
 .quick{margin-bottom:12px;padding-bottom:12px;border-bottom:1px dashed var(--line)}
 .quick .qhead{display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:var(--fs-xs);color:var(--muted-bright)}
@@ -693,7 +693,8 @@ body.land-play #t-stage{flex:1;display:flex;flex-direction:column;justify-conten
 .goal .progress i{background:var(--gold-fill);transition:width .3s}
 .goal .progress i.done{background:var(--teal-fill)}
 .goal .chip{flex:none;font-variant-numeric:tabular-nums;height:auto;min-height:44px}
-.goal .chip.done{border-color:var(--teal);color:var(--teal);font-weight:700}   /* 本週達標(practicelog.js) */
+.goal .chip.done{border-color:transparent;color:var(--teal);background:rgba(63,191,174,.14);font-weight:700}
+:root.light .goal .chip.done{background:rgba(63,191,174,.10)}   /* 本週達標(practicelog.js) */
 /* 模擬考結果 */
 .mock-res{grid-column:1 / -1;display:flex;flex-direction:column;gap:6px}
 .mock-res div{display:flex;gap:10px;align-items:center;padding:8px 10px;border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--surface-inset);font-size:var(--fs-md)}
@@ -932,7 +933,7 @@ details.exam-info .verify-note{margin-top:0}
    選項、答案、分段鈕都有淡淡的框線,按下去縮一下並變色(iOS 靠 main.js 的 touchstart 才有 :active);題目標籤 .q-tag 是有色底、沒有框線 */
 :root{--line-opt:#4A3F27}
 :root.light{--line-opt:#BFAE86}
-.chip,.opt,.ans{border-color:var(--line-opt)}
+.ans{border-color:var(--line-opt)}
 .opt{transition:background .15s,border-color .15s,color .15s,transform .09s}
 .chip:active,.opt:active,.ans:active,.seg button:active{background:rgba(242,185,75,.16)}
 :root.light .chip:active,:root.light .opt:active,:root.light .ans:active,:root.light .seg button:active{background:rgba(122,92,22,.12)}

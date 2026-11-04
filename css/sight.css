@@ -156,6 +156,7 @@
   #s-rdOpts .rd-row + .rd-row{margin-top:6px}
   #s-rdOpts .rd-note{display:none}
   #s-rdOpts .rd-seg .opt{font-size:var(--fs-sm);padding:2px 4px}
+  #s-rdOpts .rd-seg4 .opt{font-size:var(--fs-cap)}   /* 範圍快捷 4 格:窄欄(SE 橫放)字小一級,不撐出橫向捲動 */
   #s-rdOpts .rd-end{row-gap:0}
 }
 /* 視奏分頁的速度:− 數字 +(一行;滑桿不放,設定卡才不會把「彈一遍」擠出第一個畫面) */

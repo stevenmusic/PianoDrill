@@ -12,7 +12,7 @@
 const APP = "pianodrill";
 // @app-end
 /*@precache-begin*/
-const CACHE = APP + "-app-db55cb32";
+const CACHE = APP + "-app-3c596733";
 const PRECACHE = [
   "./",
   "manifest.webmanifest",
@@ -24,9 +24,9 @@ const PRECACHE = [
   "licenses.html",
   "privacy.html",
   "support.html",
-  "css/app.css?v=9567709ea7",
+  "css/app.css?v=3d9bb93c3e",
   "css/tech.css?v=bbaf61f7f1",
-  "css/sight.css?v=fd6ba9daa8",
+  "css/sight.css?v=e304503cdd",
   "vendor/opensheetmusicdisplay.min.js?v=4bfeb3d01c",
   "js/ear/app.js?v=19700b8c69",
   "js/ear/aural.js?v=883d7b67eb",

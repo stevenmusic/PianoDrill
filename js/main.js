@@ -438,7 +438,9 @@ document.addEventListener("keydown", e => {
        網頁版手機能分享檔案就用分享面板,其他(桌機)直接下載。檔名「PianoDrill-紀錄-2026-11-04.json」
    還原:選檔 → 檢查(壞檔在這一塊寫一句原因)→ 確認 → 先讓目前的模組停下來(跟切到背景一樣,不會再把舊的紀錄存回去)→ 寫入 → 重新整理 */
 const BAK_OPT = { app: BACKUP.app, prefix: BACKUP.prefix, langKey: BACKUP.langKey };
-const bakMsg = t => { $("bakMsg").textContent = t; };
+// 有全頁唯一的播報區 #srLive(DrumDrill)就也寫一份給報讀器(這兩個訊息本身不另外 aria-live);沒有 #srLive(PianoDrill)= 訊息自己是 role=status
+const srSay = t => { const el = document.getElementById("srLive"); if (!el || !t) return; el.textContent = ""; setTimeout(() => { el.textContent = t; }, 60); };
+const bakMsg = t => { $("bakMsg").textContent = t; srSay(t); };
 $("bakLink").onclick = () => {
   const open = $("bakPanel").hidden;
   $("bakPanel").hidden = !open; $("bakLink").setAttribute("aria-expanded", String(open)); bakMsg("");
@@ -487,7 +489,7 @@ $("bakFile").onchange = async () => {
 /* ══ 頁尾:分享本週摘要(兩個 App 一樣;js/shared/digest.js)══
    給家長 / 老師的幾行純文字(最近 7 天):App 版用 Capacitor 的 Share 外掛、網頁版 navigator.share;都不能用就複製,旁邊寫「已複製」2 秒 */
 let digestTimer = 0;
-const digestMsg = t => { $("digestMsg").textContent = t || ""; clearTimeout(digestTimer); if (t) digestTimer = setTimeout(() => { $("digestMsg").textContent = ""; }, 2000); };
+const digestMsg = t => { $("digestMsg").textContent = t || ""; srSay(t); clearTimeout(digestTimer); if (t) digestTimer = setTimeout(() => { $("digestMsg").textContent = ""; }, 2000); };
 $("digestLink").onclick = async () => {
   const days = [];
   for (let i = 6; i >= 0; i--) { const d = new Date(); d.setDate(d.getDate() - i); days.push(dayKey(d)); }

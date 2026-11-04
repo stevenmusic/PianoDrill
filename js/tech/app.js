@@ -661,7 +661,7 @@ function fitWrap(){
   }
   if (!pick) pick = { n: 1, z: WRAP_MIN1 };
   // 短譜(整份一行、原本的大小就放得下):放大到用滿寬度,最多 WRAP_FILL 倍、譜高不超過畫面的 WRAP_FILL_H(第一個畫面還看得到題目卡與主要按鈕);手機橫放照舊只縮不放
-  if (!isPhoneLand() && pick.n === bars && pick.z >= base) {
+  if (!isPhoneLand() && pick.n === bars && pick.z >= base - 0.005) {
     const fills = z => {
       wrapRender(pick.n, z);
       if (!wrapFits(pick.n, bars)) return false;
@@ -673,10 +673,10 @@ function fitWrap(){
       const vb = svg.viewBox && svg.viewBox.baseVal, bb = svg.getBBox();
       return !(vb && vb.width) || (bb.x + bb.width <= vb.x + vb.width + 1 && bb.y >= vb.y - 1 && bb.y + bb.height <= vb.y + vb.height + 1);
     };
-    let lo = pick.z, hi = base * WRAP_FILL;
+    const z0 = pick.z; let lo = z0, hi = base * WRAP_FILL;
     if (fills(hi)) lo = hi;
     else for (let k = 0; k < 6; k++) { const mid = (lo + hi) / 2; if (fills(mid)) lo = mid; else hi = mid; }
-    pick.z = Math.floor(lo * 100) / 100;
+    pick.z = Math.max(z0, Math.floor(lo * 100) / 100);   // 取整不能比原本的大小還小
   }
   // 手機橫放:第一個畫面(或播放中貼頂欄時)放得下整份;只縮不放大,不小於這個排法的下限
   if (isPhoneLand()) {

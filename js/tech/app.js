@@ -784,7 +784,7 @@ function renderMarksUI(){
     hpEl.setAttribute("title", label + tr(":", ": ") + [...new Set(say)].join(tr(",", ", ")));
   }
 }
-/* 手位圖:一小段鍵盤(線稿),這個位置的 5 個鍵亮起來、寫手指號碼(高 28) */
+/* 手位圖:一小段鍵盤(線稿),這個位置的 5 個鍵亮起來、寫手指號碼(高 28;號碼 12px 貼近鍵的下緣,不碰黑鍵) */
 function miniKeys(p){
   const lo = p.keys[0].midi - (isBlackKey(p.keys[0].midi) ? 1 : 0), hi = p.keys[4].midi + (isBlackKey(p.keys[4].midi) ? 1 : 0);
   const whites = []; for (let m = lo; m <= hi; m++) if (!isBlackKey(m)) whites.push(m);
@@ -792,7 +792,7 @@ function miniKeys(p){
   let x = 0, body = "", blacks = "";
   for (const m of whites) {
     const k = fin.get(m);
-    body += `<rect x="${x + 0.5}" y="0.5" width="${W - 1}" height="${H - 1}" rx="2" class="${k ? (k.used ? "on" : "soft") : ""}"/>` + (k ? `<text x="${x + W / 2}" y="${H - 4}">${k.finger}</text>` : "");
+    body += `<rect x="${x + 0.5}" y="0.5" width="${W - 1}" height="${H - 1}" rx="2" class="${k ? (k.used ? "on" : "soft") : ""}"/>` + (k ? `<text x="${x + W / 2}" y="${H - 3}">${k.finger}</text>` : "");
     if (isBlackKey(m + 1) && m + 1 <= hi + 1) {
       const kb = fin.get(m + 1), bx = x + W - 4;
       blacks += `<rect x="${bx}" y="0.5" width="8" height="16" rx="1.5" class="blk${kb ? (kb.used ? " on" : " soft") : ""}"/>` + (kb ? `<text x="${bx + 4}" y="12" class="bt">${kb.finger}</text>` : "");

@@ -55,15 +55,15 @@ export function addStrings(ns, dict){ for (const [k, v] of Object.entries(dict))
 addStrings("daily", {
   title: ["今日練習", "Today"], about: ["約 {n} 分鐘", "About {n} min"],
   start: ["開始今天的練習", "Start today's practice"], resume: ["繼續今天的練習", "Continue today's practice"],
-  next: ["下一段 ›", "Next part ›"], left: ["剩約 {n} 分", "~{n} min left"], timeUp: ["可以進下一段了", "Ready for the next"],
+  next: ["下一段 ›", "Next part ›"], finish: ["結束今天 ›", "Finish ›"], left: ["剩約 {n} 分", "~{n} min left"], timeUp: ["可以進下一段了", "Ready for the next"],
   of: ["第 {i} 段,共 {n} 段", "Part {i} of {n}"],
   warm: ["暖身", "Warm-up"], review: ["複習", "Review"], level: ["第 {n} 關", "Level {n}"], lvOf: ["{r} {n} / {of}", "{r} {n} / {of}"],
   tempo: ["速度", "Tempo"], tempoTip: ["速度 {b} = 每分鐘 {b} 拍", "Tempo {b} = {b} beats a minute"], pause: ["暫停", "Pause"],
   locked: ["{r}過了第 {n} 關就開始", "After {r} level {n}"],
   note: ["漏練幾天沒關係,不會扣分", "Missed days don't count against you"],
   steady: ["{w}下一次速度 {b}", "{w} Next: tempo {b}"], streak: ["{w}再連續 {k} 次就過關", "{w} {k} more in a row to pass"],
-  near: ["差一點,同一個速度再一次", "Close. Same tempo again"], down: ["先慢一點:速度 {b}", "Slow down: tempo {b}"],
-  passed: ["過關 ✓ 下一關:{name}", "Passed ✓ Next level: {name}"], passedLast: ["過關 ✓ 這條路線練完了", "Passed ✓ Route complete"],
+  near: ["差一點,速度不變", "Close. Same tempo"], go: ["按 ▶ 再{v}一次", "Tap ▶ to go again"], down: ["先慢一點:速度 {b}", "Slow down: tempo {b}"],
+  passed: ["過關 ✓ 下一關:{name}", "Passed ✓ Next level: {name}"], passedLast: ["過關 ✓ 這條路線練完了", "Passed ✓ Route complete"], passedCont: ["過關 ✓ 接著練:{name}", "Passed ✓ Now: {name}"], start1: ["按 ▶ 跟著{v}一輪", "Tap ▶ and play along"],
   back: ["回上一關", "Easier level"], suggest: ["要不要先回上一關暖身?", "Try the level before?"],
   welcome: ["歡迎回來,先從速度 {b} 開始。", "Welcome back. Start at tempo {b}."],
   streakTag: ["穩 {d}", "Steady {d}"],
@@ -74,7 +74,7 @@ addStrings("daily", {
   click_two_four: ["拍點只在第 2、4 拍響", "click on beats 2 & 4 only"], click_one_three: ["拍點只在第 1、3 拍響", "click on beats 1 & 3 only"],
   click_one: ["拍點只在第 1 拍響", "click on beat 1 only"], click_gap: ["拍點中途消失 2 小節", "click drops out for 2 bars"],
   // 練完了那一行:{s} = parts / part1(英文單複數)、{t} = 分鐘或秒(不到 1 分鐘寫秒,不進位成 1 分鐘)、{p} = passedN(0 關不寫);一段都沒練 = none
-  done: ["練完 {s} · {t}{p}。今天到這裡就好", "Done: {s} · {t}{p}. That's enough for today"], passedN: [" · 過了 {n} 關", " · {n} passed"],
+  done: ["練完 {s} · {t}{p}。今天到這裡就好", "Done: {s} · {t}{p}. That's enough for today"], doneShort: ["練完 {s} · {t}{p}", "Done: {s} · {t}{p}"], passedN: [" · 過了 {n} 關", " · {n} passed"],
   parts: ["{n} 段", "{n} parts"], part1: ["{n} 段", "{n} part"], min: ["{n} 分鐘", "{n} min"], sec: ["{n} 秒", "{n} s"],
   none: ["今天還沒練到", "Nothing practiced today"],
   // 沒過關但速度有升(升最多的那一關;{a} 今天第一次、{b} 今天最快、{t} 目標):不寫「還差幾格」

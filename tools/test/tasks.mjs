@@ -76,7 +76,7 @@ const TASKS = [
     steps: [{ sel: "#t-dailyCard .daily-btn", say: "開始今天的練習", start: true, wait: 1200 }],
     check: async page => page.evaluate(() => { const t = window.__tech, s = t && t.dseg;
       return s && s.i === 0 && !document.getElementById("t-dailyStep").hidden && !document.querySelector('#subSeg [aria-pressed="true"]') ? null : "沒有開始第一段:" + JSON.stringify(s && { k: s.k, i: s.i }); }),
-    next: { sel: "#t-dailyStep, #subnav .sub-bar", words: ["下一段", "Next part"] } }
+    next: { sel: "#t-dailyStep, #subnav .sub-bar", words: ["按 ▶", "Tap ▶", "下一段", "Next part"] } }
 ];
 // @app-end
 

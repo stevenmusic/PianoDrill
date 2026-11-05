@@ -1388,7 +1388,10 @@ function stopPlayback(natural, keepView){
     window.scrollTo({ top: landScroll, behavior: "smooth" }); landScroll = null;
     fitLandZoom();   // 停止後縮回第一個畫面放得下的大小
   }
+  // 今日練習:中途停下(按了做到了 / 還要練 / 停止 / 下一段)也算真的練了的秒數(以前只有整輪播完才算,練完卡會寫「0 秒」)
+  const part = play && !natural && dseg && cur && cur.daily ? Math.min(play.endBeat * play.beatSec, Math.max(0, audio.audioNow() - play.t0)) : 0;
   if (play) { cancelAnimationFrame(play.raf); play = null; if (!natural) audio.stopAll(); }
+  if (part >= 1) logPractice(part);
   if (osmd && noteXs.length) { $("scroll").scrollLeft = 0; movePlayline(0, false); }
   $("playLabel").textContent = T("play");
   $("playIcon").innerHTML = '<path d="M7 4v16l13-8z"/>';
@@ -1487,6 +1490,7 @@ const dcard = createDailyCard({ $, daily,
   labels: { ok: ["做到了", "Did it"], again: ["還要練", "Not yet"], verb: ["彈", "play"], good: ["很好!", "Good!"],
     // 狀態一句短話(fold-280 不超過兩行);過關規則改成到了目標速度在標籤後面顯示「穩 0 / 3」
     hint: ["按 ▶ 跟著彈一輪,「做到了」就會亮", "Tap ▶, play along once — Did it turns on"],   // 「做到了」要先播過一輪才亮:狀態句直接說(dailycard 的 ready / syncOk);英文要在 390 一行放得下(pairText 照比較高的,英文兩行中文也變兩行,第 7 輪健檢)
+    ask: ["彈得順就按「做到了」,不順按「還要練」", "Went well? Tap Did it. If not, Not yet"],   // 播完一輪:下一步(dailycard 的 ready)
     get solo(){ return melOn() ? ["按 ▶ 你彈左手一輪,「做到了」就會亮", "Tap ▶, play left hand once — Did it turns on"] : ["按 ▶ 自己彈一輪,「做到了」就會亮", "Tap ▶, play it alone once — Did it turns on"]; } },
   warmName, levelName, log: () => S.log,
   onStart: () => { dShow(daily.begin()); window.scrollTo({ top: 0 }); },
@@ -1550,7 +1554,7 @@ function dTry(self){
   dseg = daily.seg();
   if (s.k === "route") { bpm = res.nextBpm; cur.tempo.bpm = bpm; syncTempoUI(); }
   renderQText(cur, "daily"); fitTitle();
-  syncReady();
+  heardAt = null; syncReady();   // 每一次自評 = 彈過一輪:要再按 ▶ 彈一輪才能再自評(狀態寫「按 ▶ 再彈一次」)
   dcard.renderStep(dseg, { status: txt, passedDone: res.passed || s.k === "review" });
   dcard.render();
 }

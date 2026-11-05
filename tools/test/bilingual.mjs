@@ -46,6 +46,8 @@ for (const [name, w, h, mobile] of VPS) {
   await page.evaluate(() => { localStorage.clear(); localStorage.setItem("pianodrill-lang", "zh"); });
   await page.reload(); await page.waitForFunction(() => window.__stageReady >= 1);
   await compare(page, name, "對話框");
+  await page.click("#obExam"); await page.waitForTimeout(200);
+  await compare(page, name, "對話框 檢定");
   await page.click('#obGradeSeg button[data-v="5"]'); await page.click("#obYes"); await page.waitForTimeout(300);
   await compare(page, name, "檢定 收合");
   const b = await page.evaluate(() => window.__scoreReady || 0);

@@ -26,7 +26,7 @@ const READ_FIRST = [{ sel: "#subSeg", say: "子項目列" }, { sel: "#s-rdScore"
   { sel: "#s-rdClef", say: "譜號" }, { sel: "#s-rdQuick", say: "範圍快捷" }, { sel: ".rd-span-ctl", say: "音域那行", soft: true }];
 const TASKS = [
   { name: "新手想練右手 C4–G4 視奏、彈完看回饋", store: null, steps: [
-      { sel: "#obNo", say: "第一次的問題:不考,自由練習" },
+      { sel: "#obNo", say: "第一次打開:開始練習(自由練習)" },
       { sel: '#tabbar [data-view="sight"]', say: "視奏分頁", wait: 800 },
       { sel: '#subSeg [data-v="right"]', say: "右手(範圍預設 = C4–G4,題目馬上出)", start: true, wait: 2000 },
       { sel: "#s-playAlongTop", say: "彈一遍(題目卡上)", wait: 500 },

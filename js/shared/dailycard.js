@@ -144,7 +144,8 @@ export function createDailyCard({ $, daily, labels = {}, warmName = () => "", le
       return `<li class="${done ? "done" : ""}"${cur ? ' aria-current="step"' : ""}><span class="daily-mark" aria-hidden="true">${done ? ICON_OK : ""}</span>` +
         `<span class="daily-k">${esc(segKind(s))}</span><span class="daily-t" title="${esc(segText(s))}">${esc(segText(s))}</span></li>`;
     }).join("");
-    const locks = daily.locked().map(x => `<li class="locked"><span class="daily-mark" aria-hidden="true"></span><span class="daily-k">${esc(L2(x.route.name))}</span>` +
+    // 還沒開放的路線那一行:一關都還沒過的人不寫(第一天只看到今天要練的;過了第一關以後照舊寫什麼時候開放)
+    const locks = !daily.passedAll() ? "" : daily.locked().map(x => `<li class="locked"><span class="daily-mark" aria-hidden="true"></span><span class="daily-k">${esc(L2(x.route.name))}</span>` +
       `<span class="daily-t">${esc(fmt("locked", { r: L2(x.after.route.name), n: x.after.n }))}</span></li>`).join("");
     card.innerHTML = `<div class="card-title"><b id="${tid}">${esc(fmt("title"))}</b><span class="sub">${esc(fmt("about", { n: daily.minutes() }))}</span></div>` +
       `<ol class="daily-list">${items}${locks}</ol>` +

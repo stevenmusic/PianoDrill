@@ -1,7 +1,8 @@
 // 練習紀錄卡(js/shared/practicelog.js)的檢查;兩個 App 同一份(sync.json same),verify.mjs 會呼叫;也可以單獨跑:node tools/test/checks/practicelog.mjs
 //   每週目標:預設 40、選項有 40、點一下照順序換;舊資料存 60 沒有 goalSet = 沒選過 → 40;60 以外 / 有 goalSet = 自己選的,照舊;壞值 → 40
+//   第一天的空狀態:從來沒練過(沒有一天有次數或秒數)才是 neverPracticed
 //   「重新開始」:連續天數 0 而且今天以前練過才出現;從沒練過、今天第一次練、連續中都不出現;達標的按鈕寫實際的目標分鐘
-import { GOALS, GOAL_DEFAULT, nextGoal, loadGoal, tapGoal, freshStart, renderLog, dayKey } from "../../../js/shared/practicelog.js";
+import { GOALS, GOAL_DEFAULT, nextGoal, loadGoal, tapGoal, freshStart, renderLog, dayKey, neverPracticed } from "../../../js/shared/practicelog.js";
 
 const ago = n => { const d = new Date(); d.setDate(d.getDate() - n); return dayKey(d); };
 function card(){
@@ -39,6 +40,10 @@ export default function check(ok){
   ok(freshStart({ [ago(3)]: { n: 2, sec: 90 } }), "3 天前練過、連續 0 → 重新開始");
   ok(freshStart({ [ago(3)]: { n: 2, sec: 90 }, [ago(0)]: { n: 0, sec: 20 } }), "今天有秒數但還沒完成一次 → 仍是重新開始");
   ok(!freshStart({ [ago(3)]: { n: 0, sec: 0 } }), "空的紀錄不算練過");
+
+  // 第一天的空狀態
+  ok(neverPracticed({}) && neverPracticed(null) && neverPracticed({ [ago(2)]: { n: 0, sec: 0 } }), "從沒練過 = 空狀態");
+  ok(!neverPracticed({ [ago(0)]: { n: 0, sec: 20 } }) && !neverPracticed({ [ago(9)]: { n: 1, sec: 0 } }), "練過(有秒數或次數)不是空狀態");
 
   // 畫卡片(node 沒有 localStorage = 英文):「重新開始」、0、數字;達標的分鐘照實際目標
   {

@@ -1,11 +1,12 @@
 /* 練習紀錄卡(技巧、視奏、聽力共用;照 PianoDrill 的紀錄卡:三格數字 + 每週目標 + 最近 7 天)。不寫死前綴:元素用模組自己的 $:
      $("logStreak")、$("logToday")、第三格(模組自己寫)、$("goalBar")、$("goalBtn")、$("logWeek")
+   - 從來沒練過:只寫一行「練完第一次,這裡會記下你的進步」(`neverPracticed`、卡片的 .log-empty)
    - log = { "YYYY-MM-DD": { n, sec, hits?, total? } }(各模組自己的 localStorage;保留 400 天)
        n = 完成幾次 / 幾題;sec = 真的播放、準備、作答的秒數(App 在前景、模組在畫面上的時間);hits / total = 聽力的「今天正確率」
    - 每週目標:最近 7 天(含今天)練了幾分鐘;目標點一下換 GOALS 裡的下一個(存在模組自己的 localStorage)。練習設定,不是考試要求
      預設 = GOAL_DEFAULT;使用者點過才算自己選的(goalSet: true,`tapGoal`)。讀進來用 `loadGoal`:
      舊資料沒有 goalSet、存的是舊預設 60 → 當作沒選過(換成新預設);存的是 60 以外 → 一定是點過的,照舊 */
-import { tr, getLang } from "./i18n.js";
+import { tr, getLang, pairText } from "./i18n.js";
 
 export const KEEP_DAYS = 400;
 export const GOALS = [15, 30, 40, 60, 90, 120, 180];
@@ -66,8 +67,20 @@ export function freshStart(log){
   const k = dayKey(new Date());
   return streak(log) === 0 && Object.entries(log).some(([d, e]) => d < k && e && (e.n || e.sec));
 }
+/* 從來沒練過(紀錄裡沒有一天有次數或秒數) */
+export const neverPracticed = log => !Object.values(log || {}).some(e => e && (e.n || e.sec));
+/* 第一天的空狀態:從來沒練過 → 卡片加 .log-empty(app.css 藏起三格數字、每週目標、7 天點),標題下一行淡字(中英同高);練過一次以後照舊 */
+function paintEmpty($, log){
+  const box = $("logStreak").closest?.(".card"); if (!box) return;
+  const empty = neverPracticed(log);
+  box.classList.toggle("log-empty", empty);
+  let p = box.querySelector(".log-first");
+  if (empty && !p) { p = document.createElement("p"); p.className = "log-first"; const h = box.querySelector(".card-title"); h ? h.after(p) : box.prepend(p); }
+  if (p) pairText(p, () => tr("練完第一次,這裡會記下你的進步", "Your progress shows up here after your first practice"));
+}
 /* 畫紀錄卡(第三格模組自己寫):連續天數、今天次數、每週目標、最近 7 天 */
 export function renderLog($, log, goal){
+  paintEmpty($, log);
   const t = today(log), g = cleanGoal(goal), min = Math.floor(weekSec(log) / 60);
   // 「重新開始」放在數字那一格,字比數字小(數字那一行的高度不變,三格的標籤對齊);放不下就換行,中英一樣
   if (freshStart(log)) $("logStreak").innerHTML = `<span style="font-size:var(--fs-sm);display:inline-block;line-height:1.2">${tr("重新開始", "Fresh start")}</span>`;

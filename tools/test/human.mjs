@@ -89,7 +89,7 @@ async function run(vpName, vp){
   // 開始:第一次打開
   await page.evaluate(k => { localStorage.clear(); localStorage.setItem(k, "zh"); }, APP + "-lang");
   await page.reload(); await page.waitForFunction(() => window.__stageReady >= 1);
-  if (rnd() < 0.5) { await tap(`#obSystem button[data-v="${pickOne(SYSTEMS)}"]`); await tap(`#obGradeSeg button[data-v="${Math.floor(rnd() * 9)}"]`); await tap("#obYes"); }
+  if (rnd() < 0.5) { await tap("#obExam"); await tap(`#obSystem button[data-v="${pickOne(SYSTEMS)}"]`); await tap(`#obGradeSeg button[data-v="${Math.floor(rnd() * 9)}"]`); await tap("#obYes"); }
   else await tap("#obNo");
   const ACTIONS = [
     // 外框

@@ -104,6 +104,8 @@ for (const [name, w, h, mobile] of VPS) {
   await page.evaluate(() => { localStorage.clear(); localStorage.setItem("pianodrill-lang", "zh"); });
   await page.reload(); await page.waitForFunction(() => window.__stageReady >= 1);
   await audit(page, name, "對話框"); await shot("onboard");
+  await page.click("#obExam"); await page.waitForTimeout(200);
+  await audit(page, name, "對話框 檢定"); await shot("onboard-exam");
   await page.click('#obGradeSeg button[data-v="8"]'); await page.click("#obYes");
   await page.waitForTimeout(300);
   // 檢定 · 音階琶音:ABRSM 8 級抽一題(四個八度,最寬的譜)

@@ -331,7 +331,7 @@ function renderExamCard(){
 /* 模組裡的進度改變了(標記通過、答題):重畫進度 */
 export function examChanged(){ if (S.view === "exam") renderExamCard(); }
 
-/* ══ 第一次打開:在準備考試嗎? ══
+/* ══ 第一次打開:歡迎 →(我在準備檢定)在準備考試嗎? ══
    無障礙:對話框打開時焦點放在標題(不放 ABRSM,免得看起來像已選),Tab 才進第一顆、Tab 只在對話框 + 頂欄右邊的主題 / 語言鈕之間轉(頂欄在對話框上面,可以邊選邊換語言)、
    Esc = 「不考試,自由練習」;背景(內容、分頁列、子項目分段鈕、頂欄的考試標籤)設 inert;關掉時焦點回到打開前的地方(沒有就回到選到的分頁) */
 const ob = { system: null, grade: null };   // 第一次的問題:系統、級數都不預選(跟檢定頁「沒選不亮」一樣)
@@ -365,12 +365,25 @@ document.addEventListener("keydown", e => {
   const ob0 = f.findIndex(el => $("onboard").contains(el));   // 從標題按 Tab = 對話框第一顆(ABRSM),Shift+Tab = 最後一顆
   f[i < 0 ? (e.shiftKey ? f.length - 1 : Math.max(ob0, 0)) : (i + (e.shiftKey ? -1 : 1) + f.length) % f.length].focus();
 });
+/* 第一次打開先是歡迎(exam = false:主要「開始練習」、次要「我在準備檢定」);按了「我在準備檢定」(exam = true)才在同一個對話框展開系統 + 級數,
+   主要換成「開始準備考試」、「開始練習」變成次要的「不考試,自由練習」(同一顆 #obNo,行為一樣)。標題、說明、按鈕字照 data-i18n 換(換語言照樣對) */
+function obMode(exam){
+  $("obExamPane").hidden = !exam; $("obYes").hidden = !exam; $("obExam").hidden = exam;
+  $("obExam").setAttribute("aria-expanded", String(exam));
+  $("obNo").classList.toggle("primary", !exam); $("obNo").classList.toggle("ghost", exam);
+  $("onboardTitle").dataset.i18n = exam ? "obTitle" : "obWelcome";
+  $("obSub").dataset.i18n = exam ? "obSub" : "obWelcomeSub";
+  $("obNo").dataset.i18n = exam ? "obNo" : "obStart";
+  applyStatic($("onboard")); obYesLabel();
+}
 function showOnboard(){
   // 沒選級數時「開始準備考試」不能按;先點級數 = 預設的系統(跟檢定頁一樣)
   const obSync = () => { fillGradeSeg($("obGradeSeg"), ob.grade, ob.system || DEFAULT_EXAM.system); $("obYes").disabled = ob.grade == null; obYesLabel(); };
   const syncSys = segBind("obSystem", () => ob.system, v => { ob.system = v; if (ob.grade != null) ob.grade = validGrade(ob.grade, v); obSync(); });
   obSync(); syncSys();
   $("obGradeSeg").onclick = e => { const g = gradeOfClick(e); if (g != null) { ob.grade = g; if (!ob.system) ob.system = DEFAULT_EXAM.system; obSync(); syncSys(); } };
+  obMode(false);
+  $("obExam").onclick = () => { obMode(true); $("onboardTitle").focus(); };   // 焦點回到標題(先唸問題;不放在 ABRSM,免得看起來像已選)
   openOnboard();
   $("obYes").onclick = () => {
     if (ob.grade == null) return;

@@ -49,6 +49,9 @@
   --surface-glass:rgba(32,26,15,.88);
   --surface-inset:rgba(22,18,9,.55);
   --seg-track:rgba(255,255,255,.07);--seg-sep:rgba(242,185,75,.28);   /* 分段鈕的軌道、沒選的格子之間的分隔線 */
+  /* 分頁輔色(2026-11 使用者選 B,docs/DESIGN.md):只給底部分頁列選中的那格與分段鈕(.seg);技巧 = 金、視奏 = 天藍、聽力 = 紫、檢定 = 中性。
+     外框在 body 加 tab-tech / tab-sight / tab-ear / tab-exam(main.js 共用部分);沒有 class = 技巧(金)。主要按鈕、▶、chip 一律金 */
+  --acc-text:var(--gold);--acc-fill:var(--gold-fill);--acc-on:var(--on-fill);--acc-tint:rgba(242,185,75,.12);--acc-sep:var(--seg-sep);
   --card-tint:rgba(255,255,255,.035);
   --stage-glow:#171208;
   --paper:#FFFDF6;        /* 樂譜紙張:深色/淺色主題都一樣 */
@@ -76,6 +79,7 @@
   --surface-glass:rgba(252,249,241,.92);
   --surface-inset:rgba(255,255,255,.7);
   --seg-track:rgba(60,45,10,.08);--seg-sep:rgba(122,92,22,.3);
+  --acc-tint:rgba(133,100,24,.10);
   --card-tint:rgba(133,100,24,.05);
   --stage-glow:#FFFDF6;
   --fill-btn:rgba(122,92,22,.10);
@@ -86,6 +90,13 @@
   --shadow-play:0 6px 16px rgba(122,92,22,.25);
   color-scheme:light;
 }
+/* 分頁輔色:每個分頁換一組(選中塊上的字對比 ≥ 4.5:1,深淺兩種主題;沒選的字在軌道上也是) */
+body.tab-sight{--acc-text:#62B6F0;--acc-fill:#62B6F0;--acc-on:#16110A;--acc-tint:rgba(98,182,240,.14);--acc-sep:rgba(98,182,240,.30)}
+body.tab-ear{--acc-text:#B79AF5;--acc-fill:#B79AF5;--acc-on:#16110A;--acc-tint:rgba(183,154,245,.14);--acc-sep:rgba(183,154,245,.30)}
+body.tab-exam{--acc-text:#F4ECDA;--acc-fill:#5A5242;--acc-on:#F4ECDA;--acc-tint:rgba(244,236,218,.10);--acc-sep:rgba(244,236,218,.22)}
+:root.light body.tab-sight{--acc-text:#0D5A8C;--acc-tint:rgba(13,90,140,.10);--acc-sep:rgba(13,90,140,.30)}
+:root.light body.tab-ear{--acc-text:#5B3DA8;--acc-tint:rgba(91,61,168,.10);--acc-sep:rgba(91,61,168,.30)}
+:root.light body.tab-exam{--acc-text:#241E12;--acc-fill:#FFFFFF;--acc-on:#241E12;--acc-tint:rgba(36,30,18,.07);--acc-sep:rgba(36,30,18,.22)}
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
 button,[role="button"],.seg,.chips,.dg-wrap{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 html{height:100%;font-size:106.25%;-webkit-text-size-adjust:100%;text-size-adjust:100%}   /* 17px;手機橫放時不要自己放大字 */
@@ -171,12 +182,12 @@ main{
 /* 分段按鈕(照 HarmonyHands) */
 /* 分段鈕 = iOS 原生樣式(2026-10-21 使用者選定):灰底軌道 + 浮起來的選中塊;沒選的格子之間一條淡分隔線 */
 .seg{display:flex;gap:0;padding:2px;border:0;border-radius:10px;background:var(--seg-track);overflow:hidden}   /* 內距 2、格子不留間隔:軌道不多吃寬度(折疊機級數 9 格每格 ≥ 28) */
-.seg button{flex:1 1 0;min-width:0;min-height:36px;border:0;background:transparent;color:var(--gold);font-family:inherit;
+.seg button{flex:1 1 0;min-width:0;min-height:36px;border:0;background:transparent;color:var(--acc-text);font-family:inherit;
   font-size:var(--fs-md);font-weight:500;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;padding:0 8px;
   overflow:hidden;overflow-wrap:anywhere;text-align:center;transition:background .15s,color .15s;border-radius:8px}   /* 平常一行放得下;動態字級很大又很窄(折疊機)時換行,不截字(高度用 min-height) */
-.seg button + button:not([aria-pressed="true"]){background:linear-gradient(var(--seg-sep),var(--seg-sep)) no-repeat left center / 1px 50%}
+.seg button + button:not([aria-pressed="true"]){background:linear-gradient(var(--acc-sep),var(--acc-sep)) no-repeat left center / 1px 50%}
 .seg button[aria-pressed="true"] + button{background:transparent}
-.seg button[aria-pressed="true"]{background:var(--gold-fill);color:var(--on-fill);font-weight:700;box-shadow:0 1px 3px rgba(0,0,0,.35),0 0 0 .5px rgba(0,0,0,.08)}
+.seg button[aria-pressed="true"]{background:var(--acc-fill);color:var(--acc-on);font-weight:700;box-shadow:0 1px 3px rgba(0,0,0,.35),0 0 0 .5px rgba(0,0,0,.08)}
 .seg.small button{min-height:44px;font-size:var(--fs-sm)}
 
 /* ── 設定 ── */
@@ -414,7 +425,7 @@ main{padding-bottom:calc(84px + env(safe-area-inset-bottom))}
   box-shadow:0 -8px 24px rgba(0,0,0,.25)}
 .tabbar button{display:flex;flex-direction:column;align-items:center;gap:2px;border:0;background:transparent;color:var(--muted);
   font-family:inherit;font-size:var(--fs-xs);padding:6px 0;cursor:pointer;border-radius:var(--radius-sm);min-height:52px}
-.tabbar button[aria-selected="true"]{color:var(--gold)}
+.tabbar button[aria-selected="true"]{color:var(--acc-text)}
 .tabbar button[aria-selected="true"] span{font-weight:700}
 /* 寬畫面(平板橫式、電腦)也跟直式一樣滿版貼底、四格平均分配整個寬度(使用者要求) */
 #examChip{max-width:44vw;white-space:nowrap}   /* 字很短(「ABRSM 3 級」),不截;overflow 不能藏:點擊區要伸到外面(第 2 輪健檢) */
@@ -502,10 +513,9 @@ header{z-index:60}
 }
 /* 選項全部看得到:換行,不橫向捲(捲動看不出還有東西) */
 .opts{flex-wrap:wrap;overflow:visible}
-/* 分頁列:目前的分頁淡金底 */
+/* 分頁列:目前的分頁淡底(分頁輔色) */
 .tabbar button{transition:color .15s,background .15s}
-.tabbar button[aria-selected="true"]{background:rgba(242,185,75,.12)}
-:root.light .tabbar button[aria-selected="true"]{background:rgba(133,100,24,.10)}
+.tabbar button[aria-selected="true"]{background:var(--acc-tint)}
 /* 手機橫放:分頁列改成矮的(圖示和文字並排) */
 @media (max-height:420px), (orientation:landscape) and (max-height:500px){
   .tabbar{padding-top:3px;padding-bottom:calc(3px + env(safe-area-inset-bottom))}
@@ -515,10 +525,9 @@ header{z-index:60}
 }
 /* 選項全部看得到:換行,不橫向捲(捲動看不出還有東西) */
 .opts{flex-wrap:wrap;overflow:visible}
-/* 分頁列:目前的分頁淡金底 */
+/* 分頁列:目前的分頁淡底(分頁輔色) */
 .tabbar button{transition:color .15s,background .15s}
-.tabbar button[aria-selected="true"]{background:rgba(242,185,75,.12)}
-:root.light .tabbar button[aria-selected="true"]{background:rgba(133,100,24,.10)}
+.tabbar button[aria-selected="true"]{background:var(--acc-tint)}
 /* 手機橫放:分頁列改成矮的(圖示和文字並排) */
 @media (max-height:420px), (orientation:landscape) and (max-height:500px){
   .tabbar{padding-top:3px;padding-bottom:calc(3px + env(safe-area-inset-bottom))}
@@ -941,8 +950,9 @@ details.exam-info .verify-note{margin-top:0}
 :root.light{--line-opt:#BFAE86}
 .ans{border-color:var(--line-opt)}
 .opt{transition:background .15s,border-color .15s,color .15s,transform .09s}
-.chip:active,.opt:active,.ans:active,.seg button:active{background:rgba(242,185,75,.16)}
-:root.light .chip:active,:root.light .opt:active,:root.light .ans:active,:root.light .seg button:active{background:rgba(122,92,22,.12)}
+.chip:active,.opt:active,.ans:active{background:rgba(242,185,75,.16)}
+:root.light .chip:active,:root.light .opt:active,:root.light .ans:active{background:rgba(122,92,22,.12)}
+.seg button:active{background:var(--acc-tint)}
 .opt:active{transform:scale(.95)}
 @media (prefers-reduced-motion:reduce){ .btn:active,.seg button:active,.chip:active,.mbtn:active,.opt:active,.ans:active{transform:none} }
 

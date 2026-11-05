@@ -230,6 +230,7 @@ function showView(view, sub){
   curMod = modName;
   document.body.classList.toggle("view-exam", exam);
   document.body.classList.toggle("view-sight", modName === "sight");
+  for (const v of ["tech", "sight", "ear", "exam"]) document.body.classList.toggle("tab-" + v, v === view);   // 分頁輔色(app.css 開頭的 --acc-*)
   renderSubnav();
   if (exam) renderExamCard();
   window.scrollTo({ top: 0 });

@@ -598,12 +598,18 @@ function fitLandZoom(){
   const playing = document.body.classList.contains("land-play");
   const top = playing ? document.querySelector("header").offsetHeight + $("scoreCard").querySelector(".card-title").offsetHeight + 30
     : $("stage").getBoundingClientRect().top + scrollY - openSetupHeight();
-  const avail = Math.max(130, innerHeight - top - 14);
+  const avail = Math.max(130, innerHeight - top - 14 - ctaH());   // 今日練習(暖身)的底部按鈕列蓋住的不算
   const z = Math.max(0.6, Math.min(1.8, osmd.zoom * avail / H));
   if (Math.abs(z - osmd.zoom) < 0.03) { landZoom = osmd.zoom; return false; }
   landZoom = z; return refit();
 }
 // 上方展開的設定卡不算(照收合時的位置算):不然展開/收合設定、切語言時樂譜大小跟著變
+/* 今日練習的底部按鈕列(dailycard 的 .daily-cta,position:fixed 貼在畫面底部)佔掉的高度:手機橫放貼底;直式在分頁列上面 */
+function ctaH(){
+  const c = $("dailyStep") && !$("dailyStep").hidden ? $("dailyStep").querySelector(".daily-cta") : null;
+  if (!c || !c.offsetHeight) return 0;
+  return Math.max(0, innerHeight - c.getBoundingClientRect().top);
+}
 function openSetupHeight(){
   const st = $("stage").getBoundingClientRect().top;
   // 並排的設定卡(橫式檢定分頁)垂直範圍重疊,只算一次
@@ -684,7 +690,7 @@ function fitWrap(){
     const svg = $("osmd").querySelector("svg"), H = svg ? svg.getBoundingClientRect().height : 0;
     const playing = document.body.classList.contains("land-play");
     const top = playing ? document.querySelector("header").offsetHeight + 40 : $("stage").getBoundingClientRect().top + scrollY - openSetupHeight();
-    const avail = Math.max(130, innerHeight - top - 14);
+    const avail = Math.max(130, innerHeight - top - 14 - ctaH());   // 底部按鈕列(今日練習)蓋住的那一塊不算
     if (H > avail) pick.z = Math.max(pick.n >= 2 ? WRAP_MIN : WRAP_MIN1, Math.floor(pick.z * avail / H * 100) / 100);
   }
   osmd.EngravingRules.RenderXMeasuresPerLineAkaSystem = pick.n; osmd.zoom = pick.z; lastZoom = pick.z;
@@ -1305,7 +1311,7 @@ function revealScore(){
   }
   const r = $("scoreCard").getBoundingClientRect(), bar = document.querySelector(".tabbar");
   const bt = bar ? bar.getBoundingClientRect().top : innerHeight;
-  const bottom = bt > innerHeight / 2 ? bt : innerHeight;   // 手機橫放時分頁列在左邊(top = 0),下面沒有東西擋
+  const bottom = Math.min(bt > innerHeight / 2 ? bt : innerHeight, innerHeight - ctaH());   // 手機橫放時分頁列在左邊(top = 0),下面沒有東西擋;今日練習的底部按鈕列也會擋
   if (r.bottom > bottom - 4) window.scrollBy({ top: Math.min(r.bottom - bottom + 8, r.top - 4), behavior: "smooth" });
   else if (r.top < 0) window.scrollBy({ top: r.top - 8, behavior: "smooth" });
 }
@@ -1313,7 +1319,7 @@ function revealScore(){
 async function startPlayback(){
   // 這個子項目播放過一次:說明不再出現(換題目時才收起來,播放中版面不動)
   if (cur && cur.free && INTRO[S.tab] && !S.intro[S.tab]) { S.intro[S.tab] = true; store.save(); }
-  try { await startPlaybackInner(); }
+  try { const p = startPlaybackInner(); syncPlaying(); await p; }   // starting 在第一個 await 之前就設好了
   catch (e) {
     console.error(e);
     starting = 0; $("playBtn").classList.remove("busy");
@@ -1321,6 +1327,7 @@ async function startPlayback(){
     $("playLabel").textContent = T("play");
     setMsg("loadingMsg", () => tr("播放失敗:", "Playback failed: ") + (e && e.message || e));
   }
+  syncPlaying();
 }
 async function startPlaybackInner(){
   if (!cur || starting) return;
@@ -1396,6 +1403,7 @@ function stopPlayback(natural, keepView){
   $("playLabel").textContent = T("play");
   $("playIcon").innerHTML = '<path d="M7 4v16l13-8z"/>';
   showBeat(null);
+  syncPlaying();
 }
 /* 手機橫放播放中看不到播放鈕:點樂譜就停止(並捲回播放鈕) */
 $("stage").addEventListener("click", () => { if (play && document.body.classList.contains("land-play")) stopPlayback(); });
@@ -1491,18 +1499,23 @@ const dcard = createDailyCard({ $, daily,
     // 狀態一句短話(fold-280 不超過兩行);過關規則改成到了目標速度在標籤後面顯示「穩 0 / 3」
     hint: ["按 ▶ 跟著彈一輪,「做到了」就會亮", "Tap ▶, play along once — Did it turns on"],   // 「做到了」要先播過一輪才亮:狀態句直接說(dailycard 的 ready / syncOk);英文要在 390 一行放得下(pairText 照比較高的,英文兩行中文也變兩行,第 7 輪健檢)
     ask: ["彈得順就按「做到了」,不順按「還要練」", "Went well? Tap Did it. If not, Not yet"],   // 播完一輪:下一步(dailycard 的 ready)
-    get solo(){ return melOn() ? ["按 ▶ 你彈左手一輪,「做到了」就會亮", "Tap ▶, play left hand once — Did it turns on"] : ["按 ▶ 自己彈一輪,「做到了」就會亮", "Tap ▶, play it alone once — Did it turns on"]; } },
+    get solo(){ return melOn() ? ["按 ▶ 你彈左手一輪,「做到了」就會亮", "Tap ▶, play left hand once — Did it turns on"] : ["按 ▶ 自己彈一輪,「做到了」就會亮", "Tap ▶, play it alone once — Did it turns on"]; },
+    // 底部按鈕「▶ …一輪」:合奏的拍點模式(App 彈旋律、你彈左手)寫「你彈左手一輪」;其他照 dailycard 預設(跟著彈一輪 / 自己彈一輪)
+    get play(){ return melOn() && dseg && dseg.click && dseg.click !== "every" ? ["你彈左手一輪", "Play left hand"] : null; } },
   warmName, levelName, log: () => S.log,
   onStart: () => { dShow(daily.begin()); window.scrollTo({ top: 0 }); },
   onNext: () => dNext(), onPause: () => dExit(),
   onMore: () => { const s = daily.addExtra(); if (s) dShow(s); },
   barHost: el => { if (ctx && ctx.subBar) ctx.subBar(el, "tech"); },   // 進行中:子項目列換成今日練習的那一行
   onOk: () => dTry("ok"), onAgain: () => dTry("again"),
+  onPlay: () => { if (play || starting) stopPlayback(); else startPlayback(); },   // 底部按鈕的 ▶ / ■(跟題目卡的圓形 ▶ 同一個播放;準備中按 = 取消)
   onBack: () => { stopPlayback(); if (daily.back()) dShow(daily.seg()); } });
 /* 「做到了」要先用現在的速度播過一輪(預備拍之後 2 小節)才能按:同一段、同一關、同一個速度 */
 let heardAt = null;
 const heardKey = () => (dseg ? `${dseg.i}/${dseg.lv || ""}/${bpm}` : null);
 function syncReady(){ dcard.ready(!!dseg && heardAt === heardKey()); }
+/* 底部按鈕「■ 停止」:正在播(或正在準備播放) */
+function syncPlaying(){ dcard.playing(!!(dseg && (play || starting))); }
 /* 這一段的播放:4 小節(中途消失 = 8 小節);拍點模式不是每拍 = 只有拍點 */
 function dailyPlay(){
   if (!dseg || !cur || !cur.daily) return null;

@@ -992,7 +992,28 @@ body.view-exam #t-dailyCard,body.view-exam #t-dailyStep{display:none !important}
 .daily-acts .daily-sp{flex:1 1 0}
 .daily-acts .text-btn{margin-top:0;min-height:44px}
 .daily-acts .btn{min-height:44px;min-width:64px;height:auto;white-space:normal}
+/* 今日練習的底部按鈕列(dailycard 的 .daily-cta;2026-11 使用者選定,像 Duolingo):段落進行中固定在畫面底部、分頁列正上方,
+   位置永遠不變、每一步只換字(▶ 跟著彈一輪 → ■ 停止 → ✓ 做到了 + 還要練 → 下一段 ›);一顆大的主要按鈕(高 52)+ 左邊最多一顆次要。
+   --panel 底 + 往上的陰影(不畫框;docs/DESIGN.md);蓋住分頁列上緣那條線(z-index 比分頁列高,接成一塊);寬畫面按鈕跟卡片同寬置中(最寬 1100 = 一欄的卡片) */
+.daily-cta{position:fixed;left:0;right:0;bottom:calc(65px + env(safe-area-inset-bottom));z-index:31;margin:0;flex-wrap:nowrap;
+  padding:8px max(10px, env(safe-area-inset-right)) 8px max(10px, env(safe-area-inset-left));
+  background:var(--panel);box-shadow:0 -8px 24px rgba(0,0,0,.25)}
+:root.light .daily-cta{box-shadow:0 -6px 18px rgba(90,72,30,.10)}
+@media (min-width:601px){ .daily-cta{padding-left:max(14px, env(safe-area-inset-left));padding-right:max(14px, env(safe-area-inset-right))} }
+@media (min-width:1100px){ .daily-cta{padding-left:max(14px, calc((100% - 1100px) / 2));padding-right:max(14px, calc((100% - 1100px) / 2))} }
+.mod .daily-step .daily-cta .btn{min-height:52px;height:auto;white-space:normal;line-height:1.25}
+.mod .daily-step .daily-cta .daily-main{flex:1 1 0;min-width:0;font-size:var(--fs-body)}
+.daily-cta .daily-again{flex:0 1 auto;min-width:6.5em}
+.daily-backrow{margin:0}
+.daily-backrow .text-btn{margin-top:0;min-height:44px}
+/* 底部留白 = 分頁列 + 這一列:捲到底最後一行(樂譜、速度卡)不被蓋住(body.daily-on = 外框在段落進行中加的) */
+body.daily-on main{padding-bottom:calc(84px + 68px + env(safe-area-inset-bottom))}
+@media (max-height:420px){ .daily-cta{bottom:calc(44px + env(safe-area-inset-bottom))} }
 @media (orientation:landscape) and (max-height:500px){
+  /* 手機橫式:分頁列在左邊 → 貼底、左邊讓出分頁列;按鈕 44 高(第一個畫面放得下譜) */
+  .daily-cta{bottom:0;left:calc(68px + env(safe-area-inset-left));padding:6px max(10px, env(safe-area-inset-right)) max(6px, env(safe-area-inset-bottom)) 10px}
+  .mod .daily-step .daily-cta .btn{min-height:44px}
+  body.daily-on main{padding-bottom:calc(56px + max(12px, env(safe-area-inset-bottom))) !important}
   #mod-tech .quiz .daily-step{grid-column:1 / -1}
   .daily-list{margin-bottom:8px}   /* 一段一行(兩欄讀起來順序會亂) */
   .daily-btn{min-height:44px}

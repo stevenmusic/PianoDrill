@@ -6,7 +6,10 @@
    - 進行中(模組正在顯示這一段):縮成一行「今日練習 2/4 ●●○○ 剩約 7 分 [暫停] [下一段 ›]」;有 barHost(外框的 ctx.subBar)時這一行放在子項目列的位置(子項目列藏起來、卡片藏起來)
    - 練完了:今天練了幾段、幾分鐘、過了幾關(0 關不寫;沒過關但速度有升 = 一句「今天速度 60 → 72,離目標 100 再加油」,升最多的那一關)、最近 7 天練了幾天、新路線開放了(開放那一天)、明天練什麼、里程碑稱讚(milestone.js;一天最多一句,有練到才算)+ 次要按鈕「再練一下」(可以一直按)
    段落面板:狀態 / 下一步一句、為什麼練這個(路線的 why[組]:這一組第一關第一次出現時一句,看過的組記在 daily 的 why)、這次的變化(複習)、重點(關卡的 check;過關、複習完藏起來)、[回上一關](文字鈕,只在同一速度連續不穩 = seg().suggest 時)…[再練][穩了 ✓](各 App 的字)或 [下一段 ›];
-   「穩了 / 做到了」要先用現在的速度播過一輪才能按(App 呼叫 ready(true);沒播之前 disabled,不算嘗試)
+   「穩了 / 做到了」要先用現在的速度播過一輪才能按(App 呼叫 ready(true);沒播之前不出現,不算嘗試)
+   按鈕列 = 固定在畫面底部的一條(.daily-cta;2026-11 使用者選定,像 Duolingo):位置永遠不變、每一步只換字 ——
+   「▶ 跟著彈 / 打一輪」(onPlay)→ 播放中還沒播滿一輪「■ 停止」→ 播過一輪「✓ 做到了 / 穩了」+ 左邊次要「還要練」→ 過關沒接下一關、複習完、暖身「下一段 ›」(最後一段「結束今天 ›」);
+   App 開始 / 停止播放時呼叫 playing(true / false)
    文字都用 i18n 的 daily.*(兩個 App 一樣)+ 模組傳進來的 labels(穩了 / 做到了…);段落文字用 pairText(中英一樣高) */
 import { tr, T, pairText } from "./i18n.js";
 import { streak } from "./practicelog.js";
@@ -18,6 +21,7 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;",
 const ICON_PLAY = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4v16l13-8z"/></svg>';
 const ICON_PAUSE = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5v14M15 5v14"/></svg>';
 const ICON_OK = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>';
+const ICON_STOP = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="1.5"/></svg>';
 
 /* 拍點模式的名稱(daily.js 的 CLICK_MODES) */
 export const clickName = mode => (mode && mode !== "every" ? fmt("click_" + mode.replace("-", "_")) : "");
@@ -56,33 +60,58 @@ export function resultText(res, s, next = null, good = "很穩!"){
   return t;
 }
 
-/* createDailyCard({ $, daily, labels, warmName, levelName, log, onStart, onNext, onPause, onMore, onOk, onAgain, onBack, announce, acts, mark, barHost })
+/* createDailyCard({ $, daily, labels, warmName, levelName, log, onStart, onNext, onPause, onMore, onOk, onAgain, onBack, onPlay, announce, acts, mark, barHost })
    - labels = { ok: [中, 英], again: [中, 英], hint: [中, 英](學的時候的下一步), solo: [中, 英](只有拍點的時候), verb: [中, 英](暖身提示的動詞:打 / 彈),
-     good: [中, 英](穩了的稱讚:鼓「很穩!」、琴「很好!」), wait: [中, 英](「穩了 / 做到了」還不能按時按鈕的 title;沒給就用 hint) }
+     good: [中, 英](穩了的稱讚:鼓「很穩!」、琴「很好!」), wait: [中, 英](「穩了 / 做到了」還不能按時按鈕的 title;沒給就用 hint),
+     play: [中, 英](底部按鈕「▶ …一輪」的字,App 可以換;沒給 = daily.ctaPlay / 拍點模式 daily.ctaSolo,動詞照 verb) }
+   - onPlay() → 底部按鈕的「▶ …一輪 / ■ 停止」(App 的播放 / 停止,跟題目卡的圓形 ▶ 同一個);沒給 = 底部按鈕照舊只有「做到了」(還不能按時 disabled)
    - warmName(item) → [中, 英]:暖身項目的名稱(各 App 自己寫)
    - log() → 模組的練習紀錄(最近 7 天練了幾天)
    - mark(s) → 這一段速度的寫法(預設「♩=」;DrumDrill 12/8 的關「♩.=」):標籤、狀態、結果的速度都照這個寫
    - levelName(s) → 關卡顯示的名稱 [中, 英](預設 s.level.name;鋼琴伴奏的關寫實際和弦,換調複習跟著換)
    - barHost(el | null) → 進行中那一行放到外框的子項目列(main.js 的 ctx.subBar);沒給就留在卡片裡
-   - acts = { left(s, o), right(s, o) } → App 自己額外的按鈕(元素陣列):left 接在「回上一關」後面、right 放在最右邊(例如 DrumDrill 的「沒有鼓?用手機鼓墊」「打一遍」);
+   - acts = { left(s, o), right(s, o), primary(s, o, st) } → App 自己額外的按鈕:left(元素陣列)放在底部按鈕列左邊(次要,例如 DrumDrill 的「沒有鼓?」)、right(元素陣列)放在最右邊;
+     primary → 一個元素或 null:取代底部的主要按鈕(例如 DrumDrill 手機鼓墊模式的「打一遍」;st = { ready, playing, done, warm },狀態一變就重新問);
      元素由 App 建立、一直留在文件裡:這一次沒用到的(或面板收起來時)放在面板裡藏起來的 .daily-park,App 用 id 找得到 */
-export function createDailyCard({ $, daily, labels = {}, warmName = () => "", levelName = s => s.level.name, log = () => ({}), onStart, onNext, onPause, onMore, onOk, onAgain, onBack, announce = () => {}, acts = {}, mark = () => "♩=", barHost = null }){
+export function createDailyCard({ $, daily, labels = {}, warmName = () => "", levelName = s => s.level.name, log = () => ({}), onStart, onNext, onPause, onMore, onOk, onAgain, onBack, onPlay = null, announce = () => {}, acts = {}, mark = () => "♩=", barHost = null }){
   const M = (s, t) => { const m = s ? mark(s) : "♩="; return m === "♩=" || !t ? t : String(t).replace(/♩=/g, m); };
   const card = $("dailyCard"), step = $("dailyStep");
   const park = document.createElement("div"); park.className = "daily-park"; park.hidden = true;
-  /* App 的按鈕:先全部收進 park,再把這一次要的放進按鈕列 */
-  function placeActs(s, o){
-    step.querySelectorAll(".daily-acts > [data-app-act]").forEach(el => park.appendChild(el));
+  /* 底部按鈕列(.daily-cta,固定在畫面底部):[App 的 left][還要練][主要按鈕][App 的 right]。
+     按鈕元素一段裡一直是同一顆(只換字、換樣子):鍵盤焦點不會掉;App 的按鈕先全部收進 park,再把這一次要的放進來 */
+  function paintActs(){
+    const row = step.querySelector(".daily-cta"); if (!row) return;
+    row.querySelectorAll("[data-app-act]").forEach(el => park.appendChild(el));
     if (!park.isConnected) step.appendChild(park);
-    const row = step.querySelector(".daily-acts"); if (!row || !s) return;
-    const sp = row.querySelector(".daily-sp");
-    for (const el of (acts.left ? acts.left(s, o) : []) || []) { el.dataset.appAct = "1"; row.insertBefore(el, sp); }
+    const s = lastSeg; if (!s) return;
+    const o = lastOpts, warm = s.k === "warm", done = !!o.passedDone;
+    const again = row.querySelector(".daily-again"), main = row.querySelector(".daily-main");
+    // 這一步:next = 下一段 / 結束今天(暖身、過關沒接下一關、複習完);ok = 做到了(播過一輪);stop = 播放中還沒播滿一輪;play = ▶ …一輪
+    const mode = warm || done ? "next" : okReady || !onPlay ? "ok" : playing ? "stop" : "play";
+    panelNext = mode === "next";
+    const app = acts.primary ? acts.primary(s, o, { ready: okReady, playing, done, warm }) : null;
+    for (const el of (acts.left ? acts.left(s, o) : []) || []) { el.dataset.appAct = "1"; row.insertBefore(el, again); }
+    again.hidden = mode !== "ok" || !okReady;   // 「還要練」也要先播過一輪(沒彈就按 = 不算一次;下一步只有一個)
+    if (app) { app.dataset.appAct = "1"; row.insertBefore(app, main); main.hidden = true; }
+    else {
+      main.hidden = false;
+      const lbl = mode === "next" ? fmt(isLast() ? "finish" : "next") : mode === "ok" ? L2(labels.ok) : mode === "stop" ? fmt("ctaStop")
+        : labels.play ? L2(labels.play) : fmt(s.click && s.click !== "every" ? "ctaSolo" : "ctaPlay", { v: L2(labels.verb || ["彈", "play"]) });   // 拍點模式:「自己彈一輪」
+      const icon = mode === "ok" ? ICON_OK : mode === "stop" ? ICON_STOP : mode === "play" ? ICON_PLAY : "";
+      main.className = "btn daily-main daily-" + mode + (mode === "stop" ? "" : " primary");   // 停止 = 次要的樣子(同一個位置);其他 = 主要(金底)
+      main.dataset.mode = mode;
+      main.innerHTML = icon + `<span class="btn-label">${esc(lbl)}</span>`;
+      main.disabled = mode === "ok" && !okReady;
+      if (main.disabled) { main.title = L2(labels.wait || labels.hint || ["", ""]); main.setAttribute("aria-describedby", `${step.id}-status`); }
+      else { main.removeAttribute("title"); main.removeAttribute("aria-describedby"); }
+    }
     for (const el of (acts.right ? acts.right(s, o) : []) || []) { el.dataset.appAct = "1"; row.appendChild(el); }
+    syncNext();
   }
   const tid = card.id + "-title";
   card.setAttribute("role", "region"); card.setAttribute("aria-labelledby", tid);
-  let showing = false, lastStatus = null, lastOpts = {}, okReady = true, whyCur = null, panelNext = false, lastBar = null, lastSeg = null;
-  /* 面板有主要的「下一段 ›」(過關、複習完)時,進度那一行的「下一段 ›」藏起來(同一畫面不放兩顆) */
+  let showing = false, lastStatus = null, lastOpts = {}, okReady = true, whyCur = null, panelNext = false, lastBar = null, lastSeg = null, playing = false;
+  /* 底部按鈕是「下一段 ›」(暖身、過關、複習完)時,進度那一行的「下一段 ›」藏起來(同一畫面不放兩顆) */
   const syncNext = () => { const b = lastBar && lastBar.querySelector(".daily-next"); if (b) b.hidden = panelNext && !step.hidden; };
   /* 為什麼練這個:路線的 why[組](每組一句);只在這一組的第一關、第一次出現的那一段(同一段重畫、換語言照樣顯示;複習、暖身不寫) */
   function whyOf(s){
@@ -177,7 +206,7 @@ export function createDailyCard({ $, daily, labels = {}, warmName = () => "", le
   /* ── 段落面板(題目卡裡)── status = () => 一句話(換語言重算);result = attempt 的結果(有就顯示結果) ── */
   function renderStep(s, { status = null, passedDone = false } = {}){
     step.querySelectorAll("[data-app-act]").forEach(el => park.appendChild(el));
-    if (!s) { step.hidden = true; step.innerHTML = ""; step.appendChild(park); panelNext = false; syncNext(); return; }
+    if (!s) { step.hidden = true; step.innerHTML = ""; step.appendChild(park); lastSeg = null; panelNext = false; syncNext(); return; }
     lastStatus = status; lastOpts = { status, passedDone }; lastSeg = s;
     step.hidden = false;
     // 重點:關卡的 check(前面加關卡的 handsLine,例如「右手 Hi-hat、左手小鼓」);暖身 = 項目自己的 check
@@ -186,35 +215,35 @@ export function createDailyCard({ $, daily, labels = {}, warmName = () => "", le
     const tip = !warm && !daily.data.tip && s.bpm;   // 第一次:速度的小字說明「速度 56 = 每分鐘 56 拍」(試過一次就不再出現)
     // 小字一次只放一行:第一次的速度說明在的時候「為什麼練這個」等試過一次再出現(whyOf 那時才記成看過;第 7 輪健檢:狀態句下面疊三行字,長輩不知道讀哪句)
     const vary = varyText(s), why = tip ? null : whyOf(s);
-    // 暖身:只有進度條上那一顆「下一段 ›」(按鈕列整列不放);過關、複習完 = 主要按鈕「下一段 ›」
-    const primaryNext = passedDone;
-    panelNext = !!primaryNext;
-    // 重點:每項一行的清單(系統化規則:主要資訊字級 ≥ --fs-md)
-    step.innerHTML = `<p class="daily-status" id="${step.id}-status"></p>` + (tip ? `<p class="daily-tip"></p>` : "") + (why ? `<p class="daily-why"></p>` : "") + (vary ? `<p class="daily-vary"></p>` : "") +
+    const back = !warm && s.k === "route" && s.suggest && daily.canBack() && !passedDone;
+    // 面板的內容換掉;底部按鈕列(.daily-cta)整段留著同一個元素(鍵盤焦點不掉),只換字
+    step.querySelectorAll(":scope > :not(.daily-cta):not(.daily-park)").forEach(el => el.remove());
+    let cta = step.querySelector(".daily-cta");
+    if (!cta) {
+      cta = document.createElement("div"); cta.className = "daily-acts daily-cta";
+      cta.setAttribute("role", "group"); cta.setAttribute("aria-label", fmt("title"));
+      cta.innerHTML = `<button class="btn daily-again"></button><button class="btn primary daily-main"></button>`;
+      cta.querySelector(".daily-again").onclick = () => onAgain && onAgain();
+      cta.querySelector(".daily-main").onclick = e => {
+        const m = e.currentTarget.dataset.mode;
+        if (m === "next") onNext && onNext(); else if (m === "ok") onOk && onOk(); else onPlay && onPlay();   // play / stop:App 的播放鈕(切換)
+      };
+      step.appendChild(cta);
+    }
+    cta.setAttribute("aria-label", fmt("title"));
+    cta.querySelector(".daily-again").textContent = L2(labels.again);
+    // 重點:每項一行的清單(系統化規則:主要資訊字級 ≥ --fs-md);「回上一關」是面板裡的文字鈕(底部那一列只放主要 + 一顆次要)
+    cta.insertAdjacentHTML("beforebegin", `<p class="daily-status" id="${step.id}-status"></p>` + (tip ? `<p class="daily-tip"></p>` : "") + (why ? `<p class="daily-why"></p>` : "") + (vary ? `<p class="daily-vary"></p>` : "") +
       (check ? `<div class="daily-check"><b>${esc(fmt("checkTitle"))}</b><ul>${check.map(() => "<li></li>").join("")}</ul></div>` : "") +
-      `<div class="daily-acts"${warm ? " hidden" : ""}>` + (!warm && s.k === "route" && s.suggest && daily.canBack() && !passedDone ? `<button class="text-btn daily-back">${esc(fmt("back"))}</button>` : "") +
-      `<span class="daily-sp"></span>` +
-      (primaryNext ? `<button class="btn primary daily-go">${esc(fmt(isLast() ? "finish" : "next"))}</button>`
-        : `<button class="btn daily-again">${esc(L2(labels.again))}</button><button class="btn primary daily-ok"${okReady ? "" : " disabled"}>${ICON_OK}<span class="btn-label">${esc(L2(labels.ok))}</span></button>`) + `</div>`;
+      (back ? `<p class="daily-backrow"><button class="text-btn daily-back">${esc(fmt("back"))}</button></p>` : ""));
     paintStatus(s);
     if (tip) pairText(step.querySelector(".daily-tip"), () => fmt("tempoTip", { b: s.bpm }));
     if (why) pairText(step.querySelector(".daily-why"), () => L2(why));
     if (vary) pairText(step.querySelector(".daily-vary"), () => fmt("vary", { v: varyText(s) }));
     if (check) step.querySelectorAll(".daily-check li").forEach((li, i) => { li.textContent = L2(check[i]); });   // 每項一行(不用 pairText:英文比較長時中文會多出空行;換語言時 relang 重畫)
-    const on = (sel, fn) => { const b = step.querySelector(sel); if (b) b.onclick = () => fn && fn(); };
-    on(".daily-back", onBack); on(".daily-again", onAgain); on(".daily-ok", onOk); on(".daily-go", onNext);
-    syncOk();
+    const b = step.querySelector(".daily-back"); if (b) b.onclick = () => onBack && onBack();
     step.appendChild(park);
-    placeActs(s, lastOpts);
-    syncNext();
-  }
-  /* 「穩了 / 做到了」還不能按:title 與 aria-describedby 指到狀態那一句(說為什麼、怎麼讓它亮) */
-  function syncOk(){
-    const b = step.querySelector(".daily-ok"); if (!b) return;
-    b.disabled = !okReady;
-    const a = step.querySelector(".daily-again"); if (a) a.disabled = !okReady;   // 「還要練」也要先播過一輪(沒彈就按 = 不算一次;只剩 ▶ 能按,下一步只有一個)
-    if (okReady) { b.removeAttribute("title"); b.removeAttribute("aria-describedby"); }
-    else { b.title = L2(labels.wait || labels.hint || ["", ""]); b.setAttribute("aria-describedby", `${step.id}-status`); }
+    paintActs();
   }
   function paintStatus(s){
     const el = step.querySelector(".daily-status"); if (!el) return;
@@ -236,13 +265,15 @@ export function createDailyCard({ $, daily, labels = {}, warmName = () => "", le
     render, renderStep,
     /* 「穩了 / 做到了」能不能按(先用現在的速度播過一輪):App 播過 2 小節呼叫 ready(true);換段、換速度 ready(false) */
     ready(v){
-      const was = okReady; okReady = !!v; syncOk();
+      const was = okReady; okReady = !!v; if (was !== okReady) paintActs();
       // 剛播完一輪(不能按 → 能按):狀態句換成「彈得順就按「做到了」…」,下一步接得上(暖身、過關後不換)
       if (okReady && !was && labels.ask && lastSeg && lastSeg.k !== "warm" && !lastOpts.passedDone && !step.hidden) {
         const ask = labels.ask; if (ask) { lastStatus = () => L2(ask); lastOpts = { ...lastOpts, status: lastStatus }; paintStatus(lastSeg); }
       }
     },
     get isReady(){ return okReady; },
+    /* App 開始 / 停止播放(題目卡的 ▶ 或底部按鈕):底部按鈕換成「■ 停止」/「▶ …一輪」 */
+    playing(v){ if (playing === !!v) return; playing = !!v; paintActs(); },
     /* 換語言:只重寫文字 */
     relang(s){ render(); if (s && !step.hidden) renderStep(s, lastOpts); },
     hide(){ card.hidden = true; step.hidden = true; if (barHost) barHost(null); },

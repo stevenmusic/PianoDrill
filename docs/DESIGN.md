@@ -101,6 +101,7 @@
 | `.item-row` | — | 不是卡片(照 CLAUDE.md),不加底色;`.ir-name` `--fs-head` |
 | `.quiz.hint-empty .q-hint` | 14 | `--fs-sub` → 建議 `--fs-body`(一句提示是主要資訊;中英同高要重量) |
 | `footer` | 一直顯示 | 今日練習進行中藏起來:外框在 `ctx.setSubActive(on, view)` 時給 body 加 `daily-on`,`body.daily-on footer{display:none}`(不用 `:has`,iPhone 舊版不吃) |
+| `.daily-cta`(今日練習底部按鈕列,2026-11 新增) | 按鈕列在題目卡裡 | `position:fixed` 貼在分頁列正上方(手機橫式貼底、左邊讓出分頁列 68 + safe area);`--panel` 底 + 往上的陰影(深 `0 -8px 24px rgba(0,0,0,.25)`、淺 `0 -6px 18px rgba(90,72,30,.10)`),不畫框;z-index 比分頁列高(蓋住分頁列上緣那條線,接成一塊);內距 8 × 10(> 600 寬 14;≥ 1100 寬按鈕跟一欄的卡片同寬置中,最寬 1100);主要按鈕 `flex:1`、高 52(手機橫式 44)、`--fs-body`,左邊最多一顆次要(「還要練」,最小 6.5em);「■ 停止」用次要外觀、同一個位置;`body.daily-on main` 底部留白多 68 |
 | `.verify-badge` | 橘框膠囊 | 不動(只在檢定頁「考試內容」) |
 
 ## 4. 已定案、不能動

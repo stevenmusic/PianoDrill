@@ -13,7 +13,7 @@
    路線圖(2026-11;第一版只看、不能跳關練):還沒開始 / 暫停 / 練完的卡片最下面一顆次要鈕「路線」(aria-expanded),點了在卡內往下展開(不跳視窗;進行中不顯示):
      每條路線一段、一列一組(組名 + 「3 / 6」+ 狀態圖示 過 / 目前 / 還沒到 / 還沒開放),預設只展開每條路線目前那一組;組裡一關一行,點一關在行內展開重點(check);
      還沒開放的路線一行淡字寫開放條件。資料 = js/shared/roadmap.js(純函式);App 要傳 routes 才有這顆鈕
-   過關慶祝:celebrate() = 狀態句上面一條短橫幅「過關 ✓」+ 線稿星星(js/shared/celebrate.js;App 在過關時呼叫,聲音 App 自己放)
+   過關慶祝:celebrate() = 狀態句上面一條短橫幅「過關 ✓」(疊在標籤列上,不推版面;狀態句不重複「過關 ✓」)+ 線稿星星(js/shared/celebrate.js;App 在過關時呼叫,聲音 App 自己放)
    文字都用 i18n 的 daily.*(兩個 App 一樣)+ 模組傳進來的 labels(穩了 / 做到了…);段落文字用 pairText(中英一樣高) */
 import { tr, T, pairText } from "./i18n.js";
 import { streak } from "./practicelog.js";
@@ -212,7 +212,7 @@ export function createDailyCard({ $, daily, routes = null, labels = {}, warmName
     paintRoad();
   }
   /* ── 路線圖(卡片最下面的「路線」鈕,點了在卡內往下展開;只看,不能跳關)──
-     roadOpen = 展開了沒;roadGs = 展開的組(「路線/組」;null = 預設:每條路線目前那一組);roadLvs = 展開重點的關(「路線/關」)。重畫、換語言照舊 */
+     roadOpen = 展開了沒;roadGs = 展開的組(「路線/組」;null = 預設:每條路線目前那一組;每次打開再加上現在的組);roadLvs = 展開重點的關(「路線/關」)。重畫、換語言照舊 */
   let roadOpen = false, roadGs = null;
   const roadLvs = new Set(), rid = card.id + "-road";
   function roadHTML(){
@@ -224,12 +224,13 @@ export function createDailyCard({ $, daily, routes = null, labels = {}, warmName
   function paintRoad(){
     const btn = card.querySelector(".daily-road-btn"), box = card.querySelector(".daily-road");
     if (!btn || !box) return;
-    btn.onclick = () => { roadOpen = !roadOpen; btn.setAttribute("aria-expanded", String(roadOpen)); box.hidden = !roadOpen; if (roadOpen) fillRoad(box); else box.innerHTML = ""; };
+    btn.onclick = () => { roadOpen = !roadOpen; btn.setAttribute("aria-expanded", String(roadOpen)); box.hidden = !roadOpen; if (roadOpen) fillRoad(box, true); else box.innerHTML = ""; };
     if (roadOpen) fillRoad(box);
   }
-  function fillRoad(box){
+  function fillRoad(box, opening = false){
     const map = roadmap(routes, daily.data);
-    if (!roadGs) roadGs = new Set(curGroups(map));
+    // 每次打開:現在的組加進展開清單(過關換到新的一組,打開就看得到;使用者自己收起來的舊組照舊收著)
+    if (!roadGs) roadGs = new Set(curGroups(map)); else if (opening) for (const g of curGroups(map)) roadGs.add(g);
     let k = 0;
     const id = () => `${rid}-${k++}`;
     box.innerHTML = map.map(x => {

@@ -63,8 +63,8 @@ addStrings("daily", {
   locked: ["{r}過了第 {n} 關就開始", "After {r} level {n}"],
   note: ["漏練幾天沒關係,不會扣分", "Missed days don't count against you"],
   steady: ["{w}下一次速度 {b}", "{w} Next: tempo {b}"], streak: ["{w}再連續 {k} 次就過關", "{w} {k} more in a row to pass"],
-  near: ["差一點,速度不變", "Close. Same tempo"], go: ["按 ▶ 再{v}一次", "Tap ▶ to go again"], down: ["先慢一點:速度 {b}", "Slow down: tempo {b}"],
-  passed: ["過關 ✓ 下一關:{name}", "Passed ✓ Next level: {name}"], passedLast: ["過關 ✓ 這條路線練完了", "Passed ✓ Route complete"], passedCont: ["過關 ✓ 接著練:{name}", "Passed ✓ Now: {name}"], start1: ["按 ▶ 跟著{v}一輪", "Tap ▶ and play along"],
+  near: ["差一點,速度不變", "Close. Same tempo"], go: ["按 ▶ 再{v}一次", "Tap ▶ again"], down: ["先慢一點:速度 {b}", "Slow down: tempo {b}"],
+  passed: ["下一關:{name}", "Next level: {name}"], passedLast: ["這條路線練完了", "Route complete"], passedCont: ["接著練:{name}", "Now: {name}"], start1: ["按 ▶ 跟著{v}一輪", "Tap ▶ and play along"],
   // 底部固定的主要按鈕(dailycard 的 .daily-cta):還沒播 =「▶ 跟著彈 / 打一輪」(拍點模式「自己…一輪」)、播放中還沒播滿一輪 =「■ 停止」;英文在 390 一行
   ctaPlay: ["跟著{v}一輪", "Play along"], ctaSolo: ["自己{v}一輪", "Play it alone"], ctaStop: ["停止", "Stop"],
   back: ["回上一關", "Easier level"], suggest: ["要不要先回上一關暖身?", "Try the level before?"],

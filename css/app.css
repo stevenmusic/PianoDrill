@@ -372,6 +372,7 @@ footer{max-width:1400px;width:100%;margin:0 auto;padding:6px 16px 28px;font-size
 footer a{color:var(--muted-bright)}
 footer p{margin:0}
 footer .foot-links a{display:inline-flex;align-items:center;min-height:44px}   /* 授權、隱私、支援連結:點擊區域 44 高(跟備份紀錄、分享摘要的按鈕一樣) */
+footer .foot-links .fl{white-space:nowrap}   /* 連結 + 後面的「·」不拆開:換行只在「·」後面(折疊機行尾不留孤零零的點) */
 body{background:
   radial-gradient(ellipse 70% 45% at 0% 100%, rgba(242,185,75,.075), transparent 70%),
   radial-gradient(ellipse 60% 40% at 100% 100%, rgba(63,191,174,.06), transparent 70%),
@@ -734,7 +735,7 @@ body.land-play #t-stage{flex:1;display:flex;flex-direction:column;justify-conten
 }
 /* 今日練習進行中:子項目列換成今日練習的那一行(main.js 的 ctx.subBar;進度、暫停、下一段) */
 .subnav .sub-bar{width:min(560px, 100%);padding:0 2px}
-.subnav.has-bar{min-width:0}   /* 那一行放不下時「剩約 n 分」縮成 …(不撐出畫面;折疊機 280) */
+.subnav.has-bar{min-width:0}   /* 那一行放不下時「剩約 n 分」換行(不撐出畫面;折疊機 280) */
 .daily-bar .daily-pause{flex:none;min-width:44px;min-height:44px;height:auto;padding:0;display:inline-flex;align-items:center;justify-content:center}
 /* 內容寬度:技巧、聽音窄一點(按鈕、鍵盤不會又寬又扁);視奏的樂譜要寬 */
 @media (min-width:901px){ main,footer{max-width:900px} body.view-sight main,body.view-sight footer{max-width:1180px} }
@@ -1004,10 +1005,12 @@ body.view-exam #t-dailyCard,body.view-exam #t-dailyStep{display:none !important}
 .road-chk li + li{margin-top:2px}
 .road-lock{display:flex;align-items:center;gap:8px;margin:0;min-height:32px;font-size:var(--fs-sub);color:var(--muted-bright)}
 /* 過關慶祝(js/shared/celebrate.js):狀態句上面一條短橫幅「過關 ✓」+ 線稿星星畫出來,約 1.6 秒後消失;
-   青綠 = 達成(跟「本週達標」同一個意思;金色只給能按的);margin-bottom 抵掉面板的 gap,消失時下面不跳;不動(prefers-reduced-motion)= 靜態 */
-.celebrate{display:flex;align-items:center;gap:8px;align-self:flex-start;min-height:36px;margin-bottom:-8px;padding:4px 14px 4px 10px;border-radius:999px;
-  background:rgba(63,191,174,.14);color:var(--teal);font-size:var(--fs-sub);font-weight:700;line-height:1.3;overflow:hidden;animation:cel-box var(--cel-ms,1.6s) ease both}
-:root.light .celebrate{background:rgba(15,95,86,.10)}
+   青綠 = 達成(跟「本週達標」同一個意思;金色只給能按的);絕對定位疊在狀態句上面那一列(標籤列)上:不佔位置,出現、消失時下面都不跳;
+   不透明底(卡片色 + 青綠淡色)蓋住底下的標籤;不動(prefers-reduced-motion)= 靜態 */
+.daily-step{position:relative}
+.celebrate{position:absolute;left:0;bottom:calc(100% + 2px);z-index:2;display:flex;align-items:center;gap:8px;min-height:36px;margin:0;padding:4px 14px 4px 10px;border-radius:999px;
+  background:linear-gradient(rgba(63,191,174,.14),rgba(63,191,174,.14)) var(--panel);color:var(--teal);font-size:var(--fs-sub);font-weight:700;line-height:1.3;white-space:nowrap;overflow:hidden;animation:cel-box var(--cel-ms,1.6s) ease both}
+:root.light .celebrate{background:linear-gradient(rgba(15,95,86,.10),rgba(15,95,86,.10)) var(--panel)}
 .celebrate svg{flex:none;width:24px;height:24px}
 .celebrate path{stroke-dasharray:1;stroke-dashoffset:1;animation:cel-draw .55s .1s ease-out forwards}
 @keyframes cel-box{0%{opacity:0;transform:scale(.9)}12%{opacity:1;transform:scale(1.04)}20%{transform:none}85%{opacity:1}100%{opacity:0}}
@@ -1021,7 +1024,7 @@ body.view-exam #t-dailyCard,body.view-exam #t-dailyStep{display:none !important}
 .daily-dots i{width:10px;height:10px;border-radius:50%;border:1px solid var(--muted)}
 .daily-dots i.on{background:var(--gold-fill);border-color:var(--gold-fill)}
 .daily-dots i.cur{border:2px solid var(--gold)}
-.daily-left{flex:1 1 0;min-width:0;font-size:var(--fs-xs);color:var(--muted-bright);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.daily-left{flex:1 1 0;min-width:0;font-size:var(--fs-xs);color:var(--muted-bright);line-height:1.25;word-break:keep-all;overflow-wrap:anywhere}   /* 放不下就在空白處換行(「剩約」/「6 分」),不切成「…」(折疊機 280) */
 .daily-left.up{color:var(--gold)}
 .daily-bar .daily-next{flex:none;min-height:44px;height:auto}
 @media (max-width:340px){ .daily-dots{display:none} }

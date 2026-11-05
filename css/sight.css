@@ -207,3 +207,6 @@
 @media (max-width:300px){ #s-setup #s-tempoBox{flex-basis:100%} }   /* 折疊機:速度自己一行(中文「拍 / 分鐘」比 BPM 長,擠在同一行會只有中文換行) */
 /* 手機直式:題目卡標籤(C 大調 · 3/4 · 4 小節 · ♩=76)跟標題同一行;英文「C major」比「C 大調」寬,內距與間距小一點兩種語言才都放得下 */
 @media (max-width:430px){ #mod-sight .q-ht .q-tags{gap:4px} #mod-sight .q-ht .q-tag{padding-left:6px;padding-right:6px} }
+/* 狀態 / 下一步那一句 = 內文 17(跟今日練習的狀態句同一級;say() 把 class 換成 message 後原本掉回 16,第 7 輪健檢);手機橫式照 app.css 14 */
+#s-message{font-size:var(--fs-body)}
+@media (max-height:420px), (orientation:landscape) and (max-height:500px){ #s-message{font-size:var(--fs-sm)} }

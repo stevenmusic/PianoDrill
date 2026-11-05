@@ -1486,8 +1486,8 @@ function replanWarm(){
 const dcard = createDailyCard({ $, daily,
   labels: { ok: ["做到了", "Did it"], again: ["還要練", "Not yet"], verb: ["彈", "play"], good: ["很好!", "Good!"],
     // 狀態一句短話(fold-280 不超過兩行);過關規則改成到了目標速度在標籤後面顯示「穩 0 / 3」
-    hint: ["按 ▶ 跟著彈一輪,「做到了」就會亮", "Tap ▶ and play along once — then Did it turns on"],   // 「做到了」要先播過一輪才亮:狀態句直接說(dailycard 的 ready / syncOk)
-    get solo(){ return melOn() ? ["按 ▶ 你彈左手一輪,「做到了」就會亮", "Tap ▶, play the left hand once — then Did it turns on"] : ["按 ▶ 自己彈一輪,「做到了」就會亮", "Tap ▶, play it yourself once — then Did it turns on"]; } },
+    hint: ["按 ▶ 跟著彈一輪,「做到了」就會亮", "Tap ▶, play along once — Did it turns on"],   // 「做到了」要先播過一輪才亮:狀態句直接說(dailycard 的 ready / syncOk);英文要在 390 一行放得下(pairText 照比較高的,英文兩行中文也變兩行,第 7 輪健檢)
+    get solo(){ return melOn() ? ["按 ▶ 你彈左手一輪,「做到了」就會亮", "Tap ▶, play left hand once — Did it turns on"] : ["按 ▶ 自己彈一輪,「做到了」就會亮", "Tap ▶, play it alone once — Did it turns on"]; } },
   warmName, levelName, log: () => S.log,
   onStart: () => { dShow(daily.begin()); window.scrollTo({ top: 0 }); },
   onNext: () => dNext(), onPause: () => dExit(),

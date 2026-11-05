@@ -76,7 +76,10 @@
 | `.goal .chip.done` | 青綠框 | 青綠字 + `rgba(63,191,174,.14)` 底(淺色 `.10`),無框 |
 | `.sel`、`.field select` | 框 | 照舊(輸入框保留框線) |
 | `.seg` | iOS 原生 | **不動**(已定案) |
-| `#themeToggle`、`#langToggle` | 框 | 無框、`--fill-tag` 底、`--muted-bright` 字;選中照舊金底 |
+| `#themeToggle`、`#langToggle` | 框 | 無框、`--fill-tag` 底、`--muted-bright` 字;**不管哪種主題 / 語言都是中性底**(不換金色:金色只給主要動作,第 7 輪);點擊區 `::after` 44 |
+| `.qrow`(檢定清單一列) | 1px `--line` 框 | 無框、`--fill-btn` 底(跟 DrumDrill `button.xitem` 一樣);目前這一題 `inset 0 0 0 2px --gold` |
+| `.modal-card`(第一次的問題) | panel + 框 | 無框;深色比卡片亮一層 `#2A2316` + 上緣 1px 亮線(遮罩後分得出邊緣);「開始準備考試」= 主要(選好級數才金底)、「不考試」= 次要 |
+| `.log-week i`(7 天空點) | `--line` 外圈 | `--muted` 外圈(對比 ≥ 3:1,深淺主題) |
 | `.play-round` | 金底 52 | 加 `--shadow-play`;大小不動 |
 | `.play-round[data-cap]::after` | 置中在 ▶ 下 | **右緣對齊 ▶ 右緣**(`left:auto;right:0;transform:none;text-align:right`)、`--fs-cap`、`--muted-bright`;不超出卡片內距 |
 | `.q-title` | 襯線金 `clamp(26px,7.4vw,40px)` | 襯線金(保留)、`--fs-title`(上限 34)、line-height 1.35;固定高度改成 `calc(var(--fs-title) * 1.35)`;`#mod-tech .q-title` 的 margin-top 改成 `max(0px, calc((52px - var(--fs-title) * 1.35) / 2))`;`#mod-ear .q-title` 也用 `--fs-title`(拿掉 clamp) |
@@ -91,7 +94,7 @@
 | `.daily-bar b` | 襯線 | Noto Sans 700、`--fs-sub`、`--ivory` |
 | 速度卡 `.bpm b` | 襯線金 30–40 | Noto Sans 700、`--fs-title`、`--ivory`;`.bpm small` `--fs-cap` |
 | 速度卡(今日練習進行中) | 有拍點小點 | `#mod-tech.daily-on #t-metroCard .beats{display:none}` |
-| `.log-stats b` | 襯線金 | Noto Sans 700、`--ivory`;大小照「緊湊」那條(只把 px 換 rem) |
+| `.log-stats b` | 襯線金 | Noto Sans 700、`--ivory`、`--fs-title`(手機不超過一格寬的 2/5:`min(var(--fs-title), calc(11vw - 4px))`) |
 | `.log-week i.on` | 金底 | 不動(7 天點是圓形按鈕) |
 | 譜卡 `.paper` | 圓角 8 | 圓角 12;紙張內框保留 |
 | `.item-row` | — | 不是卡片(照 CLAUDE.md),不加底色;`.ir-name` `--fs-head` |

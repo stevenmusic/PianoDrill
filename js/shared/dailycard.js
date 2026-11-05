@@ -99,6 +99,7 @@ export function createDailyCard({ $, daily, labels = {}, warmName = () => "", le
         : labels.play ? L2(labels.play) : fmt(s.click && s.click !== "every" ? "ctaSolo" : "ctaPlay", { v: L2(labels.verb || ["彈", "play"]) });   // 拍點模式:「自己彈一輪」
       const icon = mode === "ok" ? ICON_OK : mode === "stop" ? ICON_STOP : mode === "play" ? ICON_PLAY : "";
       main.className = "btn daily-main daily-" + mode + (mode === "stop" ? "" : " primary");   // 停止 = 次要的樣子(同一個位置);其他 = 主要(金底)
+      if (main.dataset.mode !== mode) main._at = performance.now();   // 剛換字:這一下之後 0.7 秒內再按不算(連點兩下不會「做到了」之後直接跳段 / 開始播)
       main.dataset.mode = mode;
       main.innerHTML = icon + `<span class="btn-label">${esc(lbl)}</span>`;
       main.disabled = mode === "ok" && !okReady;
@@ -226,6 +227,7 @@ export function createDailyCard({ $, daily, labels = {}, warmName = () => "", le
       cta.querySelector(".daily-again").onclick = () => onAgain && onAgain();
       cta.querySelector(".daily-main").onclick = e => {
         const m = e.currentTarget.dataset.mode;
+        if (performance.now() - (e.currentTarget._at || 0) < 700) return;
         if (m === "next") onNext && onNext(); else if (m === "ok") onOk && onOk(); else onPlay && onPlay();   // play / stop:App 的播放鈕(切換)
       };
       step.appendChild(cta);

@@ -56,7 +56,7 @@ export function addStrings(ns, dict){ for (const [k, v] of Object.entries(dict))
 addStrings("daily", {
   title: ["今日練習", "Today"], about: ["約 {n} 分鐘", "About {n} min"],
   start: ["開始今天的練習", "Start today's practice"], resume: ["繼續今天的練習", "Continue today's practice"],
-  next: ["下一段 ›", "Next part ›"], finish: ["結束今天 ›", "Finish ›"], left: ["剩約 {n} 分", "~{n} min left"], timeUp: ["可以進下一段了", "Ready for the next"],
+  next: ["下一段 ›", "Next part ›"], finish: ["結束今天 ›", "Finish ›"], left: ["剩約 {n}\u00a0分", "~{n}\u00a0min left"], timeUp: ["可以進下一段了", "Ready for the next"],
   of: ["第 {i} 段,共 {n} 段", "Part {i} of {n}"],
   warm: ["暖身", "Warm-up"], review: ["複習", "Review"], level: ["第 {n} 關", "Level {n}"], lvOf: ["{r} {n} / {of}", "{r} {n} / {of}"],
   tempo: ["速度", "Tempo"], tempoTip: ["速度 {b} = 每分鐘 {b} 拍", "Tempo {b} = {b} beats a minute"], pause: ["暫停", "Pause"],

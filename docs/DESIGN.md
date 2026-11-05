@@ -47,7 +47,7 @@
 | `--panel` | `#1A150C`(原 #161209) | `#FFFDF8`(原 #F4EEE0) | 卡片 |
 | `--fill-btn`(新) | `rgba(242,185,75,.14)` | `rgba(122,92,22,.10)` | 次要按鈕、沒選的 chip / opt / mbtn |
 | `--fill-tag`(新) | `rgba(255,255,255,.07)`(= seg-track) | `rgba(60,45,10,.08)` | 標籤膠囊、主題 / 語言鈕 |
-| `--fill-inset`(新) | `rgba(10,8,5,.55)` | `#F3EEE3` | 「重點」方塊(凹進去) |
+| `--fill-inset`(新) | `rgba(10,8,5,.55)` | `#ECE6D8`(= 淺色頁面底色 `--bg`;2026-11 使用者選「拉開底色」,原本 `#F3EEE3`) | 「重點」方塊(凹進去) |
 | `--shadow-card`(新) | `inset 0 1px 0 rgba(255,255,255,.04), 0 6px 18px rgba(0,0,0,.35)` | `0 1px 3px rgba(90,72,30,.08), 0 8px 24px rgba(90,72,30,.06)` | 卡片 |
 | `--shadow-primary`(新) | `0 4px 12px rgba(242,185,75,.25)` | `0 4px 12px rgba(122,92,22,.22)` | 主要按鈕 |
 | `--shadow-play`(新) | `0 6px 16px rgba(242,185,75,.30)` | `0 6px 16px rgba(122,92,22,.25)` | 圓形 ▶ |
@@ -73,6 +73,7 @@
 | `.btn:disabled` | — | 不加底色,`opacity` 照舊 |
 | `.chip`、`.opt`、`.mbtn` | 1px `--line` 框、inset 底 | 無框、`--fill-btn` 底;選中 = 金底 `--on-fill` 字 700(刪掉 `:root.light .chip[aria-pressed]` 的淡底覆寫,淺色也是金底) |
 | `.mbtn` 選中 | 青綠 / 橘 | 不變(會了 = 青綠、再練 = 橘) |
+| `.goal .chip` | 灰字淡底(像標籤) | 金字 500 + 右邊線稿鉛筆 16(`::after` mask;2026-11 使用者選 B,看得出能點) |
 | `.goal .chip.done` | 青綠框 | 青綠字 + `rgba(63,191,174,.14)` 底(淺色 `.10`),無框 |
 | `.sel`、`.field select` | 框 | 照舊(輸入框保留框線) |
 | `.seg` | iOS 原生 | **不動**(已定案) |

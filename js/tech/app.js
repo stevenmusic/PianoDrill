@@ -605,10 +605,14 @@ function fitLandZoom(){
 }
 // 上方展開的設定卡不算(照收合時的位置算):不然展開/收合設定、切語言時樂譜大小跟著變
 /* 今日練習的底部按鈕列(dailycard 的 .daily-cta,position:fixed 貼在畫面底部)佔掉的高度:手機橫放貼底;直式在分頁列上面 */
-function ctaH(){
+function ctaEl(){
   const c = $("dailyStep") && !$("dailyStep").hidden ? $("dailyStep").querySelector(".daily-cta") : null;
-  if (!c || !c.offsetHeight) return 0;
-  return Math.max(0, innerHeight - c.getBoundingClientRect().top);
+  return c && c.offsetHeight ? c : null;
+}
+/* 手機橫放貼底:從它上緣到畫面底;直式與寬畫面它在分頁列上面,只算它自己的高(分頁列另外算,不重複扣) */
+function ctaH(){
+  const c = ctaEl(); if (!c) return 0;
+  return isPhoneLand() ? Math.max(0, innerHeight - c.getBoundingClientRect().top) : c.offsetHeight;
 }
 function openSetupHeight(){
   const st = $("stage").getBoundingClientRect().top;
@@ -1360,9 +1364,14 @@ function revealScore(){
   }
   const r = $("scoreCard").getBoundingClientRect(), bar = document.querySelector(".tabbar");
   const bt = bar ? bar.getBoundingClientRect().top : innerHeight;
-  const bottom = Math.min(bt > innerHeight / 2 ? bt : innerHeight, innerHeight - ctaH());   // 手機橫放時分頁列在左邊(top = 0),下面沒有東西擋;今日練習的底部按鈕列也會擋
-  if (r.bottom > bottom - 4) window.scrollBy({ top: Math.min(r.bottom - bottom + 8, r.top - 4), behavior: "smooth" });
-  else if (r.top < 0) window.scrollBy({ top: r.top - 8, behavior: "smooth" });
+  const c = ctaEl();
+  const bottom = Math.min(bt > innerHeight / 2 ? bt : innerHeight, c ? c.getBoundingClientRect().top : innerHeight);   // 手機橫放時分頁列在左邊(top = 0),下面沒有東西擋;今日練習的底部按鈕列也會擋
+  // 題目卡的標題列(大標題 + ▶)要留在頂欄下面:捲過頭會切掉標題、▶ 只露一半(停止也要按它)
+  const hb = document.querySelector("header").getBoundingClientRect().bottom;
+  const qh = $("quizCard").querySelector(".q-head").getBoundingClientRect();
+  const keep = qh.height && qh.top < r.top ? qh.top - hb - 6 : Infinity;
+  if (r.bottom > bottom - 4) { const d = Math.min(r.bottom - bottom + 8, r.top - hb - 4, keep); if (d > 2) window.scrollBy({ top: d, behavior: "smooth" }); }
+  else if (r.top < hb) window.scrollBy({ top: r.top - hb - 8, behavior: "smooth" });
 }
 /* 播放的準備或排程中途出錯時,不能讓 starting 卡著(之後怎麼按都不理);錯誤原因直接寫在卡片上,方便回報 */
 async function startPlayback(){

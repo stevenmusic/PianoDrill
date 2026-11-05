@@ -1287,6 +1287,29 @@ function bringScoreIntoView() {
   window.scrollTo({ top: Math.max(0, window.scrollY + card.top - top - 8), behavior: 'smooth' });
 }
 
+/** 題目卡從標題列(大標題 + ▶)到主要按鈕留在頂欄下、分頁列上面看得到;extra(結果)放得下也露出來,
+ *  但捲動量不把標題列捲出頂欄(照技巧的 revealScore 的 keep)。彈完、停下、看譜時間到用:下一步寫在狀態句,▶ 與按鈕要看得到 */
+function revealQuiz(extra) {
+  requestAnimationFrame(() => {
+    // 標題列的上緣 = 大標題與 ▶ 比較高的那個(手機橫放時 .q-head 是 display:contents,量不到)
+    const tops = [$('title'), $('play')].filter((el) => el.getClientRects().length).map((el) => el.getBoundingClientRect().top);
+    if (!tops.length) return;
+    const header = document.querySelector('header'), bar = document.getElementById('tabbar');
+    const hb = header ? header.getBoundingClientRect().bottom : 0;
+    const bt = bar ? bar.getBoundingClientRect().top : innerHeight;
+    const bottom = bt > innerHeight / 2 ? bt : innerHeight;   // 手機橫放時分頁列在左邊
+    const keep = Math.min(...tops) - hb - 6;                  // 把標題列捲到頂欄下的捲動量
+    let want = 0;
+    for (const el of [$('playAlongTop'), extra]) {
+      if (!el || !el.getClientRects().length) continue;
+      want = Math.max(want, el.getBoundingClientRect().bottom - bottom + 8);
+    }
+    const d = keep < 0 ? keep : Math.min(want, keep);
+    // scrollTo 絕對位置:播放軸的平滑捲動還沒停時,scrollBy 會疊加到它的終點
+    if (Math.abs(d) > 2) window.scrollTo({ top: Math.max(0, scrollY + d), behavior: 'smooth' });
+  });
+}
+
 /** 右上角的浮動倒數:放在頂欄下面(手機橫放時頂欄比較矮,所以每次量) */
 function showPrepFloat(seconds) {
   const header = document.querySelector('header');
@@ -1334,6 +1357,7 @@ function runPreparationCountdown() {
       // Continuity outscores accuracy: going back to fix a slip is counted as
       // a second mistake.
       say('prepDone');
+      revealQuiz();   // 樂譜捲在頂欄下:時間到要看得到 ▶、狀態句與「彈一遍」
       if (mode === 'exam') { const k = `${exam.system}-${exam.grade}`; SS.xn[k] = (SS.xn[k] || 0) + 1; paintItemRow(); }
       recordPractice();
       setAlongLabel();
@@ -1616,7 +1640,7 @@ function stopPlayAlong(message) {
   alongBeat = null;
   stopFollowing();
   setAlongLabel();
-  if (message) say(message);
+  if (message) { say(message); revealQuiz(); }   // 彈的時候樂譜往下捲:捲回看得到 ▶ 與主要按鈕
 }
 
 /* 彈一遍旁邊那張卡(麥克風開關 + 說明一行):有題目、能彈的時候才出現 */
@@ -1653,7 +1677,7 @@ async function togglePlayAlong() {
     let ok = false;
     try { await recorder.start((n) => onHeard(token, n)); ok = true; } catch {
       lastRhythmResult = { denied: true };
-      renderRhythmResult();
+      renderRhythmResult(true);
     }
     alongStarting = false;
     if (!current || token !== listenToken) { recorder.cancel(); return; }
@@ -1731,14 +1755,14 @@ function finishListening() {
   if (free) played = true;
   setAlongLabel();
   if (free) { recordPractice(); if (!SS.intro[hand]) { SS.intro[hand] = true; saveSS(); } }
-  if (!take || !heard) { lastRhythmResult = { silent: true }; renderRhythmResult(); say(free ? 'freeDone' : 'alongDone'); return; }
+  if (!take || !heard) { lastRhythmResult = { silent: true }; renderRhythmResult(true); say(free ? 'freeDone' : 'alongDone'); return; }
   say('micAnalysing');
   const score = current.score;
   setTimeout(() => {
     if (!current || current.score !== score) return;
     lastRhythmResult = analyseTake(take, score);
     window.__lastTake = { result: lastRhythmResult }; // 測試掛鉤(tools/sight/mic-check.js)
-    renderRhythmResult();
+    renderRhythmResult(true);
     say(free ? 'freeDone' : 'alongDone');
   }, 30);
 }
@@ -1767,7 +1791,7 @@ const ISSUE = {
   wrong: () => tr('音不對', 'wrong notes'),
 };
 const ISSUE_ORDER = ['pause', 'restart', 'miss', 'wrong', 'rhythm', 'fast', 'slow'];
-function renderRhythmResult() {
+function renderRhythmResult(reveal = false) {
   const r = lastRhythmResult;
   const box = elements.alongResult;
   if (!r) { box.hidden = true; paintBarMarks(); return; }
@@ -1801,11 +1825,8 @@ function renderRhythmResult() {
   box.hidden = false;
   box.querySelectorAll('p[data-pair]').forEach((el) => pairText(el, pairs[Number(el.dataset.pair)]));
   paintBarMarks();
-  // 結果沒露出來就捲過去
-  requestAnimationFrame(() => {
-    const rect = box.getBoundingClientRect();
-    if (rect.height && rect.bottom > innerHeight - 70) box.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-  });
+  // 結果沒露出來就捲過去(題目卡標題列與 ▶ 不捲出頂欄)
+  if (reveal) revealQuiz(box);
 }
 
 /* 有問題的小節在譜上標顏色(重畫樂譜、換尺寸以後重新標) */

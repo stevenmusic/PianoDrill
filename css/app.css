@@ -1122,7 +1122,7 @@ body.daily-on footer{display:none}
 }
 #mod-tech.daily-on #t-metroCard .card-title{flex-wrap:nowrap}
 #mod-tech.daily-on #t-metroCard .card-title b{white-space:nowrap}
-@media (max-width:340px){ #mod-tech.daily-on #t-metroCard .beats{display:none} }
+@media (max-width:340px){ #mod-tech.daily-on #t-metroCard .beats{display:none} #mod-tech.daily-on #t-metroCard .card-title{flex-wrap:wrap;row-gap:0} #mod-tech.daily-on #t-metroCard .card-title .sub{flex:1 1 100%;overflow:visible;text-overflow:clip} }   /* 折疊機:「自動調整」放到「速度」下面一行,不截成「…」(newbie.mjs) */
 /* PianoDrill 今日練習的譜面標記:手位圖(譜卡標題列;一行高)、和弦表(標題列下面一行) */
 .score-head .seg{margin-left:auto}
 .hand-pos{display:flex;align-items:center;gap:6px;min-width:0;flex:0 1 auto;flex-wrap:wrap}

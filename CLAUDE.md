@@ -91,7 +91,7 @@ FingerDrill(技巧)、SightDrill(視奏)、EarDrill(聽音)三個工具合併成
   最後一段的「下一段 ›」寫「結束今天 ›」;練完卡「再練一下」是主要按鈕(卡上唯一的按鈕);練不到預計時間 6 成不寫「今天到這裡就好」;中途停下的播放秒數也算(PD stopPlayback)。
   **底部固定按鈕**(2026-11 使用者選定,像 Duolingo;dailycard 的 `.daily-cta`,app.css):段落進行中按鈕列固定在畫面底部(分頁列正上方;手機橫式貼底、讓出左邊分頁列;寬畫面跟卡片同寬置中),位置永遠不變、每一步只換字:
   還沒播 =「▶ 跟著彈 / 打一輪」(拍點模式「▶ 自己…一輪」、PD 合奏「▶ 你彈左手一輪」;按了 = App 的播放 `onPlay`,跟題目卡的圓形 ▶ 同一個)→ 播放中還沒播滿一輪 =「■ 停止」(次要外觀)→ 播過一輪(播放中或停了)=「✓ 做到了 / 穩了」+ 左邊次要「還要練」→
-  過關沒接下一關、複習完、暖身 =「下一段 ›」(最後一段「結束今天 ›」);主要按鈕高 ≥ 52(手機橫式 44)、左邊最多一顆次要;App 開始 / 停止播放呼叫 `dcard.playing(bool)`;App 自己的主要按鈕(DD 手機鼓墊「打一遍」)用 `acts.primary` 取代;
+  過關沒接下一關、複習完、暖身 =「下一段 ›」(最後一段「結束今天 ›」);主要按鈕高 ≥ 52(手機橫式 44)、左邊最多一顆次要;「還要練」一直佔著左邊的位置(沒播過一輪 = 灰的不能按、「下一段 ›」時看不見但不讓位),主要按鈕位置與寬度每一步都一樣(newbie.mjs 檢查);App 的文字鈕放面板裡一行(`acts.panel`,不佔底部);App 開始 / 停止播放呼叫 `dcard.playing(bool)`;App 自己的主要按鈕(DD 手機鼓墊「打一遍」)用 `acts.primary` 取代;
   main 底部留白加這一列的高度(`body.daily-on main`);狀態句照舊(ready / ask / resultText)
 - **今日練習進行中**:子項目列換成今日練習的那一行(進度、暫停、下一段 ›;外框 `ctx.subBar(el, view)`,`dailycard.js` 的 `barHost`),不再上下兩行;
   過關、穩了 / 做到了一個短的取樣音(鼓 xstick、琴 Salamander 高音 C,不用合成音);速度卡副標「自動調整」;重點是每項一行的清單
@@ -300,6 +300,7 @@ FingerDrill(技巧)、SightDrill(視奏)、EarDrill(聽音)三個工具合併成
   - `node tools/test/ear-verify.mjs`(聽力:檢定、練習、旋律)
   - `node --test test/sight/*.test.js`(視奏產生器);`node tools/sight/audit.js`(視奏的統計分布,改產生器後要跑;預設 1–8 級,初級加 `--grade 0`;改了只影響某幾級時,其他級的輸出要跟改前逐字相同)
 - 瀏覽器測試(`cd tools/test && npm i` 一次;Playwright):
+  - `node tools/test/newbie.mjs`(全新使用者從頭走到尾:第一次打開 → 開始練習 → 今日練習每一段 ▶ → 做到了 → 過關 → 結束今天 → 再練一下 → 路線;每一步檢查有下一步、底部主要按鈕不跳、題目卡標題與 ▶ 沒被頂欄切掉、版面不跳、同一句話不重複、主要導覽點擊區 ≥ 44(含 ::after 伸出去的)、沒有「…」;iphone-390 / fold-280 / iphone-land + 英文 390,`ONLY=` 選幾輪,失敗截圖在 `tools/test/out/newbie`;兩個 App 同一份,sync.json markers)。**改今日練習、版面、流程一定要跑**
   - `node tools/test/playhead.mjs [寬度]`(播放軸對準符頭正中央:技巧、今日練習、視奏每個音與休止符 ≤ 2 px;兩個 App 同一份;改播放軸、譜面排法要跑)
   - `node tools/test/layout.mjs`(19 種尺寸 × 每個畫面;`ONLY=fold-280,se1-320` 只跑幾種)
   - `node tools/test/bilingual.mjs [尺寸]`(中英版面一致)

@@ -95,6 +95,7 @@ export function createDailyCard({ $, daily, routes = null, labels = {}, warmName
   function paintActs(){
     const row = step.querySelector(".daily-cta"); if (!row) return;
     row.querySelectorAll("[data-app-act]").forEach(el => park.appendChild(el));
+    step.querySelectorAll(".daily-approw > [data-app-act]").forEach(el => park.appendChild(el));
     if (!park.isConnected) step.appendChild(park);
     const s = lastSeg; if (!s) return;
     const o = lastOpts, warm = s.k === "warm", done = !!o.passedDone;
@@ -104,7 +105,12 @@ export function createDailyCard({ $, daily, routes = null, labels = {}, warmName
     panelNext = mode === "next";
     const app = acts.primary ? acts.primary(s, o, { ready: okReady, playing, done, warm }) : null;
     for (const el of (acts.left ? acts.left(s, o) : []) || []) { el.dataset.appAct = "1"; row.insertBefore(el, again); }
-    again.hidden = mode !== "ok" || !okReady;   // 「還要練」也要先播過一輪(沒彈就按 = 不算一次;下一步只有一個)
+    // acts.panel:App 的文字鈕放在面板裡一行(底部按鈕列之上;例:DD「沒有鼓?用手機打」),不佔底部的位置
+    const pa = (acts.panel ? acts.panel(s, o) : []) || []; let pr = step.querySelector(".daily-approw");
+    if (pa.length) { if (!pr) { pr = document.createElement("p"); pr.className = "daily-backrow daily-approw"; step.insertBefore(pr, row); } for (const el of pa) { el.dataset.appAct = "1"; pr.appendChild(el); } }
+    else if (pr) pr.remove();
+    // 「還要練」一直佔著左邊的位置,主要按鈕才不會左右縮放(newbie.mjs:「位置永遠不變」):沒播過一輪 = 灰的不能按;「下一段 ›」時看不見但不讓位
+    again.hidden = false; again.disabled = mode !== "ok" || !okReady; again.style.visibility = mode === "next" ? "hidden" : "";
     if (app) { app.dataset.appAct = "1"; row.insertBefore(app, main); main.hidden = true; }
     else {
       main.hidden = false;

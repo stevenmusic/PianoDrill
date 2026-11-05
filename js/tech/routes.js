@@ -221,9 +221,15 @@ const WHY_ACCOMP = {
   C: C("生日快樂歌是三拍子,學會華爾茲伴奏就能配", "Happy Birthday is in 3/4; the waltz bass lets you accompany it"),
   D: C("很多流行歌用 I–V–vi–IV,學會就能自彈自唱", "Many pop songs use I–V–vi–IV; learn it to play and sing")
 };
+/* 路線圖(js/shared/roadmap.js;今日卡的「路線」)每一組的名字:7 歲看得懂的說法(中文 ≤ 8 字、英文 ≤ 20 字,checks/roadmap.mjs 檢查) */
+const GROUPS_FINGER = {
+  "0": C("初學基礎", "First steps"), A: C("五指位置", "Five-finger position"), B: C("4、5 指", "Fingers 4 and 5"), C: C("按住一個音", "Hold one note"),
+  D: C("3、4 指", "Fingers 3 and 4"), E: C("拇指穿越", "Thumb under"), F: C("兩手不一樣", "Hands apart"), G: C("換位置", "New positions")
+};
+const GROUPS_ACCOMP = { A: C("柱式和弦", "Block chords"), B: C("分解和弦", "Broken chords"), C: C("華爾茲", "Waltz"), D: C("流行伴奏", "Pop accompaniment") };
 export const ROUTES = [
-  { id: "finger", name: ["手指", "Fingers"], why: WHY_FINGER, levels: finish("finger", FINGER) },
-  { id: "accomp", name: ["伴奏", "Accomp."], unlock: { route: "finger", passed: "PA5" }, why: WHY_ACCOMP, levels: finish("accomp", ACCOMP) }
+  { id: "finger", name: ["手指", "Fingers"], why: WHY_FINGER, groups: GROUPS_FINGER, levels: finish("finger", FINGER) },
+  { id: "accomp", name: ["伴奏", "Accomp."], unlock: { route: "finger", passed: "PA5" }, why: WHY_ACCOMP, groups: GROUPS_ACCOMP, levels: finish("accomp", ACCOMP) }
 ];
 
 /* ══ 複習的變化只用學過的(系統化規則;daily.js 的 extras.vary)══

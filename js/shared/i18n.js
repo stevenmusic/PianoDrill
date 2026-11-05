@@ -84,7 +84,12 @@ addStrings("daily", {
   climb: ["今天速度 {a} → {b},離目標 {t} 再加油", "Tempo today {a} → {b} — keep going toward {t}"], climbTop: ["今天速度 {a} → {b},到目標速度了!", "Tempo today {a} → {b} — target tempo reached!"],
   week: ["最近 7 天練了 {d} 天", "Practiced {d} of the last 7 days"], tomorrow: ["明天:{list}", "Tomorrow: {list}"],
   opened: ["新路線開放了:{r}!", "New route unlocked: {r}!"],
-  more: ["再練一下", "Practice a bit more"]
+  more: ["再練一下", "Practice a bit more"],
+  // 路線圖(今日卡的「路線」鈕,在卡內往下展開;js/shared/roadmap.js):組名沒有資料時寫 roadG;每一組「3 / 6」的讀法 roadCount;每一關、每一組的狀態 road_*(圖示的名稱)
+  road: ["路線", "Route"], roadG: ["{g} 組", "Group {g}"], roadCount: ["過了 {a} / {n} 關", "{a} of {n} passed"],
+  road_pass: ["過了", "Passed"], road_cur: ["正在練", "Now"], road_todo: ["還沒練", "Not yet"], road_lock: ["還沒開放", "Locked"],
+  // 過關慶祝(js/shared/celebrate.js;題目卡狀態句上面一條短橫幅,約 1.5 秒)
+  cheer: ["過關 ✓", "Passed ✓"]
 });
 /* 練習紀錄備份(頁尾「備份紀錄」;js/shared/backup.js + main.js 共用部分;兩個 App 一樣):{f} = 檔名;err_* = backup.js 的錯誤代碼 */
 addStrings("bak", {

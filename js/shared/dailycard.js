@@ -10,10 +10,16 @@
    按鈕列 = 固定在畫面底部的一條(.daily-cta;2026-11 使用者選定,像 Duolingo):位置永遠不變、每一步只換字 ——
    「▶ 跟著彈 / 打一輪」(onPlay)→ 播放中還沒播滿一輪「■ 停止」→ 播過一輪「✓ 做到了 / 穩了」+ 左邊次要「還要練」→ 過關沒接下一關、複習完、暖身「下一段 ›」(最後一段「結束今天 ›」);
    App 開始 / 停止播放時呼叫 playing(true / false)
+   路線圖(2026-11;第一版只看、不能跳關練):還沒開始 / 暫停 / 練完的卡片最下面一顆次要鈕「路線」(aria-expanded),點了在卡內往下展開(不跳視窗;進行中不顯示):
+     每條路線一段、一列一組(組名 + 「3 / 6」+ 狀態圖示 過 / 目前 / 還沒到 / 還沒開放),預設只展開每條路線目前那一組;組裡一關一行,點一關在行內展開重點(check);
+     還沒開放的路線一行淡字寫開放條件。資料 = js/shared/roadmap.js(純函式);App 要傳 routes 才有這顆鈕
+   過關慶祝:celebrate() = 狀態句上面一條短橫幅「過關 ✓」+ 線稿星星(js/shared/celebrate.js;App 在過關時呼叫,聲音 App 自己放)
    文字都用 i18n 的 daily.*(兩個 App 一樣)+ 模組傳進來的 labels(穩了 / 做到了…);段落文字用 pairText(中英一樣高) */
 import { tr, T, pairText } from "./i18n.js";
 import { streak } from "./practicelog.js";
 import { pick as pickMs, byId as msById } from "./milestone.js";
+import { roadmap, curGroups } from "./roadmap.js";
+import { celebrate as celebrateIn } from "./celebrate.js";
 
 const fmt = (key, o = {}) => T("daily." + key).replace(/\{(\w+)\}/g, (_, k) => (o[k] != null ? o[k] : ""));
 const L2 = v => (Array.isArray(v) ? tr(v[0], v[1]) : v == null ? "" : String(v));
@@ -21,6 +27,12 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;",
 const ICON_PLAY = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4v16l13-8z"/></svg>';
 const ICON_PAUSE = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5v14M15 5v14"/></svg>';
 const ICON_OK = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>';
+const svg = (w, body) => `<svg width="${w}" height="${w}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${body}</svg>`;
+/* 路線圖的狀態圖示(線稿 24 格):過了 = 圈 + 勾、目前 = 圈 + 實心點、還沒到 = 空圈、還沒開放 = 鎖 */
+const ROAD_ICON = { pass: svg(20, '<circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.8 2.8L16.5 9.5"/>'), cur: svg(20, '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.5" fill="currentColor"/>'),
+  todo: svg(20, '<circle cx="12" cy="12" r="9"/>'), lock: svg(20, '<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>') };
+const ICON_ROAD = svg(18, '<circle cx="6" cy="19" r="2"/><circle cx="18" cy="5" r="2"/><path d="M8 19h8.5a3.5 3.5 0 0 0 0-7h-9a3.5 3.5 0 0 1 0-7H16"/>');
+const ICON_CHEV = svg(18, '<path d="M6 9l6 6 6-6"/>');
 const ICON_STOP = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="1.5"/></svg>';
 
 /* 拍點模式的名稱(daily.js 的 CLICK_MODES) */
@@ -60,7 +72,7 @@ export function resultText(res, s, next = null, good = "很穩!"){
   return t;
 }
 
-/* createDailyCard({ $, daily, labels, warmName, levelName, log, onStart, onNext, onPause, onMore, onOk, onAgain, onBack, onPlay, announce, acts, mark, barHost })
+/* createDailyCard({ $, daily, routes, labels, warmName, levelName, log, onStart, onNext, onPause, onMore, onOk, onAgain, onBack, onPlay, announce, acts, mark, barHost })
    - labels = { ok: [中, 英], again: [中, 英], hint: [中, 英](學的時候的下一步), solo: [中, 英](只有拍點的時候), verb: [中, 英](暖身提示的動詞:打 / 彈),
      good: [中, 英](穩了的稱讚:鼓「很穩!」、琴「很好!」), wait: [中, 英](「穩了 / 做到了」還不能按時按鈕的 title;沒給就用 hint),
      play: [中, 英](底部按鈕「▶ …一輪」的字,App 可以換;沒給 = daily.ctaPlay / 拍點模式 daily.ctaSolo,動詞照 verb) }
@@ -69,11 +81,12 @@ export function resultText(res, s, next = null, good = "很穩!"){
    - log() → 模組的練習紀錄(最近 7 天練了幾天)
    - mark(s) → 這一段速度的寫法(預設「♩=」;DrumDrill 12/8 的關「♩.=」):標籤、狀態、結果的速度都照這個寫
    - levelName(s) → 關卡顯示的名稱 [中, 英](預設 s.level.name;鋼琴伴奏的關寫實際和弦,換調複習跟著換)
+   - routes = 路線資料(各 App 的 routes.js 的 ROUTES):有給才有「路線」鈕(路線圖;組名 = 路線的 groups[組],沒有寫「A 組」)
    - barHost(el | null) → 進行中那一行放到外框的子項目列(main.js 的 ctx.subBar);沒給就留在卡片裡
    - acts = { left(s, o), right(s, o), primary(s, o, st) } → App 自己額外的按鈕:left(元素陣列)放在底部按鈕列左邊(次要,例如 DrumDrill 的「沒有鼓?」)、right(元素陣列)放在最右邊;
      primary → 一個元素或 null:取代底部的主要按鈕(例如 DrumDrill 手機鼓墊模式的「打一遍」;st = { ready, playing, done, warm },狀態一變就重新問);
      元素由 App 建立、一直留在文件裡:這一次沒用到的(或面板收起來時)放在面板裡藏起來的 .daily-park,App 用 id 找得到 */
-export function createDailyCard({ $, daily, labels = {}, warmName = () => "", levelName = s => s.level.name, log = () => ({}), onStart, onNext, onPause, onMore, onOk, onAgain, onBack, onPlay = null, announce = () => {}, acts = {}, mark = () => "♩=", barHost = null }){
+export function createDailyCard({ $, daily, routes = null, labels = {}, warmName = () => "", levelName = s => s.level.name, log = () => ({}), onStart, onNext, onPause, onMore, onOk, onAgain, onBack, onPlay = null, announce = () => {}, acts = {}, mark = () => "♩=", barHost = null }){
   const M = (s, t) => { const m = s ? mark(s) : "♩="; return m === "♩=" || !t ? t : String(t).replace(/♩=/g, m); };
   const card = $("dailyCard"), step = $("dailyStep");
   const park = document.createElement("div"); park.className = "daily-park"; park.hidden = true;
@@ -150,9 +163,10 @@ export function createDailyCard({ $, daily, labels = {}, warmName = () => "", le
     card.innerHTML = `<div class="card-title"><b id="${tid}">${esc(fmt("title"))}</b><span class="sub">${esc(fmt("about", { n: daily.minutes() }))}</span></div>` +
       `<ol class="daily-list">${items}${locks}</ol>` +
       `<button class="btn primary daily-btn">${ICON_PLAY}<span class="btn-label">${esc(fmt(st === "run" ? "resume" : "start"))}</span></button>` +
-      (daily.data.seen ? "" : `<p class="daily-note"></p>`);
+      (daily.data.seen ? "" : `<p class="daily-note"></p>`) + roadHTML();
     const note = card.querySelector(".daily-note"); if (note) pairText(note, () => fmt("note"));
     card.querySelector(".daily-btn").onclick = () => onStart && onStart();
+    paintRoad();
   }
   /* 進行中:一行進度(暫停 = 回到卡片「繼續今天的練習」;下一段 ›) */
   function renderBar(){
@@ -182,7 +196,7 @@ export function createDailyCard({ $, daily, labels = {}, warmName = () => "", le
     card.innerHTML = `<div class="card-title"><b id="${tid}">${esc(fmt("title"))}${s.segs ? " ✓" : ""}</b></div>` +   // 一段都沒練:不打勾
       `<p class="daily-sum"></p>` + (up ? `<p class="daily-sum daily-ms daily-up"></p>` : "") + `<p class="daily-sub"></p>` + (news.length ? `<p class="daily-sum daily-ms daily-new"></p>` : "") +
       (tom.length ? `<p class="daily-sub daily-tom"></p>` : "") + (ms ? `<p class="daily-sum daily-ms"></p>` : "") +
-      `<button class="btn primary daily-more">${esc(fmt("more"))}</button>`;   // 練完卡唯一的按鈕 = 主要(2026-11 使用者:練完不知道該點什麼)
+      `<button class="btn primary daily-more">${esc(fmt("more"))}</button>` + roadHTML();   // 練完卡的主要按鈕(2026-11 使用者:練完不知道該點什麼);下面只有次要的「路線」
     // 一段都沒練(全部按「下一段」跳過):只寫「今天還沒練到」;不到 1 分鐘寫秒;最近 7 天 0 天不寫那一行
     const time = () => (s.sec < 60 ? fmt("sec", { n: Math.round(s.sec) }) : fmt("min", { n: Math.round(s.sec / 60) }));
     const enough = s.sec >= daily.today().plan.reduce((a, p) => a + (p.sec || 0), 0) * 0.6;   // 練了預計時間的 6 成以上才說「今天到這裡就好」(19 秒不說)
@@ -195,6 +209,77 @@ export function createDailyCard({ $, daily, labels = {}, warmName = () => "", le
     if (up) pairText(card.querySelector(".daily-up"), () => fmt(up.to >= up.target ? "climbTop" : "climb", { a: up.from, b: up.to, t: up.target }));
     if (ms) pairText(card.querySelector(".daily-ms:not(.daily-new):not(.daily-up)"), () => tr(ms.zh, ms.en));
     card.querySelector(".daily-more").onclick = () => onMore && onMore();
+    paintRoad();
+  }
+  /* ── 路線圖(卡片最下面的「路線」鈕,點了在卡內往下展開;只看,不能跳關)──
+     roadOpen = 展開了沒;roadGs = 展開的組(「路線/組」;null = 預設:每條路線目前那一組);roadLvs = 展開重點的關(「路線/關」)。重畫、換語言照舊 */
+  let roadOpen = false, roadGs = null;
+  const roadLvs = new Set(), rid = card.id + "-road";
+  function roadHTML(){
+    if (!routes) return "";
+    return `<button class="btn ghost daily-road-btn" aria-expanded="${roadOpen}" aria-controls="${rid}">${ICON_ROAD}<span class="btn-label">${esc(fmt("road"))}</span><span class="road-chev">${ICON_CHEV}</span></button>` +
+      `<div class="daily-road" id="${rid}"${roadOpen ? "" : " hidden"}></div>`;
+  }
+  const roadMark = st => `<span class="road-mark road-${st}" role="img" aria-label="${esc(fmt("road_" + st))}">${ROAD_ICON[st]}</span>`;
+  function paintRoad(){
+    const btn = card.querySelector(".daily-road-btn"), box = card.querySelector(".daily-road");
+    if (!btn || !box) return;
+    btn.onclick = () => { roadOpen = !roadOpen; btn.setAttribute("aria-expanded", String(roadOpen)); box.hidden = !roadOpen; if (roadOpen) fillRoad(box); else box.innerHTML = ""; };
+    if (roadOpen) fillRoad(box);
+  }
+  function fillRoad(box){
+    const map = roadmap(routes, daily.data);
+    if (!roadGs) roadGs = new Set(curGroups(map));
+    let k = 0;
+    const id = () => `${rid}-${k++}`;
+    box.innerHTML = map.map(x => {
+      const head = `<h3 class="road-rn">${esc(L2(x.route.name))}</h3>`;
+      if (!x.open) {
+        const A = x.after && routes.find(r => r.id === x.after.r);
+        return `<section class="road-r locked">${head}<p class="road-lock">${roadMark("lock")}<span class="road-t" data-lock="${A ? x.after.n : ""}" data-r="${A ? A.id : ""}"></span></p></section>`;
+      }
+      return `<section class="road-r">${head}<ul class="road-gs">` + x.groups.map(G => {
+        const gid = id(), on = roadGs.has(G.key);
+        return `<li class="road-g st-${G.st}"><button class="road-gb" data-g="${esc(G.key)}" aria-expanded="${on}" aria-controls="${gid}">${roadMark(G.st)}` +
+          `<span class="road-t road-gn" data-r="${x.id}" data-g2="${esc(G.g)}"></span><span class="road-gc" aria-label="${esc(fmt("roadCount", { a: G.pass, n: G.total }))}">${G.pass} / ${G.total}</span><span class="road-chev">${ICON_CHEV}</span></button>` +
+          `<ol class="road-ls" id="${gid}"${on ? "" : " hidden"}>` + G.levels.map(l => {
+            const lid = id(), lk = x.id + "/" + l.id, open = roadLvs.has(lk);
+            return `<li class="road-l st-${l.st}"><button class="road-lb" data-l="${esc(lk)}" aria-expanded="${open}" aria-controls="${lid}">${roadMark(l.st)}<span class="road-t road-ln" data-r="${x.id}" data-lv="${esc(l.id)}"></span></button>` +
+              `<div class="road-chk" id="${lid}"${open ? "" : " hidden"}><ul></ul></div></li>`;
+          }).join("") + `</ol></li>`;
+      }).join("") + `</ul></section>`;
+    }).join("");
+    // 文字(中英同高:pairText);組名 = 路線的 groups[組],沒有就「A 組」;一關 =「第 3 關 · 名稱」(名字照 App 的 levelName:鋼琴伴奏寫實際和弦)
+    box.querySelectorAll(".road-gn").forEach(el => {
+      const R = routes.find(r => r.id === el.dataset.r), g = el.dataset.g2, nm = R && R.groups && R.groups[g];
+      pairText(el, () => (nm ? L2(nm) : fmt("roadG", { g })));
+    });
+    box.querySelectorAll(".road-ln").forEach(el => {
+      const L = daily.levelOf(el.dataset.r, el.dataset.lv);
+      if (L) pairText(el, () => `${fmt("level", { n: L.n })} · ${L2(levelName({ k: "route", level: L }))}`);
+      const li = el.closest(".road-l"), chk = L ? [...(L.handsLine ? [L.handsLine] : []), ...(L.check || [])] : [];
+      li.querySelector(".road-chk ul").innerHTML = chk.map(c => `<li>${esc(L2(c))}</li>`).join("");
+      if (!chk.length) li.querySelector(".road-chk").remove();
+    });
+    box.querySelectorAll(".road-lock .road-t").forEach(el => {
+      const A = routes.find(r => r.id === el.dataset.r);
+      if (A) pairText(el, () => fmt("locked", { r: L2(A.name), n: el.dataset.lock }));
+    });
+    // 點一組 / 一關:在原處展開或收起(不重畫,鍵盤焦點留在同一顆)
+    box.querySelectorAll(".road-gb").forEach(b => { b.onclick = () => {
+      const on = b.getAttribute("aria-expanded") !== "true", list = document.getElementById(b.getAttribute("aria-controls"));
+      b.setAttribute("aria-expanded", String(on)); if (list) list.hidden = !on;
+      if (on) roadGs.add(b.dataset.g); else roadGs.delete(b.dataset.g);
+    }; });
+    box.querySelectorAll(".road-lb").forEach(b => {
+      const d = document.getElementById(b.getAttribute("aria-controls"));
+      if (!d) { b.removeAttribute("aria-expanded"); b.removeAttribute("aria-controls"); b.disabled = true; return; }   // 沒有重點的關:不能點
+      b.onclick = () => {
+        const on = b.getAttribute("aria-expanded") !== "true";
+        b.setAttribute("aria-expanded", String(on)); d.hidden = !on;
+        if (on) roadLvs.add(b.dataset.l); else roadLvs.delete(b.dataset.l);
+      };
+    });
   }
   /* 里程碑稱讚:今天已經有一句 → 同一句(重畫、換語言);還沒有 → 挑一句,當下記成看過(milestone.js;連續天數照練習紀錄卡) */
   function milestone(lg, s){
@@ -294,6 +379,8 @@ export function createDailyCard({ $, daily, labels = {}, warmName = () => "", le
       const go = labels.go;   // App 可以換下一步的說法(DrumDrill 手機鼓墊:「按「打一遍」再打一次」)
       return M(s, t + sep + (go ? L2(go) : fmt("go", { v })));
     },
+    /* 過關慶祝:狀態句上面一條短橫幅(App 在過關時呼叫;面板收起來時不放) */
+    celebrate(){ if (step.hidden) return null; return celebrateIn(step, fmt("cheer"), { before: step.querySelector(".daily-status") }); },
     varyText: s => M(s, varyText(s)), segKind, levelName,
     defaultStatus: s => M(s, defaultStatus(s))
   };

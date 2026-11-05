@@ -1543,7 +1543,7 @@ function replanWarm(){
   else { for (const k of ["plan", "done", "sec", "tries"]) if (Array.isArray(t[k])) t[k].splice(i, 1); }
   S.daily = daily.data; store.save();
 }
-const dcard = createDailyCard({ $, daily,
+const dcard = createDailyCard({ $, daily, routes: ROUTES,   // routes:今日卡的「路線」(路線圖)
   labels: { ok: ["做到了", "Did it"], again: ["還要練", "Not yet"], verb: ["彈", "play"], good: ["很好!", "Good!"],
     // 狀態一句短話(fold-280 不超過兩行);過關規則改成到了目標速度在標籤後面顯示「穩 0 / 3」
     hint: ["按 ▶ 跟著彈一輪,「做到了」就會亮", "Tap ▶, play along once — Did it turns on"],   // 「做到了」要先播過一輪才亮:狀態句直接說(dailycard 的 ready / syncOk);英文要在 390 一行放得下(pairText 照比較高的,英文兩行中文也變兩行,第 7 輪健檢)
@@ -1592,6 +1592,7 @@ function dShow(s, status = null){
   if (ctx && ctx.setSubActive) ctx.setSubActive(false, "tech");
   ROOT.querySelectorAll(".pane").forEach(p => { p.hidden = true; });
   setQuestion(dailyQ(s), "daily");
+  if (s.k === "route") preCheer();   // 過關琶音的取樣先載好
   syncReady();
   dcard.render(); dcard.renderStep(s, { status });
 }
@@ -1611,17 +1612,31 @@ function dTry(self){
   stopPlayback();
   const s = dseg, res = daily.attempt({ bpm, self });
   const txt = () => dcard.resultText(res, s);
-  if (res.passed || res.verdict === "steady") cue();
-  if (res.passed && res.cont) { dShow(daily.seg(), txt); return; }
+  if (res.passed) cheer(); else if (res.verdict === "steady") cue();   // 過關 = 上行琶音;做到了(還沒過關)= 單音
+  if (res.passed && res.cont) { dShow(daily.seg(), txt); dcard.celebrate(); return; }
   dseg = daily.seg();
   if (s.k === "route") { bpm = res.nextBpm; cur.tempo.bpm = bpm; syncTempoUI(); }
   renderQText(cur, "daily"); fitTitle();
   heardAt = null; syncReady();   // 每一次自評 = 彈過一輪:要再按 ▶ 彈一輪才能再自評(狀態寫「按 ▶ 再彈一次」)
   dcard.renderStep(dseg, { status: txt, passedDone: res.passed || s.k === "review" });
   dcard.render();
+  if (res.passed) dcard.celebrate();   // 過關慶祝:狀態句上面一條短橫幅(複習升盒不放)
 }
 /* 過關、做到了:一個短的取樣音(Salamander 高音 C6;不用合成音) */
 function cue(){ audio.ensureAudio(); audio.loadPianoFor([{ midi: 84, vel: 70 }], 1).then(() => { const t = audio.audioNow() + 0.03; audio.playPianoNote(84, t, t + 0.25, t + 0.3, 70, false); }).catch(() => {}); }
+/* 過關:Salamander 小聲彈 C5–E5–G5–C6 上行琶音(不用合成音);取樣還沒載好(超過 0.6 秒)就不出聲、不報錯。
+   段落顯示時先在背景載好(preCheer),過關那一下通常已經有了 */
+const CHEER = [72, 76, 79, 84], CHEER_VEL = 58;
+const preCheer = () => audio.loadPianoFor(CHEER.map(midi => ({ midi, vel: CHEER_VEL })), 1).catch(() => {});
+function cheer(){
+  audio.ensureAudio();
+  const t0 = performance.now();
+  preCheer().then(() => {
+    if (performance.now() - t0 > 600) return;
+    const t = audio.audioNow() + 0.03;
+    CHEER.forEach((m, i) => { const at = t + i * 0.09; audio.playPianoNote(m, at, at + (i === 3 ? 0.6 : 0.3), at + (i === 3 ? 0.7 : 0.35), CHEER_VEL, false); });
+  }).catch(() => {});
+}
 /* 下一段:練過的那一段算一次練習 */
 function dNext(){
   stopPlayback();

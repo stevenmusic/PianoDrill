@@ -436,6 +436,8 @@ try { const before = fails; dailycheck(ok); console.log(fails === before ? "今�
 // 今日練習的關卡(js/tech/routes.js + patterns.js):手指 33 關、伴奏 17 關、每個複習變化、暖身(checks/routes.mjs;另外照樂理寫一份互相核對)
 try { const { default: routescheck } = await import("./checks/routes.mjs"); const before = fails; const n = routescheck(ok, FG); console.log(fails === before ? `今日練習關卡 ${n} 題 ✓` : "今日練習關卡 ✗"); } catch (e) { fail("今日練習關卡檢查出錯:" + e.stack); }
 
+// 路線圖(js/shared/roadmap.js;兩個 App 同一份):組數加總、過 / 目前 / 還沒到 / 還沒開放、每一組有名字(checks/roadmap.mjs)
+try { const { default: rmcheck } = await import("./checks/roadmap.mjs"); const before = fails; const n = rmcheck(ok); console.log(fails === before ? `路線圖 ${n} 組 ✓` : "路線圖 ✗"); } catch (e) { fail("路線圖檢查出錯:" + e.stack); }
 // 練習紀錄備份(js/shared/backup.js;兩個 App 同一份):往返、壞檔、別的 App、惡意 key、太大、寫入失敗還原(checks/backup.mjs)
 try { const { default: bakcheck } = await import("./checks/backup.mjs"); const before = fails; bakcheck(ok); console.log(fails === before ? "練習紀錄備份 ✓" : "練習紀錄備份 ✗"); } catch (e) { fail("練習紀錄備份檢查出錯:" + e.stack); }
 // 練習紀錄卡(js/shared/practicelog.js;兩個 App 同一份):每週目標預設 40、舊資料 60 沒有 goalSet → 40、自己選的照舊、重新開始(checks/practicelog.mjs)

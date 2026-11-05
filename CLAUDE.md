@@ -300,7 +300,7 @@ FingerDrill(技巧)、SightDrill(視奏)、EarDrill(聽音)三個工具合併成
   - `node tools/test/ear-verify.mjs`(聽力:檢定、練習、旋律)
   - `node --test test/sight/*.test.js`(視奏產生器);`node tools/sight/audit.js`(視奏的統計分布,改產生器後要跑;預設 1–8 級,初級加 `--grade 0`;改了只影響某幾級時,其他級的輸出要跟改前逐字相同)
 - 瀏覽器測試(`cd tools/test && npm i` 一次;Playwright):
-  - `node tools/test/newbie.mjs`(全新使用者從頭走到尾:第一次打開 → 開始練習 → 今日練習每一段 ▶ → 做到了 → 過關 → 結束今天 → 再練一下 → 路線;每一步檢查有下一步、底部主要按鈕不跳、題目卡標題與 ▶ 沒被頂欄切掉、版面不跳、同一句話不重複、主要導覽點擊區 ≥ 44(含 ::after 伸出去的)、沒有「…」;iphone-390 / fold-280 / iphone-land + 英文 390,`ONLY=` 選幾輪,失敗截圖在 `tools/test/out/newbie`;兩個 App 同一份,sync.json markers)。**改今日練習、版面、流程一定要跑**
+  - `node tools/test/newbie.mjs`(全新使用者從頭走到尾:第一次打開 → 開始練習 → 今日練習每一段 ▶ → 做到了 → 過關 → 結束今天 → 再練一下 → 路線;每一步檢查有下一步、底部主要按鈕不跳、題目卡標題與 ▶ 沒被頂欄切掉、版面不跳、同一句話不重複、主要導覽點擊區 ≥ 44(含 ::after 伸出去的)、沒有「…」;iphone-390 / fold-280 / iphone-land + 英文 390,`ONLY=` 選幾輪;流程 `FLOW=today,sight,ear,exam`(今日練習、視奏、聽力、檢定,預設全部;非今日練習的檢查「這個畫面的主要按鈕」不跳、狀態句寫「按 ▶」時 ▶ 要看得到),失敗截圖在 `tools/test/out/newbie`;兩個 App 同一份,sync.json markers)。**改今日練習、版面、流程一定要跑**
   - `node tools/test/playhead.mjs [寬度]`(播放軸對準符頭正中央:技巧、今日練習、視奏每個音與休止符 ≤ 2 px;兩個 App 同一份;改播放軸、譜面排法要跑)
   - `node tools/test/layout.mjs`(19 種尺寸 × 每個畫面;`ONLY=fold-280,se1-320` 只跑幾種)
   - `node tools/test/bilingual.mjs [尺寸]`(中英版面一致)

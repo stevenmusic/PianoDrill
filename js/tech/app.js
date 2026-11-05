@@ -800,8 +800,9 @@ function renderMarksUI(){
     ct.innerHTML = tbl.map(c => `<span><b>${c.name}</b>${on ? " = " + c.notes.map(NOTE_ZH).join(" ") : ""}<small>(${c.fingers.join("-")})</small></span>`).join("<i aria-hidden=\"true\"> · </i>");
     ct.setAttribute("aria-label", tr("這一關的和弦:", "Chords here: ") + tbl.map(c => `${c.name} ${c.notes.join(" ")} ${tr("指法", "fingers")} ${c.fingers.join(" ")}`).join(";"));
   }
-  hpEl.hidden = !hp.length;
-  if (hp.length) {
+  const big = syncBigKb(route ? hp : []);
+  hpEl.hidden = !hp.length || big;   // 第 0 組:段落面板有大的琴鍵圖,譜卡標題列的小手位圖不重複
+  if (hp.length && !big) {
     const names = [...new Set(hp.map(p => p.keys[0].name))];
     const say = hp.map(p => p.hand === "rh" ? tr(`右手拇指在${p.mid ? "中央 C" : p.thumb}`, `right thumb on ${p.mid ? "middle C" : p.thumb}`) : tr(`左手小指在 ${p.low}`, `left finger 5 on ${p.low}`));
     const label = names.join(" → ") + tr(" 位置", " position");
@@ -825,6 +826,54 @@ function miniKeys(p){
     x += W;
   }
   return `<svg class="mini-kb" viewBox="0 0 ${x} ${H}" width="${x}" height="${H}" aria-hidden="true">${body}${blacks}</svg>`;
+}
+/* 第 0 組(找到中央 C / 手指號碼)的大琴鍵圖:完全初學者的第一個畫面,放在段落面板的重點清單上面(題目卡裡)。
+   F3–B4(看得出兩個一組、三個一組的黑鍵),中央 C 金色、下面寫「中央 C」;
+   「找到中央 C」= 只標中央 C +「右手大拇指放這裡」;「手指號碼」= 那個位置的 5 個鍵寫手指號碼(照 handPositions,左手的關照左手位置)。
+   字是 HTML(跟著字級、中英一樣高),鍵是 SVG(線稿;深淺主題的白鍵白、黑鍵深)。
+   dailycard 重畫面板會拿掉面板裡別人的元素:用 MutationObserver 放回去 */
+let bigKb = null, bigKbObs = null;
+function bigKbLevel(){
+  const L = dseg && dseg.k === "route" ? dseg.level : null;
+  return L && L.route && L.route.id === "finger" && L.g === "0" ? L : null;
+}
+function placeBigKb(){
+  const step = $("dailyStep");
+  if (!bigKb || bigKb.hidden || !step || step.hidden || bigKb.parentNode === step) return;
+  step.insertBefore(bigKb, step.querySelector(":scope > .daily-check") || step.querySelector(":scope > .daily-backrow") || step.querySelector(":scope > .daily-cta"));
+}
+function syncBigKb(hp){
+  const L = bigKbLevel(), p = L && hp.find(x => x.hand === (L.hands === "LH" ? "lh" : "rh"));
+  if (!p) { if (bigKb) { bigKb.hidden = true; bigKb.remove(); } return false; }
+  if (!bigKb) {
+    bigKb = document.createElement("div"); bigKb.className = "big-kb";
+    bigKbObs = new MutationObserver(placeBigKb);
+    bigKbObs.observe($("dailyStep"), { childList: true });
+  }
+  bigKb.hidden = false;
+  const thumbOnly = !L.rh || !/[2-5]/.test(L.rh);   // 「找到中央 C」:只有大拇指(1)
+  let lo = 53, hi = 71;   // F3–B4;位置在外面就往外補到 F / B
+  while (lo > p.keys[0].midi - 2 || lo % 12 !== 5) lo--;
+  while (hi < p.keys[4].midi + 2 || hi % 12 !== 11) hi++;
+  const W = 30, H = 72, BW = 18, BH = 45, fin = new Map(p.keys.map(k => [k.midi, k]));
+  let x = 0, whites = "", blacks = "", cx = 0, n = 0;
+  for (let m = lo; m <= hi; m++) {
+    if (isBlackKey(m)) continue;
+    const k = thumbOnly ? null : fin.get(m), mid = m === 60;
+    if (mid) cx = x + W / 2;
+    whites += `<rect x="${x}" y="0" width="${W}" height="${H}" rx="3" class="${mid ? "mid" : k ? "on" : ""}"/>` +
+      (k ? `<text x="${x + W / 2}" y="${H - 9}">${k.finger}</text>` : "");
+    if (m + 1 <= hi && isBlackKey(m + 1)) blacks += `<rect x="${x + W - BW / 2}" y="0" width="${BW}" height="${BH}" rx="2" class="blk"/>`;
+    x += W; n++;
+  }
+  const lbl = tr("中央 C", "Middle C"), hint = thumbOnly ? (p.hand === "rh" ? tr("右手大拇指放這裡", "Right thumb here") : tr("左手大拇指放這裡", "Left thumb here")) : "";
+  bigKb.innerHTML = `<svg viewBox="-1 -1 ${x + 2} ${H + 2}" preserveAspectRatio="xMidYMid meet" aria-hidden="true">${whites}${blacks}</svg>` +
+    `<div class="bk-lbl" style="left:${(cx + 1) / (x + 2) * 100}%"><b><span class="bk-up" aria-hidden="true">▲</span> ${lbl}</b>${hint ? `<span>${hint}</span>` : ""}</div>`;
+  bigKb.setAttribute("role", "img");
+  bigKb.setAttribute("aria-label", thumbOnly ? lbl + tr(":兩個一組的黑鍵左邊那個白鍵。", ": the white key left of a pair of black keys. ") + hint
+    : lbl + tr("。手指號碼:", ". Finger numbers: ") + p.keys.map(k => `${k.name} ${k.finger}`).join(tr("、", ", ")));
+  placeBigKb();
+  return true;
 }
 const isBlackKey = m => [1, 3, 6, 8, 10].includes(((m % 12) + 12) % 12);
 /* 和弦名:最上面那個譜表上方、指法外側;換和弦的地方與每一行第一個和弦才寫 */

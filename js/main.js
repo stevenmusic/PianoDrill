@@ -121,7 +121,7 @@ if (!canStore) {
 }
 onLang(() => {
   renderSubnav(); renderExamCard(); tabbarLabel();
-  if (!$("onboard").hidden) fillGradeSeg($("obGradeSeg"), ob.grade, ob.system || DEFAULT_EXAM.system);
+  if (!$("onboard").hidden) { fillGradeSeg($("obGradeSeg"), ob.grade, ob.system || DEFAULT_EXAM.system); obYesLabel(); }
   for (const m of Object.values(MODS)) m.relang();
 });
 
@@ -335,6 +335,8 @@ export function examChanged(){ if (S.view === "exam") renderExamCard(); }
    無障礙:對話框打開時焦點放在標題(不放 ABRSM,免得看起來像已選),Tab 才進第一顆、Tab 只在對話框 + 頂欄右邊的主題 / 語言鈕之間轉(頂欄在對話框上面,可以邊選邊換語言)、
    Esc = 「不考試,自由練習」;背景(內容、分頁列、子項目分段鈕、頂欄的考試標籤)設 inert;關掉時焦點回到打開前的地方(沒有就回到選到的分頁) */
 const ob = { system: null, grade: null };   // 第一次的問題:系統、級數都不預選(跟檢定頁「沒選不亮」一樣)
+// 沒選級數時「開始準備考試」不能按,按鈕上直接寫「先選級數」(點了沒反應 7 歲會以為壞了;2026-11 第 8 輪健檢;不跳視窗、一行不增高)
+const obYesLabel = () => { $("obYes").textContent = ob.grade == null ? tr("先選級數", "Pick a grade first") : T("obYes"); };
 let obReturn = null;
 const OB_BG = () => [MAIN, $("tabbar"), $("subnav"), $("examChip")].filter(Boolean);
 const OB_SEL = "button, select, [href], input, [tabindex]:not([tabindex='-1'])";
@@ -365,7 +367,7 @@ document.addEventListener("keydown", e => {
 });
 function showOnboard(){
   // 沒選級數時「開始準備考試」不能按;先點級數 = 預設的系統(跟檢定頁一樣)
-  const obSync = () => { fillGradeSeg($("obGradeSeg"), ob.grade, ob.system || DEFAULT_EXAM.system); $("obYes").disabled = ob.grade == null; };
+  const obSync = () => { fillGradeSeg($("obGradeSeg"), ob.grade, ob.system || DEFAULT_EXAM.system); $("obYes").disabled = ob.grade == null; obYesLabel(); };
   const syncSys = segBind("obSystem", () => ob.system, v => { ob.system = v; if (ob.grade != null) ob.grade = validGrade(ob.grade, v); obSync(); });
   obSync(); syncSys();
   $("obGradeSeg").onclick = e => { const g = gradeOfClick(e); if (g != null) { ob.grade = g; if (!ob.system) ob.system = DEFAULT_EXAM.system; obSync(); syncSys(); } };

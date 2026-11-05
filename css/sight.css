@@ -79,6 +79,12 @@
 /* 單手「1 · C4–G4」四格一排太擠:窄畫面 2 × 2(第二排第一格不畫左邊的分隔線) */
 @media (max-width:340px){ #s-stageSeg:not(.both){display:grid;grid-template-columns:repeat(2,minmax(0,1fr))} #s-stageSeg:not(.both) button b{font-size:var(--fs-sm);letter-spacing:0}
   #s-stageSeg:not(.both) button:nth-child(3):not([aria-pressed="true"]){background:transparent} }
+/* 字級放大(最多 16.9)時單手四顆一排放不下 → 2 × 2(不疊字、不截字;2026-11 第 8 輪健檢)。容器查詢的 em = 外框的字級 = 按鈕上的字級:
+   最長「1 · C4–G4」約 5.2em,四顆 + 每顆內距 8 + 軌道 4 ≈ 23.4em(預設字級 14 → 328 寬;390 的 348 照舊一排) */
+.s-stage-fit{container-type:inline-size;font-size:min(calc(14rem / 17), 16.9px)}
+@media (max-width:380px){ .s-stage-fit{font-size:min(calc(12rem / 17), 15.6px)} }
+@container (max-width:23.4em){ #s-stageSeg:not(.both){display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+  #s-stageSeg:not(.both) button:nth-child(3):not([aria-pressed="true"]){background:transparent} }
 .s-stage-foot{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;margin-top:8px}
 .s-stage-foot .chip{flex:none}
 .s-stage-foot .info{flex:1 1 160px;min-width:0;font-size:var(--fs-xs);color:var(--muted-bright);line-height:1.5;overflow-wrap:anywhere}
@@ -196,7 +202,7 @@
   #mod-sight #s-setup.always-open .setup-body{display:flex !important;flex-wrap:wrap;align-items:center;column-gap:10px}   /* 蓋過上面 always-open 的 display:block !important */
   #s-stageBox{display:contents}
   #s-stageBox[hidden]{display:none}
-  #s-stageSeg{flex:1 1 100%}
+  .s-stage-fit{flex:1 1 100%}
   #s-setup .s-stage-foot{flex:0 1 auto;margin-top:8px}
   #s-setup .s-stage-foot .info:empty{display:none}   /* 空的說明行不佔寬度,速度才接得上同一行 */
   #s-setup #s-tempoBox{flex:1 1 150px;margin-top:8px;min-width:0;column-gap:6px}

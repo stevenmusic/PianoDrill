@@ -16,7 +16,8 @@ const SIZES = {
 };
 const MAX_START = 3;
 
-// @app-begin:各 App 的任務。step = { sel(要點的東西,CSS), say(說明), start(這一步之後就在練了), common(常用設定:要在第一個畫面), wait(點完等幾毫秒), run(不點、做別的,例如等播放結束) }
+// @app-begin:各 App 的任務。step = { sel(要點的東西,CSS), say(說明), start(這一步之後就在練了), common(常用設定:要在第一個畫面), wait(點完等幾毫秒), run(不點、做別的,例如等播放結束),
+//   changes(選擇器:點完要等它的字變了才點下一下;連點同一顆箭頭時不靠固定的等待) }
 // first = [{ sel, say, soft }]:開始練的那一刻第一個畫面要看得到的東西
 // check(page) → 錯誤訊息或 null(任務完成了沒有);next = 最後的畫面要寫著下一步(選擇器 + 要有的字,中或英)
 const APP = "pianodrill";
@@ -53,14 +54,15 @@ const TASKS = [
       { sel: '#subSeg [data-v="read"]', say: "認音(題目馬上出)", start: true, wait: 1200 },
       { sel: '#s-rdClef [data-v="bass"]', say: "低音譜表", common: true, wait: 600 },
       // 音域那行:最低音、最高音的「降低」箭頭(低音譜表階 1 = C3–G3 → C2–C3)
-      ...Array.from({ length: 7 }, (_, i) => ({ sel: "#s-rdLoDown", say: `最低音降低(${i + 1}/7)`, wait: 150 })),
-      ...Array.from({ length: 4 }, (_, i) => ({ sel: "#s-rdHiDown", say: `最高音降低(${i + 1}/4)`, wait: 150 })),
+      ...Array.from({ length: 7 }, (_, i) => ({ sel: "#s-rdLoDown", say: `最低音降低(${i + 1}/7)`, wait: 150, changes: "#s-rdLo" })),
+      ...Array.from({ length: 4 }, (_, i) => ({ sel: "#s-rdHiDown", say: `最高音降低(${i + 1}/4)`, wait: 150, changes: "#s-rdHi" })),
       { sel: '#s-rdPos [data-v="line"]', say: "只出線上", wait: 600 },
       { sel: '#s-rdMode [data-v="time"]', say: "60 秒", wait: 600 },
       { sel: "#s-rdStart", say: "開始 60 秒挑戰", wait: 800 },
       { sel: "#s-rdKbd .wk", say: "作答一題", wait: 300 }
     ],
-    check: async page => page.evaluate(() => { const s = window.__read.state; return s.setting === "bass:36-48:line:w" && s.running && s.mode === "time" ? null : "設定不對:" + JSON.stringify(s); }),
+    check: async page => page.evaluate(() => { const s = window.__read.state, $ = id => document.getElementById(id);
+      return s.setting === "bass:36-48:line:w" && s.running && s.mode === "time" ? null : "設定不對(音域 " + $("s-rdLo").textContent + "–" + $("s-rdHi").textContent + "):" + JSON.stringify(s); }),
     next: { sel: "#s-rdScoreTxt, #s-rdMsg", words: ["剩", "答案", "對了", "left", "It was", "Right"] } },
   { name: "考 ABRSM 3 級的人想練這一級的視奏題", store: onboarded({ exam: { system: "abrsm", grade: 3 }, view: "tech" }), steps: [
       { sel: '#tabbar [data-view="exam"]', say: "檢定分頁", wait: 600 },
@@ -120,6 +122,7 @@ for (const [sname, sz] of sizes) {
       if (info.collapsed) r.collapsed.push(st.say);
       if (info.w < 28 || info.h < 28) { if (st.small) r.notes.push(`${st.say} ${info.w}×${info.h}(${st.small})`); else r.small.push(`${st.say} ${info.w}×${info.h}`); }
       const el = page.locator("[data-task-target='1']").first();
+      const before = st.changes ? await page.evaluate(s => document.querySelector(s)?.textContent, st.changes) : null;
       try { if (sz.mobile) await el.tap({ timeout: 4000 }); else await el.click({ timeout: 4000 }); }
       catch (e) { r.fail = `點不到「${st.say}」:${e.message.split("\n")[0]}`; break; }
       await page.evaluate(() => document.querySelectorAll("[data-task-target]").forEach(e => e.removeAttribute("data-task-target")));
@@ -127,6 +130,9 @@ for (const [sname, sz] of sizes) {
       const starting = st.start && r.start == null;
       if (starting) r.start = r.clicks;
       await page.waitForTimeout(st.wait || 400);
+      // 點完要等字變了(連點同一顆箭頭):沒變 = 這一下沒算到,印出前後的字
+      if (st.changes) try { await page.waitForFunction(([s, v]) => document.querySelector(s)?.textContent !== v, [st.changes, before], { timeout: 3000 }); }
+        catch (e) { r.fail = `「${st.say}」點了 ${st.changes} 沒有變(還是 ${before})`; break; }
       // 開始練的那一刻(還沒捲動):第一個畫面要有的東西
       if (starting) for (const f of task.first || []) {
         const fi = await look(page, f.sel, false);

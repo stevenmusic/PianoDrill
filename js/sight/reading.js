@@ -336,17 +336,20 @@ export function createReading({ $, store, save, onAnswered = () => {} }) {
     else { const v = step(R.hi, d); if (v <= HIGH && v >= R.lo + 4) R.hi = v; else return false; }
     pendingLo = null; return true;
   };
+  // 四顆箭頭共用:最近一次手指按下的時間。手指點的那一下 pointerdown 已經移過,跟著來的 click 不再算
+  // (重新出題時頁面高度會變一下,捲動位置被拉回去,click 可能落到旁邊那顆箭頭上:只看自己那顆的旗標會多移一格 / 移回去)
+  let ptrAt = -1e9;
   const hold = (id, which, d) => {
-    const el = $(id); let t1 = 0, t2 = 0, moved = false, byPointer = false;
+    const el = $(id); let t1 = 0, t2 = 0, moved = false, down = false;
     const stop = () => { clearTimeout(t1); clearInterval(t2); t1 = t2 = 0; if (moved) { moved = false; changed(); } };
     el.addEventListener('pointerdown', (e) => {
       if (e.button > 0) return;
-      byPointer = true; moved = adj(which, d) || moved; paintOpts();
+      ptrAt = performance.now(); down = true; moved = adj(which, d) || moved; paintOpts();
       t1 = setTimeout(() => { t2 = setInterval(() => { if (adj(which, d)) { moved = true; paintOpts(); } }, 110); }, 380);
     });
-    for (const ev of ['pointerup', 'pointerleave', 'pointercancel']) el.addEventListener(ev, stop);
+    for (const ev of ['pointerup', 'pointerleave', 'pointercancel']) el.addEventListener(ev, () => { if (down) { down = false; ptrAt = performance.now(); } stop(); });   // 按住很久才放開:click 從放開算(滑鼠只是滑過不算)
     // 鍵盤 Enter / 空白鍵、螢幕閱讀器:click 一次移一格(手指點的那一下 pointerdown 已經處理過)
-    el.addEventListener('click', () => { if (byPointer) { byPointer = false; return; } if (adj(which, d)) changed(); });
+    el.addEventListener('click', () => { if (performance.now() - ptrAt < 1000) return; if (adj(which, d)) changed(); });
   };
   // 轉向、改視窗寬度:譜框跟著容器寬重算(只改 viewBox,不重畫)
   let lastW = innerWidth, rzT = 0;

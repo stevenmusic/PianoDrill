@@ -105,7 +105,7 @@
 .rd-msg.ok{color:var(--teal)} .rd-msg.no{color:var(--gold-bright)}
 .rd-kbd{height:130px;margin-top:4px}
 .rd-kbd .wk{align-items:flex-end;padding-bottom:10px}
-.rd-kbd .wk b{font-size:var(--fs-lg);color:#665A42}
+.rd-kbd .wk b{font-size:var(--fs-lg);color:#5A4E37}
 .rd-kbd.idle{opacity:.45;pointer-events:none}
 .rd-miss{margin-top:8px;font-size:var(--fs-xs);color:var(--muted-bright);line-height:1.5;overflow-wrap:anywhere}
 .rd-miss:empty{display:none}
@@ -197,8 +197,8 @@
 #s-selfCheck button i{flex:none;width:1.4em;height:1.4em;border:1.5px solid var(--muted);border-radius:6px;display:grid;place-items:center;font-style:normal;font-weight:700;color:var(--teal)}
 #s-selfCheck button[aria-pressed="true"]{border-color:var(--teal)}
 #s-selfCheck button[aria-pressed="true"] i{border-color:var(--teal)}
-/* 手機(直式與橫放):「顯示音名」與速度併成一行(設定卡矮一點,SE 第一個畫面題目卡在上半部);放不下(雙手有說明那一行)就自己換行 */
-@media (max-width:600px), (orientation:landscape) and (max-height:500px){
+/* 「顯示音名」與速度併成一行(手機:設定卡矮一點,SE 第一個畫面題目卡在上半部;iPad / 桌機:速度不撐滿整張卡、音名不孤立一行,第 10 輪健檢);放不下(雙手有說明那一行)就自己換行 */
+@media all{
   #mod-sight #s-setup.always-open .setup-body{display:flex !important;flex-wrap:wrap;align-items:center;column-gap:10px}   /* 蓋過上面 always-open 的 display:block !important */
   #s-stageBox{display:contents}
   #s-stageBox[hidden]{display:none}
@@ -210,6 +210,7 @@
   #s-bpmUnit{white-space:nowrap}
   #s-setup .setup-body > .rows{flex:1 1 100%}
 }
+@media (min-width:601px){ #s-setup #s-tempoBox{max-width:300px} }   /* 寬畫面:− 數字 + 靠在一起(以前撐滿 792 寬,− 和 + 離很遠) */
 @media (max-width:300px){ #s-setup #s-tempoBox{flex-basis:100%} }   /* 折疊機:速度自己一行(中文「拍 / 分鐘」比 BPM 長,擠在同一行會只有中文換行) */
 /* 手機直式:題目卡標籤(C 大調 · 3/4 · 4 小節 · ♩=76)跟標題同一行;英文「C major」比「C 大調」寬,內距與間距小一點兩種語言才都放得下 */
 @media (max-width:430px){ #mod-sight .q-ht .q-tags{gap:4px} #mod-sight .q-ht .q-tag{padding-left:6px;padding-right:6px} }

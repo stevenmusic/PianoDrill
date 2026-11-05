@@ -1140,9 +1140,12 @@ function fitTitle(){
   let k = 1; g.style.setProperty("--tag-scale", 1); g.classList.remove("wrap");
   // 量最後一個標籤的右緣(留 2px;scrollWidth 是整數,小數寬度會差 1px 被切掉;跟 DrumDrill 一樣)
   const over = () => g.scrollWidth > g.clientWidth + 1 || (g.lastElementChild && g.lastElementChild.getBoundingClientRect().right + 2 > g.getBoundingClientRect().right);
-  while (over() && k > 0.82) { k -= 0.04; g.style.setProperty("--tag-scale", k); }
-  // 縮到 0.82 還放不下(折疊機、標籤多的關):換到第二行,不再縮小、不截掉
-  if (over()) { g.style.setProperty("--tag-scale", 0.82); g.classList.add("wrap"); }
+  // 最多縮到 0.82,而且實際字不小於 12px(次要字的下限;英文折疊機以前縮到 11.2,第 10 輪健檢)
+  const t0 = g.firstElementChild, base = t0 ? parseFloat(getComputedStyle(t0).fontSize) : 0;
+  const kMin = base ? Math.min(1, Math.max(0.82, 12 / base)) : 0.82;
+  while (over() && k > kMin) { k = Math.max(kMin, k - 0.04); g.style.setProperty("--tag-scale", k); }
+  // 縮到下限還放不下(折疊機、標籤多的關):換到第二行,不再縮小、不截掉
+  if (over()) { g.style.setProperty("--tag-scale", kMin); g.classList.add("wrap"); }
 }
 const onStageResize = () => {
   fitTitle();
@@ -1555,9 +1558,9 @@ function replanWarm(){
 const dcard = createDailyCard({ $, daily, routes: ROUTES,   // routes:今日卡的「路線」(路線圖)
   labels: { ok: ["做到了", "Did it"], again: ["還要練", "Not yet"], verb: ["彈", "play"], good: ["很好!", "Good!"],
     // 狀態一句短話(fold-280 不超過兩行);過關規則改成到了目標速度在標籤後面顯示「穩 0 / 3」
-    hint: ["按 ▶ 跟著彈一輪,「做到了」就會亮", "Tap ▶, play along once — Did it turns on"],   // 「做到了」要先播過一輪才亮:狀態句直接說(dailycard 的 ready / syncOk);英文要在 390 一行放得下(pairText 照比較高的,英文兩行中文也變兩行,第 7 輪健檢)
+    hint: ["按 ▶ 跟著彈一輪,「做到了」就會亮", "Tap ▶ and play along to unlock \"Did it\""],   // 「做到了」要先播過一輪才亮:狀態句直接說(dailycard 的 ready / syncOk);英文要在 390 一行放得下(pairText 照比較高的,英文兩行中文也變兩行,第 7 輪健檢;「Did it」加引號才看得出是按鈕,第 10 輪)
     ask: ["彈得順就按「做到了」,不順按「還要練」", "Went well? Tap Did it. If not, Not yet"],   // 播完一輪:下一步(dailycard 的 ready)
-    get solo(){ return melOn() ? ["按 ▶ 你彈左手一輪,「做到了」就會亮", "Tap ▶, play left hand once — Did it turns on"] : ["按 ▶ 自己彈一輪,「做到了」就會亮", "Tap ▶, play it alone once — Did it turns on"]; },
+    get solo(){ return melOn() ? ["按 ▶ 你彈左手一輪,「做到了」就會亮", "Tap ▶, play the left hand to unlock \"Did it\""] : ["按 ▶ 自己彈一輪,「做到了」就會亮", "Tap ▶ and play alone to unlock \"Did it\""]; },
     // 底部按鈕「▶ …一輪」:合奏的拍點模式(App 彈旋律、你彈左手)寫「你彈左手一輪」;其他照 dailycard 預設(跟著彈一輪 / 自己彈一輪)
     get play(){ return melOn() && dseg && dseg.click && dseg.click !== "every" ? ["你彈左手一輪", "Play left hand"] : null; } },
   warmName, levelName, log: () => S.log,

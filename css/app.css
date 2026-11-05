@@ -632,9 +632,9 @@ body.land-play #t-stage{flex:1;display:flex;flex-direction:column;justify-conten
   user-select:none;-webkit-user-select:none;touch-action:none}
 .kbd .k{transition:box-shadow .18s ease-out,background .12s}
 .kbd .wk{flex:1 1 0;min-width:0;position:relative;cursor:pointer;border-radius:3px 3px 6px 6px;
-  background:linear-gradient(180deg,#FFFDF6 0%,#DDD6C4 85%,#DDD6C4 100%);
+  background:#DDD6C4 linear-gradient(180deg,#FFFDF6 0%,#DDD6C4 85%,#DDD6C4 100%);
   box-shadow:inset 0 0 0 1px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.5);
-  display:flex;align-items:flex-end;justify-content:center;padding-bottom:6px;font-size:var(--fs-md);color:#665A42}   /* 作答格的字母 ≥ --fs-md */
+  display:flex;align-items:flex-end;justify-content:center;padding-bottom:6px;font-size:var(--fs-md);color:#5A4E37}   /* 作答格的字母 ≥ --fs-md;底色寫實色(字在漸層最深的那段,對比 5.6;深色主題量對比才不會量到卡片底,第 10 輪健檢) */
 .kbd .bk{position:absolute;top:0;height:60%;z-index:2;cursor:pointer;border-radius:2px 2px 4px 4px;
   background:linear-gradient(180deg,#3a3a3a,#0a0a0a);box-shadow:0 3px 5px rgba(0,0,0,.45),0 1px 1px rgba(0,0,0,.6)}
 .kbd .bk::after{content:"";position:absolute;left:15%;top:2px;width:30%;height:35%;background:rgba(255,255,255,.18);border-radius:1px;pointer-events:none}
@@ -1116,6 +1116,9 @@ body.daily-on footer{display:none}
   main:has(> .mod.one-col:not([hidden])) > footer{max-width:1100px}
   main:has(> #mod-tech.today-view.one-col:not(.daily-on):not([hidden])) > footer{max-width:760px}
   /* 檢定頁沒選考試(沒有模組):考試卡跟今日卡一樣一欄置中最寬 760,系統、級數兩排伸滿卡片(2026-11 第 8 輪健檢:拉滿 1372 寬、按鈕只佔左邊) */
+  /* 檢定頁有選考試:考試卡跟左欄同寬(系統 + 級數兩排伸滿;以前拉滿 1372 寬、按鈕只佔左邊 1/4,第 10 輪健檢) */
+  body.view-exam main > #examSetup{max-width:360px}
+  body.view-exam main > #examSetup .exam-body{grid-template-columns:minmax(0,1fr)}
   body.view-exam main:not(:has(> .mod:not([hidden]))) > #examSetup{width:100%;max-width:760px;margin-inline:auto}
   body.view-exam main:not(:has(> .mod:not([hidden]))) > #examSetup .exam-body{grid-template-columns:minmax(0,1fr)}
   body.view-exam main:not(:has(> .mod:not([hidden]))) > footer{max-width:760px}
@@ -1211,6 +1214,12 @@ body.view-exam :is(#s-setup,#e-setup){order:19}
 
 /* 標籤縮到 0.82 還放不下就換行(不再縮小、不截掉;tech/app.js 的 fitTitle 加 .wrap) */
 .q-tags.wrap,#mod-tech .q-tags.wrap{flex-wrap:wrap;height:auto;overflow:visible;row-gap:4px}
+/* 折疊機今日練習:速度那一格固定自己一行(英文「Fingers 1 / 33 · Right · Tempo 50 · Steady 0 / 2」一行要縮到 11px;兩種語言都兩行才一樣高,字不縮;第 10 輪健檢) */
+@media (max-width:300px){
+  #mod-tech.daily-on .q-tags:has(> .q-tag:nth-child(2)){flex-wrap:wrap;height:auto;overflow:visible;row-gap:2px}
+  #mod-tech.daily-on .q-tags:has(> .q-tag:nth-child(2))::after{content:"";flex-basis:100%;height:0;order:1}
+  #mod-tech.daily-on .q-tags > .q-tag:last-child:not(:first-child){order:2}
+}
 /* 折疊機(≤ 300):熟練度「會了 / 再練」+ 主要按鈕排不下一行(英文 Needs work 比再練寬),兩種語言都讓主要按鈕整條在下一行(畫面設計版型 B) */
 @media (max-width:300px){ .q-last:has(> .mastery .mbtn:not([hidden])) > .q-actions:has(> button:not([hidden])){flex:1 1 100%} }
 

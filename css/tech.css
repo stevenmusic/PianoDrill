@@ -6,3 +6,9 @@
 #t-stage .t-fade.r{right:1px;background:linear-gradient(to left,var(--paper),rgba(255,253,246,0))}
 #t-stage.fade-l .t-fade.l, #t-stage.fade-r .t-fade.r{opacity:1}
 @media (prefers-reduced-motion:reduce){ #t-stage .t-fade{transition:none} }
+/* 今日練習第 0 組(找到中央 C、手指號碼;js/tech/app.js 的 syncKeys 加 #mod-tech.zero-lv)在直式矮畫面(≤ 700 高):
+   琴鍵條與「▲ 中央 C」要在第一個畫面(底部按鈕列上面)→ 不放速度小字「速度 50 = 每分鐘 50 拍」(第 0 組 start = target,不調速度)、琴鍵條 44 高(跟手機橫式一樣) */
+@media (orientation:portrait) and (max-height:700px){
+  #mod-tech.zero-lv #t-dailyStep .daily-tip{display:none}
+  #mod-tech.zero-lv #t-keys{--ks-h:44px}
+}

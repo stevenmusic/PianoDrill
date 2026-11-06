@@ -829,6 +829,7 @@ const isBlackKey = m => [1, 3, 6, 8, 10].includes(((m % 12) + 12) % 12);
 const whitesIn = (lo, hi) => { let n = 0; for (let m = lo; m <= hi; m++) if (!isBlackKey(m)) n++; return n; };
 function syncKeys(route, hp){
   const el = $("keys");
+  ROOT.classList.toggle("zero-lv", !!route && !!zeroLevel());   // 第 0 組的關:直式矮畫面收緊(css/tech.css),琴鍵條與「▲ 中央 C」在第一個畫面
   const hands = show === "both" ? ["rh", "lh"] : [show];
   const fin = new Map(), clash = new Set();
   if (route) for (const h of hands) for (const n of [...(ex[h] || []), ...((ex.hold && ex.hold[h]) || [])]) if (!n.rest) for (const x of [n, ...(n.chord || [])]) {

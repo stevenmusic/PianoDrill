@@ -74,7 +74,9 @@ const TASKS = [
     next: { sel: "#s-message", words: ["給音", "讀", "pitch", "Read", "Scroll"] } },
   // 今日練習(兩個 App 同一個任務):打開技巧分頁 → 按「開始今天的練習」→ 第一段(暖身)就在練了;卡片與按鈕在第一個畫面
   { name: "打開技巧分頁、開始今天的練習", store: onboarded({ view: "tech" }),
-    first: [{ sel: "#subnav .sub-bar", say: "今日練習(進度一行,在子項目列的位置)" }, { sel: "#t-qTitle", say: "這一段的標題" }, { sel: "#t-playBtn", say: "▶ 示範" }],
+    first: [{ sel: "#subnav .sub-bar", say: "今日練習(進度一行,在子項目列的位置)" }, { sel: "#t-qTitle", say: "這一段的標題" }, { sel: "#t-playBtn", say: "▶ 示範" },
+      // 第一段 = 第 0 組「找到中央 C」:琴鍵條的「▲ 中央 C」(iphone-390 看得到;fold-280 還差約 50px,先 soft 記注意)
+      { sel: "#t-keys .ks-lbl b", say: "琴鍵條「▲ 中央 C」", soft: true }],
     steps: [{ sel: "#t-dailyCard .daily-btn", say: "開始今天的練習", start: true, wait: 1200 }],
     check: async page => page.evaluate(() => { const t = window.__tech, s = t && t.dseg;
       return s && s.i === 0 && !document.getElementById("t-dailyStep").hidden && !document.querySelector('#subSeg [aria-pressed="true"]') ? null : "沒有開始第一段:" + JSON.stringify(s && { k: s.k, i: s.i }); }),

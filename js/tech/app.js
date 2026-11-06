@@ -14,6 +14,7 @@ import { createDailyCard } from "../shared/dailycard.js";
 import { ROUTES, WARM_LEVELS, warmFor, findLevel, KEYS, adaptVary, keyLearned } from "./routes.js";
 import { paintNoteNames } from "../shared/notenames.js";
 import { sameBars, fingerMarks, barChords, chordTable, handPositions, chordName, keyInfo } from "./patterns.js";
+import { createKeystrip } from "../shared/keystrip.js";
 import "./strings.js";
 const T = scoped("tech");
 
@@ -568,7 +569,7 @@ const syncHandSeg = segBind("handSeg", () => show, v => {
     if (row && !row[2].some(o => o[0] === HAND_OF[v])) return;   // 這個題型沒有這隻手(例如反向只有雙手)
     S.pick[tab].hands = HAND_OF[v]; store.save(); renderPicker(tab); loadFree(tab); return;
   }
-  show = v; stopPlayback(); renderScore();
+  show = v; stopPlayback(); renderMarksUI(); renderScore();
 });
 /* 自由練習:這個題型不能選的手停用(反向、相隔 = 雙手;三度、六度雙音 = 單手);檢定全部可以按(只換顯示) */
 function syncHandAllowed(){
@@ -634,7 +635,9 @@ function refit(){ if (wrapMode()) { fitWrap(); measureNotes(); return true; } os
    每行 3–4 小節要在正常大小的 85% 以上才用(不然字太小),每行 2 小節最小 WRAP_MIN,最後才一小節一行(最小 WRAP_MIN1);
    手機橫放時再照「樂譜框到畫面底」縮(只縮不放大)。播放軸照每一行(系統)上下移動 */
 const WRAP_MIN = 0.55, WRAP_MIN1 = 0.45;   // 0.55 = 視奏考卷排法的下限(口袋總譜大小)
-const WRAP_FILL = 1.35, WRAP_FILL_H = 0.34;   // 短譜放大:最多正常大小的 1.35 倍、譜高 ≤ 畫面高的 34%(docs/DESIGN.md 第 5 節)
+/* 短譜放大(docs/DESIGN.md 第 5、7 節;2026-11 使用者選「專心練習畫面」A:譜用滿寬度):最多正常大小的 WRAP_FILL 倍、譜高 ≤ 畫面高的 WRAP_FILL_H
+   (第一個畫面還看得到題目卡、譜下面的琴鍵條與主要按鈕);平板、桌機(≥ 700 寬)畫面高,放得更大 */
+const WRAP_FILL = () => (innerWidth >= 700 ? 2.2 : 1.6), WRAP_FILL_H = () => (innerWidth >= 700 ? 0.42 : 0.34);
 const wrapMode = () => !!(cur && cur.daily && cur.type === "route" && ex && ex.exact);
 let wrapW = 0;
 function systemsOf(){ try { return osmd.GraphicSheet.MusicPages.flatMap(p => p.MusicSystems); } catch (e) { return []; } }
@@ -680,13 +683,13 @@ function fitWrap(){
       if (!wrapFits(pick.n, bars)) return false;
       const svg = $("osmd").querySelector("svg");
       if (!svg) return true;
-      if (svg.getBoundingClientRect().height > innerHeight * WRAP_FILL_H) return false;
+      if (svg.getBoundingClientRect().height > innerHeight * WRAP_FILL_H()) return false;
       // 指法、×N、和弦名(畫完譜才加上去的)也不能超出畫布(一小節一行放大時最右邊的 ×N 會被切掉)
       drawFingerings(); drawChordNames(svg);
       const vb = svg.viewBox && svg.viewBox.baseVal, bb = svg.getBBox();
       return !(vb && vb.width) || (bb.x + bb.width <= vb.x + vb.width + 1 && bb.y >= vb.y - 1 && bb.y + bb.height <= vb.y + vb.height + 1);
     };
-    const z0 = pick.z; let lo = z0, hi = base * WRAP_FILL;
+    const z0 = pick.z; let lo = z0, hi = base * WRAP_FILL();
     if (fills(hi)) lo = hi;
     else for (let k = 0; k < 6; k++) { const mid = (lo + hi) / 2; if (fills(mid)) lo = mid; else hi = mid; }
     pick.z = Math.max(z0, Math.floor(lo * 100) / 100);   // 取整不能比原本的大小還小
@@ -799,7 +802,7 @@ const NOTE_ZH = s => s;   // 音名中英一樣(C、F♯)
 function renderMarksUI(){
   const route = !!(cur && cur.daily && cur.type === "route" && dseg && ex && ex.exact);
   const tbl = route ? chordTable(ex) : null, hp = route ? handPositions(ex) : [];
-  const ct = $("chordTable"), hpEl = $("handPos");
+  const ct = $("chordTable");
   ct.hidden = !tbl || !tbl.length;
   if (tbl && tbl.length) {
     const on = namesOn();
@@ -807,82 +810,61 @@ function renderMarksUI(){
     ct.innerHTML = tbl.map(c => `<span><b>${c.name}</b>${on ? " = " + c.notes.map(NOTE_ZH).join(" ") : ""}<small>(${c.fingers.join("-")})</small></span>`).join("<i aria-hidden=\"true\"> · </i>");
     ct.setAttribute("aria-label", tr("這一關的和弦:", "Chords here: ") + tbl.map(c => `${c.name} ${c.notes.join(" ")} ${tr("指法", "fingers")} ${c.fingers.join(" ")}`).join(";"));
   }
-  const big = syncBigKb(route ? hp : []);
-  hpEl.hidden = !hp.length || big;   // 第 0 組:段落面板有大的琴鍵圖,譜卡標題列的小手位圖不重複
-  if (hp.length && !big) {
-    const names = [...new Set(hp.map(p => p.keys[0].name))];
-    const say = hp.map(p => p.hand === "rh" ? tr(`右手拇指在${p.mid ? "中央 C" : p.thumb}`, `right thumb on ${p.mid ? "middle C" : p.thumb}`) : tr(`左手小指在 ${p.low}`, `left finger 5 on ${p.low}`));
-    const label = names.join(" → ") + tr(" 位置", " position");
-    hpEl.innerHTML = `<span class="hp-lbl"><b>${label}</b><span class="hp-more">${tr(":", ": ")}${[...new Set(say)].join(tr(",", ", "))}</span></span>` + hp.map(miniKeys).join("");
-    hpEl.setAttribute("title", label + tr(":", ": ") + [...new Set(say)].join(tr(",", ", ")));
-  }
+  syncKeys(route, hp);
 }
-/* 手位圖:一小段鍵盤(線稿),這個位置的 5 個鍵亮起來、寫手指號碼(高 28;號碼 12px 貼近鍵的下緣,不碰黑鍵) */
-function miniKeys(p){
-  const lo = p.keys[0].midi - (isBlackKey(p.keys[0].midi) ? 1 : 0), hi = p.keys[4].midi + (isBlackKey(p.keys[4].midi) ? 1 : 0);
-  const whites = []; for (let m = lo; m <= hi; m++) if (!isBlackKey(m)) whites.push(m);
-  const W = 13, H = 28, fin = new Map(p.keys.map(k => [k.midi, k]));
-  let x = 0, body = "", blacks = "";
-  for (const m of whites) {
-    const k = fin.get(m);
-    body += `<rect x="${x + 0.5}" y="0.5" width="${W - 1}" height="${H - 1}" rx="2" class="${k ? (k.used ? "on" : "soft") : ""}"/>` + (k ? `<text x="${x + W / 2}" y="${H - 3}">${k.finger}</text>` : "");
-    if (isBlackKey(m + 1) && m + 1 <= hi + 1) {
-      const kb = fin.get(m + 1), bx = x + W - 4;
-      blacks += `<rect x="${bx}" y="0.5" width="8" height="16" rx="1.5" class="blk${kb ? (kb.used ? " on" : " soft") : ""}"/>` + (kb ? `<text x="${bx + 4}" y="12" class="bt">${kb.finger}</text>` : "");
-    }
-    x += W;
-  }
-  return `<svg class="mini-kb" viewBox="0 0 ${x} ${H}" width="${x}" height="${H}" aria-hidden="true">${body}${blacks}</svg>`;
-}
-/* 第 0 組(找到中央 C / 手指號碼)的大琴鍵圖:完全初學者的第一個畫面,放在段落面板的重點清單上面(題目卡裡)。
-   F3–B4(看得出兩個一組、三個一組的黑鍵),中央 C 金色、下面寫「中央 C」;
-   「找到中央 C」= 只標中央 C +「右手大拇指放這裡」;「手指號碼」= 那個位置的 5 個鍵寫手指號碼(照 handPositions,左手的關照左手位置)。
-   字是 HTML(跟著字級、中英一樣高),鍵是 SVG(線稿;深淺主題的白鍵白、黑鍵深)。
-   dailycard 重畫面板會拿掉面板裡別人的元素:用 MutationObserver 放回去 */
-let bigKb = null, bigKbObs = null;
-function bigKbLevel(){
+/* ── 琴鍵條(2026-11 使用者選「專心練習畫面」A + 琴鍵條;js/shared/keystrip.js)──
+   今日練習的關卡譜下面一條琴鍵:這一關(顯示的那幾隻手)用到的鍵淡金色 + 手指號碼(同一個鍵不同手指就不寫號碼,只亮),
+   這個五指位置沒彈到的手指寫淡色號碼(以前譜卡標題列的小手位圖、第 0 組的大琴鍵圖,現在都是這一條;同一件事只說一次);
+   示範播放時跟著音亮(schedulePlay 用同一條 AudioContext 時間線排;只有拍點的時候不亮)。
+   第 0 組(找到中央 C / 手指號碼)在中央 C 下面寫「▲ 中央 C」(找到中央 C 加「右手大拇指放這裡」)。
+   至少 15 個白鍵(看得出兩個一組、三個一組的黑鍵) */
+let keys = null;
+function zeroLevel(){
   const L = dseg && dseg.k === "route" ? dseg.level : null;
   return L && L.route && L.route.id === "finger" && L.g === "0" ? L : null;
 }
-function placeBigKb(){
-  const step = $("dailyStep");
-  if (!bigKb || bigKb.hidden || !step || step.hidden || bigKb.parentNode === step) return;
-  step.insertBefore(bigKb, step.querySelector(":scope > .daily-check") || step.querySelector(":scope > .daily-backrow") || step.querySelector(":scope > .daily-cta"));
-}
-function syncBigKb(hp){
-  const L = bigKbLevel(), p = L && hp.find(x => x.hand === (L.hands === "LH" ? "lh" : "rh"));
-  if (!p) { if (bigKb) { bigKb.hidden = true; bigKb.remove(); } return false; }
-  if (!bigKb) {
-    bigKb = document.createElement("div"); bigKb.className = "big-kb";
-    bigKbObs = new MutationObserver(placeBigKb);
-    bigKbObs.observe($("dailyStep"), { childList: true });
-  }
-  bigKb.hidden = false;
-  const thumbOnly = !L.rh || !/[2-5]/.test(L.rh);   // 「找到中央 C」:只有大拇指(1)
-  let lo = 53, hi = 71;   // F3–B4;位置在外面就往外補到 F / B
-  while (lo > p.keys[0].midi - 2 || lo % 12 !== 5) lo--;
-  while (hi < p.keys[4].midi + 2 || hi % 12 !== 11) hi++;
-  const W = 30, H = 72, BW = 18, BH = 45, fin = new Map(p.keys.map(k => [k.midi, k]));
-  let x = 0, whites = "", blacks = "", cx = 0, n = 0;
-  for (let m = lo; m <= hi; m++) {
-    if (isBlackKey(m)) continue;
-    const k = thumbOnly ? null : fin.get(m), mid = m === 60;
-    if (mid) cx = x + W / 2;
-    whites += `<rect x="${x}" y="0" width="${W}" height="${H}" rx="3" class="${mid ? "mid" : k ? "on" : ""}"/>` +
-      (k ? `<text x="${x + W / 2}" y="${H - 9}">${k.finger}</text>` : "");
-    if (m + 1 <= hi && isBlackKey(m + 1)) blacks += `<rect x="${x + W - BW / 2}" y="0" width="${BW}" height="${BH}" rx="2" class="blk"/>`;
-    x += W; n++;
-  }
-  const lbl = tr("中央 C", "Middle C"), hint = thumbOnly ? (p.hand === "rh" ? tr("右手大拇指放這裡", "Right thumb here") : tr("左手大拇指放這裡", "Left thumb here")) : "";
-  bigKb.innerHTML = `<svg viewBox="-1 -1 ${x + 2} ${H + 2}" preserveAspectRatio="xMidYMid meet" aria-hidden="true">${whites}${blacks}</svg>` +
-    `<div class="bk-lbl" style="left:${(cx + 1) / (x + 2) * 100}%"><b><span class="bk-up" aria-hidden="true">▲</span> ${lbl}</b>${hint ? `<span>${hint}</span>` : ""}</div>`;
-  bigKb.setAttribute("role", "img");
-  bigKb.setAttribute("aria-label", thumbOnly ? lbl + tr(":兩個一組的黑鍵左邊那個白鍵。", ": the white key left of a pair of black keys. ") + hint
-    : lbl + tr("。手指號碼:", ". Finger numbers: ") + p.keys.map(k => `${k.name} ${k.finger}`).join(tr("、", ", ")));
-  placeBigKb();
-  return true;
-}
 const isBlackKey = m => [1, 3, 6, 8, 10].includes(((m % 12) + 12) % 12);
+const whitesIn = (lo, hi) => { let n = 0; for (let m = lo; m <= hi; m++) if (!isBlackKey(m)) n++; return n; };
+function syncKeys(route, hp){
+  const el = $("keys");
+  const hands = show === "both" ? ["rh", "lh"] : [show];
+  const fin = new Map(), clash = new Set();
+  if (route) for (const h of hands) for (const n of [...(ex[h] || []), ...((ex.hold && ex.hold[h]) || [])]) if (!n.rest) for (const x of [n, ...(n.chord || [])]) {
+    if (x.midi == null) continue;
+    const f = x.finger == null ? null : x.finger;
+    if (!fin.has(x.midi)) fin.set(x.midi, f); else if (fin.get(x.midi) !== f) clash.add(x.midi);
+  }
+  for (const m of clash) fin.set(m, null);
+  const soft = new Map();
+  for (const p of hp) if (hands.includes(p.hand)) for (const k of p.keys) if (!fin.has(k.midi) && !soft.has(k.midi)) soft.set(k.midi, k.finger);
+  const all = [...fin.keys(), ...soft.keys()];
+  if (!route || !all.length) { el.hidden = true; if (keys) keys.clear(); return; }
+  el.hidden = false;
+  if (!keys) keys = createKeystrip(el, { now: () => audio.audioNow() });
+  const Z = zeroLevel();
+  let lo = Math.min(...all, Z ? 60 : Infinity) - 2, hi = Math.max(...all, Z ? 60 : -Infinity) + 2;
+  while (whitesIn(lo, hi) < 15) { lo--; if (whitesIn(lo, hi) < 15) hi++; }
+  keys.range(lo, hi);
+  keys.mark(fin, soft);
+  const p = Z && hp.find(x => x.hand === (Z.hands === "LH" ? "lh" : "rh"));
+  const thumbOnly = !!Z && (!Z.rh || !/[2-5]/.test(Z.rh));   // 「找到中央 C」:只有大拇指(1)
+  const lbl = tr("中央 C", "Middle C"), hint = thumbOnly && p ? (p.hand === "rh" ? tr("右手大拇指放這裡", "Right thumb here") : tr("左手大拇指放這裡", "Left thumb here")) : "";
+  keys.label(Z ? 60 : null, `<b><span class="ks-up" aria-hidden="true">▲</span> ${lbl}</b>${hint ? `<span>${hint}</span>` : ""}`);
+  el.setAttribute("role", "img");
+  const said = hp.filter(x => hands.includes(x.hand)).map(x => x.keys.filter(k => fin.has(k.midi)).map(k => `${k.name} ${k.finger}`).join(tr("、", ", "))).filter(Boolean);
+  el.setAttribute("aria-label", thumbOnly ? lbl + tr(":兩個一組的黑鍵左邊那個白鍵。", ": the white key left of a pair of black keys. ") + hint
+    : tr("琴鍵:這一關用到的鍵", "Keyboard: the keys used here") + (said.length ? tr("。手指號碼:", ". Finger numbers: ") + said.join(tr(";", "; ")) : ""));
+}
+/* 「重點」一行放在琴鍵條下面(譜卡裡;dailycard 把它畫在段落面板裡,面板每次重畫就搬一次;面板重畫、收起來時舊的拿掉) */
+let checkFor = null;
+function placeCheck(){
+  const step = $("dailyStep"), st = step.hidden ? null : step.querySelector(":scope > .daily-status");
+  const fresh = step.querySelector(":scope > .daily-check");
+  if (fresh || st !== checkFor) $("scoreCard").querySelectorAll(":scope > .daily-check").forEach(el => el.remove());
+  checkFor = st;
+  if (fresh && st) $("keys").after(fresh);
+}
+new MutationObserver(placeCheck).observe($("dailyStep"), { childList: true, attributes: true, attributeFilter: ["hidden"] });
 /* 和弦名:最上面那個譜表上方、指法外側;換和弦的地方與每一行第一個和弦才寫 */
 function drawChordNames(svg){
   svg.querySelectorAll(".t-chord").forEach(e => e.remove());
@@ -1327,6 +1309,7 @@ function schedulePlay(p, from){
       if (e.exact) {
         const off = e.stacc ? on + Math.min(0.12, e.len * beatSec * 0.45) : on + e.len * beatSec + 0.015;
         if (h === "mel" || (!clickOnlyOn() && !p.solo)) audio.playPianoNote(e.midi, on, off, off, e.vel + (Math.random() * 6 - 3), false);   // 合奏旋律:只有拍點的時候也彈
+        if (h !== "mel" && keys && !$("keys").hidden && !clickOnlyOn() && !p.solo) keys.light(e.midi, on, off - on);   // 琴鍵條跟著示範亮(旋律是 App 彈的,不亮)
         return;
       }
       const next = arr.find(x => x.beat > e.beat + 1e-6);   // 同一隻手下一個「不同時」的音(雙音的兩個音同時按)
@@ -1351,6 +1334,7 @@ function retempo(){
     const now = audio.audioNow(), from = now + 0.06;
     const beat = (from - play.t0) / play.beatSec;           // 新速度從這一拍接下去
     audio.cancelFrom(from);
+    if (keys) keys.cancel(from);
     play.t0 = from - beat * beatSec; play.beatSec = beatSec; play.clickSec = clickSec;
     play.mark = Math.max(0, beat); play.heard = false;   // 換了速度:要用新的速度再播 2 小節
     schedulePlay(play, from);
@@ -1462,6 +1446,7 @@ function stopPlayback(natural, keepView){
   // 今日練習:中途停下(按了做到了 / 還要練 / 停止 / 下一段)也算真的練了的秒數(以前只有整輪播完才算,練完卡會寫「0 秒」)
   const part = play && !natural && dseg && cur && cur.daily ? Math.min(play.endBeat * play.beatSec, Math.max(0, audio.audioNow() - play.t0)) : 0;
   if (play) { cancelAnimationFrame(play.raf); play = null; if (!natural) audio.stopAll(); }
+  if (keys) keys.clear();
   if (part >= 1) logPractice(part);
   if (osmd && noteXs.length) { $("scroll").scrollLeft = 0; movePlayline(0, false); }
   $("playLabel").textContent = T("play");

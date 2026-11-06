@@ -284,8 +284,41 @@ function syncCta(){
   const h = bar ? Math.round(bar.getBoundingClientRect().height) + "px" : "";
   if (document.body.style.getPropertyValue("--cta-h") !== h) { if (h) document.body.style.setProperty("--cta-h", h); else document.body.style.removeProperty("--cta-h"); }
 }
+/* ══ 一張練習卡(2026-11 使用者選「專心練習畫面」A;docs/DESIGN.md 第 7 節):index.html 標了 data-join 的卡片,在同一欄上下相鄰(中間沒有別張看得到的卡)
+   就合成一張:第一張 .j-top、中間 .j-mid、最後 .j-bot(app.css:同一塊底色、中間一條細線)。檢定頁不合;只有一張就不加 */
+const JOIN = ["j-top", "j-mid", "j-bot"];
+let joinSig = "";
+function syncJoin(){
+  const exam = document.body.classList.contains("view-exam");
+  /* 播放中播放軸、譜上高亮一直改 class:看得到的卡片集合與位置沒變就不重算(不每幀量版面) */
+  const sig = (exam ? "x" : "") + innerWidth + [...document.querySelectorAll(".mod:not([hidden]) [data-join]")]
+    .map(el => (shownEl(el) && el.getClientRects().length ? 1 : 0) + ":" + el.offsetLeft + ":" + el.offsetTop).join(",");
+  if (sig === joinSig) return;
+  joinSig = sig;
+  for (const mod of document.querySelectorAll(".mod")) {
+    const want = new Map();
+    if (!mod.hidden && !exam) {
+      const items = [...mod.querySelectorAll(":scope > *, :scope > .mod-side > *, :scope > .mod-main > *")]
+        .filter(el => !el.classList.contains("mod-side") && !el.classList.contains("mod-main") && shownEl(el) && el.getClientRects().length)
+        .map(el => ({ el, r: el.getBoundingClientRect() }));
+      const cols = new Map();
+      for (const it of items) { const k = Math.round(it.r.left); if (!cols.has(k)) cols.set(k, []); cols.get(k).push(it); }
+      for (const col of cols.values()) {
+        col.sort((a, b) => a.r.top - b.r.top);
+        let run = [];
+        const flush = () => { if (run.length > 1) run.forEach((el, i) => want.set(el, i === 0 ? "j-top" : i === run.length - 1 ? "j-bot" : "j-mid")); run = []; };
+        for (const it of col) { if (it.el.hasAttribute("data-join")) run.push(it.el); else flush(); }
+        flush();
+      }
+    }
+    for (const el of mod.querySelectorAll("[data-join]")) {
+      const w = want.get(el) || null;
+      for (const c of JOIN) if (el.classList.contains(c) !== (c === w)) el.classList.toggle(c, c === w);
+    }
+  }
+}
 let ctaRaf = 0;
-function ctaSoon(){ cancelAnimationFrame(ctaRaf); ctaRaf = requestAnimationFrame(syncCta); }
+function ctaSoon(){ cancelAnimationFrame(ctaRaf); ctaRaf = requestAnimationFrame(() => { syncJoin(); syncCta(); }); }
 if (typeof MutationObserver !== "undefined") new MutationObserver(ctaSoon).observe(document.querySelector("main"), { subtree: true, childList: true, attributes: true, attributeFilter: ["hidden", "class"] });
 if (CTA_MQ.addEventListener) CTA_MQ.addEventListener("change", ctaSoon);
 addEventListener("resize", ctaSoon);

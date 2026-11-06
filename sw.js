@@ -12,7 +12,7 @@
 const APP = "pianodrill";
 // @app-end
 /*@precache-begin*/
-const CACHE = APP + "-app-e1343a59";
+const CACHE = APP + "-app-3bf30a29";
 const PRECACHE = [
   "./",
   "manifest.webmanifest",
@@ -24,9 +24,9 @@ const PRECACHE = [
   "licenses.html",
   "privacy.html",
   "support.html",
-  "css/app.css?v=20405e49fa",
-  "css/tech.css?v=a1b4f4fedd",
-  "css/sight.css?v=3ea4e6ad41",
+  "css/app.css?v=3c4fad789f",
+  "css/tech.css?v=bbaf61f7f1",
+  "css/sight.css?v=5a583433aa",
   "vendor/opensheetmusicdisplay.min.js?v=4bfeb3d01c",
   "js/ear/app.js?v=da00b2fab7",
   "js/ear/aural.js?v=883d7b67eb",
@@ -34,15 +34,16 @@ const PRECACHE = [
   "js/ear/music.js?v=28644129ec",
   "js/ear/store.js?v=c634a91742",
   "js/ear/strings.js?v=62d5d35316",
-  "js/main.js?v=11b94d193c",
+  "js/main.js?v=3a6521b1e6",
   "js/shared/audio.js?v=0cb04738a9",
   "js/shared/backup.js?v=620efafdf5",
-  "js/shared/celebrate.js?v=357dda32eb",
+  "js/shared/celebrate.js?v=e5ee0328bb",
   "js/shared/daily.js?v=07a2184cb8",
-  "js/shared/dailycard.js?v=c7cf895c9e",
+  "js/shared/dailycard.js?v=23bcc6f1db",
   "js/shared/digest.js?v=c5327e7818",
   "js/shared/drill.js?v=9f698a5f44",
   "js/shared/i18n.js?v=af6b0cf6b0",
+  "js/shared/keystrip.js?v=7b9f4b242a",
   "js/shared/mic.js?v=5450b68a2d",
   "js/shared/milestone.js?v=b297bfeac5",
   "js/shared/notenames.js?v=68a982911d",
@@ -71,7 +72,7 @@ const PRECACHE = [
   "js/sight/scoring.js?v=c1912c76a7",
   "js/sight/stage.js?v=bee4aca9a4",
   "js/sight/stages.js?v=1768d14127",
-  "js/tech/app.js?v=76dc33e05d",
+  "js/tech/app.js?v=2d9d1f0ff9",
   "js/tech/exercise.js?v=e80ce3353b",
   "js/tech/fingering.js?v=eabf64c8e1",
   "js/tech/hanon.js?v=be2621dd7a",

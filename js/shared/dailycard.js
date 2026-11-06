@@ -13,7 +13,7 @@
    路線圖(2026-11;第一版只看、不能跳關練):還沒開始 / 暫停 / 練完的卡片最下面一顆次要鈕「路線」(aria-expanded),點了在卡內往下展開(不跳視窗;進行中不顯示):
      每條路線一段、一列一組(組名 + 「3 / 6」+ 狀態圖示 過 / 目前 / 還沒到 / 還沒開放),預設只展開每條路線目前那一組;組裡一關一行,點一關在行內展開重點(check);
      還沒開放的路線一行淡字寫開放條件。資料 = js/shared/roadmap.js(純函式);App 要傳 routes 才有這顆鈕
-   過關慶祝:celebrate() = 狀態句上面一條短橫幅「過關 ✓」(疊在標籤列上,不推版面;狀態句不重複「過關 ✓」)+ 線稿星星(js/shared/celebrate.js;App 在過關時呼叫,聲音 App 自己放)
+   過關慶祝:celebrate() = 狀態句上面一條短橫幅「過關 ✓」(疊在標籤列上,不推版面;狀態句不重複「過關 ✓」)+ 線稿星星 + 譜紙金色掃光 + 主要按鈕勾勾 + 關卡進度條補到新位置(js/shared/celebrate.js;App 在過關時呼叫,聲音 App 自己放)
    文字都用 i18n 的 daily.*(兩個 App 一樣)+ 模組傳進來的 labels(穩了 / 做到了…);段落文字用 pairText(中英一樣高) */
 import { tr, T, pairText } from "./i18n.js";
 import { streak } from "./practicelog.js";
@@ -387,7 +387,18 @@ export function createDailyCard({ $, daily, routes = null, labels = {}, warmName
       return M(s, t + sep + (go ? L2(go) : fmt("go", { v })));
     },
     /* 過關慶祝:狀態句上面一條短橫幅(App 在過關時呼叫;面板收起來時不放) */
-    celebrate(){ if (step.hidden) return null; return celebrateIn(step, fmt("cheer"), { before: step.querySelector(".daily-status") }); },
+    /* 一起放:譜紙掃光(opts.sweep;沒給 = 這個模組第一張看得到的 .paper)、底部主要按鈕勾勾 + 放大、標籤的關卡進度條補到新位置
+       (過關接下一關 = 標籤已經是下一關:從上一格補過來;沒接下一關 = 標籤還是這一關:補到下一格) */
+    celebrate(opts = {}){
+      if (step.hidden) return null;
+      const mod = step.closest(".mod") || document;
+      const sweep = opts.sweep || [...mod.querySelectorAll(".paper")].find(p => !p.closest("[hidden]") && p.getClientRects().length) || null;
+      const btn = [...step.querySelectorAll(".daily-cta .btn.primary")].find(b => !b.hidden && b.getClientRects().length) || null;
+      const b = (step.closest(".quiz") || mod).querySelector(".q-tag .lv-bar > b"), L = lastSeg && lastSeg.level;
+      let bar = null;
+      if (b && L && L.of) { const cur = parseFloat(b.style.width) || 0, one = 100 / L.of; bar = lastOpts.passedDone ? { el: b, from: cur, to: cur + one } : { el: b, from: cur - one, to: cur }; }
+      return celebrateIn(step, fmt("cheer"), { before: step.querySelector(".daily-status"), sweep, btn, bar });
+    },
     varyText: s => M(s, varyText(s)), segKind, levelName,
     defaultStatus: s => M(s, defaultStatus(s))
   };

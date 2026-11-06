@@ -13,7 +13,7 @@
 #mod-sight .sel:focus{outline:none;border-color:var(--gold)}
 
 /* ── 題目卡:結構跟技巧、聽音一樣(q-head / q-row / q-foot,樣式在 css/app.css);這裡只放倒數、準備清單 ── */
-#mod-sight .countdown{font-family:"Noto Serif TC",serif;font-variant-numeric:tabular-nums;font-size:var(--fs-title);font-weight:700;line-height:1;
+#mod-sight .countdown{font-family:inherit;font-variant-numeric:tabular-nums;font-size:var(--fs-title);font-weight:700;line-height:1;
   color:var(--gold);margin-left:6px;transition:color .2s;white-space:nowrap}
 #mod-sight .countdown .unit{font-family:"Noto Sans TC",sans-serif;font-size:var(--fs-xs);font-weight:400;color:var(--muted);margin-left:2px}
 #mod-sight .countdown.running{color:var(--gold-bright)}
@@ -46,7 +46,7 @@
 #mod-sight .along-opt input{width:20px;height:20px;accent-color:var(--gold)}
 #mod-sight .along-note{flex-basis:100%;color:var(--muted);font-size:var(--fs-xs);line-height:1.5}
 #mod-sight .along-result{border-top:1px solid var(--line);margin-top:12px;padding-top:10px;line-height:1.5}
-#mod-sight .along-result .big{font-family:"Noto Serif TC",serif;font-size:var(--fs-title);font-weight:700;color:var(--gold-bright);line-height:1.2}
+#mod-sight .along-result .big{font-family:inherit;font-size:var(--fs-title);font-weight:700;color:var(--gold-bright);line-height:1.2}
 #mod-sight .along-result .big small{font-family:"Noto Sans TC",sans-serif;font-size:var(--fs-sm);font-weight:400;color:var(--muted-bright);margin-left:4px}
 #mod-sight .along-result .big small.lead{margin-left:0;margin-right:6px}
 #mod-sight .along-result p{margin-top:4px;color:var(--muted-bright);font-size:var(--fs-sm)}
@@ -62,7 +62,7 @@
 #s-grades .opt{min-width:44px}
 /* 準備 30 秒的浮動倒數(樂譜捲到畫面上時,題目卡的倒數看不到) */
 #mod-sight .prep-float{position:fixed;right:12px;z-index:55;display:flex;align-items:baseline;gap:2px;padding:6px 14px;border-radius:var(--radius-pill);
-  background:var(--gold-fill);color:var(--on-fill);font-family:"Noto Serif TC",serif;font-size:var(--fs-head);font-weight:700;line-height:1.2;
+  background:var(--gold-fill);color:var(--on-fill);font-family:inherit;font-size:var(--fs-head);font-weight:700;line-height:1.2;
   box-shadow:0 4px 14px rgba(0,0,0,.35);font-variant-numeric:tabular-nums;pointer-events:none}
 #mod-sight .prep-float .unit{font-size:var(--fs-cap);font-family:inherit}
 #mod-sight .prep-float.low{animation:prep-pulse 1s ease-in-out infinite}
@@ -174,7 +174,7 @@
 /* 認音的時值模式:作答 ½ 1 2 3 4 一排(取代琴鍵;數字大) */
 .rd-beats{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;margin-top:4px}
 .rd-beats[hidden],.rd-row[hidden],.rd-kbd[hidden]{display:none}
-.rd-beats .opt{min-width:0;min-height:52px;height:auto;justify-content:center;font-family:"Noto Serif TC",serif;font-size:var(--fs-xl);font-weight:700}
+.rd-beats .opt{min-width:0;min-height:52px;height:auto;justify-content:center;font-family:inherit;font-size:var(--fs-xl);font-weight:700}
 .rd-beats .opt.right{border-color:var(--teal);color:var(--teal);background:rgba(63,191,174,.12)}
 .rd-beats .opt.wrong{border-color:var(--gold-bright);color:var(--gold-bright);background:rgba(200,85,61,.18)}
 .rd-beats.idle{opacity:.45;pointer-events:none}

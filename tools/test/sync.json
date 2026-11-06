@@ -14,6 +14,7 @@
   ["js/shared/milestone.js", "js/shared/milestone.js", "same"],
   ["js/shared/roadmap.js", "js/shared/roadmap.js", "same"],
   ["js/shared/celebrate.js", "js/shared/celebrate.js", "same"],
+  ["js/shared/keystrip.js", "js/shared/keystrip.js", "same"],
   ["tools/test/checks/roadmap.mjs", "tools/test/checks/roadmap.mjs", "same"],
   ["tools/test/checks/daily.mjs", "tools/test/checks/daily.mjs", "same"],
   ["js/shared/backup.js", "js/shared/backup.js", "same"],

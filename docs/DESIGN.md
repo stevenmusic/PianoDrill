@@ -8,7 +8,7 @@
 
 像 iOS 的「分組清單」:**用底色與陰影分層,不用框線**。頁面底色最深(淺色主題最灰)、卡片浮起來一層、卡片裡「重點」凹進去一層,三層就夠。
 **金色只給能按的**(主要鈕金底、次要鈕金色淡底、選中格金底、▶ 金底);不能按的資訊(標籤、卡片標題、數字)用象牙白 / 淡色。
-唯一的例外是品牌:頂欄品牌名、題目大標題保留**金色襯線**(Noto Serif TC 700)— 一眼認得是這個 App,也是畫面上唯一最大的字。
+唯一的例外是品牌:頂欄品牌名保留**金色襯線**(Noto Serif TC 700)。題目大標題 2026-11 改**黑體 700**(Noto Sans TC,顏色照舊金色;使用者選「專心練習畫面」A,第 7 節):**襯線只留頂欄品牌名**,其他大字(難度數字、清單大項、第一次的問題標題、倒數、聽力作答鍵、時值作答鈕)一律黑體。
 字級只有五級,一級做一件事;字重只有 400 / 500 / 700(Noto Sans TC 只載入這三個,600 會變成 700)。
 7 歲、70 歲:標籤 ≥ 14、狀態句 17、按鈕看起來就是按鈕(有底色)、標籤看起來不是按鈕(中性膠囊、沒有金色)。
 **分頁輔色**(2026-11 使用者選 B):每個分頁一個輔色,**只用在**底部分頁列選中那格(圖示、字、淡底)與分段鈕(`.seg`:選中塊、沒選的字、分隔線;含各分頁裡的分段鈕,例如視奏難度、手的切換、考試系統與級數)。
@@ -20,7 +20,7 @@
 
 | 代幣 | 預設 | 上限 | 用在 |
 |---|---|---|---|
-| `--fs-title` | `calc(26rem / 17)` = 26 | **34px**(1.3 倍) | 題目大標題(金色襯線)、速度數字、練習紀錄數字、`.q-title.empty` 以外的大字 |
+| `--fs-title` | `calc(26rem / 17)` = 26 | **34px**(1.3 倍) | 題目大標題(金色黑體)、速度數字、練習紀錄數字、`.q-title.empty` 以外的大字 |
 | `--fs-head` | `calc(19rem / 17)` = 19 | 38px | 空狀態大字 `.q-title.empty`、清單大項 `.ir-name` |
 | `--fs-body` | `calc(17rem / 17)` = 17 | 34px | 狀態 / 下一步那一句、卡片標題(`.card-title b`)、段落內文 |
 | `--fs-sub` | `calc(14rem / 17)` = 14 | 28px | **標籤 `.q-tag`**、所有按鈕文字、分段鈕、說明行、重點清單、提示 |
@@ -99,14 +99,14 @@
 | `.log-week i`(7 天空點) | `--line` 外圈 | `--muted` 外圈(對比 ≥ 3:1,深淺主題) |
 | `.play-round` | 金底 52 | 加 `--shadow-play`;大小不動 |
 | `.play-round[data-cap]::after` | 置中在 ▶ 下 | **右緣對齊 ▶ 右緣**(`left:auto;right:0;transform:none;text-align:right`)、`--fs-cap`、`--muted-bright`;不超出卡片內距 |
-| `.q-title` | 襯線金 `clamp(26px,7.4vw,40px)` | 襯線金(保留)、`--fs-title`(上限 34)、line-height 1.35;固定高度改成 `calc(var(--fs-title) * 1.35)`;`#mod-tech .q-title` 的 margin-top 改成 `max(0px, calc((52px - var(--fs-title) * 1.35) / 2))`;`#mod-ear .q-title` 也用 `--fs-title`(拿掉 clamp) |
+| `.q-title` | 襯線金 `clamp(26px,7.4vw,40px)` | **黑體 700 金**(2026-11 第 7 節;原本襯線)、`--fs-title`(上限 34)、line-height 1.35;固定高度改成 `calc(var(--fs-title) * 1.35)`;`#mod-tech .q-title` 的 margin-top 改成 `max(0px, calc((52px - var(--fs-title) * 1.35) / 2))`;`#mod-ear .q-title` 也用 `--fs-title`(拿掉 clamp) |
 | `.q-tag` | 金字 700、金色淡底、`clamp(14px,4.2vw,18px)`、圓角 8 | **中性膠囊**:`--fill-tag` 底、`--muted-bright` 字、500、`calc(var(--fs-sub) * var(--tag-scale, 1))`、line-height 1.4、圓角 999、內距 4 × 11(`#mod-tech` 縮字時左右內距 `calc(11px * var(--tag-scale, 1))`);`.q-tags` min-height 改 `calc(var(--fs-sub) * 1.4 + 8px)` |
 | `.q-tag.dyn` | 青綠 | 青綠字 + 青綠淡底(深 .14 / 淺 .10),無框 |
 | `.q-tag.best` | 金框 | 同 `.dyn`(青綠 = 達成,跟「本週達標」同一個意思);金色不給不能按的 |
 | `.q-tag .lv-bar` | — | left / right 11px、bottom 1、高 2 |
 | `.daily-status` | 16 | `--fs-body`、500 |
 | `.daily-tip`、`.daily-why`、`.q-intro` | 13–14 | `--fs-sub`、`--muted-bright` |
-| `.daily-check`(重點) | 上框線 + 清單 | **凹進去的方塊**:`--fill-inset` 底、圓角 `--radius-inset`、內距 10 × 14、`--fs-sub`、`--ivory`;小標「重點」`--fs-cap` 700 `--muted-bright` letter-spacing .06em |
+| `.daily-check`(重點) | 上框線 + 清單 | **一行**(2026-11 第 7 節;原本凹進去的方塊):小標「重點」`--fs-cap` 700 `--muted-bright` letter-spacing .06em + 每項 `--fs-sub` `--ivory` 用「 · 」接起來,放不下在項目之間換行(不切);PianoDrill 放在琴鍵條下面 |
 | `.daily-step` | 上框線 | 拿掉上框線(卡片已經分層),padding-top 2 |
 | `.daily-bar b` | 襯線 | Noto Sans 700、`--fs-sub`、`--ivory` |
 | 速度卡 `.bpm b` | 襯線金 30–40 | Noto Sans 700、`--fs-title`、`--ivory`;`.bpm small` `--fs-cap` |
@@ -162,3 +162,26 @@
    測:`tasks.mjs`、`layout.mjs` 全套、`bilingual.mjs`、`human.mjs`;DrumDrill 同一套再跑一次(它的 tasks / layout / bilingual / clip / a11y)
 
 完成後:叫審查員看 diff(跨兩個 App、共用檔 = 大改);用 `appshots.mjs` 重拍上架截圖。
+
+## 7. 專心練習畫面(2026-11-06 使用者選 A「保守整理」+ 琴鍵條)
+
+比較圖:設計師的 `focus-compare.png`(現況 / A / B / C)。選 A:版型、字、按鈕都不動,只把一個練習畫面整理成「一張練習卡」,再加琴鍵條。
+
+1. **一張練習卡**:題目卡 + 樂譜卡 + 速度卡(技巧自由練習與今日練習段落)、設定列 + 題目卡 + 樂譜卡 + 麥克風卡(視奏)、設定列 + 題目卡(聽力)在畫面上合成一張:
+   同一塊 `--panel` 底、中間一條 1px `--line` 細線(`inset 0 1px 0`)、沒有各自的陰影與圓角(只有整張的頭尾圓角 `--radius-card`);內距不變(模組量「卡片頂到琴鍵 / 樂譜」的距離跟合不合無關,聽力手機橫式的琴鍵高度才不會中英差 3px);題目卡頂端的淡金漸層只在整張最上面。
+   做法:index.html 給可以合的卡片 `data-join`;外框(main.js 共用部分的 `syncJoin`,跟 `syncCta` 同一個時機)把**同一欄上下相鄰、中間沒有別張看得到的卡**的那幾張加 `.j-top` / `.j-mid` / `.j-bot`;只有一張不加;檢定頁不合;寬畫面(≥ 1100)只合同一欄的。
+   卡片之間的間距 `--mod-gap`(12 / 手機 10 / 手機橫式 8)用負的 margin 吃掉。不用 clip-path(題目卡裡有 `position:fixed` 的底部按鈕列,clip-path 會把它切掉、也會改變疊放順序)
+2. **譜紙貼齊卡片左右**:合起來的卡片裡的 `.paper` 左右伸到卡片外緣(`margin: -card-px - 1px`、圓角 0);譜卡標題「樂譜」與標示開關照舊(今日練習的關卡照舊只有工具列 [音名] …[右手|左手|雙手])
+3. **重點一行**(`.daily-check`,上面第 3 節)
+4. **譜放大**:`js/tech/app.js` 的 `fitWrap`(只改排法的縮放,**不用 CSS zoom / transform**:播放軸照 OSMD 的座標走):短譜最多正常大小的 `WRAP_FILL` 倍(手機 1.6、≥ 700 寬 2.2)、譜高 ≤ 畫面高 `WRAP_FILL_H`(手機 0.34、≥ 700 寬 0.42;第一個畫面還看得到題目、譜、琴鍵條與底部主要按鈕)
+5. **琴鍵條**(`js/shared/keystrip.js` 純畫面元件 + app.css 的 `.keystrip`;今日練習的關卡譜下面、「重點」上面):
+   - `createKeystrip(el, { low, high, now })` → `range` / `mark(midi → 手指號碼, 沒彈到的手指)` / `label(midi, html)` / `light(midi, when, dur)` / `cancel(from)` / `clear()`
+   - 至少 15 個白鍵(看得出兩個、三個一組的黑鍵);高 `--ks-h`:手機 64、≥ 700 寬 132、手機橫式 44;只顯示、不能點(`role="img"` + 說明)
+   - 用到的鍵淡金(白鍵 `#F6DFA0`、黑鍵 `#7A5C16`)+ 手指號碼(白鍵深字、黑鍵白字;同一個鍵不同手指 = 不寫號碼);五指位置沒彈到的手指寫淡色號碼(`#6f6248`,對比 ≥ 4.5);鍵的顏色深淺主題一樣
+   - 示範播放時跟著音亮(金 `#F2B94B`):App 排音的時候用同一條 AudioContext 時間線排 `light`,元件每一格 requestAnimationFrame 照時間決定亮哪些鍵;放開淡出 .3 秒;改速度 `cancel`、停止 `clear`;只有拍點的時候、App 彈的旋律不亮;減少動態效果時只亮不淡出
+   - 取代:譜卡標題列的小手位圖(`#t-handPos`)與第 0 組的大中央 C 鍵盤(`syncBigKb`)— 同一件事一個畫面只說一次;第 0 組在中央 C 下面寫「▲ 中央 C」(「找到中央 C」再加「右手大拇指放這裡」)
+   - 伴奏關:亮用到的鍵,左手和弦照指法資料標號碼(同一個鍵兩種手指就不標);旋律不標
+6. **過關**:照舊「過關 ✓」橫幅(celebrate.js),一起加:譜紙一道金色掃光 0.4 秒(`.paper.cel-sweep::after`)、標籤的關卡進度條從舊位置補到新位置(Web Animations,0.7 秒)、底部主要按鈕放大 1.04 一下 + 左邊勾勾描線(`.cel-pop`、`.cel-tick`;字左邊放不下勾勾就只放大);不彩帶、不跳視窗、不推版面;`prefers-reduced-motion` 全部靜態(只留靜態勾勾,進度條直接到新位置)
+7. **字**:題目大標題改黑體 700(第 1 節),襯線只留頂欄品牌名
+
+DrumDrill:共用的 app.css、main.js(syncJoin)、celebrate.js、dailycard.js、keystrip.js 照搬;它的 index.html 要自己標 `data-join`(技巧路線段的題目卡 + 鼓譜卡 + 速度卡、視奏、聽力);琴鍵條換成鼓的對應元件(建議:鼓件條,見交接說明)。

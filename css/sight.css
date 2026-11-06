@@ -3,9 +3,9 @@
    共用的設計代幣、按鈕、卡片在 css/app.css;這裡只放視奏專用的,一律限定在 #mod-sight 裡 */
 :root{
   --paper-gold:#856418;          /* 白紙上的金色(播放時目前小節的底色):深淺主題都一樣 */
-  --error:#E07A5F; --error-bg:rgba(200,85,61,.12); --error-line:rgba(200,85,61,.45);
+  --error:var(--red); --error-bg:var(--red-tint); --error-line:rgba(191,74,51,.45);   /* 錯 = app.css 的 --red(第 8 節:不另外定義紅色) */
 }
-:root.light{ --error:#A33A22; --error-bg:rgba(163,58,34,.08); --error-line:rgba(163,58,34,.35) }
+:root.light{ --error-line:rgba(163,58,34,.35) }
 
 /* ── 設定卡:調性下拉選單 ── */
 #mod-sight .sel{height:34px;min-width:0;max-width:100%;border:1px solid var(--line);border-radius:var(--radius-btn);
@@ -14,9 +14,9 @@
 
 /* ── 題目卡:結構跟技巧、聽音一樣(q-head / q-row / q-foot,樣式在 css/app.css);這裡只放倒數、準備清單 ── */
 #mod-sight .countdown{font-family:inherit;font-variant-numeric:tabular-nums;font-size:var(--fs-title);font-weight:700;line-height:1;
-  color:var(--gold);margin-left:6px;transition:color .2s;white-space:nowrap}
+  color:var(--ivory);margin-left:6px;transition:color .2s;white-space:nowrap}
 #mod-sight .countdown .unit{font-family:"Noto Sans TC",sans-serif;font-size:var(--fs-xs);font-weight:400;color:var(--muted);margin-left:2px}
-#mod-sight .countdown.running{color:var(--gold-bright)}
+#mod-sight .countdown.running{color:var(--ivory)}
 #mod-sight .countdown.done{color:var(--muted-bright)}
 #mod-sight .feedback.error{color:var(--error);background:var(--error-bg);border:1px solid var(--error-line);border-radius:var(--radius-sm);padding:8px 10px}
 #mod-sight .checklist{margin:12px 0 0;padding-left:1.4em;color:var(--muted-bright);font-size:var(--fs-sm);line-height:1.6;columns:2;column-gap:28px}
@@ -46,7 +46,7 @@
 #mod-sight .along-opt input{width:20px;height:20px;accent-color:var(--gold)}
 #mod-sight .along-note{flex-basis:100%;color:var(--muted);font-size:var(--fs-xs);line-height:1.5}
 #mod-sight .along-result{border-top:1px solid var(--line);margin-top:12px;padding-top:10px;line-height:1.5}
-#mod-sight .along-result .big{font-family:inherit;font-size:var(--fs-title);font-weight:700;color:var(--gold-bright);line-height:1.2}
+#mod-sight .along-result .big{font-family:inherit;font-size:var(--fs-title);font-weight:700;color:var(--ivory);line-height:1.2}
 #mod-sight .along-result .big small{font-family:"Noto Sans TC",sans-serif;font-size:var(--fs-sm);font-weight:400;color:var(--muted-bright);margin-left:4px}
 #mod-sight .along-result .big small.lead{margin-left:0;margin-right:6px}
 #mod-sight .along-result p{margin-top:4px;color:var(--muted-bright);font-size:var(--fs-sm)}
@@ -93,7 +93,7 @@
 #s-rdCard{order:3} #s-rdOpts{order:4}
 .rd-head{display:flex;align-items:baseline;gap:6px 12px;flex-wrap:wrap}
 .rd-set{flex:1 1 auto;min-width:0;font-size:var(--fs-sm);color:var(--ivory);font-weight:700;overflow-wrap:anywhere}
-.rd-score{flex:none;font-size:var(--fs-sm);color:var(--gold-bright);font-variant-numeric:tabular-nums}
+.rd-score{flex:none;font-size:var(--fs-sm);color:var(--ivory);font-variant-numeric:tabular-nums}
 /* 譜框的高度、譜表位置由 js/shared/staffframe.js 固定(這個設定允許的最多加線,上下一樣多);沒有題目時留一點高度 */
 .rd-paper{position:relative;margin-top:8px;background:var(--paper);border-radius:var(--radius-sm);min-height:0;display:flex;align-items:center;justify-content:center;overflow:hidden}
 .rd-paper:has(.rd-score-box:empty){min-height:96px}
@@ -102,7 +102,7 @@
 .rd-start{position:absolute;inset:auto;padding:0 26px}
 .rd-start[hidden]{display:none}
 .rd-msg{min-height:1.5em;line-height:1.5;margin-top:4px;text-align:center;font-size:var(--fs-md);color:var(--muted-bright)}
-.rd-msg.ok{color:var(--teal)} .rd-msg.no{color:var(--gold-bright)}
+.rd-msg.ok{color:var(--teal)} .rd-msg.no{color:var(--red)}
 .rd-kbd{height:130px;margin-top:4px}
 .rd-kbd .wk{align-items:flex-end;padding-bottom:10px}
 .rd-kbd .wk b{font-size:var(--fs-lg);color:#5A4E37}
@@ -120,6 +120,7 @@
 .rd-seg2{grid-template-columns:repeat(2,minmax(0,1fr))} .rd-seg3{grid-template-columns:repeat(3,minmax(0,1fr))} .rd-seg4{grid-template-columns:repeat(4,minmax(0,1fr))}
 .rd-seg .opt{min-width:0;min-height:44px;height:auto;padding:4px 6px;justify-content:center;text-align:center;white-space:normal;line-height:1.25}
 .rd-seg4 .opt{white-space:nowrap;font-size:var(--fs-sm);padding:4px 2px}   /* 範圍 / 快捷鈕每顆一行(「C3–G4」不拆成兩行) */
+@media (min-width:900px) and (min-height:501px){ .rd-seg4 .opt,.rd-seg3 .opt{font-size:min(calc(14rem / 17), 28px)} }   /* 寬畫面左欄窄(一格約 73px):照原本的字級,「連續答對」才一行 */
 /* 自訂範圍的 ‹ ›:整個卡片寬度;「最低音 ‹ E1 ›」「最高音 ‹ G6 ›」放得下並排、放不下兩排(每排同樣的欄寬,上下對齊),不會有一顆鈕單獨掉下去 */
 /* 音域一行:最低音、最高音各一欄(上 = 升高、名稱、下 = 降低),中間一條 –;「最多 n 條加線」在右邊(放不下就在這一格換行) */
 /* 音域:最低 – 最高,「最多 n 條加線」在同一行右邊;那一格不到 7em(手機橫放的窄欄)整句換到下一行(不擠成 0 寬溢出畫面) */
@@ -127,7 +128,7 @@
 .rd-span-ctl > .rd-end{flex:none;min-width:44px}
 .rd-span-ctl > .rd-ledger{flex:1 1 7em}
 .rd-end{display:grid;grid-template-rows:44px auto 44px;justify-items:center;align-items:center;row-gap:2px}   /* 直向三列:⌃ / 音名 / ⌄(箭頭 44 高,音名有自己的一列,不被蓋住) */
-.rd-end b{min-width:3em;text-align:center;font-size:var(--fs-md);line-height:1.3;font-variant-numeric:tabular-nums;color:var(--gold-bright)}
+.rd-end b{min-width:3em;text-align:center;font-size:var(--fs-md);line-height:1.3;font-variant-numeric:tabular-nums;color:var(--ivory)}
 .rd-dash{color:var(--muted-bright);font-size:var(--fs-md)}
 .btn.rd-arrow{width:44px;height:44px;padding:0;border-radius:var(--radius-btn);-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 .rd-ledger{margin:0 0 0 4px;min-width:0}
@@ -176,7 +177,7 @@
 .rd-beats[hidden],.rd-row[hidden],.rd-kbd[hidden]{display:none}
 .rd-beats .opt{min-width:0;min-height:52px;height:auto;justify-content:center;font-family:inherit;font-size:var(--fs-xl);font-weight:700}
 .rd-beats .opt.right{border-color:var(--teal);color:var(--teal);background:rgba(63,191,174,.12)}
-.rd-beats .opt.wrong{border-color:var(--gold-bright);color:var(--gold-bright);background:rgba(200,85,61,.18)}
+.rd-beats .opt.wrong{border-color:transparent;color:var(--red);background:var(--red-tint)}
 .rd-beats.idle{opacity:.45;pointer-events:none}
 .rd-row > .rd-hint{grid-column:2;margin-top:-4px;font-size:var(--fs-xs);color:var(--muted-bright);line-height:1.4;overflow-wrap:anywhere}
 @media (max-width:380px){ .rd-row > .rd-hint{grid-column:1;margin-top:0} }

@@ -231,7 +231,7 @@ function showView(view, sub){
   curMod = modName;
   document.body.classList.toggle("view-exam", exam);
   document.body.classList.toggle("view-sight", modName === "sight");
-  for (const v of ["tech", "sight", "ear", "exam"]) document.body.classList.toggle("tab-" + v, v === view);   // 分頁輔色(app.css 開頭的 --acc-*)
+  for (const v of ["tech", "sight", "ear", "exam"]) document.body.classList.toggle("tab-" + v, v === view);   // 目前沒有樣式用到(分頁輔色 2026-11-06 拿掉,docs/DESIGN.md 第 8 節)
   renderSubnav();
   if (exam) renderExamCard();
   window.scrollTo({ top: 0 });
@@ -432,6 +432,7 @@ document.addEventListener("keydown", e => {
 function obMode(exam){
   $("obExamPane").hidden = !exam; $("obYes").hidden = !exam; $("obExam").hidden = exam;
   $("obExam").setAttribute("aria-expanded", String(exam));
+  $("onboard").querySelector(".modal-card").classList.toggle("ob-exam-on", exam);   // 展開系統 + 級數:歡迎的大圖示縮小(app.css;不用 :has)
   $("obNo").classList.toggle("primary", !exam); $("obNo").classList.toggle("ghost", exam);
   $("onboardTitle").dataset.i18n = exam ? "obTitle" : "obWelcome";
   $("obSub").dataset.i18n = exam ? "obSub" : "obWelcomeSub";

@@ -1,4 +1,4 @@
-# 設計規格(方向 B「填色層次」;2026-11 使用者選定)
+# 設計規格(方向 B「填色層次」;2026-11 使用者選定。**顏色以第 8 節為準**:2026-11-06 使用者選顏色規則乙 + 美觀方向 B「主角清楚」)
 
 兩個 App(PianoDrill / DrumDrill)共用。`css/app.css` 是 sync.json 的 `same`:改完複製到另一個 repo,跑 `node tools/test/sync.mjs`。
 跟 CLAUDE.md「畫面設計」「系統化規則」衝突時以 CLAUDE.md 為準;這份只管「長什麼樣子」。
@@ -7,11 +7,11 @@
 ## 1. 原則
 
 像 iOS 的「分組清單」:**用底色與陰影分層,不用框線**。頁面底色最深(淺色主題最灰)、卡片浮起來一層、卡片裡「重點」凹進去一層,三層就夠。
-**金色只給能按的**(主要鈕金底、次要鈕金色淡底、選中格金底、▶ 金底);不能按的資訊(標籤、卡片標題、數字)用象牙白 / 淡色。
+**(顏色被第 8 節取代:選中改中性、題目大標題改象牙白)** **金色只給能按的**(主要鈕金底、次要鈕金色淡底、選中格金底、▶ 金底);不能按的資訊(標籤、卡片標題、數字)用象牙白 / 淡色。
 唯一的例外是品牌:頂欄品牌名保留**金色襯線**(Noto Serif TC 700)。題目大標題 2026-11 改**黑體 700**(Noto Sans TC,顏色照舊金色;使用者選「專心練習畫面」A,第 7 節):**襯線只留頂欄品牌名**,其他大字(難度數字、清單大項、第一次的問題標題、倒數、聽力作答鍵、時值作答鈕)一律黑體。
 字級只有五級,一級做一件事;字重只有 400 / 500 / 700(Noto Sans TC 只載入這三個,600 會變成 700)。
 7 歲、70 歲:標籤 ≥ 14、狀態句 17、按鈕看起來就是按鈕(有底色)、標籤看起來不是按鈕(中性膠囊、沒有金色)。
-**分頁輔色**(2026-11 使用者選 B):每個分頁一個輔色,**只用在**底部分頁列選中那格(圖示、字、淡底)與分段鈕(`.seg`:選中塊、沒選的字、分隔線;含各分頁裡的分段鈕,例如視奏難度、手的切換、考試系統與級數)。
+**分頁輔色(已被第 8 節取代:拿掉分頁輔色,選中一律中性)**(2026-11 使用者選 B):每個分頁一個輔色,**只用在**底部分頁列選中那格(圖示、字、淡底)與分段鈕(`.seg`:選中塊、沒選的字、分隔線;含各分頁裡的分段鈕,例如視奏難度、手的切換、考試系統與級數)。
 技巧 = 金、視奏 = 天藍、聽力 = 紫、檢定 = 中性(iOS 灰白);主要按鈕、▶、次要鈕、chip / opt(例如「顯示音名」、認音的範圍快捷)一律維持金色。兩個 App 一樣(見 2.5)。
 
 ## 2. 設計代幣(加在 app.css 開頭的 `:root` / `:root.light`)
@@ -20,7 +20,7 @@
 
 | 代幣 | 預設 | 上限 | 用在 |
 |---|---|---|---|
-| `--fs-title` | `calc(26rem / 17)` = 26 | **34px**(1.3 倍) | 題目大標題(金色黑體)、速度數字、練習紀錄數字、`.q-title.empty` 以外的大字 |
+| `--fs-title` | `calc(26rem / 17)` = 26 | **34px**(1.3 倍) | 題目大標題(黑體;顏色 = 象牙白,第 8 節)、速度數字、練習紀錄數字、`.q-title.empty` 以外的大字 |
 | `--fs-head` | `calc(19rem / 17)` = 19 | 38px | 空狀態大字 `.q-title.empty`、清單大項 `.ir-name` |
 | `--fs-body` | `calc(17rem / 17)` = 17 | 34px | 狀態 / 下一步那一句、卡片標題(`.card-title b`)、段落內文 |
 | `--fs-sub` | `calc(14rem / 17)` = 14 | 28px | **標籤 `.q-tag`**、所有按鈕文字、分段鈕、說明行、重點清單、提示 |
@@ -60,7 +60,7 @@
 `--line` 只留給:分隔線(結果上面那條)、樂譜紙張的內框、輸入框。其他框線全拿掉。
 對比(已算過,≥ 4.5):標籤字 / 膠囊 深 6.2、淺 7.3;次要鈕金字 深 7.7、淺 5.3;`--muted` / 卡片 深 5.0、淺 5.7;`--muted` / 頁面 深 5.5、淺 5.0;青綠標籤 深 6.4、淺 6.3。
 
-### 2.5 分頁輔色(2026-11 使用者選 B;app.css 開頭)
+### 2.5 分頁輔色(2026-11 使用者選 B;app.css 開頭)— **已被第 8 節取代**(2026-11-06 使用者:「有其他顏色和金色參在一起,感覺很怪」;下面只留作紀錄,不要照做)
 
 外框(main.js 共用部分的 `showView`)在 body 加 `tab-tech` / `tab-sight` / `tab-ear` / `tab-exam`(不用 `:has`);沒有 class = 技巧。
 代幣:`--acc-text`(沒選的分段鈕字、分頁列選中的圖示與字)、`--acc-fill`(分段鈕選中塊)、`--acc-on`(選中塊上的字)、`--acc-tint`(分頁列選中淡底、分段鈕按下)、`--acc-sep`(分段鈕分隔線)。
@@ -80,26 +80,26 @@
 |---|---|---|
 | `header` | panel 底 + 下框線 | `--bg` 底、無框線(捲動時照舊 sticky) |
 | `.card` | 1px `--line` 框 + 頂端 tint 漸層、圓角 14 | 無框、無漸層、`--shadow-card`、圓角 `--radius-card` 20 |
-| `.quiz`(題目卡) | 同卡片 | 卡片 + 頂端淡金漸層(2.4) |
+| `.quiz`(題目卡) | 同卡片 | 卡片 + 頂端淡金漸層(2.4)→ **第 8 節拿掉漸層** |
 | `.card-title b` | 襯線 16 金色 | Noto Sans 700、`--fs-body`、`--ivory`、letter-spacing .02em |
 | `.card-title .sub` | 12 | `--fs-cap`、`--muted-bright`(不變) |
 | `.btn.primary` | 金底 | 金底 + `--shadow-primary`;字 700 |
 | `.btn`(次要) | 1px 金框、透明底 | **無框、`--fill-btn` 底、金字、500**;`:active` 照舊金底 |
 | `.btn.ghost` | `--line` 框、淡字 | 同次要(`--fill-btn` 底、金字);它也能按 |
 | `.btn:disabled` | — | 不加底色,`opacity` 照舊 |
-| `.chip`、`.opt`、`.mbtn` | 1px `--line` 框、inset 底 | 無框、`--fill-btn` 底;選中 = 金底 `--on-fill` 字 700(刪掉 `:root.light .chip[aria-pressed]` 的淡底覆寫,淺色也是金底) |
-| `.mbtn` 選中 | 青綠 / 橘 | 不變(會了 = 青綠、再練 = 橘) |
+| `.chip`、`.opt`、`.mbtn` | 1px `--line` 框、inset 底 | 無框、`--fill-btn` 底;選中 = 金底(**第 8 節改中性**) `--on-fill` 字 700(刪掉 `:root.light .chip[aria-pressed]` 的淡底覆寫,淺色也是金底) |
+| `.mbtn` 選中 | 青綠 / 橘 | 不變(會了 = 青綠、再練 = 橘)→ **第 8 節:再練改中性,不用橘** |
 | `.goal .chip` | 灰字淡底(像標籤) | 金字 500 + 右邊線稿鉛筆 16(`::after` mask;2026-11 使用者選 B,看得出能點) |
 | `.goal .chip.done` | 青綠框 | 青綠字 + `rgba(63,191,174,.14)` 底(淺色 `.10`),無框 |
 | `.sel`、`.field select` | 框 | 照舊(輸入框保留框線) |
-| `.seg` | iOS 原生 | 形狀**不動**(已定案);顏色 = 分頁輔色(2.5) |
+| `.seg` | iOS 原生 | 形狀**不動**(已定案);顏色 = 分頁輔色(2.5)→ **第 8 節:中性** |
 | `#themeToggle`、`#langToggle` | 框 | 無框、`--fill-tag` 底、`--muted-bright` 字;**不管哪種主題 / 語言都是中性底**(不換金色:金色只給主要動作,第 7 輪);點擊區 `::after` 44 |
-| `.qrow`(檢定清單一列) | 1px `--line` 框 | 無框、`--fill-btn` 底(跟 DrumDrill `button.xitem` 一樣);目前這一題 `inset 0 0 0 2px --gold` |
+| `.qrow`(檢定清單一列) | 1px `--line` 框 | 無框、`--fill-btn` 底(跟 DrumDrill `button.xitem` 一樣);(**第 8 節:目前這一題內圈改象牙白**)目前這一題 `inset 0 0 0 2px --gold` |
 | `.modal-card`(第一次的問題) | panel + 框 | 無框;深色比卡片亮一層 `#2A2316` + 上緣 1px 亮線(遮罩後分得出邊緣);「開始準備考試」= 主要(選好級數才金底)、「不考試」= 次要 |
 | `.log-week i`(7 天空點) | `--line` 外圈 | `--muted` 外圈(對比 ≥ 3:1,深淺主題) |
 | `.play-round` | 金底 52 | 加 `--shadow-play`;大小不動 |
 | `.play-round[data-cap]::after` | 置中在 ▶ 下 | **右緣對齊 ▶ 右緣**(`left:auto;right:0;transform:none;text-align:right`)、`--fs-cap`、`--muted-bright`;不超出卡片內距 |
-| `.q-title` | 襯線金 `clamp(26px,7.4vw,40px)` | **黑體 700 金**(2026-11 第 7 節;原本襯線)、`--fs-title`(上限 34)、line-height 1.35;固定高度改成 `calc(var(--fs-title) * 1.35)`;`#mod-tech .q-title` 的 margin-top 改成 `max(0px, calc((52px - var(--fs-title) * 1.35) / 2))`;`#mod-ear .q-title` 也用 `--fs-title`(拿掉 clamp) |
+| `.q-title` | 襯線金 `clamp(26px,7.4vw,40px)` | **黑體 700**(顏色:**第 8 節改象牙白**)(2026-11 第 7 節;原本襯線)、`--fs-title`(上限 34)、line-height 1.35;固定高度改成 `calc(var(--fs-title) * 1.35)`;`#mod-tech .q-title` 的 margin-top 改成 `max(0px, calc((52px - var(--fs-title) * 1.35) / 2))`;`#mod-ear .q-title` 也用 `--fs-title`(拿掉 clamp) |
 | `.q-tag` | 金字 700、金色淡底、`clamp(14px,4.2vw,18px)`、圓角 8 | **中性膠囊**:`--fill-tag` 底、`--muted-bright` 字、500、`calc(var(--fs-sub) * var(--tag-scale, 1))`、line-height 1.4、圓角 999、內距 4 × 11(`#mod-tech` 縮字時左右內距 `calc(11px * var(--tag-scale, 1))`);`.q-tags` min-height 改 `calc(var(--fs-sub) * 1.4 + 8px)` |
 | `.q-tag.dyn` | 青綠 | 青綠字 + 青綠淡底(深 .14 / 淺 .10),無框 |
 | `.q-tag.best` | 金框 | 同 `.dyn`(青綠 = 達成,跟「本週達標」同一個意思);金色不給不能按的 |
@@ -112,7 +112,7 @@
 | 速度卡 `.bpm b` | 襯線金 30–40 | Noto Sans 700、`--fs-title`、`--ivory`;`.bpm small` `--fs-cap` |
 | 速度卡(今日練習進行中) | 有拍點小點 | `#mod-tech.daily-on #t-metroCard .beats{display:none}` |
 | `.log-stats b` | 襯線金 | Noto Sans 700、`--ivory`、`--fs-title`(手機不超過一格寬的 2/5:`min(var(--fs-title), calc(11vw - 4px))`) |
-| `.log-week i.on` | 金底 | 不動(7 天點是圓形按鈕) |
+| `.log-week i.on` | 金底 | ~~不動~~ → 第 8 節:練過的點改象牙白(7 天點不能按,是資訊) |
 | 譜卡 `.paper` | 圓角 8 | 圓角 12;紙張內框保留 |
 | `.item-row` | — | 不是卡片(照 CLAUDE.md),不加底色;`.ir-name` `--fs-head` |
 | `.quiz.hint-empty .q-hint` | 14 | `--fs-sub` → 建議 `--fs-body`(一句提示是主要資訊;中英同高要重量) |
@@ -125,7 +125,7 @@
 | `.verify-badge` | 橘框膠囊 | 不動(只在檢定頁「考試內容」) |
 
 ## 4. 已定案、不能動
-- 分段鈕 iOS 原生樣式(`.seg`:`--seg-track` 軌道圓角 10、選中塊圓角 8 + 陰影、分隔線);選中塊顏色 = 分頁輔色(2.5)
+- 分段鈕 iOS 原生樣式(`.seg`:`--seg-track` 軌道圓角 10、選中塊圓角 8 + 陰影、分隔線);選中塊顏色 = 中性(第 8 節;2.5 分頁輔色已取代)
 - 按鈕圓角 `--radius-btn` 12(`.btn .chip .opt .mbtn .sel`);只有圖示的圓形鈕(主題、語言、▶、7 天點)維持圓形
 - 品牌色:金(深 `#F2B94B` / 淺 `#7A5C16`)、深底與淺底;品牌名的 CSS 跟 ScrollScore / HarmonyMap 逐項相同;Salamander 譜面(白紙 `--paper`)
 - 會用到的點擊區 ≥ 44(最低 28);按鈕高度用 `min-height`,字級放大換行不截字
@@ -168,7 +168,7 @@
 比較圖:設計師的 `focus-compare.png`(現況 / A / B / C)。選 A:版型、字、按鈕都不動,只把一個練習畫面整理成「一張練習卡」,再加琴鍵條。
 
 1. **一張練習卡**:題目卡 + 樂譜卡 + 速度卡(技巧自由練習與今日練習段落)、設定列 + 題目卡 + 樂譜卡 + 麥克風卡(視奏)、設定列 + 題目卡(聽力)在畫面上合成一張:
-   同一塊 `--panel` 底、中間一條 1px `--line` 細線(`inset 0 1px 0`)、沒有各自的陰影與圓角(只有整張的頭尾圓角 `--radius-card`);內距不變(模組量「卡片頂到琴鍵 / 樂譜」的距離跟合不合無關,聽力手機橫式的琴鍵高度才不會中英差 3px);題目卡頂端的淡金漸層只在整張最上面。
+   同一塊 `--panel` 底、中間一條 1px `--line` 細線(`inset 0 1px 0`)、沒有各自的陰影與圓角(只有整張的頭尾圓角 `--radius-card`);內距不變(模組量「卡片頂到琴鍵 / 樂譜」的距離跟合不合無關,聽力手機橫式的琴鍵高度才不會中英差 3px);題目卡頂端的淡金漸層只在整張最上面(**第 8 節拿掉漸層**)。
    做法:index.html 給可以合的卡片 `data-join`;外框(main.js 共用部分的 `syncJoin`,跟 `syncCta` 同一個時機)把**同一欄上下相鄰、中間沒有別張看得到的卡**的那幾張加 `.j-top` / `.j-mid` / `.j-bot`;只有一張不加;檢定頁不合;寬畫面(≥ 1100)只合同一欄的。
    卡片之間的間距 `--mod-gap`(12 / 手機 10 / 手機橫式 8)用負的 margin 吃掉。不用 clip-path(題目卡裡有 `position:fixed` 的底部按鈕列,clip-path 會把它切掉、也會改變疊放順序)
 2. **譜紙貼齊卡片左右**:合起來的卡片裡的 `.paper` 左右伸到卡片外緣(`margin: -card-px - 1px`、圓角 0);譜卡標題「樂譜」與標示開關照舊(今日練習的關卡照舊只有工具列 [音名] …[右手|左手|雙手])
@@ -182,6 +182,188 @@
    - 取代:譜卡標題列的小手位圖(`#t-handPos`)與第 0 組的大中央 C 鍵盤(`syncBigKb`)— 同一件事一個畫面只說一次;第 0 組在中央 C 下面寫「▲ 中央 C」(「找到中央 C」再加「右手大拇指放這裡」)
    - 伴奏關:亮用到的鍵,左手和弦照指法資料標號碼(同一個鍵兩種手指就不標);旋律不標
 6. **過關**:照舊「過關 ✓」橫幅(celebrate.js),一起加:譜紙一道金色掃光 0.4 秒(`.paper.cel-sweep::after`)、標籤的關卡進度條從舊位置補到新位置(Web Animations,0.7 秒)、底部主要按鈕放大 1.04 一下 + 左邊勾勾描線(`.cel-pop`、`.cel-tick`;字左邊放不下勾勾就只放大);不彩帶、不跳視窗、不推版面;`prefers-reduced-motion` 全部靜態(只留靜態勾勾,進度條直接到新位置)
-7. **字**:題目大標題改黑體 700(第 1 節),襯線只留頂欄品牌名
+7. **字**:題目大標題改黑體 700(第 1 節),襯線只留頂欄品牌名;**顏色改象牙白(第 8 節取代「金色標題」)**
 
 DrumDrill:共用的 app.css、main.js(syncJoin)、celebrate.js、dailycard.js、keystrip.js 照搬;它的 index.html 要自己標 `data-join`(技巧路線段的題目卡 + 鼓譜卡 + 速度卡、視奏、聽力);琴鍵條換成鼓的對應元件(建議:鼓件條,見交接說明)。
+
+## 8. 顏色規則乙 + 方向 B「主角清楚」(2026-11-06 使用者選定;**取代 2.5 分頁輔色與「金色題目大標題」**)
+
+使用者:「有的頁面,有其他顏色和金色參在一起,感覺很怪」「顏色看起來很亂」。選了顏色規則乙(全部金色、拿掉分頁輔色)+ 美觀方向 B(主角清楚)+ 題目大標題象牙白。
+比較圖與注入用 CSS(設計師暫存,不在 repo):`…/scratchpad/design12/cmp-dark.png`、`cmp-light.png`、`yi.css`;`…/scratchpad/design11/cmp-1-today.png`…`cmp-5-drum.png`、`B.css`
+(完整路徑 `/tmp/claude-0/-home-user/57ddd9dc-2132-5999-a5a7-37258561f000/scratchpad/`)。**照這一節做,不要照 CSS 檔逐字抄**:B.css 與 yi.css 互相覆寫、用了 `!important`,下面已經合成一份並修掉問題(8.6)。
+兩個 App 一樣;app.css 是 sync.json 的 `same`,改完複製到 DrumDrill。
+
+### 8.1 一句話規則
+
+畫面上**有彩度的顏色只有三種**:**金 = 動作**(按了會發生事)、**青綠 = 對 / 過關 / 達標**、**紅 = 錯**。其他一律中性(象牙白、淡色、灰塊)。
+
+| 類別 | 顏色 | 包含 |
+|---|---|---|
+| 動作(金) | 主要鈕金底 `--gold-fill` + `--on-fill` 字;次要 / ghost 鈕 `--fill-btn` 底金字;▶ 金底;**底部分頁列選中那格**金字 + 金淡底(導覽也是動作) | `.btn`、`.btn.primary`、`.btn.ghost`、`.text-btn`(8.5-6)、`.play-round`、`.goal .chip`(每週目標)、`.qrow` / DD `.xitem`(點一項就練)、可展開的摘要箭頭(`details summary .chev`、`.setup-summary svg`、`.exam-sum svg`、DD `.xitem svg`)、滑桿、勾選框 `accent-color`、焦點框 `:focus-visible` |
+| 動作的延伸(金,保留) | ▶ 按下去以後「正在響」的狀態 | 播放軸(PD 樂譜 cursor `#F2B94B`、DD `#B8860B` playline、`--paper-gold` 小節底色)、`.beats i.on` 拍點燈、`.play-ring`、作答琴鍵 / 琴鍵條**亮起** `.lit` / `.kbd .wk.on`、鼓墊 `.tap-pad`(本身是按鈕)、DD `#e-stage.you` / `.along.you .tap-pad`(輪到你打)、視奏倒數中的主要鈕 `.s-along-top.counting` 與浮動倒數 `.prep-float`(= 主要鈕的狀態)、過關掃光 `.cel-sweep` |
+| 選中(中性) | 見 8.2 的 `--sel-*` | `.seg` 選中塊、`.chip` / `.opt` / `.btn[aria-pressed]` 選中、`.mbtn` 再練選中、`.qrow.cur`、`.test .chip.cur`、今日清單目前那一段 |
+| 資訊(中性) | `--ivory`(主要)、`--muted-bright`(次要)、`--muted`(最淡) | 題目大標題、清單大項、數字、標籤、卡片標題、說明、進度條、7 天點 |
+| 語意 | 青綠 `--teal` / `--teal-fill`;紅 `--red` / `--red-fill`(8.2) | 對、會了、過關、本週達標、正確率條;錯(作答錯、認音錯、聽力答錯) |
+| 樂器與譜紙(不算介面色) | 照舊,深淺主題同色 | 譜紙 `--paper`、琴鍵條白黑鍵與「這一關用到的鍵」淡金 `#F6DFA0` / `#7A5C16`、作答琴鍵本體 |
+
+**不再有橘、天藍、紫**。「再練」不是錯,不用紅也不用橘:中性(不用懲罰的顏色,七個目標第 6 條)。
+
+例外(實作時定的):視奏速度旁的「回到預設」`#s-bpmReset` 是動作,但外觀照 `.chip` 走中性(只在改過速度時出現、很次要,不跟主要鈕搶金色)。
+寬畫面(≥ 900 寬、> 500 高)字放大 `--fs-k` 以後:單行切字的 `.q-title` 行高與高度 1.5、`.qrow` 的字 1.45(中文字框比較高,不然上緣被切 2px);窄格子(技巧「種類」4 欄、認音範圍 4 格、認音模式 3 格)直接寫原本的字級(字級代幣在 `:root` 算好,子元素改 `--fs-k` 沒有用)。
+
+### 8.2 代幣(app.css 開頭;深色 / 淺色)
+
+| 代幣 | 深色 | 淺色 | 用在 |
+|---|---|---|---|
+| `--acc-text`(保留名字,改中性) | `var(--ivory)` | `#241E12` | 分段鈕沒選的字 |
+| `--acc-fill` | `#5A5242` | `#FFFFFF` | 分段鈕選中塊(iOS 原生:深色灰塊、淺色白塊) |
+| `--acc-on` | `#F4ECDA` | `#241E12` | 選中塊上的字(對比 深 6.6 / 淺 16.5) |
+| `--acc-tint` | `rgba(244,236,218,.10)` | `rgba(36,30,18,.07)` | 分段鈕按下 |
+| `--acc-sep`、`--seg-sep` | `rgba(244,236,218,.22)` | `rgba(36,30,18,.22)` | 分段鈕分隔線(原本金色 .28 / .3) |
+| `--sel-fill`(新) | `#F4ECDA` | `#2F2817` | chip / opt / `.btn[aria-pressed]` / `.mbtn` 再練 選中底(反白:比分段鈕更醒目,因為它們是獨立的鈕) |
+| `--sel-on`(新) | `#16110A` | `#FFFDF8` | 上面那塊的字(對比 深 16.0 / 淺 14.4) |
+| `--sel-ring`(新) | `var(--ivory)` | 同 | 「目前這一個」的內圈 2px(`.qrow.cur`、`.test .chip.cur`、DD `.mock-res div.cur`) |
+| `--tab-tint`(新) | `rgba(242,185,75,.12)` | `rgba(133,100,24,.10)` | 底部分頁列選中淡底(金字對比 深 8.0 / 淺 5.8) |
+| `--red`(新,字) | `#E07A5F` | `#A33A22` | 錯的字(卡片上 深 6.2 / 淺 6.5;頁面上 深 6.8 / 淺 5.3) |
+| `--red-fill`(新,底) | `#BF4A33` | 同 | 錯的底色 + 白字(**白字 4.95**;原本 `#C8553D` 只有 4.35,聽力音程答錯的小字不過) |
+| `--red-tint`(新) | `rgba(191,74,51,.16)` | `rgba(163,58,34,.10)` | 錯的淡底(上面放 `--red` 字:深 5.3 / 淺 5.6) |
+
+- **刪掉** `body.tab-sight / tab-ear / tab-exam` 與 `:root.light body.tab-*` 六行(app.css 94–99 附近)。`--acc-*` 名字保留(`.seg` 用,改動最少);main.js 共用部分 `showView` 給 body 加 `tab-*` 那一行可以留著,註解改成「目前沒有樣式用到」。
+- sight.css 的 `--error / --error-bg / --error-line` 改指到 `--red` / `--red-tint` / `rgba(191,74,51,.45)`(淺色 `rgba(163,58,34,.35)`),不另外定義紅色。
+- `--gold`、`--gold-fill`、`--fill-btn`、`--teal*` 不動。
+
+### 8.3 逐條改法(選擇器 → 改成;沒列的照舊)
+
+**外框、共用(app.css)**
+| 選擇器 | 現在 | 改成 |
+|---|---|---|
+| `.tabbar button[aria-selected="true"]`(兩處 + 520 / 532 的 background) | `--acc-text` / `--acc-tint` | `color:var(--gold);background:var(--tab-tint)` |
+| `.chip:not(.done)`、`.opt:not(.right):not(.wrong)` 沒選 | `--fill-btn` 底(金淡) | `background:var(--fill-tag);color:var(--ivory)`(選擇 = 中性;按鈕外形照舊圓角 12) |
+| `.chip[aria-pressed="true"]`、`.opt[aria-pressed="true"]`、`.btn[aria-pressed="true"]` | 金底 | `background:var(--sel-fill);color:var(--sel-on);font-weight:700`;**刪掉** `:root.light .chip[aria-pressed]` 的舊覆寫(如果還在);`#themeToggle` / `#langToggle` 照舊中性規則優先 |
+| `.chip:active`、`.opt:active`、`.ans:active` | 金淡底 .16 / .12 | `var(--acc-tint)` |
+| `.goal .chip:not(.done)` | 金字 | 不動(動作;要寫在 chip 中性規則**後面**才贏) |
+| `.mbtn`(沒選) | `--fill-btn` | `--fill-tag` 底、`--muted-bright` 字 |
+| `.mbtn[data-m="weak"][aria-pressed="true"]` | 橘 `#E8A25B` | `--sel-fill` 底、`--sel-on` 字(會了照舊青綠) |
+| `.dot.weak`(清單「再練」點) | 橘 | `background:var(--ivory);border-color:var(--ivory)`(沒標 = 空心 `--muted` 圈;會了 = 青綠實心) |
+| `.srow .bar i.low` | 橘 | `var(--muted)` |
+| `.verify-badge` | 橘字橘框 | `--muted-bright` 字、`--fill-tag` 底、無框;`.ok` 青綠字 + `rgba(63,191,174,.14)`(淺 `.10`)底 |
+| `.qrow.cur` | 金內圈 | `inset 0 0 0 2px var(--sel-ring)` |
+| `.test .chip.cur` | 金框金字 | `box-shadow:inset 0 0 0 2px var(--sel-ring);color:var(--ivory)` |
+| `.test h3 b`(題號) | 金 | `--muted-bright` |
+| `.group h3` | 金 | `--muted-bright` |
+| `.quick .qhead b` | 金 | `--ivory` |
+| `.q-title`、`.modal-card h2`、`.item-row .ir-name`、`.lvl-row .lvl b`(難度數字;▼▲ 是按鈕照舊金) | 金 / 亮金 | `--ivory` |
+| `.diff-msg` | 亮金 | `--ivory` |
+| `.card.quiz`(兩條,深淺) | 頂端淡金漸層 | **拿掉漸層**,只有 `var(--panel)`(裝飾;第 7 節「只在整張最上面」也一起拿掉) |
+| `body` 背景(深淺各一條) | 左下金光暈 + 右下青綠光暈 | **拿掉**兩個 radial-gradient,只留 `var(--bg)`(頁面裡亂的來源之一) |
+| `.log-week i.on`(練過的那天) | 金底 | `--ivory` 底與框(7 天點不能按,是資訊) |
+| `.log-week span.today` | 金字 | `--ivory`、700 |
+| `.goal .progress i` | 金 | `--ivory`;`.done` 照舊青綠 |
+| `.kbd-dots i.on` | 金 | `--ivory`;`.wrong` 改 `--red-fill` |
+| `.q-tag .lv-bar b`(關卡進度條) | 金 | `--ivory`(慶祝時 Web Animations 照舊補到新位置) |
+| `.daily-k` | 金 | 見 8.5-1(`--muted-bright`) |
+| `.daily-list li.done .daily-mark` | 金底 | 見 8.5-1(象牙白底) |
+| `.daily-list li[aria-current="step"] .daily-mark` | 金框 | 見 8.5-1(象牙白框) |
+| `.daily-dots i.on` / `i.cur` | 金底 / 金框 | `--ivory` 底 / `2px solid var(--ivory)` |
+| `.daily-left.up` | 金 | `--ivory`、700 |
+| `.daily-vary`(「這次:…」) | 金 700 | `--ivory` 700 |
+| `.chord-table b` | 金 | `--ivory` 700 |
+| `.ks-lbl .ks-up`(▲ 中央 C) | 金 | `--ivory` |
+| `footer .foot-note`(已複製) | 金 | `--muted-bright` |
+| `.mock-res b` | 金 | `--ivory`;`.mock-res i.no` → `--red` |
+| `.ans.wrong` | `#C8553D` 白字 | `background:var(--red-fill);border-color:var(--red-fill);color:#fff` |
+| `.feedback.no`(深淺兩條) | `#E07A5F` / `#A33A22` | `var(--red)`(一條就好) |
+| `.kbd .wk.wrong` / `.bk.wrong` | `#C8553D` 漸層與光暈 | 漸層終點與光暈改 `#BF4A33` / `rgba(191,74,51,.8)`(樂器區,顏色跟 `--red-fill` 同一個) |
+
+**sight.css**
+| 選擇器 | 改成 |
+|---|---|
+| `#mod-sight .countdown`、`.countdown.running` | `--ivory`(`.done` 照舊淡色);`.prep-float`、`.s-along-top.counting` 照舊金(= 主要鈕) |
+| `#mod-sight .along-result .big`、`.rd-score`、`.rd-end b` | `--ivory` |
+| `.along-result .r-head`、`.practice-only`、`.s-check-title`(sight.css 有的話) | `--muted-bright` |
+| `.rd-msg.no`(認音答錯那句) | `var(--red)` |
+| `.rd-beats .opt.wrong` | `color:var(--red);background:var(--red-tint);border-color:transparent` |
+| 認音作答 `.rd-ans-grid .opt.wrong`(如果 PD 也有) | 同上 |
+
+### 8.4 不用改、刻意保留的金
+主要 / 次要 / ghost 鈕、▶ 與外圈、底部分頁列選中、每週目標鈕、檢定清單列(能點)、可展開卡的箭頭、滑桿與勾選框、焦點框、8.1「動作的延伸」整列、琴鍵條與作答琴鍵(樂器區)。
+**判斷新元素**:「按了會發生事嗎?」會 → 金;「它在響嗎(▶ 按下去的結果)」是 → 金;其他 → 中性;對 / 過關 / 達標 → 青綠;錯 → 紅。
+
+### 8.5 方向 B 的每一項
+
+1. **今日卡:每段一塊 + 編號**(`.daily-list`,只在今日卡;兩個 App 共用,選擇器用 `.daily-list` 不寫 `#t-dailyCard`,DD 同 id 也可以)
+   - 卡片標題 `.daily .card-title b`(還沒開始 / 暫停 / 練完那張,不含進行中那一行)→ `--fs-head`
+   - `.daily-list{counter-reset:s;gap:8px;margin:4px 0 14px}`
+   - `.daily-list li`:`display:grid;grid-template-columns:auto minmax(0,1fr);column-gap:12px;row-gap:0;align-items:center;min-height:56px;padding:10px 14px;border-radius:var(--radius-inset);background:var(--fill-inset)`;淺色 `background:#F3EEE3`(`--fill-inset` 淺色 = 頁面色,在卡片上太重)
+   - 編號:`.daily-list li:not(.locked){counter-increment:s}`(**算在 li 上**;B.css 寫在 `:empty::before` 會讓打勾的那段不算號,後面的號碼錯)、`.daily-mark:empty::before{content:counter(s)}`
+   - `.daily-mark`:`grid-row:1 / span 2;width:30px;height:30px;border:2px solid var(--muted);font-size:var(--fs-sub);font-weight:700;color:var(--muted-bright)`
+   - 目前那一段 `li[aria-current="step"] .daily-mark`:`border-color:var(--ivory);color:var(--ivory)`(B.css 是 `:first-child` 金框:改成 aria-current、中性)
+   - 做完的 `li.done .daily-mark`:`background:var(--ivory);border-color:var(--ivory);color:var(--panel)`(勾勾 = 卡片色,深淺都看得到)
+   - `.daily-k`(種類小字:暖身 / 手指 / 伴奏):`grid-column:2;font-size:var(--fs-cap);font-weight:700;letter-spacing:.04em;line-height:1.3;color:var(--muted-bright)`
+   - `.daily-t`:`grid-column:2;font-size:var(--fs-body);font-weight:500;line-height:1.35;color:var(--ivory);white-space:normal`(放不下換行,不切「…」)
+   - 還沒開放 `li.locked`:`background:transparent;box-shadow:inset 0 0 0 1.5px var(--line)`、`.daily-t` `--fs-sub` `--muted-bright`、編號圈虛線照舊(沒有號碼)
+   - 手機橫式那段 `.daily-list{margin-bottom:8px}` 照舊
+2. **開始鈕高 56**:`.daily-btn{min-height:56px;font-size:var(--fs-body)}`;手機橫式(那個 media 裡的 `.daily-btn{min-height:44px}`)照舊 44;「再練一下」如果也是 `.daily-btn` 一樣 56
+3. **連續天數**:B.css 給它金色 —— **算違反**(數字不能按)。改法:不用顏色,用層次:`.log-stats > div:first-child b` 照舊 `--ivory`,**另外兩格數字改 `--muted-bright`**(同字級、同字重;連續天數自然變主角);「重新開始」那格照舊
+4. **歡迎全螢幕**(`#onboard`;只改 CSS,DOM 不動)
+   - `#onboard.modal{background:var(--bg);-webkit-backdrop-filter:none;backdrop-filter:none;padding:0}`
+   - `#onboard .modal-card{width:min(460px,100%);height:100%;max-height:none;overflow-y:auto;background:transparent;box-shadow:none;border-radius:0;display:flex;flex-direction:column;text-align:center;padding:calc(64px + env(safe-area-inset-top)) 20px calc(24px + env(safe-area-inset-bottom))}`(上面讓出頂欄:頂欄 z-index 60 在對話框上面,主題 / 語言鈕照舊能按)
+   - 大圖示:`#onboard .modal-card::before{content:"";flex:none;width:120px;height:120px;margin:auto auto 24px;border-radius:28px;background:url(../icons/icon-512.png) center/cover;box-shadow:0 12px 32px rgba(0,0,0,.35)}`,淺色陰影 `rgba(90,72,30,.18)`(**不用金光暈**;路徑相對 css/,兩個 App 各用自己的 icons/icon-512.png,sw.js 已預快取)
+   - `#onboard .modal-card h2{font-size:var(--fs-title);line-height:1.35;color:var(--ivory)}`、`#onboard .modal-sub{font-size:var(--fs-body);margin-top:8px}`
+   - 按鈕在下:`#onboard .modal-actions{margin-top:auto;padding-top:24px}`(主要鈕 52 照舊)
+   - 展開「我在準備檢定」(`#obExamPane` 出現):內容變高就捲動;**不用 `:has`**,圖示縮成 64(`obMode` 在 `.modal-card` 加 class `ob-exam-on`,`.ob-exam-on::before{width:64px;height:64px;border-radius:16px;margin:0 auto 12px}`)— 這是 main.js 共用部分一行
+   - 矮畫面 `@media (max-height:500px)`:圖示 56、`margin:0 auto 8px`;padding-top `calc(52px + env(safe-area-inset-top))`;手機橫式左邊分頁列在對話框下面,不用讓
+5. **聽力作答琴鍵加高**(只有 PD 聽力;認音 `.rd-kbd` **不加高**):`@media (max-width:600px){ #mod-ear .kbd{height:clamp(150px, 26vh, 210px)} }`(iphone-390 ≈ 210、fold-280 653 高 ≈ 170;B.css 寫死 210 會把 fold-280 的第一個畫面擠掉)。B.css 的 `#mod-sight .kbd{190px}` 不做
+6. **麥克風開關、文字鈕改成小按鈕**(`.text-btn`:PD「麥克風聽你彈:開 / 關」`#t-micBtn`、「回上一關」;DD「沒有鼓?用手機打」`#t-rModeBtn`、`#t-rKitBtn`)
+   - `.text-btn{min-height:44px;margin-top:6px;padding:0 14px;border-radius:var(--radius-btn);background:var(--fill-btn);color:var(--gold);font-size:var(--fs-sub);font-weight:500;text-decoration:none}`
+   - **圓角用 12,不用 B.css 的 999 膠囊**:按鈕一律圓角方形是 2026-10-22 已定案(第 4 節),膠囊外形留給不能按的標籤 `.q-tag`(能按 / 不能按一眼分得出來)
+   - `≤ 340` 那條 `.daily-acts .text-btn{padding-left:0;padding-right:0}` 改成 `padding:0 10px`;DD drum.css 531 的 `min-height:44px` 照舊
+7. **頁尾不加底線**:`footer a, footer .foot-link{text-decoration:none;color:var(--muted)}`(對比:頁面上 深 5.5 / 淺 4.7);點擊區 44 照舊
+8. **寬畫面根字級 20**(≥ 900 寬而且 > 500 高;手機橫式最寬 932 × 430,要排除)
+   - **不改 `html` 的 font-size**(B.css 的 `html{font-size:125%!important}` 會蓋掉 iPad 的 `-apple-system-body` 動態字級,也會放大品牌名,品牌名要跟 ScrollScore 逐項相同)。改成字級代幣乘一個係數:
+     `:root{--fs-k:1}`;五級寫成 `--fs-title:min(calc(26rem / 17 * var(--fs-k)), 34px)`(其他四級同理,上限不變);`body` 的預設字級 `min(calc(16rem / 17 * var(--fs-k)), 32px)`;
+     `@media (min-width:900px) and (min-height:501px){ :root{--fs-k:1.176} }`(= 20 / 17;題目大標題 30.6、內文 20、標籤 16.5)。分頁列、品牌名、譜面字照舊不放大
+   - 寬度:同一個 media `main,footer{max-width:1040px}`(取代 ≥ 1100 的 1480);`≥ 1100` 一欄置中 `.mod.one-col > .mod-main` 1100 → **880**、今日還沒開始 760 → **880**、跟著它的 footer、`.subnav .sub-bar`、`.daily-cta` / `.cta-bar` 的置中公式 1100 → 880;檢定頁沒選考試的 760 照舊
+9. **B 的其他項**:題目大標題、第一次的問題標題 = 象牙白(上面 8.3);每週目標鈕金字(照舊)
+
+### 8.6 合成時我自己的取捨(B.css + yi.css 沒寫到或互相衝突的)
+- 選中:分段鈕 = 灰塊(深)/ 白塊(淺)(iOS 原生),chip / opt = 反白塊(yi.css 的值);B.css 的 `--acc-fill` 選中被 yi 蓋掉,以 yi 為準
+- 「再練」= 中性反白(不用橘、不用紅)
+- 拿掉:題目卡頂端淡金漸層、頁面兩個角落的金 / 青綠光暈、歡迎圖示的金光暈(都是裝飾)
+- 7 天點、今日清單的打勾、進度點、關卡進度條 = 象牙白(不能按)
+- 連續天數不用金(8.5-3);文字鈕圓角 12 不用膠囊(8.5-6);寬畫面用 `--fs-k` 不改 html 字級(8.5-8);聽力琴鍵高度用 clamp(8.5-5);今日清單編號算在 li 上(8.5-1)
+
+### 8.7 驗收
+每一步:`node tools/build/stamp.mjs` → app.css 複製到 DrumDrill → `DRUMDRILL=/home/user/drumdrill node tools/test/verify.mjs`(版本指紋 + sync)。
+- **對比**:DrumDrill `node tools/test/a11y.mjs`(深淺主題量實際背景,共用 app.css);PianoDrill 沒有對比測試 → 聽力音程答錯(紅底白字 + 小字)、淺色分頁列、chip 選中、今日清單 `.daily-k` 用設計師暫存的 `design12/inv.mjs`(`CON=1 THEME=dark,light`)或手算,全部 ≥ 4.5(大字 3)
+- **色彩清單**:同一支 `INV=1` 跑完,譜面、琴鍵以外**只能出現 gold / teal / red 三種色相**(不能有 blue、purple、orange)
+- `node tools/test/tasks.mjs`(第一個畫面:今日卡變高、聽力琴鍵變高、歡迎頁)、`node tools/test/newbie.mjs`(歡迎 → 開始練習 → 今日每一段;底部按鈕不跳)、
+  `node tools/test/layout.mjs` 全套(含字級 200%;fold-280 / se1-320 的今日清單與聽力;ipad 橫式 / desktop / 1080p 的 880 / 1040)、`node tools/test/bilingual.mjs`(今日清單每段兩行、文字鈕、歡迎副標中英同高)、`node tools/test/clip.mjs`、`node tools/test/human.mjs 150 3`
+- DrumDrill 同一套:`tasks.mjs`、`newbie.mjs`、`layout.mjs`、`bilingual.mjs`、`clip.mjs`、`a11y.mjs`
+- **截圖比對**(iphone-390 深 / 淺、desktop 1400):歡迎、今日還沒開始、今日進行中(PA1)、過關、認音答錯、視奏右手、聽力單音答對、聽力音程答錯、檢定音階琶音出了題目、DD 視奏小鼓譜、DD 聽力過門、DD 認譜答錯;
+  對照 `design12/s/yi-*.png`(顏色)與 `design11/s/B-*.png`(版面),差別只能是 8.6 列的取捨;上架截圖用 `appshots.mjs` 重拍
+
+### 8.8 DrumDrill 要同步的地方
+- **app.css**(same):整份複製(8.2、8.3 共用部分、8.5 全部;8.5-5 選擇器 `#mod-ear .kbd` 在 DD 不存在,沒影響)
+- **main.js 共用部分**:`obMode` 加 / 拿 `ob-exam-on`(8.5-4);`tab-*` 那行註解
+- **drum.css**(DD 專屬):
+  - 改中性:`.opt.rud b` → `--muted-bright`;`.xid` → `--fill-tag` 底 `--ivory` 字;`.xname`、`.target-text` → `--ivory`;`.target-ico` → `--muted-bright`;`.kl-cell.pending .kl-src` → `--muted`;
+    `.s-check-title`、三處 `.along-result .r-head`、`.practice-only` → `--muted-bright`;三處 `.along-result .big`、`.rd-score` → `--ivory`;`#mod-sight` / `#mod-ear` `.countdown`(含 `.running`)→ `--ivory`;
+    `.mock-res i.cur` → `--ivory`、`.mock-res div.cur` → `--sel-ring`;`#e-answers .e-letter`(選項字母圈)→ `--muted-bright` 框與字;`.mic-row .along-note.warn` → `--ivory`;刪掉 `#t-mockOneBar:not([aria-pressed="true"]){color:var(--gold)}`(chip 中性規則)
+  - 改紅:`#e-answers .e-opt.wrong` 框、`.e-letter` 底 → `--red-fill`;`.rd-msg.no` → `--red`;`.rd-ans-grid .opt.wrong` → `color:var(--red);background:var(--red-tint);border-color:transparent`
+  - 保留金:`.pads .tap-pad`、`#e-stage.you`、`.along.you .tap-pad`、playline `#B8860B`、`--paper-gold`、`.xitem svg`、勾選框、`.prep-float` 類(drum.css 100、299)
+  - `#t-bestTempo` 青綠(達成)照舊
+- DD 的歡迎大圖示自動用 DD 自己的 `icons/icon-512.png`(小鼓 + 勾)
+
+### 8.9 CLAUDE.md 要跟著改的句子(主代理改,兩個 repo)
+七個目標第 3 條「選中塊顏色 = 分頁輔色(技巧金、視奏天藍、聽力紫、檢定中性…)」→「選中塊 = 中性(深色灰塊、淺色白塊;docs/DESIGN.md 第 8 節)」;
+畫面設計「題目大標題黑體 700」後加「象牙白」;「寬畫面(≥1100)…內容最寬 1480」→ 1040、一欄 880、今日還沒開始 760 → 880。
+
+### 8.10 實作順序(一步一個 commit)
+1. 代幣(8.2)+ 刪分頁輔色 + 分頁列金 + chip / opt / seg / mbtn / 清單點中性 + 紅(8.3 前半):最容易看出整體;測 a11y、bilingual、layout 手機 4 種
+2. 資訊改象牙白 + 拿掉漸層與光暈(8.3 後半、sight.css、drum.css):測 a11y、clip
+3. 今日卡 + 開始鈕 + 連續天數(8.5-1~3):測 tasks、newbie、bilingual、layout fold-280 / se1-320
+4. 歡迎全螢幕(8.5-4,main.js 一行):測 newbie、tasks、layout 全部尺寸(含手機橫式、字級 200%)
+5. 聽力琴鍵、文字鈕、頁尾(8.5-5~7):測 tasks、layout fold-280、bilingual、human
+6. 寬畫面(8.5-8):測 layout(ipad 橫式、desktop、1080p)、bilingual、`playhead.mjs`(字變大不影響譜,確認一次)
+完成後叫審查員(共用檔、兩個 App = 大改)。

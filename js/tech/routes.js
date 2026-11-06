@@ -281,6 +281,12 @@ export function warmFor(passed, day = null){
   const h = hands[((dn % hands.length) + hands.length) % hands.length];
   return h === "HT" ? wid : v[h];
 }
+/* ══ App 聽你彈(麥克風判斷有沒有彈對;第一版只聽右手單音的關)══
+   這一關會不會聽(關卡本身):手指路線、右手、不是第 0 組(練找位置)、沒有按住的音、不是音階、C 大調(本身就換了調的關先不聽)。
+   這一次會不會聽還要看題目(patterns.js 的 listenExpected:單音、四分音符以上、音 ≥ C4;暖身、拍點模式、換調複習不聽)。js/sight/micscore.js 的 scoreDaily 判斷 */
+export function listenLevel(L){
+  return !!L && !!L.q && L.q.r === "finger" && L.hands === "RH" && L.g !== "0" && !!L.rh && !L.lh && !L.hold && !L.scale && !L.prog && (!L.key || L.key === "C");
+}
 export const KEYS = KEY_NAME;
 export function findLevel(q){
   if (q.warm) return WARM_LEVELS[q.warm] || null;

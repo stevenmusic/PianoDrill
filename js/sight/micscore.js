@@ -79,18 +79,18 @@ function voteTempo(B, T) {
  * 偵測到的音頭(秒)對到譜上的拍(B,遞增)。回傳 { pairs: [[i, j]], spb0 }。
  * 開頭、結尾多出來的音頭不扣分(按鈕聲、翻譜、彈完的雜音)。
  */
-export function alignOnsets(B, T) {
+export function alignOnsets(B, T, pairCost = null) {
   const n = B.length, m = T.length;
   if (!n || !m) return { pairs: [], spb0: 0 };
   // 整體速度先猜幾個(票數前三名、最高票的一半與兩倍、頭尾直線),每個都對一次,代價最小的那個
   let best = null;
   for (const G of voteTempo(B, T)) {
-    const r = alignWith(B, T, G);
+    const r = alignWith(B, T, G, pairCost);
     if (!best || r.cost < best.cost) best = r;
   }
   return best;
 }
-function alignWith(B, T, G) {
+function alignWith(B, T, G, pairCost = null) {   // pairCost(i, j):這一對另外的代價(今日練習用音高;視奏沒有 = 0,行為不變)
   const n = B.length, m = T.length;
   const PI = 5, PJ = 6;
   const cost = new Float64Array(n * m).fill(Infinity);
@@ -98,7 +98,8 @@ function alignWith(B, T, G) {
   const back = new Int32Array(n * m).fill(-1);
   for (let i = 0; i < n; i++) for (let j = 0; j < m; j++) {
     const k = i * m + j;
-    let best = MISS * i, bestTempo = G, from = -1;   // 從這一對開始(前面的譜上的音都漏了,前面的音頭不算)
+    const pc = pairCost ? pairCost(i, j) : 0;
+    let best = MISS * i + pc, bestTempo = G, from = -1;   // 從這一對開始(前面的譜上的音都漏了,前面的音頭不算)
     for (let p = i - 1; p >= Math.max(0, i - PI); p--) {
       const dB = B[i] - B[p];
       for (let q = j - 1; q >= Math.max(0, j - PJ); q--) {
@@ -110,7 +111,7 @@ function alignWith(B, T, G) {
         const err = Math.max(0, Math.abs(dT - want) - JITTER) / Math.max(want, 0.15);
         let tc = dT > want ? Math.min(PAUSE_CAP, W_LOCAL * err) : W_LOCAL * err;
         tc += W_GLOBAL * Math.min(1, Math.abs(Math.log(dT / dB / G)));
-        const c = c0 + MISS * (i - p - 1) + EXTRA * (j - q - 1) + tc;
+        const c = c0 + MISS * (i - p - 1) + EXTRA * (j - q - 1) + tc + pc;
         if (c < best) {
           best = c; from = p * m + q;
           const r = dT / dB;
@@ -516,8 +517,10 @@ export function detectNotes(samples, rate, opts = {}) {
   const on = d.onsets.filter((_, k) => keep[k]), st = d.strength.filter((_, k) => keep[k]);
   // 比這段錄音大部分的音(第 80 百分位)小很多的音頭 = 旁邊的講話聲、雜音,不算
   // 音頭太少(< 6)不篩:第 80 百分位會接近最大的那個,小聲的音會被誤刪
-  if (st.length < 6) return on;
-  const ref = [...st].sort((a, b) => a - b)[Math.floor(st.length * 0.8)];
+  // opts.skip = 已知的拍點時間(今日練習聽你彈:App 自己放的拍點):拍點附近的音頭不拿來當「大部分的音」(拍點比小聲的琴聲大,會把琴聲篩掉);沒給 = 原本的行為
+  const ref0 = opts.skip ? st.filter((_, k) => !opts.skip.some((c) => Math.abs(c - on[k]) <= (opts.skipWin ?? 0.05))) : st;
+  if (ref0.length < 6) return on;
+  const ref = [...ref0].sort((a, b) => a - b)[Math.floor(ref0.length * 0.8)];
   return on.filter((_, k) => st[k] >= ON_GATE * ref);
 }
 
@@ -535,4 +538,150 @@ export function scoreRecording(samples, rate, score) {
   const pitchOk = score.grade <= 2 ? checkPitches(samples, rate, exp.events, onsets, pairs) : null;
   const r = scorePerformance(exp, onsets, { pitchOk });
   return r.tooFew ? { silent: true, tooFew: true, hits: r.hits, total: r.total } : { ...r, onsets };
+}
+
+/* ── 今日練習「App 聽你彈」(右手單音的關;js/tech/patterns.js 的 listenExpected 給預期的音)──
+   跟視奏的「彈一遍」不一樣:不打分,只判斷「這一輪有沒有彈對」(彈對 = 自動算「做到了」)。拿不準就給過,只有確定沒彈、確定彈錯才不過。
+   一樣不要求照拍點的速度(音頭照樣用 alignOnsets 對到譜上);聽的時候 App 還在放拍點(xstick):
+   opts.clicks = 錄音裡每一下拍點的時間(秒;App 自己排的,知道在哪裡),拍點附近、聽不出音高的音頭不算;opts.t0 = 錄音裡第 1 拍(預備拍之後)的時間,更早的音頭不算。
+   門檻(DAILY)照 tools/tech/listen-stress.mjs 掃出來的:誤過 0 的前提下過關率最大。 */
+export const DAILY = {
+  match: 0.8,      // 對到譜上的音 ≥ 8 成
+  miss: 1,         // 漏彈最多 1 個
+  extra: 1,        // 多彈(聽得出音高、不是譜上那個音)最多 1 個
+  pitch: 0.85,     // 聽得出來的音裡,對的 ≥ 85%
+  okMin: 0.7,      // 譜上的音確定聽到的至少這個比例(彈對的 ≥ 0.94;講話、敲桌子、只有拍點 ≤ 0.31,彈一半、彈別的關 = 0.5;取中間)
+  ratio: 1,        // 譜上那個音要比附近 ±9 半音最突出的大這麼多倍才算「聽到了」(= pitchMatchRate 的 PM_RATIO)
+  wrongRatio: 0.35,// 譜上那個音比聽到的那個音小這麼多,而且聽到的音很清楚 = 彈錯
+  clear: 2,        // 「很清楚的音」:最突出的音比附近其他的音大這麼多倍
+  clickWin: 0.05,  // 秒:拍點前後這麼近、聽不出音高的音頭 = 拍點
+  clickPost: 0.08, // 秒:拍點附近的音頭晚這麼多再看一次音高
+  clickClear: 1.3, // 拍點附近的音頭,最突出的音要比附近其他的大這麼多倍才算琴聲
+  pitchCost: 1,    // 對音頭時,不像譜上的音多加的代價(< 漏一個 + 多一個 = 1.8)
+  near: 0.12,      // 秒:對到的音頭前後這麼近的音頭都拿來看音高(拍點跟琴聲幾乎同時,可能被當成兩個音頭)
+  early: 0.6,      // 第 1 拍之前多早的音頭還算(拍數)
+  floor: 0.02,     // 音高比較的下限 = 琴聲音量的 2%(聲音停掉、只剩底噪的地方不會比出很大的倍數)
+};
+/* 音頭 at(秒)之後的頻譜比之前多出來的部分(checkPitches 同一種算法);room = 到下一個音頭的秒數 */
+function noveltyAt(samples, rate, at, room, postS = 0.03) {
+  const size = Math.round(rate * 0.085);
+  let N = 1; while (N < size * 2) N <<= 1;
+  const pre = Math.round(rate * 0.012), post = Math.round(rate * postS);
+  const a = Math.round(at * rate);
+  const len = Math.min(size, Math.round(room * rate) - post);
+  if (len < rate * 0.04) return null;
+  const after = spectrum(samples, a + post, len, N);
+  const before = spectrum(samples, Math.max(0, a - pre - len), len, N);
+  return { nov: after.map((v, k) => Math.max(0, v - before[k])), N };
+}
+/* 這個音比附近 ±9 半音(八度、五度泛音不算)最突出的那個大幾倍;floor = 比較的下限(聲音停掉的地方兩邊都接近 0,比出來的倍數沒有意義) */
+function pitchRatio(nov, N, p, rate, floor = 1e-12) {
+  const sp = salience(nov, p, rate, N);
+  let rival = 0;
+  for (let q = p - 9; q <= p + 9; q++) if (q !== p && !RELATED.includes(q - p)) rival = Math.max(rival, salience(nov, q, rate, N));
+  return sp / Math.max(rival, floor);
+}
+/* 聽到最突出的音(lo–hi 之間)與它有多清楚 */
+function heardPitch(nov, N, rate, lo, hi, floor) {
+  let best = -1, bs = 0;
+  for (let p = lo; p <= hi; p++) { const s = salience(nov, p, rate, N); if (s > bs) { bs = s; best = p; } }
+  return best < 0 ? { midi: null, clear: 0 } : { midi: best, clear: pitchRatio(nov, N, best, rate, floor) };
+}
+/**
+ * 分析(不判斷):每個譜上的音對到哪個音頭、那個音聽到了沒有(ratio)、聽到的是什麼音(heard / clear);多出來的音頭。
+ * expected = { events: [{ beat, midi, pitches }], bpm }(listenExpected)。判斷在 decideDaily(門檻可以換,掃描用)。
+ */
+export function analyseDaily(samples, rate, expected, opts = {}) {
+  const P = { ...DAILY, ...(opts.limits || {}) };
+  const ev = expected.events, n = ev.length;
+  const spb = 60 / (expected.bpm || 60);
+  const clicks = opts.clicks || [];
+  const raw = detectNotes(samples, rate, clicks.length ? { skip: clicks, skipWin: P.clickWin } : {});
+  const out = { total: n, onsets: raw.length, details: ev.map((e, i) => ({ i, midi: e.midi, beat: e.beat, at: null, ratio: null, heard: null, clear: null })), extras: [] };
+  if (!raw.length) return out;
+  const lo = Math.min(...ev.map((e) => e.midi)) - 14, hi = Math.max(...ev.map((e) => e.midi)) + 14;
+  // 比較的下限:這段錄音琴聲(每 10 ms 音量的第 95 百分位)的 P.floor 倍換算成頻譜的大小(漢寧窗 0.085 秒的正弦波峰值 ≈ 振幅 × 取樣數 / 4)
+  const hop = Math.round(rate * 0.01), lv = [];
+  for (let k = 0; k + hop <= samples.length; k += hop) { let e = 0; for (let q = k; q < k + hop; q++) e += samples[q] * samples[q]; lv.push(Math.sqrt(e / hop)); }
+  lv.sort((x, y) => x - y);
+  const floor = Math.max(1e-12, P.floor * (lv[Math.floor(lv.length * 0.95)] || 0) * Math.round(rate * 0.085) / 4);
+  const all = raw.map((t, k) => {
+    const room = (k + 1 < raw.length ? raw[k + 1] : samples.length / rate) - t;
+    const click = clicks.some((c) => Math.abs(c - t) <= P.clickWin);
+    let nv = noveltyAt(samples, rate, t, Math.min(room, 0.2));
+    let h = nv ? heardPitch(nv.nov, nv.N, rate, lo, hi, floor) : { midi: null, clear: 0 };
+    if (click) {   // 拍點的聲音很短:晚一點再看一次(琴聲還在、拍點已經沒了),取比較清楚的
+      const nv2 = noveltyAt(samples, rate, t, Math.min(room, 0.25), P.clickPost);
+      const h2 = nv2 ? heardPitch(nv2.nov, nv2.N, rate, lo, hi, floor) : null;
+      if (h2 && h2.clear > h.clear) { nv = nv2; h = h2; }
+    }
+    return { t, nv, ...h, click };
+  });
+  // 拍點:拍點附近、聽不出音高的音頭不算;第 1 拍之前太早的(預備拍)不算
+  out.list = all.map((o) => ({ t: o.t, midi: o.midi, clear: o.clear, click: o.click }));
+  const kept = all.filter((o) => !(o.click && o.clear < P.clickClear) && (opts.t0 == null || o.t >= opts.t0 - P.early * spb));
+  out.kept = kept.length;
+  if (!kept.length) return out;
+  const T = kept.map((o) => o.t);
+  // 每個音頭聽起來像不像譜上的某個音:這個音頭與前後很近的音頭(拍點、琴聲可能各一個音頭)取最像的
+  const memo = new Map();
+  const like = (p, j) => {
+    const key = p * 100000 + j;
+    if (memo.has(key)) return memo.get(key);
+    let best = null;
+    for (const c of all) {
+      if (Math.abs(c.t - T[j]) > P.near || !c.nv) continue;
+      const r = pitchRatio(c.nv.nov, c.nv.N, p, rate, floor);
+      if (!best || r > best.r) best = { r, c };
+    }
+    memo.set(key, best);
+    return best;
+  };
+  // 對的時候也看音高(音都一樣長的時候只看節奏會整排錯開一個音):不像譜上的音多一點代價(比漏一個 + 多一個小,彈錯的音照樣對得上)
+  const { pairs } = alignOnsets(ev.map((e) => e.beat), T, (i, j) => { const b = like(ev[i].midi, j); return P.pitchCost * clamp(1 - (b ? b.r : 0), 0, 1); });
+  const used = new Set();
+  for (const [i, j] of pairs) {
+    const d = out.details[i], o = kept[j];
+    used.add(j);
+    d.at = o.t;
+    const best = like(ev[i].midi, j);
+    if (best) { d.ratio = best.r; d.heard = o.midi; d.clear = o.clear; if (best.c.clear > (d.clear ?? 0) && best.c.midi !== ev[i].midi) { d.heard = best.c.midi; d.clear = best.c.clear; } }
+  }
+  // 多出來的音頭:對到的第一個與最後一個之間、沒對到、離對到的音頭不近
+  if (pairs.length) {
+    const j0 = pairs[0][1], j1 = pairs[pairs.length - 1][1];
+    for (let j = j0 + 1; j < j1; j++) {
+      if (used.has(j)) continue;
+      const o = kept[j];
+      if (pairs.some(([, q]) => Math.abs(kept[q].t - o.t) <= P.near)) continue;
+      out.extras.push({ at: o.t, heard: o.midi, clear: o.clear, click: o.click });
+    }
+  }
+  return out;
+}
+/** 判斷(純函式):{ ok, reason, matched, total, wrong, missed, extra, details, note }。reason:ok / silent / notPiano / missed / wrongPitch / extra;note = 第一個有問題的音 { i, midi, heard } */
+export function decideDaily(a, limits = {}) {
+  const P = { ...DAILY, ...limits };
+  const n = a.total, det = a.details;
+  const matched = det.filter((d) => d.at !== null).length;
+  const sure = det.filter((d) => d.ratio !== null && d.ratio >= P.ratio);
+  const wrongs = det.filter((d) => d.ratio !== null && d.ratio < P.wrongRatio && d.clear >= P.clear && d.heard !== null && d.heard !== d.midi);
+  const extras = a.extras.filter((x) => x.clear >= P.clear && !x.click);   // 跟拍點同時的不算(拍點的餘音也聽得出音高,拿不準)
+  const res = { ok: false, matched, total: n, wrong: wrongs.length, missed: n - matched, extra: extras.length, sure: sure.length, details: det };
+  const first = (arr) => (arr.length ? { i: arr[0].i, midi: arr[0].midi, heard: arr[0].heard ?? null } : null);
+  if (!a.onsets || !a.kept) return { ...res, reason: 'silent' };
+  // 跟 scoreRecording 一樣的兩關:對到的太少 = 沒聽到在彈;譜上的音聽得出來的不到一半 = 聽不出譜上的音(講話、敲東西、只有拍點)
+  const analysable = det.filter((d) => d.ratio !== null).length;
+  if (matched < Math.min(n, Math.max(3, Math.ceil(n * MATCH_MIN)))) return { ...res, reason: wrongs.length >= matched / 2 && matched ? 'wrongPitch' : sure.length ? 'missed' : 'silent', note: first(wrongs.length ? wrongs : det.filter((d) => d.at === null)) };
+  if (analysable >= 4 && sure.length / analysable < PM_MIN) return { ...res, reason: wrongs.length >= analysable / 2 ? 'wrongPitch' : 'notPiano', note: first(wrongs) };
+  if (matched < P.match * n || n - matched > P.miss) return { ...res, reason: 'missed', note: first(det.filter((d) => d.at === null)) };
+  if (sure.length < P.okMin * n) return { ...res, reason: wrongs.length ? 'wrongPitch' : 'notPiano', note: first(wrongs) };
+  const checked = sure.length + wrongs.length;
+  if (checked && sure.length / checked < P.pitch) return { ...res, reason: 'wrongPitch', note: first(wrongs) };
+  if (extras.length > P.extra) return { ...res, reason: 'extra', note: extras[0] ? { i: null, midi: null, heard: extras[0].heard } : null };
+  return { ...res, ok: true, reason: 'ok', note: null };
+}
+/** 整段錄音 → 這一輪有沒有彈對(App 與 tools/tech/listen-stress.mjs 同一條路) */
+export function scoreDaily(samples, rate, expected, opts = {}) {
+  return decideDaily(analyseDaily(samples, rate, expected, opts), opts.limits);
 }

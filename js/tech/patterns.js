@@ -6,7 +6,7 @@
    音:{ letter, alter, octave, midi, finger, dur, chord?: [音…], rest?, stacc?, accent?, slur?: "start" | "stop", tie?: "start" | "stop" | "both" } */
 import { parseNote, spellScale, INTERVALS, midiOf, keyFifths, noteLabel, isBlack } from "./theory.js";
 import { scaleFingersFrom } from "./fingering.js";
-import { findLevel } from "./routes.js";
+import { findLevel, listenLevel } from "./routes.js";
 
 export const DIV = 12;
 export const VAL = { q: 12, e: 6, s: 3, t: 4, h: 24, w: 48, dq: 18, dh: 36 };
@@ -246,6 +246,36 @@ export function buildRoute(FG, q){
   const mel = accomp && !L.rh ? accMelody(K, L.prog, beats, ((q.mseed || 0) + idSeed(L.id)) >>> 0) : null;
   return { exact: true, div: DIV, bar: BAR, time, fifths: keyFifths(K.tonic, K.quality), sub: 2, bars, rh, lh, hold, dyn,
     lhSoft: accomp && !!L.rh, key: K.key, level: L, mel };
+}
+/* ── App 聽你彈:這一次要聽的音(js/sight/micscore.js 的 scoreDaily)──
+   會聽 = 關卡會聽(routes.js 的 listenLevel)而且這一次:不是暖身、沒有換調(q.rkey)、拍點每拍都響(click 沒給或 "every")、
+   右手每個音都是單音、四分音符以上、C4 以上,左手全休止、沒有按住的音。不聽 = null。
+   播放跟 app.js 一樣:短的題目重複到 bars 小節(預設 4)。回傳跟 expectedEvents 同一種格式:
+   { events: [{ beat(四分音符拍,0 = 預備拍之後第一拍), bar(1 起), midi, pitches: [midi] }], barBeats, bars, bpm, reps } */
+export function listenExpected(FG, q, { bpm = 0, click = null, bars = 4 } = {}){
+  if (!q || q.type !== "route" || q.warm || q.rkey) return null;
+  if (click && click !== "every") return null;
+  if (!listenLevel(findLevel(q))) return null;
+  const ex = buildRoute(FG, q);
+  if (ex.hold && ((ex.hold.rh || []).length || (ex.hold.lh || []).length)) return null;
+  if (ex.lh.some(n => !n.rest)) return null;
+  const one = [];
+  let pos = 0;
+  for (const n of ex.rh) {
+    if (!n.rest) {
+      if (n.chord || n.dur < DIV || n.midi < 60) return null;
+      one.push({ pos, midi: n.midi });
+    }
+    pos += n.dur;
+  }
+  if (!one.length) return null;
+  const barBeats = ex.bar / DIV, reps = Math.max(1, Math.ceil(bars / ex.bars - 1e-9));
+  const events = [];
+  for (let k = 0; k < reps; k++) for (const e of one) {
+    const beat = e.pos / DIV + k * ex.bars * barBeats;
+    events.push({ beat, bar: Math.floor(beat / barBeats + 1e-9) + 1, midi: e.midi, pitches: [e.midi] });
+  }
+  return { events, barBeats, bars: reps * ex.bars, bpm: bpm || ex.level.start, reps };
 }
 /* 這一題用到的每個音(檢查、預載用) */
 export function allNotes(ex){

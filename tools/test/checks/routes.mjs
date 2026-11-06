@@ -10,10 +10,10 @@
    - 譜號固定時加線 ≤ 2 條;MusicXML:小節數、每段時值、音數 = 指法數、連桿 / 連結線成對、拍號、調號(換調時跟著換)
    - 播放:事件數、都在範圍內;暖身(4 種 × C / G / F / a)也產生得出來 */
 import fs from "node:fs";
-import { ROUTES, WARM_LEVELS, warmFor, adaptVary } from "../../../js/tech/routes.js";
+import { ROUTES, WARM_LEVELS, warmFor, adaptVary, listenLevel } from "../../../js/tech/routes.js";
 import { buildExercise } from "../../../js/tech/exercise.js";
 import { exerciseToMusicXML, playbackEvents, melodyEvents } from "../../../js/tech/musicxml.js";
-import { chordName, keyInfo, barChords, chordTable, fingerMarks, sameBars, handPositions } from "../../../js/tech/patterns.js";
+import { chordName, keyInfo, barChords, chordTable, fingerMarks, sameBars, handPositions, listenExpected } from "../../../js/tech/patterns.js";
 
 const LP = [0, 2, 4, 5, 7, 9, 11];
 const MAJ = [0, 2, 4, 5, 7, 9, 11], HMIN = [0, 2, 3, 5, 7, 8, 11];
@@ -113,6 +113,38 @@ export default function check(ok, FG){
       }
     });
     ok(!melBad.length && melN > 0, `合奏旋律:伴奏只有左手的關 ${accR.levels.filter(l => !l.rh).length} 關 × 變化 × 300 個種子(${melN} 條):強拍和弦音、在調裡、C4–C5、停在主音、拍數` + (melBad.length ? "\n    " + [...new Set(melBad)].slice(0, 10).join("\n    ") : ""));
+  }
+  // ── App 聽你彈(麥克風判斷右手單音的關有沒有彈對;patterns.js 的 listenExpected、micscore.js 的 scoreDaily)──
+  // 另外照規則算一次哪些題目會聽:手指路線、右手、不是第 0 組、沒有按住的音、不是音階、沒換調、拍點每拍都響、右手全是單音 ≥ 四分音符 ≥ C4、左手全休止
+  {
+    const heard = [], bad = [];
+    for (const R of ROUTES) for (const L of R.levels) {
+      const boxes = [];
+      let any = false;
+      [{}, ...L.vary].forEach((v, vi) => {
+        const q = { ...L.q, ...(v.q || {}), sub: 2 };
+        const e = listenExpected(FG, q, { click: v.click || null, bpm: L.start });
+        const ex = buildExercise(FG, q);
+        const rhN = ex.rh.filter(x => !x.rest);
+        const want = R.id === "finger" && L.hands === "RH" && L.g !== "0" && !L.hold && !L.scale && !q.rkey && (!v.click || v.click === "every") && (!L.key || L.key === "C")
+          && ex.lh.every(x => x.rest) && rhN.length > 0 && rhN.every(x => !x.chord && x.dur >= 12 && x.midi >= 60);
+        if (!!e !== want) { bad.push(`${R.id}/${L.id} 變化 ${vi}:${want ? "應該聽" : "不應該聽"}`); return; }
+        if (!e) return;
+        any = true;
+        if (vi) boxes.push(vi);
+        // 預期的音 = 右手的音照播放重複到 4 小節(拍位、音高、小節)
+        const reps = Math.ceil(4 / ex.bars), exp = [];
+        for (let k = 0; k < reps; k++) { let pos = 0; for (const x of ex.rh) { if (!x.rest) exp.push([pos / 12 + k * ex.bars * 4, x.midi]); pos += x.dur; } }
+        const same = e.events.length === exp.length && e.events.every((y, k) => Math.abs(y.beat - exp[k][0]) < 1e-9 && y.midi === exp[k][1] && y.pitches.length === 1 && y.pitches[0] === y.midi && y.bar === Math.floor(y.beat / 4) + 1);
+        if (!same || e.bars !== 4 || e.bpm !== L.start) bad.push(`${R.id}/${L.id} 變化 ${vi}:預期的音不對`);
+      });
+      ok(!any || listenLevel(L), `${L.id}:會聽的題目,關卡也要會聽(listenLevel)`);
+      if (any) heard.push(`${L.id}(新關${boxes.length ? "、複習盒 " + boxes.join(" ") : ""})`);
+    }
+    ok(!bad.length, "App 聽你彈:哪些題目會聽、預期的音" + (bad.length ? "\n    " + bad.slice(0, 10).join("\n    ") : ""));
+    ok(heard.map(h => h.slice(0, 3)).join() === "PA1,PA6", "App 聽你彈:會聽的關 = PA1、PA6(改了路線要確認 tools/tech/listen-stress.mjs 也過):" + heard.join("、"));
+    ok(!listenExpected(FG, { ...WARM_LEVELS.w5qR.q, sub: 2 }) && !listenExpected(FG, { ...ROUTES[0].levels.find(l => l.id === "PA1").q, rkey: "G", sub: 2 }) && !listenExpected(FG, { ...ROUTES[0].levels.find(l => l.id === "PA1").q, sub: 2 }, { click: "one-three" }), "App 聽你彈:暖身、換調複習、拍點模式不聽");
+    console.log("  App 聽你彈會聽的關:" + heard.join("、"));
   }
   // ── 系統化(2026-10):第 0 組在手指路線最前面、伴奏等手指 PA5 過了才開放、暖身只用已經過的關、複習的變化只用學過的 ──
   const F0 = ROUTES[0].levels;

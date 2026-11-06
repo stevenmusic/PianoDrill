@@ -82,3 +82,42 @@ test('no piano (mic hiss, bumps) is reported as silence, not scored', () => {
   for (let t = 0.7; t < 11; t += 1.3) { const k0 = Math.round(t * rate); for (let k = 0; k < 2400; k++) bumps[k0 + k] += 0.04 * Math.exp(-k / 300) * r(); }
   assert.equal(scoreRecording(bumps, rate, score).silent, true);
 });
+
+/* 今日練習「App 聽你彈」(scoreDaily):合成的琴聲(諧波 + 衰減)、拍點(很短的雜音);真的取樣在 tools/tech/listen-stress.mjs */
+test('daily listening: right notes pass, wrong / half / no piano / clicks only do not', async () => {
+  const { scoreDaily } = await import('../../js/sight/micscore.js');
+  const { listenExpected } = await import('../../js/tech/patterns.js');
+  const fs = await import('node:fs');
+  const FG = JSON.parse(fs.readFileSync(new URL('../../data/fingerings.json', import.meta.url)));
+  const exp = listenExpected(FG, { type: 'route', r: 'finger', id: 'PA1', hands: 'RH', sub: 2 }, { bpm: 72 });
+  assert.equal(exp.events.length, 16);
+  const rate = 48000, spb = 60 / 72, t0 = 0.4 + 8 * spb;
+  let z = 5;
+  const r = () => { z = (z * 1664525 + 1013904223) >>> 0; return z / 4294967296 - 0.5; };
+  const take = ({ shift = 0, upto = 16, clicks = true, piano = true } = {}) => {
+    const x = new Float32Array(Math.round(rate * (t0 + 16 * spb + 2)));
+    for (let k = 0; k < x.length; k++) x[k] = 0.0006 * r();
+    if (piano) exp.events.slice(0, upto).forEach((e) => {
+      const f = 440 * 2 ** ((e.midi + shift - 69) / 12), k0 = Math.round((t0 + e.beat * spb + 0.01 * r()) * rate);
+      for (let k = 0; k < rate * spb * 1.2 && k0 + k < x.length; k++) {
+        const t = k / rate; let v = 0;
+        for (let h = 1; h <= 8; h++) v += Math.sin(2 * Math.PI * f * h * t) / h;
+        x[k0 + k] += 0.05 * v * Math.min(1, t / 0.004, (rate * spb * 1.2 - k) / (rate * 0.08)) * Math.exp(-t / 0.6);   // 最後 80 ms 淡出(放鍵)
+      }
+    });
+    const ct = [];
+    for (let b = 0; b < (clicks ? 24 : 8); b++) { const at = 0.4 + b * spb; ct.push(at); const k0 = Math.round(at * rate); for (let k = 0; k < 1500; k++) x[k0 + k] += 0.06 * Math.exp(-k / 150) * 2 * r(); }
+    return { x, ct };
+  };
+  const run = (o) => { const { x, ct } = take(o); return scoreDaily(x, rate, exp, { clicks: ct, t0 }); };
+  const good = run({});
+  assert.ok(good.ok, JSON.stringify({ reason: good.reason, matched: good.matched, wrong: good.wrong, extra: good.extra }));
+  assert.ok(run({ clicks: false }).ok);
+  for (const shift of [-2, -1, 1, 2]) assert.equal(run({ shift }).ok, false, `shift ${shift}`);
+  const half = run({ upto: 8 });
+  assert.equal(half.ok, false);
+  assert.equal(half.reason, 'missed');
+  const none = run({ piano: false });
+  assert.equal(none.ok, false);
+  assert.ok(['silent', 'notPiano'].includes(none.reason), none.reason);
+});

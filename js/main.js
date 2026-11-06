@@ -189,6 +189,7 @@ function renderSubnav(){
   $("subnav").classList.toggle("has-bar", !!bar);
   // 今日練習的段落進行中(這一頁的子項目都不亮):頁尾藏起來(app.css 的 body.daily-on)
   document.body.classList.toggle("daily-on", !!opts.length && subOff.has(S.view));
+  ctaSoon();
 }
 $("subSeg").onclick = e => {
   const b = e.target.closest("button[data-v]"); if (!b) return;
@@ -260,7 +261,34 @@ function balanceCols(){
   }
 }
 let balanceRaf = 0;
-const balanceSoon = () => { cancelAnimationFrame(balanceRaf); balanceRaf = requestAnimationFrame(balanceCols); };
+const balanceSoon = () => { cancelAnimationFrame(balanceRaf); balanceRaf = requestAnimationFrame(balanceCols); ctaSoon(); };
+/* ══ 題目卡最後一行固定在畫面底部(2026-11 使用者選定;跟今日練習的 .daily-cta 一樣,分頁列正上方、位置永遠不變):
+   手機(直式 ≤ 600 寬、手機橫式)目前看得到的模組裡第一張看得到的題目卡(.quiz),它最後一個有按鈕的 .q-foot / .q-last 加 .cta-bar(app.css),
+   body 加 has-cta、--cta-h = 這一列的高(main 的底部留白);今日練習段落進行中(body.daily-on)照舊用 .daily-cta,不要兩條。
+   狀態句、結果插進題目卡時主要按鈕不再被推動;模組自己的捲動扣掉這一列(ctaTop) */
+const CTA_MQ = matchMedia("(max-width:600px), (orientation:landscape) and (max-height:500px)");
+const shownEl = el => !!el && !el.closest("[hidden]") && getComputedStyle(el).display !== "none";
+const hasBtn = row => [...row.querySelectorAll("button")].some(b => !b.closest("[hidden]") && b.getClientRects().length);
+function syncCta(){
+  let bar = null;
+  if (CTA_MQ.matches && !document.body.classList.contains("daily-on")) {
+    const mod = [...document.querySelectorAll(".mod")].find(m => !m.hidden);
+    const quiz = mod && [...mod.querySelectorAll(".quiz")].find(q => shownEl(q) && q.getClientRects().length);
+    // display:contents 的列(手機橫式技巧的 .q-last)量不到外框:看裡面有沒有看得到的按鈕
+    const rows = quiz ? [...quiz.querySelectorAll(":scope > .q-foot, :scope > .q-last")].filter(r => !r.closest("[hidden]") && hasBtn(r)) : [];
+    bar = rows.pop() || null;
+  }
+  document.querySelectorAll(".cta-bar").forEach(r => { if (r !== bar) r.classList.remove("cta-bar"); });
+  if (bar && !bar.classList.contains("cta-bar")) bar.classList.add("cta-bar");
+  if (document.body.classList.contains("has-cta") !== !!bar) document.body.classList.toggle("has-cta", !!bar);
+  const h = bar ? Math.round(bar.getBoundingClientRect().height) + "px" : "";
+  if (document.body.style.getPropertyValue("--cta-h") !== h) { if (h) document.body.style.setProperty("--cta-h", h); else document.body.style.removeProperty("--cta-h"); }
+}
+let ctaRaf = 0;
+function ctaSoon(){ cancelAnimationFrame(ctaRaf); ctaRaf = requestAnimationFrame(syncCta); }
+if (typeof MutationObserver !== "undefined") new MutationObserver(ctaSoon).observe(document.querySelector("main"), { subtree: true, childList: true, attributes: true, attributeFilter: ["hidden", "class"] });
+if (CTA_MQ.addEventListener) CTA_MQ.addEventListener("change", ctaSoon);
+addEventListener("resize", ctaSoon);
 if (typeof ResizeObserver !== "undefined") { const ro = new ResizeObserver(balanceSoon); document.querySelectorAll(".mod > .mod-side, .mod > .mod-main").forEach(el => ro.observe(el)); }
 if (WIDE.addEventListener) WIDE.addEventListener("change", balanceSoon);
 $("tabbar").onclick = e => { const b = e.target.closest("button[data-view]"); if (b) showView(b.dataset.view); };

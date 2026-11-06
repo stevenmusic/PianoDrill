@@ -607,7 +607,10 @@ function fitLandZoom(){
 /* 今日練習的底部按鈕列(dailycard 的 .daily-cta,position:fixed 貼在畫面底部)佔掉的高度:手機橫放貼底;直式在分頁列上面 */
 function ctaEl(){
   const c = $("dailyStep") && !$("dailyStep").hidden ? $("dailyStep").querySelector(".daily-cta") : null;
-  return c && c.offsetHeight ? c : null;
+  if (c && c.offsetHeight) return c;
+  // 自由練習、檢定頁:題目卡最後一行固定在底部(main.js 的 syncCta、app.css 的 .cta-bar;手機)
+  const b = $("quizCard").querySelector(":scope > .cta-bar");
+  return b && b.offsetHeight && getComputedStyle(b).position === "fixed" ? b : null;
 }
 /* 手機橫放貼底:從它上緣到畫面底;直式與寬畫面它在分頁列上面,只算它自己的高(分頁列另外算,不重複扣) */
 function ctaH(){

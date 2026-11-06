@@ -34,7 +34,7 @@ const SEL = {
   start: "#obNo"                                 // 第一次打開:開始練習
 };
 // 主要導覽(點擊區 ≥ 44):子項目分段鈕、今日練習那一行、底部按鈕列、分頁列
-const NAV = ["#subSeg button", "#subnav .daily-bar button", ".daily-cta button:not([hidden])", "#tabbar button"];
+const NAV = ["#subSeg button", "#subnav .daily-bar button", ".daily-cta button:not([hidden])", ".cta-bar button:not([hidden])", "#tabbar button"];
 const hook = () => window.__tech;                // 在頁面裡執行:{ dcard, dseg, daily }
 // 題目畫面(檢查 2、3、4 用):on = 看得到它就是在這個畫面;title / play = 大標題、圓形 ▶;status = 狀態句;prim = 題目卡最後一行的主要按鈕;
 //   next = 也算「下一步」的東西(次要的下一題、作答區);busy = 播放中(頁面裡的運算式;播放中 App 把樂譜捲到頂欄下是設計:不查標題 / ▶,看不到下一步只記警告)
@@ -154,15 +154,15 @@ function measure([F, NAV]){
   const bb = vis(bar) ? bar.getBoundingClientRect() : null;
   const sideBar = bb && bb.height > innerHeight / 2 && bb.right < innerWidth / 2;
   let bottom = bb && !sideBar ? bb.top : innerHeight, left = sideBar ? bb.right : 0;
-  const cta = [...document.querySelectorAll(".daily-cta")].find(vis);
+  const cta = [...document.querySelectorAll(".daily-cta, .cta-bar")].find(vis);   // 底部固定的按鈕列(今日練習 .daily-cta;其他題目卡最後一行 .cta-bar,手機)
   const ctaFixed = cta && getComputedStyle(cta).position === "fixed";
   const contentBottom = ctaFixed ? Math.min(bottom, cta.getBoundingClientRect().top) : bottom;
   const modal = [...document.querySelectorAll(".modal")].find(vis);
   // 看得到、沒被蓋住:在可見範圍裡,而且中心點 elementFromPoint 是它自己(或裡面的東西)
   const seen = (e, lo = top, hi = contentBottom) => {
     const b = e.getBoundingClientRect(); if (!b.width || !b.height) return false;
-    const chrome = e.closest("header, #tabbar, .daily-cta, .modal");
-    const T = chrome ? 0 : lo, B = chrome ? (e.closest(".daily-cta") ? bottom : innerHeight) : hi, L = chrome ? 0 : left;
+    const chrome = e.closest("header, #tabbar, .daily-cta, .cta-bar, .modal");
+    const T = chrome ? 0 : lo, B = chrome ? (e.closest(".daily-cta, .cta-bar") ? bottom : innerHeight) : hi, L = chrome ? 0 : left;
     if (b.top < T - 1 || b.bottom > B + 1 || b.left < L - 1 || b.right > innerWidth + 1) return false;
     const h = document.elementFromPoint(b.left + b.width / 2, b.top + b.height / 2);
     return !!h && (h === e || e.contains(h) || h.contains(e));

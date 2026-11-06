@@ -89,9 +89,11 @@ async function look(page, sel, mark){
     const e = els[0]; if (!e) return null;
     const b = e.getBoundingClientRect(), head = document.querySelector("header"), bar = document.getElementById("tabbar");
     const top = head ? head.getBoundingClientRect().bottom : 0, bb = bar ? bar.getBoundingClientRect() : null;
-    const bottom = bb && bb.top > innerHeight / 2 ? bb.top : innerHeight, left = bb && bb.right < innerWidth / 2 && bb.height > innerHeight / 2 ? bb.right : 0;
-    // 頂欄、子項目列、分頁列上的按鈕:在畫面裡就算(它們本身就是固定的外框)
-    const chrome = e.closest("header, #tabbar, #subnav, .modal, #onboard");
+    // 固定在底部的按鈕列(今日練習 .daily-cta、題目卡最後一行 .cta-bar)蓋住的地方不算看得到
+    const cta = [...document.querySelectorAll(".daily-cta, .cta-bar")].find(c => c.getClientRects().length && getComputedStyle(c).position === "fixed");
+    const bottom = Math.min(bb && bb.top > innerHeight / 2 ? bb.top : innerHeight, cta ? cta.getBoundingClientRect().top : innerHeight), left = bb && bb.right < innerWidth / 2 && bb.height > innerHeight / 2 ? bb.right : 0;
+    // 頂欄、子項目列、分頁列、底部按鈕列上的按鈕:在畫面裡就算(它們本身就是固定的外框)
+    const chrome = e.closest("header, #tabbar, #subnav, .modal, #onboard, .daily-cta, .cta-bar");
     const inView = chrome ? b.top >= 0 && b.bottom <= innerHeight + 1 && b.right <= innerWidth + 1
       : b.top >= top - 1 && b.bottom <= bottom + 1 && b.left >= left - 1 && b.right <= innerWidth + 1;
     const fold = e.closest(".setup:not(.open):not(.always-open), .picker:not(.open):not(.always-open)");

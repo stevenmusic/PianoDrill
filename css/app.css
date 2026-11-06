@@ -1073,6 +1073,33 @@ body.daily-on main{padding-bottom:calc(84px + 68px + env(safe-area-inset-bottom)
   .daily-list{margin-bottom:8px}   /* 一段一行(兩欄讀起來順序會亂) */
   .daily-btn{min-height:44px}
 }
+/* 所有練習畫面的題目卡最後一行(視奏、聽力的 .q-foot,技巧的 .q-last,檢定頁空狀態那一行;DrumDrill 的 .x-empty 也一樣)固定在底部
+   (2026-11 使用者選定;外觀照上面的 .daily-cta):手機(直式 ≤ 600 寬、手機橫式)才固定;main.js 共用部分的 syncCta 只給目前看得到的那一張題目卡加 .cta-bar、
+   body 加 has-cta 與 --cta-h(這一列的高)。左 = 次要、右 = 主要(主要用滿剩下的寬度,高 52、橫式 44);放不下時整條主要按鈕換到下一行(不截字);
+   狀態句、結果插進題目卡時主要按鈕不再被推動 */
+@media (max-width:600px), (orientation:landscape) and (max-height:500px){
+  .quiz > .cta-bar:is(.q-foot,.q-last){position:fixed;left:0;right:0;bottom:calc(65px + env(safe-area-inset-bottom));z-index:31;margin:0;
+    display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;
+    padding:8px max(10px, env(safe-area-inset-right)) 8px max(10px, env(safe-area-inset-left));
+    background:var(--panel);box-shadow:0 -8px 24px rgba(0,0,0,.25)}
+  :root.light .quiz > .cta-bar:is(.q-foot,.q-last){box-shadow:0 -6px 18px rgba(90,72,30,.10)}
+  .cta-bar .btn{min-height:44px;height:auto !important;white-space:normal;line-height:1.25}
+  .cta-bar .btn.primary{flex:1 1 0;min-width:max-content;max-width:100%;min-height:52px;padding:8px 16px;font-size:var(--fs-body)}
+  .cta-bar .btn.primary .btn-label{display:inline !important}
+  .cta-bar:has(.btn.primary:not([hidden])) > span:empty{display:none}   /* 主要按鈕用滿剩下的寬度:撐開用的空格不要 */
+  .cta-bar .q-actions:has(> .btn.primary:not([hidden])){flex:1 1 0;min-width:max-content;max-width:100%;margin-left:0}
+  .cta-bar .q-actions{flex-wrap:nowrap}
+  .cta-bar .mbtn{min-height:44px;height:auto}
+  .cta-bar .count:empty{display:none}
+  body.has-cta main{padding-bottom:calc(84px + var(--cta-h, 68px) + env(safe-area-inset-bottom))}
+}
+@media (max-height:420px){ .quiz > .cta-bar:is(.q-foot,.q-last){bottom:calc(44px + env(safe-area-inset-bottom))} }
+@media (orientation:landscape) and (max-height:500px){
+  /* 手機橫式:分頁列在左邊 → 貼底、左邊讓出分頁列(照 .daily-cta);技巧的 .q-last 平常是 display:contents(熟練度在第一行),固定時整列一起到底部 */
+  #mod-tech .quiz > .q-last.cta-bar,.quiz > .cta-bar:is(.q-foot,.q-last){display:flex;bottom:0;left:calc(68px + env(safe-area-inset-left));padding:6px max(10px, env(safe-area-inset-right)) max(6px, env(safe-area-inset-bottom)) 10px}
+  .cta-bar .btn.primary{min-height:44px}
+  body.has-cta main{padding-bottom:calc(var(--cta-h, 56px) + max(12px, env(safe-area-inset-bottom))) !important}
+}
 
 /* ══ 緊湊(2026-10 使用者:「儘量減少空位,可以減少空隙、更緊密」「頁面不要太長」;兩個 App 一樣)══
    縮的是卡片內距、卡片之間、標題與內容、列與列;不縮按鈕點擊範圍(≥ 44,最小 28)、譜面大小、內文字級。手機(≤ 600 寬)優先 */

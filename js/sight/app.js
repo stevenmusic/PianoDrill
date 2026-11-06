@@ -1294,13 +1294,13 @@ function revealQuiz(extra) {
     // 標題列的上緣 = 大標題與 ▶ 比較高的那個(手機橫放時 .q-head 是 display:contents,量不到)
     const tops = [$('title'), $('play')].filter((el) => el.getClientRects().length).map((el) => el.getBoundingClientRect().top);
     if (!tops.length) return;
-    const header = document.querySelector('header'), bar = document.getElementById('tabbar');
+    const header = document.querySelector('header');
     const hb = header ? header.getBoundingClientRect().bottom : 0;
-    const bt = bar ? bar.getBoundingClientRect().top : innerHeight;
-    const bottom = bt > innerHeight / 2 ? bt : innerHeight;   // 手機橫放時分頁列在左邊
+    const bottom = floorY();                                  // 分頁列 / 固定在底部的按鈕列上緣
     const keep = Math.min(...tops) - hb - 6;                  // 把標題列捲到頂欄下的捲動量
     let want = 0;
-    for (const el of [$('playAlongTop'), extra]) {
+    // 主要按鈕固定在底部(.cta-bar)時一直看得到:只要狀態句(與結果)露出來
+    for (const el of [ctaFixed() ? elements.message : $('playAlongTop'), extra]) {
       if (!el || !el.getClientRects().length) continue;
       want = Math.max(want, el.getBoundingClientRect().bottom - bottom + 8);
     }
@@ -1310,12 +1310,29 @@ function revealQuiz(extra) {
   });
 }
 
+/** 題目卡最後一行固定在畫面底部(main.js 的 syncCta、app.css 的 .cta-bar;手機)時回傳那一列 */
+function ctaFixed() {
+  const c = $('quiz').querySelector(':scope > .cta-bar');
+  return c && c.getClientRects().length && getComputedStyle(c).position === 'fixed' ? c : null;
+}
+/** 畫面上內容的下緣:分頁列的上緣(手機橫放時分頁列在左邊,不算)與固定在底部的按鈕列上緣,取比較高的 */
+const CTA_MQ = matchMedia('(max-width:600px), (orientation:landscape) and (max-height:500px)');   // = app.css 的 .cta-bar
+function floorY(predict) {
+  const bar = document.getElementById('tabbar'), bt = bar ? bar.getBoundingClientRect().top : innerHeight;
+  const base = bt > innerHeight / 2 ? bt : innerHeight;
+  const c = ctaFixed();
+  if (c) return Math.min(base, c.getBoundingClientRect().top);
+  // 量樂譜大小時按鈕列可能還沒固定(下一個 frame 才加 .cta-bar):先扣掉它平常的高度,同一題前後排法才一樣
+  if (predict && CTA_MQ.matches && !$('quiz').hidden) return base - (bt > innerHeight / 2 ? 64 : 56);
+  return base;
+}
+
 /** 右上角的浮動倒數:放在頂欄下面(手機橫放時頂欄比較矮,所以每次量) */
 function showPrepFloat(seconds) {
   const header = document.querySelector('header');
   // 題目卡右下的主要按鈕看得到時不重複(剩幾秒已經寫在按鈕上)
-  const top = $('playAlongTop').getBoundingClientRect(), bar = document.getElementById('tabbar');
-  const floor = bar && bar.getBoundingClientRect().top > innerHeight / 2 ? bar.getBoundingClientRect().top : innerHeight;
+  const top = $('playAlongTop').getBoundingClientRect();
+  const floor = ctaFixed() ? innerHeight : floorY();   // 固定在底部的按鈕一直看得到
   if (!$('playAlongTop').hidden && top.height && top.top >= (header ? header.getBoundingClientRect().bottom : 0) && top.bottom <= floor) {
     elements.prepFloat.hidden = true;
     return;
@@ -1427,10 +1444,8 @@ function availableScoreHeight() {
   // 樂譜卡捲到頂欄下面時,頂欄與底部分頁列之間放得下多高(準備時捲到樂譜卡就能一眼看完;播放時也會自動捲到這裡)
   const header = document.querySelector('header');
   const top = header ? header.getBoundingClientRect().height : 0;
-  const bar = document.getElementById('tabbar');
-  // 分頁列在下面才扣掉它;手機橫放時分頁列是左邊的直欄(top = 0),不佔下面的高度
-  const barBox = bar ? bar.getBoundingClientRect() : null;
-  const bottom = barBox && barBox.top > window.innerHeight / 2 ? barBox.top : (window.innerHeight || document.documentElement.clientHeight);
+  // 分頁列在下面才扣掉它;手機橫放時分頁列是左邊的直欄(top = 0),不佔下面的高度;固定在底部的按鈕列也扣掉
+  const bottom = floorY(true);
   const card = $('scoreCard').getBoundingClientRect(), score = elements.score.getBoundingClientRect();
   const chrome = score.top - card.top;   // 樂譜卡的標題列與內距
   return Math.max(120, bottom - top - chrome - SCORE_BOTTOM_GAP);

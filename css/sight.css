@@ -141,6 +141,7 @@
 #mod-sight .s-along-top.counting:disabled{opacity:1;background:var(--gold-fill);border-color:var(--gold);color:var(--on-fill);box-shadow:0 6px 22px -8px rgba(242,185,75,.8);font-variant-numeric:tabular-nums}   /* 看譜倒數:主要按鈕上寫剩幾秒(不變淡,不套 .btn:disabled 的灰底) */
 #mod-sight .s-along-top{flex:0 1 auto;min-width:48%;padding:0 22px}   /* 高度、字級 = 主要按鈕(app.css 第 5 輪健檢) */
 #s-quiz.free .q-foot{margin-top:6px}
+#mod-sight .cta-bar .s-along-top{flex:1 1 0;min-width:max-content;max-width:100%;padding:8px 16px}   /* 固定在底部時(app.css 的 .cta-bar)跟其他主要按鈕一樣用滿剩下的寬度 */
 /* 手機橫式:認音的題目卡左右排(左 = 譜、右 = 訊息與琴鍵) */
 @media (orientation:landscape) and (max-height:500px){
   .rd-card{display:grid;grid-template-columns:minmax(0,.85fr) minmax(0,1.5fr);gap:4px 10px;align-items:start}

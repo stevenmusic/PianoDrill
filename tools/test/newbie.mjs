@@ -37,11 +37,12 @@ const SEL = {
 const NAV = ["#subSeg button", "#subnav .daily-bar button", ".daily-cta button:not([hidden])", ".cta-bar button:not([hidden])", "#tabbar button"];
 const hook = () => window.__tech;                // 在頁面裡執行:{ dcard, dseg, daily }
 // 題目畫面(檢查 2、3、4 用):on = 看得到它就是在這個畫面;title / play = 大標題、圓形 ▶;status = 狀態句;prim = 題目卡最後一行的主要按鈕;
-//   next = 也算「下一步」的東西(次要的下一題、作答區);busy = 播放中(頁面裡的運算式;播放中 App 把樂譜捲到頂欄下是設計:不查標題 / ▶,看不到下一步只記警告)
+//   next = 也算「下一步」的東西(次要的下一題、作答區);busy = 播放中(頁面裡的運算式;播放中 App 把樂譜捲到頂欄下是設計:不查標題 / ▶,看不到下一步只記警告;
+//   視奏檢定頁「看譜 30 秒」先給音約 2 秒(主要按鈕不能按、狀態「給音中……」)再倒數,也算 busy:等就好,不是斷點)
 const VIEWS = {
   tech: { on: "#t-quizCard", title: "#t-qTitle", play: "#t-playBtn", status: "#t-hint, #t-intro", prim: "#t-quizCard .q-last .btn.primary" },
   sight: { on: "#s-quiz", title: "#s-title", play: "#s-play", status: "#s-message, #s-hint", prim: "#s-quiz .q-foot .btn.primary",
-    busy: "/停止|Stop/.test(document.getElementById('s-playAlongTop').textContent) || document.getElementById('s-playAlongTop').classList.contains('counting') || document.getElementById('s-play').classList.contains('is-active')" },
+    busy: "/停止|Stop/.test(document.getElementById('s-playAlongTop').textContent) || document.getElementById('s-playAlongTop').classList.contains('counting') || document.getElementById('s-playAlongTop').disabled || document.getElementById('s-play').classList.contains('is-active')" },
   read: { on: "#s-rdCard", title: "#s-rdSet", status: "#s-rdMsg", next: "#s-rdKbd" },
   ear: { on: "#e-quizCard", title: "#e-qTitle", play: "#e-playBtn", status: "#e-feedback, #e-hint", prim: "#e-quizCard .q-foot .btn.primary", next: "#e-nextBtn, #e-kbd" },
   ob: { next: "#obSystem, #obGradeSeg" }   // 第一次打開「我在準備檢定」:下一步 = 選系統、級數(「開始準備考試」選好才能按)
@@ -107,6 +108,8 @@ const FLOWS = {
     await T.step("點「視奏」", () => T.tap('#subSeg [data-v="sight"]'));
     await T.step("按「練習一題」", () => T.tap("#s-generate"));
     await T.step("按「看譜 30 秒」", () => T.tap("#s-playAlongTop"));
+    // 先給音(約 2 秒,含載入)才開始倒數;倒數開始時會把 skipPrep 的旗標清掉,所以等倒數開始再跳過
+    await T.until(() => document.getElementById("s-playAlongTop").classList.contains("counting"), null, 15000, "給音之後沒有開始看譜倒數");
     await T.ev(() => window.__sight.skipPrep());
     await T.until(() => !document.getElementById("s-playAlongTop").disabled, null, 15000, "看譜時間到了「彈一遍」還不能按");
     await T.step("看譜時間到(測試掛鉤 skipPrep)", null);

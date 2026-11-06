@@ -244,7 +244,7 @@ function switchTab(tab, keepQuestion){
   if (PRACTICE.includes(tab)) { renderPicker(tab); if (!keepQuestion) { if (tabCur[tab]) setQuestion(tabCur[tab], tab, true); else newPractice(tab); } }
   else { renderExam(); if (!keepQuestion) { if (tabCur.exam) setQuestion(tabCur.exam, "exam", true); else showEmpty(); } }
   renderStats();
-  if (!keepQuestion) window.scrollTo({ top: 0 });
+  if (!keepQuestion) { window.scrollTo({ top: 0 }); landReveal(); }
 }
 /* 外框:顯示 / 離開這個模組 */
 /* 回到同一個子項目(切到背景再回來、從別的分頁回來):題目與作答照原樣(setQuestion restore),進行中的模擬考也保留 */
@@ -389,10 +389,25 @@ function keyboardHTML(k){
   return html;
 }
 /* 鍵盤高度照真實比例(白鍵 5.2:1,ScrollScore 的算法),手指要按得到:90–170px */
+/* 手機橫式(高 ≤ 500):琴鍵要整個在底部按鈕列(main.js 的 syncCta,app.css .cta-bar = 按鈕 44 + 上下 6)上面看得到;
+   題目卡捲到頂欄下(landReveal)時,琴鍵最高 = 畫面高 − 頂欄 − 題目卡頂到琴鍵頂 − 底部按鈕列(不小於 60,點擊區 ≥ 44);其他尺寸不變 */
+const LAND = matchMedia("(orientation:landscape) and (max-height:500px)");
+const LAND_CTA = 56;
+const headBottom = () => { const h = document.querySelector("header"); return h ? h.getBoundingClientRect().bottom : 0; };
 function fitKeyboard(){
   const kb = $("kbd"); if (!kb) return;
   const n = kb.querySelectorAll(".wk").length || 1;
-  kb.style.height = Math.round(Math.min(170, Math.max(90, kb.clientWidth / n * 5.2))) + "px";
+  let h = Math.min(170, Math.max(90, kb.clientWidth / n * 5.2));
+  if (LAND.matches && kb.clientWidth) {
+    const above = kb.getBoundingClientRect().top - $("quizCard").getBoundingClientRect().top;
+    h = Math.max(60, Math.min(h, innerHeight - headBottom() - 8 - above - LAND_CTA - 4));
+  }
+  kb.style.height = Math.round(h) + "px";
+}
+/* 手機橫式:琴鍵被底部按鈕列蓋住時,把題目卡捲到頂欄下(設定列往上捲,捲回去就看得到) */
+function landReveal(){
+  const kb = $("kbd"); if (!LAND.matches || !kb || !active) return;
+  if (kb.getBoundingClientRect().bottom > innerHeight - LAND_CTA) window.scrollTo({ top: Math.max(0, scrollY + $("quizCard").getBoundingClientRect().top - headBottom() - 8) });
 }
 addEventListener("resize", fitKeyboard);
 function syncKeys(){

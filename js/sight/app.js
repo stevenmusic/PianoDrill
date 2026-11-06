@@ -1250,7 +1250,7 @@ async function startCountdown() {
   const finished = await player.playChord(tonicTriadMidis(current.score.key)).catch(() => false);
   // 給音被打斷(按了播放、停止、產生新題):不要再開始倒數
   if (token !== prepToken) return;
-  // 鋼琴聲音沒載入(離線、載入失敗):不給音,照樣開始 30 秒倒數(提示那一行已寫原因;看譜不需要聲音)
+  // 給音被停下來(false):回到「看譜 30 秒」等再按。鋼琴聲音沒載入(null,離線、載入失敗)不在這裡:不給音,照樣往下開始 30 秒倒數(看譜不需要聲音)
   if (finished === false) {
     xPrep = 'before';
     setAlongLabel();

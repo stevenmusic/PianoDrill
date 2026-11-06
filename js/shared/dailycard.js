@@ -110,7 +110,7 @@ export function createDailyCard({ $, daily, routes = null, labels = {}, warmName
     if (pa.length) { if (!pr) { pr = document.createElement("p"); pr.className = "daily-backrow daily-approw"; step.insertBefore(pr, row); } for (const el of pa) { el.dataset.appAct = "1"; pr.appendChild(el); } }
     else if (pr) pr.remove();
     // 「還要練」一直佔著左邊的位置,主要按鈕才不會左右縮放(newbie.mjs:「位置永遠不變」):沒播過一輪 = 灰的不能按;「下一段 ›」時看不見但不讓位
-    again.hidden = false; again.disabled = mode !== "ok" || !okReady; again.style.visibility = mode === "next" ? "hidden" : "";
+    again.hidden = false; again.disabled = !(mode === "ok" && okReady) && !(againFree && mode === "play"); again.style.visibility = mode === "next" ? "hidden" : "";
     if (app) { app.dataset.appAct = "1"; row.insertBefore(app, main); main.hidden = true; }
     else {
       main.hidden = false;
@@ -130,7 +130,7 @@ export function createDailyCard({ $, daily, routes = null, labels = {}, warmName
   }
   const tid = card.id + "-title";
   card.setAttribute("role", "region"); card.setAttribute("aria-labelledby", tid);
-  let showing = false, lastStatus = null, lastOpts = {}, okReady = true, whyCur = null, panelNext = false, lastBar = null, lastSeg = null, playing = false;
+  let showing = false, lastStatus = null, lastOpts = {}, okReady = true, whyCur = null, panelNext = false, lastBar = null, lastSeg = null, playing = false, againFree = false;
   /* 底部按鈕是「下一段 ›」(暖身、過關、複習完)時,進度那一行的「下一段 ›」藏起來(同一畫面不放兩顆) */
   const syncNext = () => { const b = lastBar && lastBar.querySelector(".daily-next"); if (b) b.hidden = panelNext && !step.hidden; };
   /* 為什麼練這個:路線的 why[組](每組一句);只在這一組的第一關、第一次出現的那一段(同一段重畫、換語言照樣顯示;複習、暖身不寫) */
@@ -367,6 +367,8 @@ export function createDailyCard({ $, daily, routes = null, labels = {}, warmName
       }
     },
     get isReady(){ return okReady; },
+    /* 「還要練」在「▶ …一輪」那一步也能按(「做到了」還不能按;PianoDrill「App 聽你彈」這一輪沒彈對之後):App 換段、自評後呼叫 againOk(false);沒呼叫 = 照舊 */
+    againOk(v){ if (againFree === !!v) return; againFree = !!v; paintActs(); },
     /* App 開始 / 停止播放(題目卡的 ▶ 或底部按鈕):底部按鈕換成「■ 停止」/「▶ …一輪」 */
     playing(v){ if (playing === !!v) return; playing = !!v; paintActs(); },
     /* 換語言:只重寫文字 */

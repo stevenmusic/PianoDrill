@@ -13,7 +13,8 @@ const DEFAULTS = {
   quickOpen: false,       // 音階/琶音分頁上方「本級要求」清單是否展開(預設收起;舊的 quickOn 不再用)
   mastery: {},            // masteryKey → "good" | "weak"
   theme: "dark",
-  loop: false, ramp: false, clickOnly: false   // 播放選項
+  loop: false, ramp: false, clickOnly: false,  // 播放選項
+  listen: true            // 今日練習「麥克風聽你彈」(會聽的關;false = 關掉,照原本自己按「做到了」)
 };
 let state = null;
 export function load(){
@@ -34,6 +35,7 @@ export function load(){
   // 今日練習的音名開關(每條路線記住;沒切過 = 照關卡的預設)
   const dn = {}; if (saved.dnames && typeof saved.dnames === "object") for (const k of ["finger", "accomp"]) if (typeof saved.dnames[k] === "boolean") dn[k] = saved.dnames[k];
   state.dnames = dn;
+  state.listen = saved.listen !== false;
   return state;
 }
 export function save(){

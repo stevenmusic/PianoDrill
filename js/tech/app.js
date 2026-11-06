@@ -13,7 +13,9 @@ import { createDaily, clickPlays } from "../shared/daily.js";
 import { createDailyCard } from "../shared/dailycard.js";
 import { ROUTES, WARM_LEVELS, warmFor, findLevel, KEYS, adaptVary, keyLearned } from "./routes.js";
 import { paintNoteNames } from "../shared/notenames.js";
-import { sameBars, fingerMarks, barChords, chordTable, handPositions, chordName, keyInfo } from "./patterns.js";
+import { sameBars, fingerMarks, barChords, chordTable, handPositions, chordName, keyInfo, listenExpected } from "./patterns.js";
+import { createRecorder } from "../shared/mic.js";
+import { scoreDaily, createNoteOnsets, LIVE } from "../sight/micscore.js";
 import { createKeystrip } from "../shared/keystrip.js";
 import "./strings.js";
 const T = scoped("tech");
@@ -507,7 +509,7 @@ function renderQText(q, tab){
 function syncPlayCap(){
   const solo = clickOnlyOn() || !!(dseg && dseg.k !== "warm" && dseg.click && dseg.click !== "every");
   // 伴奏路線只有左手的關:App 另外彈一條旋律(示範 = 左手 + 旋律;只有拍點的那幾次 = 拍點 + 旋律,學生彈左手跟它合奏)
-  $("playBtn").dataset.cap = melOn() ? (solo ? tr("拍點 + 旋律", "Click + melody") : tr("示範 + 旋律", "Demo + melody"))
+  $("playBtn").dataset.cap = listenOn() ? tr("拍點 + 聽你彈", "Click + listen") : melOn() ? (solo ? tr("拍點 + 旋律", "Click + melody") : tr("示範 + 旋律", "Demo + melody"))
     : solo ? tr("拍點", "Click") : dseg && dseg.k !== "warm" ? tr("示範 + 拍點", "Demo + click") : tr("示範", "Demo");
 }
 /* 這一段有合奏旋律(今日練習的伴奏關,只有左手的那幾關;patterns.js 的 accMelody) */
@@ -1326,6 +1328,7 @@ function schedulePlay(p, from){
 let retempoTimer = 0;
 function retempo(){
   if (!play) return;
+  if (lis) { stopPlayback(); return; }   // App 聽你彈:換了速度,這一輪不算(拍點的時間變了),重按 ▶
   clearTimeout(retempoTimer);
   retempoTimer = setTimeout(() => {
     if (!play) return;
@@ -1389,6 +1392,14 @@ async function startPlaybackInner(){
   const loaded = await lp;
   waitMsg = false;
   await within(audio.masterReady, 1500);
+  // App 聽你彈:先打開麥克風(第一次才問權限),拿到了才排預備拍(錄在播放的同一個 AudioContext,拍點的時間對得上)
+  let L = null;
+  if (loaded && starting === token && cur === q0 && show === show0 && listenOn()) {
+    const e0 = lisExp();
+    try { await rec.start(); L = { exp: e0 }; } catch (err) { lisUntap(); if (rec.active) rec.cancel(); micFail(err); }
+    if (ctx.state !== "running") await within(ctx.resume().catch(() => {}), 1500);
+    if (L && (starting !== token || cur !== q0 || show !== show0)) { lisTapStop(); rec.cancel(); L = null; }
+  }
   // 準備期間換了題目、換了手、按了停止 → 不播
   if (starting !== token || cur !== q0 || show !== show0) { if (starting === token) { starting = 0; $("playLabel").textContent = T("play"); } $("playBtn").classList.remove("busy"); return; }
   starting = 0; $("playBtn").classList.remove("busy");
@@ -1411,9 +1422,15 @@ async function startPlaybackInner(){
   const velAt = beat => cur.dynamic === "cresc-dim" ? Math.round(42 + 50 * (1 - Math.abs(2 * beat / endBeat - 1))) : demoVel();
   const byHand = { rh: [], lh: [], mel: [] };
   events.forEach(e => byHand[e.hand].push(e));
-  play = { t0, beatSec, clickSec, endBeat, raf: 0, byHand, stacc, velAt, count, pre, click: dp ? dp.click : "every", solo: !!(dp && dp.solo), period,
+  play = { t0, beatSec, clickSec, endBeat, raf: 0, byHand, stacc, velAt, count, pre, click: dp ? dp.click : "every", solo: !!(dp && dp.solo) || !!L, period,
     mark: 0, heard: false, heardQ: 2 * count * clickSec / beatSec };   // 今日練習:預備拍之後播過 2 小節,「做到了」才能按
   schedulePlay(play, -Infinity);
+  if (L) {   // 這一輪錄音裡的拍點(App 自己排的):scoreDaily 不把拍點當成琴聲
+    const total = Math.ceil(endBeat * beatSec / clickSec), clicks = [];
+    for (let b = -pre; b < total; b++) if (clickPlays(play.click, b, count, total)) clicks.push(t0 + b * clickSec);
+    lis = { exp: L.exp, clicks, t0, q: cur, seg: dseg, lat: (ctx.outputLatency || 0) + (ctx.baseLatency || 0) };
+    dcard.renderStep(dseg, { status: () => tr("在聽……預備拍之後開始彈", "Listening… start after the count-in") });
+  }
   revealScore();
   $("playLabel").textContent = T("stop");
   $("playIcon").innerHTML = '<rect x="6" y="6" width="12" height="12" rx="1.5"/>';
@@ -1422,10 +1439,15 @@ async function startPlaybackInner(){
     const now = audio.audioNow();
     const beat = (now - play.t0) / play.beatSec;
     showBeat((now - play.t0) / play.clickSec);
-    if (dp && !play.heard && beat - play.mark >= play.heardQ) { play.heard = true; heardAt = heardKey(); syncReady(); }
-    movePlayline(Math.max(0, play.period ? beat % play.period : beat), true);
-    if (beat > play.endBeat + 0.5) {
+    if (dp && !lis && !play.heard && beat - play.mark >= play.heardQ) { play.heard = true; heardAt = heardKey(); syncReady(); }
+    const pb = lis ? Math.min(beat, play.endBeat - 1e-3) : beat;   // App 聽你彈多等的那一小節:播放軸停在最後
+    movePlayline(Math.max(0, play.period ? pb % play.period : pb), true);
+    // App 聽你彈:4 小節之後,等到最後一個聽到的音之後 1.5 秒沒有新的音才停(最多多等 1 小節,那一小節拍點不響);其他 = 最後一拍之後半拍
+    const over = lis ? beat >= play.endBeat && (now - lisHeard >= LIS_QUIET || beat >= play.endBeat + play.count * play.clickSec / play.beatSec) : beat > play.endBeat + 0.5;
+    if (over) {
+      const heard = lisTake();
       const sec = play.endBeat * play.beatSec; stopPlayback(true, !!(loopOn() && cur)); logPractice(sec);
+      if (heard) { lisJudge(heard); return; }
       // 循環:再來一輪(有預備拍);勾了「每輪 +4」就每輪快 4(拍點 ♪ 時快 8,等於 ♩ +4)
       if (loopOn() && cur) { if (S.ramp && !dseg) setBpm(bpm + (unitOf() === "e16" ? 8 : 4), true); startPlayback(); }   // 今日練習的速度照速度階梯
       return;
@@ -1436,6 +1458,8 @@ async function startPlaybackInner(){
 }
 function stopPlayback(natural, keepView){
   starting = 0; $("playBtn").classList.remove("busy");
+  const wasLis = !!lis; lisStop();   // App 聽你彈:停止、離開、暫停、換關一定關掉麥克風
+  if (wasLis && dseg) dcard.renderStep(dseg, { status: null });   // 中途停下:這一輪不算,狀態回到「按 ▶ 你彈一輪…」
   if (waitMsg) { waitMsg = false; setMsg("loadingMsg", null); }
   // 手機橫放:播完(或停止)捲回播放前的位置、分頁列放回來;循環的下一輪不捲
   if (!keepView && landScroll != null) {
@@ -1543,14 +1567,138 @@ function replanWarm(){
   else { for (const k of ["plan", "done", "sec", "tries"]) if (Array.isArray(t[k])) t[k].splice(i, 1); }
   S.daily = daily.data; store.save();
 }
+/* ══ App 聽你彈(今日練習;右手單音的關 = routes.js 的 listenLevel + patterns.js 的 listenExpected)══
+   ▶ 那一輪 = 預備拍 + 拍點(不放示範)+ 麥克風錄音(js/shared/mic.js,錄在播放的同一個 AudioContext:拍點的時間對得上);
+   預備拍之後 4 小節,再等到最後一個聽到的音之後 1.5 秒沒有新的音才停(最多多等 1 小節,拍點不響),js/sight/micscore.js 的 scoreDaily 判斷:彈對 = 自動算「做到了」(dTry("ok"),跟按的同一條路);
+   彈不對 = 狀態句一句白話原因(不扣分;「還要練」照樣能按 = dcard.againOk);同一關連續 2 次聽不過 →「做到了」也能自己按(逃生口)。
+   拿不到麥克風(拒絕、沒有、不支援)= 這次打開 App 起照原本的自評流程(示範 + 做到了 / 還要練),狀態句寫一次原因;太吵 = 這一輪改成自己按。
+   開關:面板裡一行文字鈕(S.listen,預設開;第一次真的要聽才問權限)。錄音只在裝置上分析,不存檔、不上傳 */
+/* 錄音的同時即時找音頭(micscore.js 的 createNoteOnsets,跟視奏 miclisten.js 同一種):只用來知道「最後一個聲音是什麼時候」;判斷照樣用整段錄音。
+   mic.js 不能改:在它呼叫 createMediaStreamSource 的那一次多接一條分析(只攔這一次) */
+const LIS_QUIET = 1.5;   // 秒:最後一個聽到的音之後這麼久沒有新的音 = 彈完了
+let lisTap = null, lisLive = null, lisHeard = -Infinity;
+const rec = createRecorder({ context: () => {
+  const c = audio.ensureAudio(); delete c.createMediaStreamSource; const raw = c.createMediaStreamSource;   // 上一次沒走到這一步(出錯)留下的先拿掉
+  c.createMediaStreamSource = function(stream){ delete c.createMediaStreamSource; const src = raw.call(c, stream); lisTapStart(c, src); return src; };
+  return c;
+} });
+function lisTapStart(c, src){
+  lisTapStop();
+  const size = 2048, rate = c.sampleRate;
+  lisLive = createNoteOnsets(rate, LIVE); lisHeard = -Infinity;
+  lisTap = c.createScriptProcessor(size, 1, 1);
+  lisTap.onaudioprocess = ev => {
+    if (!lisLive) return;
+    const at = ev.playbackTime, start = at > 0 ? at - (2 * size) / rate : c.currentTime - size / rate, before = lisLive.time;
+    for (const t of lisLive.push(ev.inputBuffer.getChannelData(0))) {
+      lisHeard = Math.max(lisHeard, start + (t - before));   // 這個音頭在 AudioContext 上的時間(拍點也算:4 小節裡分不出跟拍點同時的琴聲;多等的那一小節沒有拍點)
+    }
+  };
+  src.connect(lisTap); lisTap.connect(c.destination);   // 要接到輸出才會跑;輸出是靜音
+}
+function lisUntap(){ lisTapStop(); delete audio.ensureAudio().createMediaStreamSource; }   // 沒走到 createMediaStreamSource 就出錯:攔截拿掉(視奏的 miclisten 共用同一個 AudioContext)
+function lisTapStop(){ try { if (lisTap) lisTap.disconnect(); } catch (e) {} if (lisTap) lisTap.onaudioprocess = null; lisTap = null; lisLive = null; }
+let lisGen = 0;                   // 每一輪 +1;判斷完的時候不是同一輪(停了、又按 ▶)就丟掉
+let lis = null;                   // 正在聽的這一輪 { exp, clicks, t0, q, seg, lat }
+let micBroken = null;             // 拿不到麥克風的原因(denied / none / unsupported);開關關掉再打開 = 再試
+let lisFails = 0, lisFailKey = null, lisMemo = null, dDone = false;
+/* 這一次要聽的音(null = 這一段不聽:暖身、拍點模式、換調、伴奏…;過關 / 複習完那一步也不聽) */
+function lisExp(){
+  if (!dseg || dseg.k === "warm" || dDone || !cur || !cur.daily || !FG) return null;
+  const click = dseg.click || null;
+  if (!lisMemo || lisMemo.q !== cur || lisMemo.bpm !== bpm || lisMemo.click !== click) {
+    let e = null; try { e = listenExpected(FG, cur, { bpm, click, bars: 4 }); } catch (err) { e = null; }
+    lisMemo = { q: cur, bpm, click, e };
+  }
+  return lisMemo.e;
+}
+function listenOn(){ return S.listen !== false && !micBroken && !!lisExp(); }
+function lisStop(){ lis = null; lisGen++; lisUntap(); if (rec.active) rec.cancel(); }
+/* 一輪錄完:收下錄音(麥克風關掉) */
+function lisTake(){ const L = lis; if (!L) return null; lis = null; lisTapStop(); return { ...L, take: rec.finish() }; }
+/* 背景的音量:預備拍那一段每 10 ms 的音量取中位數(拍點很短,不影響中位數) */
+const NOISY = 0.02;   // 約 −34 dBFS:安靜的房間、電扇遠小於這個(micscore-stress 的電扇 ≈ 0.002)
+function bgLevel(x, rate, from, to){
+  const hop = Math.round(rate * 0.01), lv = [];
+  for (let k = Math.max(0, Math.round(from * rate)); k + hop <= Math.min(x.length, Math.round(to * rate)); k += hop) { let e = 0; for (let q = k; q < k + hop; q++) e += x[q] * x[q]; lv.push(Math.sqrt(e / hop)); }
+  if (lv.length < 20) return 0;
+  lv.sort((a, b) => a - b);
+  return lv[lv.length >> 1];
+}
+const PC = ["C", "C♯", "D", "E♭", "E", "F", "F♯", "G", "A♭", "A", "B♭", "B"];
+/* 沒彈對的原因(一句白話;decideDaily 的 reason) */
+function lisWhy(r){
+  const n = r.note, nm = m => PC[((m % 12) + 12) % 12];
+  switch (r.reason) {
+    case "octaveLow": return tr("低了一個八度,手往右移一個八度", "An octave too low. Move up one octave");
+    case "wrongPitch": return n && n.midi != null && n.heard != null ? tr(`有音不對:該彈 ${nm(n.midi)},聽到 ${nm(n.heard)}`, `Wrong note: ${nm(n.midi)}, but heard ${nm(n.heard)}`) : tr("有音彈錯了,看著譜彈", "Some wrong notes. Follow the score");
+    case "missed": return tr("有音漏掉了,從頭彈到尾", "Some notes were missed. Play it all the way");
+    case "extra": return tr("多彈了音,看著譜慢慢彈", "Extra notes. Go slowly with the score");
+    case "notPiano": return tr("聽不出譜上的音,看著譜彈", "Couldn't hear the written notes");
+    default: return tr("沒聽到琴聲,把手機放近琴一點", "Didn't hear the piano. Move the phone closer");
+  }
+}
+/* 判斷這一輪(錄音的時間 = AudioContext 的時間 − 錄音第一個樣本的時間 + 喇叭的延遲) */
+function lisJudge(x){
+  const { take, exp, clicks, t0, lat, seg, q } = x, gen = ++lisGen;
+  if (dseg !== seg || cur !== q) return;
+  dcard.renderStep(dseg, { status: () => tr("聽好了,判斷中……", "Checking…") });
+  setTimeout(() => {
+    if (gen !== lisGen || dseg !== seg || cur !== q) return;
+    let r = { ok: false, reason: "silent" }, noisy = false;
+    if (take && take.contextTime != null && take.samples.length) {
+      const off = lat - take.contextTime, rate = take.sampleRate;
+      try { r = scoreDaily(take.samples, rate, exp, { clicks: clicks.map(c => c + off), t0: t0 + off }); } catch (e) { console.error(e); }
+      if (!r.ok) noisy = bgLevel(take.samples, rate, 0.05, t0 + off - 0.05) > NOISY;
+    }
+    if (window.__keepTake) window.__keepTake = take || true;   // 測試用(tools/tech/listen-check.mjs 量假麥克風掉了多少樣本;只有測試打開,不存檔)
+    if (gen === lisGen) lisResult(r, noisy, take);
+  }, 30);
+}
+function lisResult(r, noisy, take = null){
+  if (!dseg) return;
+  const key = `${dseg.i}/${dseg.lv || ""}`;
+  if (lisFailKey !== key) { lisFailKey = key; lisFails = 0; }
+  if (window.__tech && window.__keepTake) window.__tech.lastListen = { ok: !!r.ok, reason: r.reason, noisy, matched: r.matched, total: r.total, sec: take ? +(take.samples.length / take.sampleRate).toFixed(2) : null, gap: take ? +(take.filled / take.sampleRate).toFixed(2) : null };   // 測試用(tools/tech/listen-check.mjs;gap = 主執行緒忙、mic.js 補的靜音秒數)
+  if (r.ok) { lisFails = 0; heardAt = heardKey(); syncReady(); dTry("ok"); return; }   // 彈對 = 做到了(跟按的同一條路)
+  if (noisy) { heardAt = heardKey(); syncReady(); dcard.renderStep(dseg, { status: () => tr("太吵了,聽不清楚;彈得順就自己按「做到了」", "Too noisy to hear. If it went well, tap Did it") }); return; }
+  lisFails++;
+  const out = lisFails >= 2;   // 連續 2 次聽不過:「做到了」也能自己按
+  dcard.againOk(!out);
+  if (out) { heardAt = heardKey(); syncReady(); }
+  dcard.renderStep(dseg, { status: () => lisWhy(r) + (out ? tr("。彈得順就自己按「做到了」", ". If it went well, tap Did it") : tr("。按 ▶ 再彈一輪", ". Tap ▶ to try again")) });
+}
+/* 拿不到麥克風:這次打開 App 起照原本的自評流程(這一輪照樣播示範),狀態句寫一次原因 */
+function micFail(err){
+  const n = err && err.name;
+  micBroken = n === "NotAllowedError" || n === "SecurityError" ? "denied" : n === "NotFoundError" || n === "OverconstrainedError" || n === "NotReadableError" ? "none" : "unsupported";
+  const why = { denied: ["沒有取得麥克風", "No microphone access"], none: ["找不到麥克風", "No microphone found"], unsupported: ["這台裝置不能用麥克風", "Can't use the microphone here"] }[micBroken];
+  syncPlayCap();
+  if (dseg) dcard.renderStep(dseg, { status: () => tr(why[0] + ",改成跟著示範彈、自己按「做到了」", why[1] + ". Play along and tap Did it yourself") });
+}
+/* 面板裡一行的開關(文字鈕;按了換開 / 關,存 S.listen) */
+const micBtn = document.createElement("button");
+micBtn.type = "button"; micBtn.className = "text-btn"; micBtn.id = "t-micBtn";
+function paintMicBtn(){
+  const on = S.listen !== false;
+  micBtn.textContent = on ? tr("麥克風聽你彈:開", "Mic listens: on") : tr("麥克風聽你彈:關", "Mic listens: off");
+  micBtn.setAttribute("aria-pressed", String(on));
+  return micBtn;
+}
+micBtn.onclick = () => {
+  S.listen = S.listen === false; if (S.listen) micBroken = null;
+  store.save(); stopPlayback();
+  lisFails = 0; heardAt = null; syncReady(); dcard.againOk(false); syncPlayCap();
+  if (dseg) dcard.renderStep(dseg, { status: null });
+};
 const dcard = createDailyCard({ $, daily, routes: ROUTES,   // routes:今日卡的「路線」(路線圖)
   labels: { ok: ["做到了", "Did it"], again: ["還要練", "Not yet"], verb: ["彈", "play"], good: ["很好!", "Good!"],
     // 狀態一句短話(fold-280 不超過兩行);過關規則改成到了目標速度在標籤後面顯示「穩 0 / 3」
-    hint: ["按 ▶ 跟著彈一輪,「做到了」就會亮", "Tap ▶ and play along to unlock \"Did it\""],   // 「做到了」要先播過一輪才亮:狀態句直接說(dailycard 的 ready / syncOk);英文要在 390 一行放得下(pairText 照比較高的,英文兩行中文也變兩行,第 7 輪健檢;「Did it」加引號才看得出是按鈕,第 10 輪)
+    get hint(){ return listenOn() ? ["按 ▶ 你彈一輪,App 會聽你彈", "Tap ▶ for your turn. The app listens"] : ["按 ▶ 跟著彈一輪,「做到了」就會亮", "Tap ▶ and play along to unlock \"Did it\""]; },   // 「做到了」要先播過一輪才亮:狀態句直接說(dailycard 的 ready / syncOk);英文要在 390 一行放得下(pairText 照比較高的,英文兩行中文也變兩行,第 7 輪健檢;「Did it」加引號才看得出是按鈕,第 10 輪)
     ask: ["彈得順就按「做到了」,不順按「還要練」", "Went well? Tap Did it. If not, Not yet"],   // 播完一輪:下一步(dailycard 的 ready)
     get solo(){ return melOn() ? ["按 ▶ 你彈左手一輪,「做到了」就會亮", "Tap ▶, play the left hand to unlock \"Did it\""] : ["按 ▶ 自己彈一輪,「做到了」就會亮", "Tap ▶ and play alone to unlock \"Did it\""]; },
     // 底部按鈕「▶ …一輪」:合奏的拍點模式(App 彈旋律、你彈左手)寫「你彈左手一輪」;其他照 dailycard 預設(跟著彈一輪 / 自己彈一輪)
-    get play(){ return melOn() && dseg && dseg.click && dseg.click !== "every" ? ["你彈左手一輪", "Play left hand"] : null; } },
+    get play(){ return listenOn() ? ["你彈一輪", "Your turn"] : melOn() && dseg && dseg.click && dseg.click !== "every" ? ["你彈左手一輪", "Play left hand"] : null; } },
   warmName, levelName, log: () => S.log,
   onStart: () => { dShow(daily.begin()); window.scrollTo({ top: 0 }); },
   onNext: () => dNext(), onPause: () => dExit(),
@@ -1558,7 +1706,8 @@ const dcard = createDailyCard({ $, daily, routes: ROUTES,   // routes:今日卡�
   barHost: el => { if (ctx && ctx.subBar) ctx.subBar(el, "tech"); },   // 進行中:子項目列換成今日練習的那一行
   onOk: () => dTry("ok"), onAgain: () => dTry("again"),
   onPlay: () => { if (play || starting) stopPlayback(); else startPlayback(); },   // 底部按鈕的 ▶ / ■(跟題目卡的圓形 ▶ 同一個播放;準備中按 = 取消)
-  onBack: () => { stopPlayback(); if (daily.back()) dShow(daily.seg()); } });
+  onBack: () => { stopPlayback(); if (daily.back()) dShow(daily.seg()); },
+  acts: { panel: s => (s && s.k !== "warm" && lisExp() ? [paintMicBtn()] : []) } });   // 會聽的關:面板裡一行「麥克風聽你彈:開 / 關」
 /* 「做到了」要先用現在的速度播過一輪(預備拍之後 2 小節)才能按:同一段、同一關、同一個速度 */
 let heardAt = null;
 const heardKey = () => (dseg ? `${dseg.i}/${dseg.lv || ""}/${bpm}` : null);
@@ -1587,10 +1736,11 @@ function dailyQ(s){
 function dShow(s, status = null){
   stopPlayback();
   if (!s) { dExit(); return; }
-  dseg = s; dcard.showing = true; namesSeg = null;
+  dseg = s; dcard.showing = true; namesSeg = null; dDone = false;
   ROOT.classList.add("daily-on");   // 段落進行中:練習紀錄卡、速度卡的選項藏起來(app.css)
   if (ctx && ctx.setSubActive) ctx.setSubActive(false, "tech");
   ROOT.querySelectorAll(".pane").forEach(p => { p.hidden = true; });
+  dcard.againOk(false);
   setQuestion(dailyQ(s), "daily");
   if (s.k === "route") preCheer();   // 過關琶音的取樣先載好
   syncReady();
@@ -1617,8 +1767,9 @@ function dTry(self){
   dseg = daily.seg();
   if (s.k === "route") { bpm = res.nextBpm; cur.tempo.bpm = bpm; syncTempoUI(); }
   renderQText(cur, "daily"); fitTitle();
-  heardAt = null; syncReady();   // 每一次自評 = 彈過一輪:要再按 ▶ 彈一輪才能再自評(狀態寫「按 ▶ 再彈一次」)
-  dcard.renderStep(dseg, { status: txt, passedDone: res.passed || s.k === "review" });
+  heardAt = null; syncReady(); dcard.againOk(false);   // 每一次自評 = 彈過一輪:要再按 ▶ 彈一輪才能再自評(狀態寫「按 ▶ 再彈一次」)
+  dDone = res.passed || s.k === "review";
+  dcard.renderStep(dseg, { status: txt, passedDone: dDone });
   dcard.render();
   if (res.passed) dcard.celebrate();   // 過關慶祝:狀態句上面一條短橫幅(複習升盒不放)
 }

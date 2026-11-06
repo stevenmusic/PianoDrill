@@ -12,7 +12,7 @@
 | `<BundleID>` | `io.github.stevenmusic.pianodrill` | `io.github.stevenmusic.drumdrill` |
 | `<repo>` | `stevenmusic/PianoDrill` | `stevenmusic/DrumDrill` |
 | 打包進 App 的取樣(`tools/build/app-samples.mjs`) | 鋼琴 30 個音 × 5 層力度(有 ffmpeg 就截成 6.5 秒)+ 拍點 xstick 3 個:153 個檔、約 35 MB | 小鼓 5 層 × 6 個 + 整組鼓 12 個鼓件(鼓皮每層 3 個、鈸每層 2 個)+ 拍點 + 鼓房殘響:104 個檔、約 10.9 MB |
-| 麥克風(`NSMicrophoneUsageDescription`、第 3b 節的 AudioSession 外掛) | **要加**(2026-10 開放:視奏「彈一遍」用麥克風自動打分,`js/sight/micscore.js`;預設開、可關,第一次按「彈一遍」才問權限) | **目前版本未開放**(畫面藏起來,`js/shared/micrhythm.js` 的 `MIC_UI`);之後開放時要加(S15:視奏「正式打」、聽力「接著打」可選用麥克風評節奏) |
+| 麥克風(`NSMicrophoneUsageDescription`、第 3b 節的 AudioSession 外掛) | **要加**(2026-10 開放:視奏「彈一遍」用麥克風自動打分,`js/sight/micscore.js`;2026-11 今日練習「App 聽你彈」(會聽的關按 ▶「你彈一輪」,`scoreDaily`);都預設開、可關,第一次真的要聽才問權限) | **目前版本未開放**(畫面藏起來,`js/shared/micrhythm.js` 的 `MIC_UI`);之後開放時要加(S15:視奏「正式打」、聽力「接著打」可選用麥克風評節奏) |
 | 記憶體要特別測的 | 鋼琴取樣(5 層 × 30 音) | 整組鼓(視奏 RSL 4–5、聽力 Groove、Trinity Playback 會載入 12 個鼓件) |
 
 ## 1. 準備(只做一次)
@@ -226,7 +226,7 @@ iPad 要支援分割畫面與視窗縮放(網頁版面本來就跟著寬度變,`
 
 | App | 英文(`en`,Info.plist 也用這句) | 繁體中文(`zh-Hant`) |
 |---|---|---|
-| PianoDrill | Listens while you play a sight-reading piece to score it. Audio is analysed on the device only — never recorded or uploaded. | 用麥克風聽你彈視奏,彈完自動打分;聲音只在裝置上分析,不錄音、不上傳。 |
+| PianoDrill | Listens while you play (sight-reading and Today) to check and score it. Audio is analysed on the device only — never recorded or uploaded. | 用麥克風聽你彈視奏與今日練習,自動打分、聽你有沒有彈對;聲音只在裝置上分析,不錄音、不上傳。 |
 | DrumDrill | Listens to your drum strokes to score your rhythm (optional). Audio is analysed on the device only — never recorded or uploaded. | 用麥克風聽你打每一下的時間來評分節奏(選用);聲音只在裝置上分析,不錄音、不上傳。 |
 
 **InfoPlist.strings**(權限說明、App 名稱的中英文):

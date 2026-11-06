@@ -79,7 +79,7 @@ async function renderClicks(page, clicks, seconds) {
 }
 
 /* ── 情況 ── pass = 必須過;fail = 必須不過 */
-const NOPIANO = ['silent', 'notPiano', 'missed'];   // 沒彈琴:「沒聽到琴聲」/「聽不出譜上的音」(電扇、講話偶爾有幾個音頭對得上 = 漏掉了)
+const NOPIANO = ['silent', 'notPiano'];   // 沒彈琴:只能是「沒聽到琴聲」/「聽不出譜上的音」(電扇、講話剛好對上幾個音頭也不能說「有音漏掉了」;decideDaily 的 real)
 const WRONG = ['wrongPitch', 'notPiano', 'missed'];   // 彈錯音:音不對(對不上的時候也可能是聽不出 / 漏掉)
 const HAND = { jitter: 0.015, vel: [55, 85] };
 const SC = {

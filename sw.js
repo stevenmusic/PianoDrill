@@ -12,7 +12,7 @@
 const APP = "pianodrill";
 // @app-end
 /*@precache-begin*/
-const CACHE = APP + "-app-7bd9355b";
+const CACHE = APP + "-app-f568e983";
 const PRECACHE = [
   "./",
   "manifest.webmanifest",
@@ -66,7 +66,7 @@ const PRECACHE = [
   "js/sight/generator/theory.js?v=bca3da5ea8",
   "js/sight/i18n.js?v=33177c7e92",
   "js/sight/miclisten.js?v=03ef2602b8",
-  "js/sight/micscore.js?v=5e08331ec8",
+  "js/sight/micscore.js?v=56b9d62915",
   "js/sight/playback.js?v=206fa6f436",
   "js/sight/reading.js?v=d649e24236",
   "js/sight/scoring.js?v=c1912c76a7",

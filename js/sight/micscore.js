@@ -710,9 +710,12 @@ export function decideDaily(a, limits = {}) {
   if (highs.length >= P.octShare * n) return { ...res, reason: 'octaveHigh', note: first(highs) };
   // 跟 scoreRecording 一樣的兩關:對到的太少 = 沒聽到在彈;譜上的音聽得出來的不到一半 = 聽不出譜上的音(講話、敲東西、只有拍點)
   const analysable = det.filter((d) => d.ratio !== null).length;
-  if (matched < Math.min(n, Math.max(3, Math.ceil(n * MATCH_MIN)))) return { ...res, reason: wrongs.length >= matched / 2 && matched ? 'wrongPitch' : sure.length ? 'missed' : 'silent', note: first(wrongs.length ? wrongs : det.filter((d) => d.at === null)) };
+  // 「漏掉了」只給真的在彈的:對到的音有一半以上聽得到譜上那個音、而且最突出的就是它(琴聲幾乎每個都是;電扇、講話、敲桌子剛好對上的 ≤ 2 個 → 沒聽到琴聲 / 聽不出譜上的音)
+  const played = det.filter((d) => d.ratio !== null && d.ratio >= P.ratio && d.heard === d.midi).length;
+  const real = played >= 2 && played >= PM_MIN * matched;
+  if (matched < Math.min(n, Math.max(3, Math.ceil(n * MATCH_MIN)))) return { ...res, reason: wrongs.length >= matched / 2 && matched ? 'wrongPitch' : real ? 'missed' : sure.length ? 'notPiano' : 'silent', note: first(wrongs.length ? wrongs : det.filter((d) => d.at === null)) };
   if (analysable >= 4 && sure.length / analysable < PM_MIN) return { ...res, reason: wrongs.length >= analysable / 2 ? 'wrongPitch' : 'notPiano', note: first(wrongs) };
-  if (matched < P.match * n || n - matched > P.miss) return { ...res, reason: 'missed', note: first(det.filter((d) => d.at === null)) };
+  if (matched < P.match * n || n - matched > P.miss) return { ...res, reason: real ? 'missed' : wrongs.length ? 'wrongPitch' : 'notPiano', note: first(real ? det.filter((d) => d.at === null) : wrongs) };
   if (sure.length < P.okMin * n) return { ...res, reason: wrongs.length ? 'wrongPitch' : 'notPiano', note: first(wrongs) };
   const checked = sure.length + wrongs.length;
   if (checked && sure.length / checked < P.pitch) return { ...res, reason: 'wrongPitch', note: first(wrongs) };

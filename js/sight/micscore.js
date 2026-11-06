@@ -547,7 +547,7 @@ export function scoreRecording(samples, rate, score) {
    門檻(DAILY)照 tools/tech/listen-stress.mjs 掃出來的:誤過 0 的前提下過關率最大。 */
 export const DAILY = {
   match: 0.8,      // 對到譜上的音 ≥ 8 成
-  miss: 1,         // 漏彈最多 1 個
+  miss: 2,         // 漏彈最多 2 個(八分音符的關一輪 32 個音,放遠、小聲時最後一兩個輕的音會聽不到;2026-11 掃描:1 → 2,誤過照樣 0)
   extra: 1,        // 多彈(聽得出音高、不是譜上那個音)最多 1 個
   pitch: 0.85,     // 聽得出來的音裡,對的 ≥ 85%
   okMin: 0.7,      // 譜上的音確定聽到的至少這個比例(彈對的 ≥ 0.94;講話、敲桌子、只有拍點 ≤ 0.31,彈一半、彈別的關 = 0.5;取中間)
@@ -561,6 +561,9 @@ export const DAILY = {
   near: 0.12,      // 秒:對到的音頭前後這麼近的音頭都拿來看音高(拍點跟琴聲幾乎同時,可能被當成兩個音頭)
   early: 0.6,      // 第 1 拍之前多早的音頭還算(拍數)
   floor: 0.02,     // 音高比較的下限 = 琴聲音量的 2%(聲音停掉、只剩底噪的地方不會比出很大的倍數)
+  octLow: 0.3,     // 低一個八度的證據(octaveLowAt):彈對 ≤ 0.16、彈低八度 ≥ 0.5
+  octShare: 0.5,   // 譜上的音有這個比例「聽到的是低八度」= 整段彈低了一個八度
+  octKeep: 1.2,    // 拍點附近的音頭:低八度的證據這麼清楚才留下來(只有拍點 ≤ 0.8、彈低八度 ≥ 1.4)
 };
 /* 音頭 at(秒)之後的頻譜比之前多出來的部分(checkPitches 同一種算法);room = 到下一個音頭的秒數 */
 function noveltyAt(samples, rate, at, room, postS = 0.03) {
@@ -581,6 +584,23 @@ function pitchRatio(nov, N, p, rate, floor = 1e-12) {
   for (let q = p - 9; q <= p + 9; q++) if (q !== p && !RELATED.includes(q - p)) rival = Math.max(rival, salience(nov, q, rate, N));
   return sp / Math.max(rival, floor);
 }
+/* 這幾個諧波(hs)的大小加起來(salience 同一種算法,只看指定的諧波) */
+function partials(nov, midi, rate, N, hs) {
+  let s = 0;
+  for (const h of hs) {
+    const f = hz(midi) * h * Math.sqrt(1 + 0.0004 * h * h);
+    if (f > rate / 2 - 200) break;
+    const c = (f * N) / rate, w = Math.max(1, c * (2 ** (0.3 / 12) - 1));
+    let peak = 0;
+    for (let b = Math.floor(c - w); b <= Math.ceil(c + w); b++) if (b > 0 && b < nov.length) peak = Math.max(peak, nov[b]);
+    s += peak / Math.sqrt(h);
+  }
+  return s;
+}
+/* 低一個八度的證據:p − 12 的第 1、3、5 諧波(p 自己沒有的頻率)比 p 的第 1–3 諧波(兩個音都有)。彈對 ≈ 0,彈低八度 ≈ 0.5 以上 */
+function octaveLowAt(nov, N, p, rate, floor) {
+  return partials(nov, p - 12, rate, N, [1, 3, 5]) / Math.max(partials(nov, p, rate, N, [1, 2, 3]), floor);
+}
 /* 聽到最突出的音(lo–hi 之間)與它有多清楚 */
 function heardPitch(nov, N, rate, lo, hi, floor) {
   let best = -1, bs = 0;
@@ -597,7 +617,7 @@ export function analyseDaily(samples, rate, expected, opts = {}) {
   const spb = 60 / (expected.bpm || 60);
   const clicks = opts.clicks || [];
   const raw = detectNotes(samples, rate, clicks.length ? { skip: clicks, skipWin: P.clickWin } : {});
-  const out = { total: n, onsets: raw.length, details: ev.map((e, i) => ({ i, midi: e.midi, beat: e.beat, at: null, ratio: null, heard: null, clear: null })), extras: [] };
+  const out = { total: n, onsets: raw.length, details: ev.map((e, i) => ({ i, midi: e.midi, beat: e.beat, at: null, ratio: null, heard: null, clear: null, low: null })), extras: [] };
   if (!raw.length) return out;
   const lo = Math.min(...ev.map((e) => e.midi)) - 14, hi = Math.max(...ev.map((e) => e.midi)) + 14;
   // 比較的下限:這段錄音琴聲(每 10 ms 音量的第 95 百分位)的 P.floor 倍換算成頻譜的大小(漢寧窗 0.085 秒的正弦波峰值 ≈ 振幅 × 取樣數 / 4)
@@ -610,16 +630,21 @@ export function analyseDaily(samples, rate, expected, opts = {}) {
     const click = clicks.some((c) => Math.abs(c - t) <= P.clickWin);
     let nv = noveltyAt(samples, rate, t, Math.min(room, 0.2));
     let h = nv ? heardPitch(nv.nov, nv.N, rate, lo, hi, floor) : { midi: null, clear: 0 };
+    let late = null;
     if (click) {   // 拍點的聲音很短:晚一點再看一次(琴聲還在、拍點已經沒了),取比較清楚的
       const nv2 = noveltyAt(samples, rate, t, Math.min(room, 0.25), P.clickPost);
       const h2 = nv2 ? heardPitch(nv2.nov, nv2.N, rate, lo, hi, floor) : null;
+      if (h2) late = { nv: nv2, midi: h2.midi };
       if (h2 && h2.clear > h.clear) { nv = nv2; h = h2; }
     }
-    return { t, nv, ...h, click };
+    return { t, nv, ...h, click, late };
   });
   // 拍點:拍點附近、聽不出音高的音頭不算;第 1 拍之前太早的(預備拍)不算
+  // 例外:拍點已經沒了的地方(late)聽到的是譜上某個音的低八度、而且低八度的證據很清楚(octaveLowAt ≥ octKeep)
+  // = 琴聲彈低了一個八度(低音區的音 clear 比較小,會被當成拍點),留下來
+  const lowOct = (o) => !!o.late && o.late.midi != null && ev.some((e) => e.midi === o.late.midi + 12) && octaveLowAt(o.late.nv.nov, o.late.nv.N, o.late.midi + 12, rate, floor) >= P.octKeep;
   out.list = all.map((o) => ({ t: o.t, midi: o.midi, clear: o.clear, click: o.click }));
-  const kept = all.filter((o) => !(o.click && o.clear < P.clickClear) && (opts.t0 == null || o.t >= opts.t0 - P.early * spb));
+  const kept = all.filter((o) => !(o.click && o.clear < P.clickClear && !lowOct(o)) && (opts.t0 == null || o.t >= opts.t0 - P.early * spb));
   out.kept = kept.length;
   if (!kept.length) return out;
   const T = kept.map((o) => o.t);
@@ -646,6 +671,7 @@ export function analyseDaily(samples, rate, expected, opts = {}) {
     d.at = o.t;
     const best = like(ev[i].midi, j);
     if (best) { d.ratio = best.r; d.heard = o.midi; d.clear = o.clear; if (best.c.clear > (d.clear ?? 0) && best.c.midi !== ev[i].midi) { d.heard = best.c.midi; d.clear = best.c.clear; } }
+    if (best) d.low = octaveLowAt(best.c.nv.nov, best.c.nv.N, ev[i].midi, rate, floor);   // 低一個八度的證據(decideDaily 的 octaveLow)
   }
   // 多出來的音頭:對到的第一個與最後一個之間、沒對到、離對到的音頭不近
   if (pairs.length) {
@@ -659,7 +685,7 @@ export function analyseDaily(samples, rate, expected, opts = {}) {
   }
   return out;
 }
-/** 判斷(純函式):{ ok, reason, matched, total, wrong, missed, extra, details, note }。reason:ok / silent / notPiano / missed / wrongPitch / extra;note = 第一個有問題的音 { i, midi, heard } */
+/** 判斷(純函式):{ ok, reason, matched, total, wrong, missed, extra, low, details, note }。reason:ok / silent / notPiano / missed / wrongPitch / octaveLow / extra;note = 第一個有問題的音 { i, midi, heard } */
 export function decideDaily(a, limits = {}) {
   const P = { ...DAILY, ...limits };
   const n = a.total, det = a.details;
@@ -667,9 +693,12 @@ export function decideDaily(a, limits = {}) {
   const sure = det.filter((d) => d.ratio !== null && d.ratio >= P.ratio);
   const wrongs = det.filter((d) => d.ratio !== null && d.ratio < P.wrongRatio && d.clear >= P.clear && d.heard !== null && d.heard !== d.midi);
   const extras = a.extras.filter((x) => x.clear >= P.clear && !x.click);   // 跟拍點同時的不算(拍點的餘音也聽得出音高,拿不準)
-  const res = { ok: false, matched, total: n, wrong: wrongs.length, missed: n - matched, extra: extras.length, sure: sure.length, details: det };
+  // 低一個八度(音名對、位置錯):聽到的是譜上那個音的低八度,而且低八度的證據清楚
+  const lows = det.filter((d) => d.low != null && d.low >= P.octLow && d.heard === d.midi - 12);
+  const res = { ok: false, matched, total: n, wrong: wrongs.length, missed: n - matched, extra: extras.length, sure: sure.length, low: lows.length, details: det };
   const first = (arr) => (arr.length ? { i: arr[0].i, midi: arr[0].midi, heard: arr[0].heard ?? null } : null);
   if (!a.onsets || !a.kept) return { ...res, reason: 'silent' };
+  if (lows.length >= P.octShare * n) return { ...res, reason: 'octaveLow', note: first(lows) };
   // 跟 scoreRecording 一樣的兩關:對到的太少 = 沒聽到在彈;譜上的音聽得出來的不到一半 = 聽不出譜上的音(講話、敲東西、只有拍點)
   const analysable = det.filter((d) => d.ratio !== null).length;
   if (matched < Math.min(n, Math.max(3, Math.ceil(n * MATCH_MIN)))) return { ...res, reason: wrongs.length >= matched / 2 && matched ? 'wrongPitch' : sure.length ? 'missed' : 'silent', note: first(wrongs.length ? wrongs : det.filter((d) => d.at === null)) };

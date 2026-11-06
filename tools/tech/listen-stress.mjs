@@ -1,10 +1,11 @@
 /* 今日練習「App 聽你彈」(js/sight/micscore.js 的 scoreDaily)的壓力測試(node 側 + Chromium 算音訊;仿 tools/sight/micscore-stress.mjs)。
    每個會聽的關卡(js/tech/patterns.js 的 listenExpected)× 起始 / 目標速度 × 種子 × 情況:用 Salamander 取樣算成「學生彈的琴聲」,
    混進 App 自己放的拍點(Naked Drums xstick:預備拍 2 小節 + 每一拍,手機喇叭離麥克風很近,琴聲小的時候拍點相對大聲)。
-   必須過(過關率 ≥ 95%):準時、慢 30%、快 15%、小聲 −20 dB、放遠、手誤差 ±60 ms、踏板殘響、電扇底噪、漏 1 個音。
-   必須不過(誤過 0):靜音、只有電扇、有人講話、敲桌子、整輪錯音(差 1–2 個半音)、只彈一半、彈別的關。
+   必須過(過關率 ≥ 95%):準時、慢 30%、快 15%、小聲 −20 dB、放遠、手誤差 ±60 ms、踏板殘響、電扇底噪、漏 1 個音;
+     八分音符的關加:從起始速度直接彈到目標速度、手誤差 ±40 ms、圓滑奏兩個音黏在一起(重疊 30 ms)、重音(每 4 個音一個 +6 dB)。
+   必須不過(誤過 0):靜音、只有電扇、有人講話、敲桌子、整輪錯音(差 1–2 個半音)、整段低一個八度、只彈一半、彈別的關。
    每種情況跑兩次:有拍點(每一拍)/ 只有預備拍,報表寫出拍點讓過關率差多少。
-   最後掃描門檻(decideDaily 的 DAILY):誤過 0 的前提下讓過關率最大,印出掃到的最好的一組跟現在的 DAILY 比。
+   報表:每種情況的過關率 + 每關 × 每種情況。最後掃描門檻(decideDaily 的 DAILY;octKeep 在 analyseDaily,不掃):誤過 0 的前提下讓過關率最大,印出掃到的最好的一組跟現在的 DAILY 比。
      node tools/tech/listen-stress.mjs [--seeds 4] [--only ontime,silent] [--no-scan] */
 import fs from 'node:fs';
 import { open } from '../test/harness.mjs';
@@ -88,6 +89,10 @@ const SC = {
   pedal: { pass: true, ...HAND, pedal: true, room: 0.5 },
   fan: { pass: true, ...HAND, fan: 0.004 },
   miss1: { pass: true, ...HAND, drop: 1 },
+  toTarget: { pass: true, ...HAND, toTarget: true },      // 拍點是起始速度,學生直接彈到目標速度(不要求照拍點;目標速度那一輪 = 準時)
+  jitter40: { pass: true, ...HAND, jitter: 0.04 },
+  legato30: { pass: true, ...HAND, legato: 0.03 },        // 圓滑奏:前一個音放開前下一個音已經按下去(重疊 30 ms)
+  accent6: { pass: true, ...HAND, accent: 2 },           // 重音:每 4 個音的第一個大 6 dB(振幅 × 2)
   silent: { pass: false, none: true },
   fanOnly: { pass: false, none: true, fan: 0.004 },
   talk: { pass: false, none: true, talk: 0.01 },
@@ -98,10 +103,11 @@ const SC = {
   wrongUp2: { pass: false, ...HAND, shift: 2 }, wrongDn2: { pass: false, ...HAND, shift: -2 },
   half: { pass: false, ...HAND, half: true },
   otherP01: { pass: false, ...HAND, other: 'P01' },   // 彈成「手指號碼」(同樣的節奏,音的順序不一樣)
-  otherPD1: { pass: false, ...HAND, other: 'PD1' },   // 彈成「右手 3、4 交替」(八分音符)
-  // 參考(不算進門檻與過關條件):拍點再大聲 10 dB、整段低八度(五指位置一樣、手放錯八度)
+  otherPD1: { pass: false, ...HAND, other: 'PD1', alt: 'PD3' },   // 彈成「右手 3、4 交替」(八分音符;本身就是 PD1 的關改彈 PD3)
+  octaveDn: { pass: false, ...HAND, shift: -12 },       // 整段低一個八度(五指位置一樣、手放錯八度:音名對、位置錯)
+  // 參考(不算進門檻與過關條件):拍點再大聲 10 dB、整段高一個八度
   clickLoud: { pass: true, info: true, ...HAND, click: 3 },
-  octaveDn: { pass: false, info: true, ...HAND, shift: -12 },
+  octaveUp: { pass: false, info: true, ...HAND, shift: 12 },
 };
 const MODES = { click: '有拍點', countIn: '只有預備拍' };
 
@@ -114,7 +120,9 @@ function perform(seq, s, spbClick, seed) {
   const notes = list.map((e) => {
     const time = t0 + e.beat * spb + 2 * r() * (s.jitter ?? 0.015);
     const len = e.len * spb;
-    return { midi: e.midi + (s.shift || 0), time: Math.max(0.05, time), dur: s.pedal ? len + 3 * spb : Math.max(0.1, len * 0.92), vel: Math.round(vLo + (r() + 0.5) * (vHi - vLo)) };
+    let vel = Math.round(vLo + (r() + 0.5) * (vHi - vLo));
+    if (s.accent && e.i % 4 === 0) vel = Math.min(127, Math.round(vel * Math.sqrt(s.accent)));   // 振幅 ∝ 力度²(micaudio)
+    return { midi: e.midi + (s.shift || 0), time: Math.max(0.05, time), dur: s.pedal ? len + 3 * spb : s.legato ? len + s.legato : Math.max(0.1, len * 0.92), vel };
   });
   return { notes, t0, end: t0 + 16 * spb };
 }
@@ -126,9 +134,10 @@ for (const L of LEVELS) for (const bpm of [L.start, L.target]) for (let seed = 1
   const exp = listenExpected(FG, { ...L.q, sub: 2 }, { bpm });
   const seq = exp.events.map((e, k) => ({ beat: e.beat, len: (k + 1 < exp.events.length ? exp.events[k + 1].beat : exp.bars * exp.barBeats) - e.beat, midi: e.midi }));
   const spbClick = 60 / bpm, t0 = LEAD + PRE_BARS * 4 * spbClick;
-  for (const [name, s] of Object.entries(SC)) {
+  for (const [name, s0] of Object.entries(SC)) {
     if (ONLY && !ONLY.split(',').includes(name)) continue;
-    const src = s.other ? seqOf(s.other) : seq;
+    const s = s0.toTarget ? { ...s0, tempo: L.target / bpm } : s0;
+    const src = s.other ? seqOf(s.other === L.id ? s.alt : s.other) : seq;
     const p = s.none ? { notes: [], t0, end: t0 + 16 * spbClick } : perform(src, s, spbClick, seed + bpm);
     const seconds = Math.max(p.end, t0 + 16 * spbClick) + 2;
     const piano = await renderInPage(page, p.notes, seconds, { room: s.room || 0, noise: 0 });
@@ -192,11 +201,24 @@ function table(lim, title) {
   }])));
   return { falsePass, minPass, meanPass };
 }
+/* 每關 × 每種情況:過關率(有拍點 / 只有預備拍) */
+function byLevel(lim, title) {
+  const T = {};
+  for (const c of cases) {
+    const d = decideDaily(c.a, lim);
+    const row = (T[c.name] ||= {}), b = (row[c.level] ||= { click: [0, 0], countIn: [0, 0] });
+    b[c.mode][0] += d.ok ? 1 : 0; b[c.mode][1]++;
+  }
+  console.log(`\n${title}:每關 × 每種情況的過關率(有拍點 / 只有預備拍)`);
+  console.table(Object.fromEntries(Object.entries(T).map(([k, row]) => [(SC[k].pass ? '過 ' : '不過 ') + k + (SC[k].info ? '(參考)' : ''),
+    Object.fromEntries(LEVELS.map((L) => [L.id, row[L.id] ? `${pct(...row[L.id].click)} / ${pct(...row[L.id].countIn)}` : '-']))])));
+}
 console.log(`會聽的關卡:${LEVELS.map((l) => l.id).join('、')};${cases.length} 段錄音(${secs} 秒)`);
 const cur = table({}, '現在的門檻 DAILY');
+byLevel({}, '現在的門檻 DAILY');
 
 if (SCAN) {
-  const grid = { ratio: [0.7, 0.85, 1, 1.2, 1.5], wrongRatio: [0.2, 0.35, 0.5, 0.7], clear: [1.5, 2, 3], pitch: [0.7, 0.8, 0.85, 0.9], okMin: [0.3, 0.4, 0.5, 0.6, 0.7], miss: [1, 2], extra: [1, 2, 3] };
+  const grid = { ratio: [0.7, 0.85, 1, 1.2, 1.5], wrongRatio: [0.2, 0.35, 0.5, 0.7], clear: [1.5, 2, 3], pitch: [0.7, 0.8, 0.85, 0.9], okMin: [0.3, 0.4, 0.5, 0.6, 0.7], miss: [1, 2], extra: [1, 2, 3], octLow: [0.2, 0.3, 0.4] };
   const keys = Object.keys(grid);
   let best = null, tried = 0;
   const rec = (k, lim) => {

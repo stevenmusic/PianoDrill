@@ -115,7 +115,7 @@ export default function check(ok, FG){
     ok(!melBad.length && melN > 0, `合奏旋律:伴奏只有左手的關 ${accR.levels.filter(l => !l.rh).length} 關 × 變化 × 300 個種子(${melN} 條):強拍和弦音、在調裡、C4–C5、停在主音、拍數` + (melBad.length ? "\n    " + [...new Set(melBad)].slice(0, 10).join("\n    ") : ""));
   }
   // ── App 聽你彈(麥克風判斷右手單音的關有沒有彈對;patterns.js 的 listenExpected、micscore.js 的 scoreDaily)──
-  // 另外照規則算一次哪些題目會聽:手指路線、右手、不是第 0 組、沒有按住的音、不是音階、沒換調、拍點每拍都響、右手全是單音 ≥ 四分音符 ≥ C4、左手全休止
+  // 另外照規則算一次哪些題目會聽:手指路線、右手、不是第 0 組、沒有按住的音、不是音階、沒換調、拍點每拍都響、右手全是單音 ≥ 八分音符 ≥ C4、左手全休止
   {
     const heard = [], bad = [];
     for (const R of ROUTES) for (const L of R.levels) {
@@ -127,7 +127,7 @@ export default function check(ok, FG){
         const ex = buildExercise(FG, q);
         const rhN = ex.rh.filter(x => !x.rest);
         const want = R.id === "finger" && L.hands === "RH" && L.g !== "0" && !L.hold && !L.scale && !q.rkey && (!v.click || v.click === "every") && (!L.key || L.key === "C")
-          && ex.lh.every(x => x.rest) && rhN.length > 0 && rhN.every(x => !x.chord && x.dur >= 12 && x.midi >= 60);
+          && ex.lh.every(x => x.rest) && rhN.length > 0 && rhN.every(x => !x.chord && x.dur >= 6 && x.midi >= 60);
         if (!!e !== want) { bad.push(`${R.id}/${L.id} 變化 ${vi}:${want ? "應該聽" : "不應該聽"}`); return; }
         if (!e) return;
         any = true;
@@ -142,7 +142,7 @@ export default function check(ok, FG){
       if (any) heard.push(`${L.id}(新關${boxes.length ? "、複習盒 " + boxes.join(" ") : ""})`);
     }
     ok(!bad.length, "App 聽你彈:哪些題目會聽、預期的音" + (bad.length ? "\n    " + bad.slice(0, 10).join("\n    ") : ""));
-    ok(heard.map(h => h.slice(0, 3)).join() === "PA1,PA6", "App 聽你彈:會聽的關 = PA1、PA6(改了路線要確認 tools/tech/listen-stress.mjs 也過):" + heard.join("、"));
+    ok(heard.map(h => h.slice(0, 3)).join() === "PA1,PA6,PB1,PD1,PD3,PE1", "App 聽你彈:會聽的關 = PA1、PA6、PB1、PD1、PD3、PE1(改了路線要確認 tools/tech/listen-stress.mjs 也過):" + heard.join("、"));
     ok(!listenExpected(FG, { ...WARM_LEVELS.w5qR.q, sub: 2 }) && !listenExpected(FG, { ...ROUTES[0].levels.find(l => l.id === "PA1").q, rkey: "G", sub: 2 }) && !listenExpected(FG, { ...ROUTES[0].levels.find(l => l.id === "PA1").q, sub: 2 }, { click: "one-three" }), "App 聽你彈:暖身、換調複習、拍點模式不聽");
     console.log("  App 聽你彈會聽的關:" + heard.join("、"));
   }

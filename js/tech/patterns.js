@@ -249,7 +249,7 @@ export function buildRoute(FG, q){
 }
 /* ── App 聽你彈:這一次要聽的音(js/sight/micscore.js 的 scoreDaily)──
    會聽 = 關卡會聽(routes.js 的 listenLevel)而且這一次:不是暖身、沒有換調(q.rkey)、拍點每拍都響(click 沒給或 "every")、
-   右手每個音都是單音、四分音符以上、C4 以上,左手全休止、沒有按住的音。不聽 = null。
+   右手每個音都是單音、八分音符以上、C4 以上,左手全休止、沒有按住的音。不聽 = null。
    播放跟 app.js 一樣:短的題目重複到 bars 小節(預設 4)。回傳跟 expectedEvents 同一種格式:
    { events: [{ beat(四分音符拍,0 = 預備拍之後第一拍), bar(1 起), midi, pitches: [midi] }], barBeats, bars, bpm, reps } */
 export function listenExpected(FG, q, { bpm = 0, click = null, bars = 4 } = {}){
@@ -263,7 +263,7 @@ export function listenExpected(FG, q, { bpm = 0, click = null, bars = 4 } = {}){
   let pos = 0;
   for (const n of ex.rh) {
     if (!n.rest) {
-      if (n.chord || n.dur < DIV || n.midi < 60) return null;
+      if (n.chord || n.dur < DIV / 2 || n.midi < 60) return null;
       one.push({ pos, midi: n.midi });
     }
     pos += n.dur;

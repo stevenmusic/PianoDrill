@@ -915,8 +915,8 @@ function renderTempo() {
   box.hidden = !on;
   if (!on) return;
   tempo.sync(tr('拍 / 分鐘', 'BPM'));
-  $('bpmDown').setAttribute('aria-label', tr('慢 1(按住連續減少)', 'Slower (hold to repeat)'));
-  $('bpmUp').setAttribute('aria-label', tr('快 1(按住連續增加)', 'Faster (hold to repeat)'));
+  $('bpmDown').setAttribute('aria-label', tr('慢 1（按住連續減少）', 'Slower (hold to repeat)'));
+  $('bpmUp').setAttribute('aria-label', tr('快 1（按住連續增加）', 'Faster (hold to repeat)'));
   $('bpmRange').setAttribute('aria-label', tr('速度', 'Tempo'));
   const changed = current.score.tempoBpm !== current.score.defBpm;
   $('bpmReset').hidden = $('bpmReset').parentNode.hidden = !changed;   // 只在自己改過速度時出現
@@ -953,7 +953,7 @@ function renderStage() {
   // 單手的範圍寫在按鈕上:這一行不寫(「節奏與調性由 App 依範圍安排」拿掉:畫面設計 2026-10);雙手 1–3 的按鈕只有數字,範圍寫在這一行
   const both = hand === 'both';
   $('stageNote').hidden = !both;
-  if (both) pairText($('stageNote'), () => `${tr(`難度 ${stageNow().n}:`, `Level ${stageNow().n}: `)}${rangeText()}`); else unpair($('stageNote'));
+  if (both) pairText($('stageNote'), () => `${tr(`難度 ${stageNow().n}：`, `Level ${stageNow().n}: `)}${rangeText()}`); else unpair($('stageNote'));
 }
 function setupStage() {
   $('stageSeg').addEventListener('click', (e) => {
@@ -1792,7 +1792,7 @@ function finishPlayAlong() {
   const free = freeAlong();
   stopPlayAlong(free ? 'freeDone' : 'alongDone');
   // 檢定頁:彈完出現自我檢查 4 項(沒有麥克風的結果時,這是彈完唯一的回饋;勾選、不算分數)
-  if (!free && mode === 'exam') { xCheck = SELF_CHECK.map(() => false); paintSelfCheck(); sayFn(() => tr('彈完了,對照下面自己檢查,再按 ▶ 聽一次', 'Done — check yourself below, then tap ▶ to listen')); }
+  if (!free && mode === 'exam') { xCheck = SELF_CHECK.map(() => false); paintSelfCheck(); sayFn(() => tr('彈完了，對照下面自己檢查，再按 ▶ 聽一次', 'Done — check yourself below, then tap ▶ to listen')); }
   if (free) { recordPractice(); if (!SS.intro[hand]) { SS.intro[hand] = true; saveSS(); } }   // 視奏分頁沒有準備倒數:彈完一遍算練了一題(第一次的說明不再出現)
 }
 
@@ -1835,7 +1835,7 @@ function renderRhythmResult(reveal = false) {
       + para(() => parts().join(' · '), 'mic-parts')
       + para(() => tr(`你的速度 ♩≈${bpm}（譜上 ♩=${r.scoreBpm}）`, `Your tempo ♩≈${bpm} (written ♩=${r.scoreBpm})`))
       + (notes.length ? `<p class="mic-bars">${bars.length ? '<i class="mic-key" aria-hidden="true"></i>' : ''}${escapeHtml(notes.join(' · '))}</p>` : '')
-      + (mode === 'exam' ? `<p class="disclaimer">${escapeHtml(tr('練習回饋,不是考試分數', 'Practice feedback, not an exam mark'))}</p>` : '');
+      + (mode === 'exam' ? `<p class="disclaimer">${escapeHtml(tr('練習回饋，不是考試分數', 'Practice feedback, not an exam mark'))}</p>` : '');
   }
   box.hidden = false;
   box.querySelectorAll('p[data-pair]').forEach((el) => pairText(el, pairs[Number(el.dataset.pair)]));
@@ -1918,17 +1918,17 @@ function togglePlayback() {
    mk 留著一直是 idle(下面的 finishMock / abortMock / closeMock 不會被叫到;換考試時 abortMock 回傳 false) */
 let alongClicks = false;
 const SELF_CHECK = [
-  () => tr('一路彈到最後,沒有停下來、沒有回頭改', 'Kept going — no stopping, no going back'),
-  () => tr('速度穩定,跟得上拍點', 'Kept a steady beat with the click'),
+  () => tr('一路彈到最後，沒有停下來、沒有回頭改', 'Kept going — no stopping, no going back'),
+  () => tr('速度穩定，跟得上拍點', 'Kept a steady beat with the click'),
   () => tr('音和節奏大部分正確', 'Notes and rhythms mostly right'),
-  () => tr('有彈出力度和記號(斷奏、圓滑線…)', 'Showed the dynamics and markings'),
+  () => tr('有彈出力度和記號（斷奏、圓滑線…）', 'Showed the dynamics and markings'),
 ];
 const abortText = (reason) => ({
-  leave: () => tr('已中止:中途切換了分頁或切到背景(這一次不算)。', 'Stopped: you left the page mid-way (not counted).'),
-  reload: () => tr('已中止:上次沒有做完(重新整理或關掉了 App),不算。', "Stopped: last time didn't finish (reloaded or closed), not counted."),
-  exam: () => tr('已中止:考試或級數換了(這一次不算)。', 'Stopped: the exam or grade changed (not counted).'),
-  load: () => tr('已中止:拍點的聲音載入失敗(第一次要連網路),這一次不算。', "Stopped: the click sound didn't load (needs internet once), not counted."),
-}[reason] ?? (() => tr('已中止(這一次不算)。', 'Stopped (not counted).')));
+  leave: () => tr('已中止：中途切換了分頁或切到背景（這一次不算）。', 'Stopped: you left the page mid-way (not counted).'),
+  reload: () => tr('已中止：上次沒有做完（重新整理或關掉了 App），不算。', "Stopped: last time didn't finish (reloaded or closed), not counted."),
+  exam: () => tr('已中止：考試或級數換了（這一次不算）。', 'Stopped: the exam or grade changed (not counted).'),
+  load: () => tr('已中止：拍點的聲音載入失敗（第一次要連網路），這一次不算。', "Stopped: the click sound didn't load (needs internet once), not counted."),
+}[reason] ?? (() => tr('已中止（這一次不算）。', 'Stopped (not counted).')));
 
 /* 預備拍 + 全曲的拍點(xstick;每小節第一拍大聲):x/8 的複拍子每個附點四分一下,其他每拍一下。回傳離第一下拍點還有幾秒 */
 function scheduleClicks(secondsPerBar) {
@@ -1956,7 +1956,7 @@ function finishMock(stopped) {
   saveSS();
   paintMock();
   sayFn(() => (stopped ? tr('中途停了。', 'Stopped part-way. ') : tr('彈完了。', 'Done. '))
-    + tr('對照下面自己檢查,再按 ▶ 聽一次。', 'Check yourself below, then tap ▶ to listen.'));
+    + tr('對照下面自己檢查，再按 ▶ 聽一次。', 'Check yourself below, then tap ▶ to listen.'));
 }
 /* 中止:停掉播放、拍點與計時;標記留著,說明畫出來(showExamItem)才拿掉 */
 function abortMock(reason) {
@@ -1988,7 +1988,7 @@ function paintMock() {
   const btn = $('mockBtn');
   btn.hidden = true;   // 視奏沒有模擬考(跟練習流程重複)
   pairText($('mockLabel'), () => (run ? tr('結束', 'End') : tr('模擬考', 'Mock')));
-  btn.title = run ? tr('結束模擬考(這一次不算)', 'End the mock exam (not counted)') : tr('模擬考', 'Mock exam');
+  btn.title = run ? tr('結束模擬考（這一次不算）', 'End the mock exam (not counted)') : tr('模擬考', 'Mock exam');
   btn.setAttribute('aria-label', btn.title);
   btn.disabled = !run && (!rules || !examSupported());
   $('quiz').classList.toggle('mock-run', run);

@@ -58,12 +58,12 @@ function remsg(){ for (const id in msgs) if (msgs[id]) $(id).textContent = msgs[
 /* 雙音音階的指法說明(fingering.js 照哈農第 48、52 首) */
 function doubleNote(q){
   if (q.articulation === "staccato") return q.type === "thirds"
-    ? () => tr("斷奏三度照哈農第 48 首:右手 2–4、左手 4–2(原譜是 C 大調,其他調用同一個指法)。", "Staccato thirds follow Hanon No. 48: right hand 2–4, left hand 4–2 (printed in C; same fingering in every key).")
-    : () => tr("斷奏六度照哈農第 48 首:右手 1–5、左手 5–1(原譜是 C 大調,其他調用同一個指法)。", "Staccato sixths follow Hanon No. 48: right hand 1–5, left hand 5–1 (printed in C; same fingering in every key).");
-  if (q.type === "sixths") return () => tr("哈農沒有圓滑六度音階,所以不標指法,請照老師指定的。", "Hanon has no legato sixths scale, so no fingering is shown; use your teacher's.");
-  if (!hanonThirdsKey(q.quality, q.tonic, q.form)) return () => tr("哈農第 52 首只有 C G D A E F B♭ E♭ A♭ 大調與 A D G 和聲小調,這個調沒有,所以不標指法,請照老師指定的。", "Hanon No. 52 only covers C G D A E F B♭ E♭ A♭ major and A D G harmonic minor, so no fingering is shown here; use your teacher's.");
-  return q.octaves >= 2 ? () => tr("三度指法照哈農第 52 首逐調照抄(原譜沒印、又推不出來的留空)。", "Thirds fingering copied from Hanon No. 52 key by key (blank where Hanon prints none).")
-    : () => tr("三度指法照哈農第 52 首;原譜是兩個八度,一個八度用其中一個八度的指法。", "Thirds fingering from Hanon No. 52, which is two octaves; one octave uses one of its octaves.");
+    ? () => tr("斷奏三度照哈農第 48 首：右手 2–4、左手 4–2（原譜是 C 大調，其他調用同一個指法）。", "Staccato thirds follow Hanon No. 48: right hand 2–4, left hand 4–2 (printed in C; same fingering in every key).")
+    : () => tr("斷奏六度照哈農第 48 首：右手 1–5、左手 5–1（原譜是 C 大調，其他調用同一個指法）。", "Staccato sixths follow Hanon No. 48: right hand 1–5, left hand 5–1 (printed in C; same fingering in every key).");
+  if (q.type === "sixths") return () => tr("哈農沒有圓滑六度音階，所以不標指法，請照老師指定的。", "Hanon has no legato sixths scale, so no fingering is shown; use your teacher's.");
+  if (!hanonThirdsKey(q.quality, q.tonic, q.form)) return () => tr("哈農第 52 首只有 C G D A E F B♭ E♭ A♭ 大調與 A D G 和聲小調，這個調沒有，所以不標指法，請照老師指定的。", "Hanon No. 52 only covers C G D A E F B♭ E♭ A♭ major and A D G harmonic minor, so no fingering is shown here; use your teacher's.");
+  return q.octaves >= 2 ? () => tr("三度指法照哈農第 52 首逐調照抄（原譜沒印、又推不出來的留空）。", "Thirds fingering copied from Hanon No. 52 key by key (blank where Hanon prints none).")
+    : () => tr("三度指法照哈農第 52 首；原譜是兩個八度，一個八度用其中一個八度的指法。", "Thirds fingering from Hanon No. 52, which is two octaves; one octave uses one of its octaves.");
 }
 function segBind(el, get, set){
   const seg = typeof el === "string" ? $(el) : el;
@@ -150,7 +150,7 @@ const PICKERS = {
       ["octaves", tr("音域", "Range"), [[2, tr("2 個八度", "2 oct.")], [1, tr("1 個八度", "1 oct.")]]],
       // 調:預設只有原譜的 C 大調;「其他調」展開 12 個調(進階,指法照 C 大調原譜)
       ["key", tr("調", "Key"), p.moreKeys || p.key !== "C" ? keyOpts(MAJ_KEYS).concat([["__less", tr("收起", "Less")]])
-        : [["C", tr("C(原譜)", "C (orig.)")], ["__more", tr("其他調…", "Other keys…")]]],
+        : [["C", tr("C（原譜）", "C (orig.)")], ["__more", tr("其他調…", "Other keys…")]]],
       ["hands", tr("手", "Hands"), HANDS()],
       ["rhythm", tr("節奏", "Rhythm"), [["even", tr("平均", "Even")], ["dotted", tr("附點", "Dotted")], ["reverse", tr("反附點", "Rev. dotted")]]],
       // 拍點:♩ = 每 4 個音一拍(原譜的速度記法)、♪ = 每 2 個音一拍(比較好數;樂譜不變,速度數字 ×2)
@@ -175,7 +175,7 @@ function renderPicker(tab){
     opts.map(([v, t]) => `<button class="opt" data-v="${v}" aria-pressed="${String(v) === String(p[k])}">${t}</button>`).join("") + `</div></div>`).join("");
   // 收起來的一行只寫題目卡(標題、標籤)沒有的:題目名稱、手、範圍、奏法都已經在題目卡上 → 只寫「換題目」+ 拍點
   const pr = cfg.rows(p).find(r => r && r[0] === "pulse"), pv = pr && pr[2].find(o => o[0] === p.pulse);
-  pane.querySelector(".sum").textContent = [tr("選題目", "Choose"), pv ? tr("拍點:", "Click ") + (getLang() === "en" ? pv[1].toLowerCase() : pv[1]) : ""].filter(Boolean).join(" · ");
+  pane.querySelector(".sum").textContent = [tr("選題目", "Choose"), pv ? tr("拍點：", "Click ") + (getLang() === "en" ? pv[1].toLowerCase() : pv[1]) : ""].filter(Boolean).join(" · ");
   renderQuick(tab);
   syncHandAllowed();
 }
@@ -333,7 +333,7 @@ function finishMock(){
   const list = mock.list; mock = null;
   const n = list.length, good = list.filter(q => S.mastery[q.key] === "good").length, weak = list.filter(q => S.mastery[q.key] === "weak").length;
   showEmpty(); syncExamButtons();
-  emptyTitle = () => tr(`模擬考:${n} 項會了 ${good} 項`, `Mock: ${good} of ${n} got it`) + (weak ? tr(`、再練 ${weak} 項`, `, ${weak} need work`) : "");
+  emptyTitle = () => tr(`模擬考：${n} 項會了 ${good} 項`, `Mock: ${good} of ${n} got it`) + (weak ? tr(`、再練 ${weak} 項`, `, ${weak} need work`) : "");
   pairText($("qTitle"), emptyTitle);
   syncQuizTop();
 }
@@ -350,7 +350,7 @@ $("nextBtn").onclick = () => {
 function renderList(){
   const sys = SY.systems[S.exam.system], qs = examQuestions();
   const good = qs.filter(q => S.mastery[q.key] === "good").length;
-  $("listTitle").textContent = sys.mode === "sets" ? tr("本級要求(依序)", "This grade (in order)") : T("listTitle");   // 哪一組:組別鈕亮著
+  $("listTitle").textContent = sys.mode === "sets" ? tr("本級要求（依序）", "This grade (in order)") : T("listTitle");   // 哪一組:組別鈕亮著
   $("listSub").textContent = "";   // 「會了 n/m」在本項列(不重複)
   $("progressBar").style.width = (qs.length ? 100 * good / qs.length : 0) + "%";
   paintItemTag();
@@ -358,7 +358,7 @@ function renderList(){
     const m = S.mastery[q.key] || "", hands = q.motion === "contrary" ? tr("反向", "contrary") : { RH: tr("右手", "Right"), LH: tr("左手", "Left"), HT: tr("雙手", "Both") }[q.hands];
     const extra = [hands, q.range === "5th" ? tr("五度", "5th") : tr(q.octaves + " 個八度", q.octaves + " oct.")];
     if (q.dynamic) extra.push({ "cresc-dim": "p–f–p" }[q.dynamic] || q.dynamic);
-    return `<button class="qrow${cur && !cur.free && cur.key === q.key ? " cur" : ""}" data-i="${i}"><i class="dot ${m}"></i><span>${questionText(q)[0]}${q.articulation === "staccato" ? tr("(斷奏)", " (staccato)") : ""}</span><small>${extra.join(" · ")}</small></button>`;
+    return `<button class="qrow${cur && !cur.free && cur.key === q.key ? " cur" : ""}" data-i="${i}"><i class="dot ${m}"></i><span>${questionText(q)[0]}${q.articulation === "staccato" ? tr("（斷奏）", " (staccato)") : ""}</span><small>${extra.join(" · ")}</small></button>`;
   };
   if (sys.mode === "sets") $("qGroups").innerHTML = `<div class="qlist">${qs.map(row).join("")}</div>`;
   else $("qGroups").innerHTML = CATEGORIES.map(c => {
@@ -426,7 +426,7 @@ function showEmpty(){
   $("playBtn").disabled = true; ROOT.querySelectorAll(".mbtn").forEach(b => { b.disabled = true; b.setAttribute("aria-pressed", "false"); });
   if (osmd) { try { osmd.clear(); } catch (e) {} }
   $("osmd").innerHTML = ""; osmd = null; noteXs = []; $("playline").hidden = true; syncFades(0);
-  setMsg("paperMsg", () => tr("選一題之後,這裡會顯示五線譜與指法", "Pick an item to see the score and fingering here"));
+  setMsg("paperMsg", () => tr("選一題之後，這裡會顯示五線譜與指法", "Pick an item to see the score and fingering here"));
   $("scoreNote").hidden = true;
   syncTempoUI();
   syncQuizTop();
@@ -485,11 +485,11 @@ function renderQText(q, tab){
   // 樂譜下方說明
   const notes = [], noteFns = notes;   // 每一則是函式:中英文各跑一次
   if (q.type === "thirds" || q.type === "sixths") notes.push(doubleNote(q));
-  if (q.type === "broken") notes.push(() => (q.range === "5th" ? tr("分解三和弦照 Trinity 大綱的譜例(1-3-5-3-1,3/4 拍)。", "Broken triad as in the Trinity syllabus example (1-3-5-3-1 in 3/4).") : tr("分解和弦照 Trinity 大綱 1 級的譜例:三連音,原位 → 第一轉位 → 第二轉位到高八度主音,再反過來,停在五音。", "Broken chord as in the Trinity Grade 1 syllabus example: triplets, root → 1st → 2nd inversion to the upper tonic, then back, ending on the 5th.")));
-  if (q.type === "dom7" && q.sys !== "trinity") notes.push(() => tr("屬七和弦琶音最後解決到主音(照 ABRSM 大綱的譜例)。", "The dominant 7th resolves on the tonic (as in the ABRSM syllabus example)."));
-  if (q.apart === 3) notes.push(() => tr("相隔三度:右手比左手高十度(三度 + 八度),左手從主音、右手從第三級開始。", "A third apart: the right hand plays a tenth above the left — left starts on the tonic, right on the 3rd."));
-  if (q.apart === 6) notes.push(() => tr("相隔六度:主音在上方 — 右手從主音、左手從低六度的第三級開始。", "A sixth apart: tonic on top — right hand starts on the tonic, left on the 3rd a sixth below."));
-  if (q.type === "chromatic" && q.lhStart !== q.rhStart) notes.push(() => tr(`兩手從不同的音開始:左手 ${noteLabelStr(q.lhStart)}、右手 ${noteLabelStr(q.rhStart)}。`, `Hands start on different notes: left ${noteLabelStr(q.lhStart)}, right ${noteLabelStr(q.rhStart)}.`));
+  if (q.type === "broken") notes.push(() => (q.range === "5th" ? tr("分解三和弦照 Trinity 大綱的譜例（1-3-5-3-1,3/4 拍）。", "Broken triad as in the Trinity syllabus example (1-3-5-3-1 in 3/4).") : tr("分解和弦照 Trinity 大綱 1 級的譜例：三連音，原位 → 第一轉位 → 第二轉位到高八度主音，再反過來，停在五音。", "Broken chord as in the Trinity Grade 1 syllabus example: triplets, root → 1st → 2nd inversion to the upper tonic, then back, ending on the 5th.")));
+  if (q.type === "dom7" && q.sys !== "trinity") notes.push(() => tr("屬七和弦琶音最後解決到主音（照 ABRSM 大綱的譜例）。", "The dominant 7th resolves on the tonic (as in the ABRSM syllabus example)."));
+  if (q.apart === 3) notes.push(() => tr("相隔三度：右手比左手高十度（三度 + 八度），左手從主音、右手從第三級開始。", "A third apart: the right hand plays a tenth above the left — left starts on the tonic, right on the 3rd."));
+  if (q.apart === 6) notes.push(() => tr("相隔六度：主音在上方 — 右手從主音、左手從低六度的第三級開始。", "A sixth apart: tonic on top — right hand starts on the tonic, left on the 3rd a sixth below."));
+  if (q.type === "chromatic" && q.lhStart !== q.rhStart) notes.push(() => tr(`兩手從不同的音開始：左手 ${noteLabelStr(q.lhStart)}、右手 ${noteLabelStr(q.rhStart)}。`, `Hands start on different notes: left ${noteLabelStr(q.lhStart)}, right ${noteLabelStr(q.rhStart)}.`));
   $("scoreNote").hidden = !notes.length;
   pairText($("scoreNote"), () => noteFns.map(f => f()).join(" "));
   renderIntro(q.free && !q.daily ? tab : null);
@@ -518,7 +518,7 @@ function melOn(){ return !!(dseg && dseg.k !== "warm" && cur && cur.daily && ex 
 const INTRO = {
   scale: ["一個調的音由低到高、再回來", "A key's notes up and back down"],
   arp: ["和弦的音一個一個彈(Do Mi Sol Do)", "A chord's notes one at a time (C E G C)"],
-  hanon: ["手指練習曲,每拍 4 個音", "Finger exercise, 4 notes a beat"]
+  hanon: ["手指練習曲，每拍 4 個音", "Finger exercise, 4 notes a beat"]
 };
 function renderIntro(tab){
   // 檢定頁的模擬考:這一行改寫「彈完自己按「會了」或「再練」」(模擬考靠熟練度按鈕記結果)
@@ -738,7 +738,7 @@ async function renderScore(){
     syncQuizTop();
   } catch (e) {
     console.error(e);
-    setMsg("paperMsg", () => tr("樂譜繪製失敗:", "Could not draw the score: ") + e.message);
+    setMsg("paperMsg", () => tr("樂譜繪製失敗：", "Could not draw the score: ") + e.message);
   }
   window.__lastXml = xml;
   window.__scoreReady = (window.__scoreReady || 0) + 1;
@@ -810,7 +810,7 @@ function renderMarksUI(){
     const on = namesOn();
     // 「C = C E G(5-3-1)· G7 = B F G(5-2-1)」;音名關掉:「C(5-3-1)· G7(5-2-1)」
     ct.innerHTML = tbl.map(c => `<span><b>${c.name}</b>${on ? " = " + c.notes.map(NOTE_ZH).join(" ") : ""}<small>(${c.fingers.join("-")})</small></span>`).join("<i aria-hidden=\"true\"> · </i>");
-    ct.setAttribute("aria-label", tr("這一關的和弦:", "Chords here: ") + tbl.map(c => `${c.name} ${c.notes.join(" ")} ${tr("指法", "fingers")} ${c.fingers.join(" ")}`).join(";"));
+    ct.setAttribute("aria-label", tr("這一關的和弦：", "Chords here: ") + tbl.map(c => `${c.name} ${c.notes.join(" ")} ${tr("指法", "fingers")} ${c.fingers.join(" ")}`).join(";"));
   }
   syncKeys(route, hp);
 }
@@ -854,8 +854,8 @@ function syncKeys(route, hp){
   keys.label(Z ? 60 : null, `<b><span class="ks-up" aria-hidden="true">▲</span> ${lbl}</b>${hint ? `<span>${hint}</span>` : ""}`);
   el.setAttribute("role", "img");
   const said = hp.filter(x => hands.includes(x.hand)).map(x => x.keys.filter(k => fin.has(k.midi)).map(k => `${k.name} ${k.finger}`).join(tr("、", ", "))).filter(Boolean);
-  el.setAttribute("aria-label", thumbOnly ? lbl + tr(":兩個一組的黑鍵左邊那個白鍵。", ": the white key left of a pair of black keys. ") + hint
-    : tr("琴鍵:這一關用到的鍵", "Keyboard: the keys used here") + (said.length ? tr("。手指號碼:", ". Finger numbers: ") + said.join(tr(";", "; ")) : ""));
+  el.setAttribute("aria-label", thumbOnly ? lbl + tr("：兩個一組的黑鍵左邊那個白鍵。", ": the white key left of a pair of black keys. ") + hint
+    : tr("琴鍵：這一關用到的鍵", "Keyboard: the keys used here") + (said.length ? tr("。手指號碼：", ". Finger numbers: ") + said.join(tr(";", "; ")) : ""));
 }
 /* 「重點」一行放在琴鍵條下面(譜卡裡;dailycard 把它畫在段落面板裡,面板每次重畫就搬一次;面板重畫、收起來時舊的拿掉) */
 let checkFor = null;
@@ -1183,10 +1183,10 @@ function syncTempoUI(){
     const pct = Math.round(100 * bpm / examT.bpm);
     $("bpmPct").textContent = pct === 100 ? "" : tr(`考試速度的 ${pct}%`, `${pct}% of exam tempo`);   // 等於考試速度:副標已經寫了,數字後面不再寫「考試」
     // 不寫 ♩ / ♪ 的換算(自學者看不懂):考試速度的數字 + 每拍幾個音
-    $("examTempo").textContent = tr(`考試速度 ${examT.bpm}(每拍 ${NOTES_PER_UNIT[u]} 個音${u === "q." ? ",三連音" : ""})`,
+    $("examTempo").textContent = tr(`考試速度 ${examT.bpm}（每拍 ${NOTES_PER_UNIT[u]} 個音${u === "q." ? "，三連音" : ""}）`,
       `Exam ${examT.bpm} (${NOTES_PER_UNIT[u]} per beat${u === "q." ? ", triplets" : ""})`);
   } else if (u === "e16") { $("bpmPct").textContent = ""; $("examTempo").textContent = tr("原譜 ♩ 60–108 = ♪ 120–216", "Hanon ♩ 60–108 = ♪ 120–216"); }   // 拍點在選單上
-  else if (u === "q.") { $("bpmPct").textContent = ""; $("examTempo").textContent = tr("三連音:每拍 3 個音", "Triplets: 3 notes per beat"); }
+  else if (u === "q.") { $("bpmPct").textContent = ""; $("examTempo").textContent = tr("三連音：每拍 3 個音", "Triplets: 3 notes per beat"); }
   else if (u === "q16" && cur && cur.type !== "hanon") { $("bpmPct").textContent = ""; $("examTempo").textContent = ""; }   // 拍點在選單上,不重複
   else if (u === "q16") { $("bpmPct").textContent = ""; $("examTempo").textContent = ex && ex.rhythm !== "even" ? tr("附點節奏 · 原譜速度 60–108", "Dotted · Hanon tempo 60–108") : tr("原譜速度 60–108", "Hanon tempo 60–108"); }
   else if (cur && cur.daily) { $("bpmPct").textContent = ""; $("examTempo").textContent = tr("自動調整", "Auto"); }   // 段落:速度卡縮成一行(− 60 +)
@@ -1376,7 +1376,7 @@ async function startPlayback(){
     starting = 0; $("playBtn").classList.remove("busy");
     if (play) stopPlayback();
     $("playLabel").textContent = T("play");
-    setMsg("loadingMsg", () => tr("播放失敗:", "Playback failed: ") + (e && e.message || e));
+    setMsg("loadingMsg", () => tr("播放失敗：", "Playback failed: ") + (e && e.message || e));
   }
   syncPlaying();
 }
@@ -1630,19 +1630,20 @@ const PC = ["C", "C♯", "D", "E♭", "E", "F", "F♯", "G", "A♭", "A", "B♭"
 function lisWhy(r){
   const n = r.note, nm = m => PC[((m % 12) + 12) % 12];
   switch (r.reason) {
-    case "octaveLow": return tr("低了一個八度,手往右移一個八度", "An octave too low. Move up one octave");
-    case "wrongPitch": return n && n.midi != null && n.heard != null ? tr(`有音不對:該彈 ${nm(n.midi)},聽到 ${nm(n.heard)}`, `Wrong note: ${nm(n.midi)}, but heard ${nm(n.heard)}`) : tr("有音彈錯了,看著譜彈", "Some wrong notes. Follow the score");
-    case "missed": return tr("有音漏掉了,從頭彈到尾", "Some notes were missed. Play it all the way");
-    case "extra": return tr("多彈了音,看著譜慢慢彈", "Extra notes. Go slowly with the score");
-    case "notPiano": return tr("聽不出譜上的音,看著譜彈", "Couldn't hear the written notes");
-    default: return tr("沒聽到琴聲,把手機放近琴一點", "Didn't hear the piano. Move the phone closer");
+    case "octaveLow": return tr("低了一個八度，手往右移一個八度", "An octave too low. Move up one octave");
+    case "octaveHigh": return tr("高了一個八度，手往左移一個八度", "An octave too high. Move down one octave");
+    case "wrongPitch": return n && n.midi != null && n.heard != null ? tr(`有音不對：該彈 ${nm(n.midi)}，聽到 ${nm(n.heard)}`, `Wrong note: ${nm(n.midi)}, but heard ${nm(n.heard)}`) : tr("有音彈錯了，看著譜彈", "Some wrong notes. Follow the score");
+    case "missed": return tr("有音漏掉了，從頭彈到尾", "Some notes were missed. Play it all the way");
+    case "extra": return tr("多彈了音，看著譜慢慢彈", "Extra notes. Go slowly with the score");
+    case "notPiano": return tr("聽不出譜上的音，看著譜彈", "Couldn't hear the written notes");
+    default: return tr("沒聽到琴聲，把手機放近琴一點", "Didn't hear the piano. Move the phone closer");
   }
 }
 /* 判斷這一輪(錄音的時間 = AudioContext 的時間 − 錄音第一個樣本的時間 + 喇叭的延遲) */
 function lisJudge(x){
   const { take, exp, clicks, t0, lat, seg, q } = x, gen = ++lisGen;
   if (dseg !== seg || cur !== q) return;
-  dcard.renderStep(dseg, { status: () => tr("聽好了,判斷中……", "Checking…") });
+  dcard.renderStep(dseg, { status: () => tr("聽好了，判斷中……", "Checking…") });
   setTimeout(() => {
     if (gen !== lisGen || dseg !== seg || cur !== q) return;
     let r = { ok: false, reason: "silent" }, noisy = false;
@@ -1661,7 +1662,7 @@ function lisResult(r, noisy, take = null){
   if (lisFailKey !== key) { lisFailKey = key; lisFails = 0; }
   if (window.__tech && window.__keepTake) window.__tech.lastListen = { ok: !!r.ok, reason: r.reason, noisy, matched: r.matched, total: r.total, sec: take ? +(take.samples.length / take.sampleRate).toFixed(2) : null, gap: take ? +(take.filled / take.sampleRate).toFixed(2) : null };   // 測試用(tools/tech/listen-check.mjs;gap = 主執行緒忙、mic.js 補的靜音秒數)
   if (r.ok) { lisFails = 0; heardAt = heardKey(); syncReady(); dTry("ok"); return; }   // 彈對 = 做到了(跟按的同一條路)
-  if (noisy) { heardAt = heardKey(); syncReady(); dcard.renderStep(dseg, { status: () => tr("太吵了,聽不清楚;彈得順就自己按「做到了」", "Too noisy to hear. If it went well, tap Did it") }); return; }
+  if (noisy) { heardAt = heardKey(); syncReady(); dcard.renderStep(dseg, { status: () => tr("太吵了，聽不清楚；彈得順就自己按「做到了」", "Too noisy to hear. If it went well, tap Did it") }); return; }
   lisFails++;
   const out = lisFails >= 2;   // 連續 2 次聽不過:「做到了」也能自己按
   dcard.againOk(!out);
@@ -1674,14 +1675,14 @@ function micFail(err){
   micBroken = n === "NotAllowedError" || n === "SecurityError" ? "denied" : n === "NotFoundError" || n === "OverconstrainedError" || n === "NotReadableError" ? "none" : "unsupported";
   const why = { denied: ["沒有取得麥克風", "No microphone access"], none: ["找不到麥克風", "No microphone found"], unsupported: ["這台裝置不能用麥克風", "Can't use the microphone here"] }[micBroken];
   syncPlayCap();
-  if (dseg) dcard.renderStep(dseg, { status: () => tr(why[0] + ",改成跟著示範彈、自己按「做到了」", why[1] + ". Play along and tap Did it yourself") });
+  if (dseg) dcard.renderStep(dseg, { status: () => tr(why[0] + "，改成跟著示範彈、自己按「做到了」", why[1] + ". Play along and tap Did it yourself") });
 }
 /* 面板裡一行的開關(文字鈕;按了換開 / 關,存 S.listen) */
 const micBtn = document.createElement("button");
 micBtn.type = "button"; micBtn.className = "text-btn"; micBtn.id = "t-micBtn";
 function paintMicBtn(){
   const on = S.listen !== false;
-  micBtn.textContent = on ? tr("麥克風聽你彈:開", "Mic listens: on") : tr("麥克風聽你彈:關", "Mic listens: off");
+  micBtn.textContent = on ? tr("麥克風聽你彈：開", "Mic listens: on") : tr("麥克風聽你彈：關", "Mic listens: off");
   micBtn.setAttribute("aria-pressed", String(on));
   return micBtn;
 }
@@ -1692,11 +1693,11 @@ micBtn.onclick = () => {
   if (dseg) dcard.renderStep(dseg, { status: null });
 };
 const dcard = createDailyCard({ $, daily, routes: ROUTES,   // routes:今日卡的「路線」(路線圖)
-  labels: { ok: ["做到了", "Did it"], again: ["還要練", "Not yet"], verb: ["彈", "play"], good: ["很好!", "Good!"],
+  labels: { ok: ["做到了", "Did it"], again: ["還要練", "Not yet"], verb: ["彈", "play"], good: ["很好！", "Good!"],
     // 狀態一句短話(fold-280 不超過兩行);過關規則改成到了目標速度在標籤後面顯示「穩 0 / 3」
-    get hint(){ return listenOn() ? ["按 ▶ 你彈一輪,App 會聽你彈", "Tap ▶ for your turn. The app listens"] : ["按 ▶ 跟著彈一輪,「做到了」就會亮", "Tap ▶ and play along to unlock \"Did it\""]; },   // 「做到了」要先播過一輪才亮:狀態句直接說(dailycard 的 ready / syncOk);英文要在 390 一行放得下(pairText 照比較高的,英文兩行中文也變兩行,第 7 輪健檢;「Did it」加引號才看得出是按鈕,第 10 輪)
-    ask: ["彈得順就按「做到了」,不順按「還要練」", "Went well? Tap Did it. If not, Not yet"],   // 播完一輪:下一步(dailycard 的 ready)
-    get solo(){ return melOn() ? ["按 ▶ 你彈左手一輪,「做到了」就會亮", "Tap ▶, play the left hand to unlock \"Did it\""] : ["按 ▶ 自己彈一輪,「做到了」就會亮", "Tap ▶ and play alone to unlock \"Did it\""]; },
+    get hint(){ return listenOn() ? ["按 ▶ 你彈一輪，App 會聽你彈", "Tap ▶ for your turn. The app listens"] : ["按 ▶ 跟著彈一輪，「做到了」就會亮", "Tap ▶ and play along to unlock \"Did it\""]; },   // 「做到了」要先播過一輪才亮:狀態句直接說(dailycard 的 ready / syncOk);英文要在 390 一行放得下(pairText 照比較高的,英文兩行中文也變兩行,第 7 輪健檢;「Did it」加引號才看得出是按鈕,第 10 輪)
+    ask: ["彈得順就按「做到了」，不順按「還要練」", "Went well? Tap Did it. If not, Not yet"],   // 播完一輪:下一步(dailycard 的 ready)
+    get solo(){ return melOn() ? ["按 ▶ 你彈左手一輪，「做到了」就會亮", "Tap ▶, play the left hand to unlock \"Did it\""] : ["按 ▶ 自己彈一輪，「做到了」就會亮", "Tap ▶ and play alone to unlock \"Did it\""]; },
     // 底部按鈕「▶ …一輪」:合奏的拍點模式(App 彈旋律、你彈左手)寫「你彈左手一輪」;其他照 dailycard 預設(跟著彈一輪 / 自己彈一輪)
     get play(){ return listenOn() ? ["你彈一輪", "Your turn"] : melOn() && dseg && dseg.click && dseg.click !== "every" ? ["你彈左手一輪", "Play left hand"] : null; } },
   warmName, levelName, log: () => S.log,

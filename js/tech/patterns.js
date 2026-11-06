@@ -45,14 +45,14 @@ export function parseHand(str, K, hand, BAR, value){
     if (tok[0] === "@") {
       const v = tok.slice(1);
       if (v === "I") p = 0; else if (v === "V") p = 4;
-      else if (VAL[v]) dur = VAL[v]; else throw new Error("不認得的記號:" + tok);
+      else if (VAL[v]) dur = VAL[v]; else throw new Error("不認得的記號：" + tok);
       continue;
     }
-    if (tok === "R") { if (pos % BAR) throw new Error("整小節休止要在小節開頭:" + str); out.push({ ...rest(BAR), whole: true }); pos += BAR; continue; }
+    if (tok === "R") { if (pos % BAR) throw new Error("整小節休止要在小節開頭：" + str); out.push({ ...rest(BAR), whole: true }); pos += BAR; continue; }
     if (tok === "r") { out.push(rest(dur)); pos += dur; continue; }
     if (tok === "-") { out[out.length - 1].dur += dur; pos += dur; continue; }
     const m = /^([0-9=+]+)([.>()]*)$/.exec(tok);
-    if (!m) throw new Error("不認得的記號:" + tok);
+    if (!m) throw new Error("不認得的記號：" + tok);
     const parts = m[1].split("+").map(s => {
       if (s.includes("=")) { const [d, f] = s.split("=").map(Number); return note(K, p + d - 1, oct(p), f); }
       const f = Number(s); if (!(f >= 1 && f <= 5)) throw new Error("手指要 1–5:" + tok);
@@ -101,7 +101,7 @@ export const RH_CHORD = { I: { d: [0, 2, 4], f: [1, 3, 5] }, V: { d: [-1, 1, 4],
 const chordOf = ns => ({ ...ns[0], chord: ns.slice(1) });
 const lhO = K => octaveIn(K, 0, 40, 50);
 function lhShape(K, ch){
-  const s = SHAPE[ch]; if (!s) throw new Error("左手沒有這個和弦的形狀:" + ch);
+  const s = SHAPE[ch]; if (!s) throw new Error("左手沒有這個和弦的形狀：" + ch);
   return s.d.map((d, i) => note(K, d, lhO(K), s.f[i]));
 }
 function lhRoot(K, ch){ const r = ROOT[ch], O = octaveIn(K, r, 40, 50); return { root: note(K, r, O, 5), O, r }; }
@@ -117,7 +117,7 @@ function lhBar(K, ch, pat, beats){
     case "root": { const { root } = lhRoot(K, ch); return [{ ...root, dur: BAR }]; }
     case "r158": { const { root, O, r } = lhRoot(K, ch), f5 = note(K, r + 4, O, 2), o8 = note(K, r + 7, O, 1); return [root, f5, o8, f5, root, f5, o8, f5].map(dur(6)); }
   }
-  throw new Error("不認得的左手型:" + pat);
+  throw new Error("不認得的左手型：" + pat);
 }
 /* 右手長音(App 規則):右手在主音的五指位置,每個和弦挑一個位置裡的和弦音;第一個 = 主和弦的三音,
    之後離前一個音最近(一樣近挑比較低的:七音往下解決) */
@@ -137,12 +137,12 @@ export function rhTones(K, prog){
 function rhBar(K, ch, pat, beats, tone){
   const BAR = beats * 12;
   if (pat === "tones") return [{ ...tone, dur: BAR }];
-  const v = RH_CHORD[ch]; if (!v) throw new Error("右手沒有這個和弦的柱式:" + ch);
+  const v = RH_CHORD[ch]; if (!v) throw new Error("右手沒有這個和弦的柱式：" + ch);
   const c = chordOf(v.d.map((d, i) => note(K, d, 4, v.f[i])));
   if (pat === "chords4") return Array.from({ length: beats }, () => ({ ...c, dur: 12 }));
   if (pat === "chords2") return [{ ...c, dur: 24 }, { ...c, dur: 24 }];
   if (pat === "c332") return [{ ...c, dur: 18 }, { ...c, dur: 18 }, { ...c, dur: 12 }];
-  throw new Error("不認得的右手型:" + pat);
+  throw new Error("不認得的右手型：" + pat);
 }
 
 /* ── 合奏旋律(伴奏路線只有左手的關):App 彈一條簡單的右手旋律,學生彈左手跟它合奏(譜不畫,只播放)──
@@ -215,7 +215,7 @@ const applyTouch = (notes, t) => notes.map(n => (n.rest ? n : t === "stacc" ? (n
 
 /* 這一關(+ 這一次的變化)→ ex */
 export function buildRoute(FG, q){
-  const L = findLevel(q); if (!L) throw new Error("沒有這一關:" + (q.id || q.warm));
+  const L = findLevel(q); if (!L) throw new Error("沒有這一關：" + (q.id || q.warm));
   const accomp = !!L.prog;
   const K = keyInfo(q.rkey || L.key || "C");
   const time = L.time || [4, 4], beats = time[0], BAR = beats * 12;

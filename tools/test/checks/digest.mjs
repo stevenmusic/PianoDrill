@@ -25,10 +25,10 @@ export default function check(ok){
   const names = [["找到中央 C", "Find middle C"], ["手指號碼", "Finger numbers"]];
   const zh = build({ app, days, mods, daily: names, lang: "zh" }).split("\n");
   ok(zh[1] === "練了 4 / 7 天 · 共 14 分鐘", "zh 天數 / 分鐘:" + zh[1]);
-  ok(zh[2] === "技巧:7 分鐘", "zh 技巧:" + zh[2]);
-  ok(zh[3] === "視奏:1 題 · 2 分鐘", "zh 視奏:" + zh[3]);
-  ok(zh[4] === "聽力:20 題 · 正確率 80%", "zh 聽力:" + zh[4]);
-  ok(zh[5] === "今日練習過關:找到中央 C、手指號碼", "zh 過關:" + zh[5]);
+  ok(zh[2] === "技巧：7 分鐘", "zh 技巧:" + zh[2]);
+  ok(zh[3] === "視奏：1 題 · 2 分鐘", "zh 視奏:" + zh[3]);
+  ok(zh[4] === "聽力：20 題 · 正確率 80%", "zh 聽力:" + zh[4]);
+  ok(zh[5] === "今日練習過關：找到中央 C、手指號碼", "zh 過關:" + zh[5]);
   ok(zh[6] === "— PianoDrill" && zh.length === 7, "zh 最後一行 App 名");
   const en = build({ app, days, mods, daily: names, lang: "en" }).split("\n");
   ok(en[1] === "Practiced 4 of 7 days · 14 min in all", "en:" + en[1]);
@@ -40,14 +40,14 @@ export default function check(ok){
   // 有一個分頁沒練、不到 1 分鐘、沒有過關
   const s2 = build({ app, days, mods: { tech: { "2026-11-04": { n: 1, sec: 40 } } }, lang: "zh" }).split("\n");
   ok(s2[1] === "練了 1 / 7 天 · 共 不到 1 分鐘" || s2[1] === "練了 1 / 7 天 · 共不到 1 分鐘", "不到 1 分鐘:" + s2[1]);
-  ok(s2[3] === "視奏:這週沒練" && s2[4] === "聽力:這週沒練", "沒練的分頁:" + s2.slice(3, 5));
+  ok(s2[3] === "視奏：這週沒練" && s2[4] === "聽力：這週沒練", "沒練的分頁:" + s2.slice(3, 5));
   ok(!s2.some(l => l.startsWith("今日練習過關")), "沒有過關不寫那一行");
   const e2 = build({ app, days, mods: { ear: { "2026-11-04": { n: 1, sec: 30, hits: 1, total: 1 } } }, lang: "en" }).split("\n");
   ok(e2[1] === "Practiced 1 of 7 days · under 1 min in all" && e2[4] === "Aural: 1 question · 100% right" && e2[2] === "Technique: not this week", "en 單數 / 沒練:" + e2.join(" | "));
 
   // 過關最多 5 個
   const many = Array.from({ length: 7 }, (_, i) => [`第${i + 1}關`, `L${i + 1}`]);
-  ok(build({ app, days, mods, daily: many, lang: "zh" }).includes("今日練習過關:第1關、第2關、第3關、第4關、第5關 等 7 關"), "zh 最多 5 個");
+  ok(build({ app, days, mods, daily: many, lang: "zh" }).includes("今日練習過關：第1關、第2關、第3關、第4關、第5關 等 7 關"), "zh 最多 5 個");
   ok(build({ app, days, mods, daily: many, lang: "en" }).includes("Levels passed: L1, L2, L3, L4, L5 and 2 more"), "en 最多 5 個");
   // 壞資料不出錯
   ok(!/NaN|undefined/.test(build({ app, days, mods: { tech: { "2026-11-04": { n: "x", sec: -5 } }, ear: null }, daily: [null, 3, ""], lang: "en" })), "壞資料");

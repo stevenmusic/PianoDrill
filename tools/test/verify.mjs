@@ -442,6 +442,8 @@ try { const { default: rmcheck } = await import("./checks/roadmap.mjs"); const b
 try { const { default: bakcheck } = await import("./checks/backup.mjs"); const before = fails; bakcheck(ok); console.log(fails === before ? "練習紀錄備份 ✓" : "練習紀錄備份 ✗"); } catch (e) { fail("練習紀錄備份檢查出錯:" + e.stack); }
 // 練習紀錄卡(js/shared/practicelog.js;兩個 App 同一份):每週目標預設 40、舊資料 60 沒有 goalSet → 40、自己選的照舊、重新開始(checks/practicelog.mjs)
 try { const { default: plcheck } = await import("./checks/practicelog.mjs"); const before = fails; plcheck(ok); console.log(fails === before ? "練習紀錄卡 ✓" : "練習紀錄卡 ✗"); } catch (e) { fail("練習紀錄卡檢查出錯:" + e.stack); }
+// 中文字串的標點(台灣出版習慣;兩個 App 同一份):js/ 與 index.html 的字串裡,中文字旁邊不能用半形 , : ; ? !(checks/zhpunct.mjs)
+try { const { default: zpcheck } = await import("./checks/zhpunct.mjs"); const before = fails; const n = zpcheck(ok); console.log(fails === before ? "中文標點 ✓" : `中文標點 ✗(${n} 處)`); } catch (e) { fail("中文標點檢查出錯:" + e.stack); }
 // 本週摘要(js/shared/digest.js;兩個 App 同一份):0 天、有資料、中英、單複數、過關最多 5 個(checks/digest.mjs)
 try { const { default: dgcheck } = await import("./checks/digest.mjs"); const before = fails; dgcheck(ok); console.log(fails === before ? "本週摘要 ✓" : "本週摘要 ✗"); } catch (e) { fail("本週摘要檢查出錯:" + e.stack); }
 

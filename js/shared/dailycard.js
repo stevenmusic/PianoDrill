@@ -62,7 +62,7 @@ export function segTags(s, m = "♩="){
   return [lv, sp(s.bpm) + " · " + fmt("streakTag", { d: `${k} / ${need}` })];
 }
 /* 一次嘗試的結果 → 狀態那一句;過關寫「下一關:名稱」(next = 下一關的名稱 [中, 英],最後一關 = null;good = 「很穩!」/「很好!」) */
-export function resultText(res, s, next = null, good = "很穩!"){
+export function resultText(res, s, next = null, good = "很穩！"){
   if (!res) return "";
   if (s.k === "review") return res.counted === false && s.extra ? fmt("revExtra") : res.verdict === "steady" ? fmt("revOk") : fmt("revBack");
   if (res.passed) return next ? fmt("passed", { name: L2(next) }) : fmt("passedLast");
@@ -381,7 +381,7 @@ export function createDailyCard({ $, daily, routes = null, labels = {}, warmName
       const v = L2(labels.verb || ["彈", "play"]);
       // 過關、這一段還有時間 = 直接換到下一關(res.cont):寫「接著練:名稱」+ 下一步「按 ▶ 跟著彈一輪」(畫面已經是下一關,不要讓人以為還在同一關)
       if (res && res.passed && res.cont && nl) return M(s, fmt("passedCont", { name: L2(levelName({ k: "route", level: nl })) }) + tr("。", ". ") + fmt("start1", { v }));
-      const t = resultText(res, s, nl ? levelName({ k: "route", level: nl }) : null, L2(labels.good || ["很穩!", "Steady!"]));
+      const t = resultText(res, s, nl ? levelName({ k: "route", level: nl }) : null, L2(labels.good || ["很穩！", "Steady!"]));
       // 還沒過關:每一句都接下一步「按 ▶ 再彈 / 打一次」(自評後要再播一輪才能再按)
       if (!t || !res || res.passed || s.k === "review") return M(s, t);
       const sep = /[??!!]$/.test(t) ? tr("", " ") : tr("。", ". ");

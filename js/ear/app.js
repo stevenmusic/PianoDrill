@@ -71,8 +71,8 @@ const PICKERS = {
     ["preset", tr("常用", "Common"), Object.keys(PRESETS.note).map(k => [k, PRESET_NAME()[k]])],
     ["set", tr("出哪些音", "Notes"), ALL_ITEMS.note.map(it => [it.id, pcName(it.pc).replace("/", "/​")]), true],
     ["range", tr("音域", "Range"), [["1", tr("1 個八度", "1 oct.")], ["2", tr("2 個八度", "2 oct.")], ["4", tr("4 個八度", "4 oct.")]]],
-    ["ref", tr("參考音", "Reference"), [["C", "C"], ["A", "A"], ["none", tr("不給", "None"), tr("不給參考音(絕對音感)", "No reference (absolute pitch)")]]],   // 參考音 = 題目卡琴鍵上方的「這是 C」鈕(不跟題目一起播)
-    ["naming", tr("音名", "Names"), [["letter", "C D E"], ["solfege", tr("Do Re Mi(固定唱名)", "Do Re Mi (fixed do)")]]],
+    ["ref", tr("參考音", "Reference"), [["C", "C"], ["A", "A"], ["none", tr("不給", "None"), tr("不給參考音（絕對音感）", "No reference (absolute pitch)")]]],   // 參考音 = 題目卡琴鍵上方的「這是 C」鈕(不跟題目一起播)
+    ["naming", tr("音名", "Names"), [["letter", "C D E"], ["solfege", tr("Do Re Mi（固定唱名）", "Do Re Mi (fixed do)")]]],
     OPTS()
   ],
   interval: p => [
@@ -147,7 +147,7 @@ function renderExam(){
   // 考試系統、級數在外框的檢定設定卡;這裡只寫本級有幾項測驗、答對要不要自動下一題
   $("examSummary").textContent = S.auto ? tr("答對自動下一題", "Auto next") : tr("手動下一題", "Manual next");   // 幾項在本項列的標籤
   paintItemRow(g);
-  pairText($("examNote"), () => tr(`依據:${sys.syllabus} ${g.source}`, `Source: ${sys.syllabus}, ${g.source}`));
+  pairText($("examNote"), () => tr(`依據：${sys.syllabus} ${g.source}`, `Source: ${sys.syllabus}, ${g.source}`));
   $("testsSub").textContent = (getLang() === "en" ? g.paramsEn : g.params) || "";
   // 整份聽力共通的說明(Trinity:都根據考官彈的一段音樂)放在清單最上面一行
   $("testsList").innerHTML = (sys.listNote ? `<p class="exam-hint tests-note"></p>` : "") + g.tests.map(t => {
@@ -161,7 +161,7 @@ function renderExam(){
   }).join("");
   pairTests(g);
   const ln = $("testsList").querySelector(".tests-note"); if (ln) pairText(ln, () => tr(...sys.listNote));
-  $("testsList").querySelectorAll("p.self").forEach(el => pairText(el, () => tr("這一項要看譜唱或口頭描述,App 不出題;請跟老師練習。", "Needs sight-singing or spoken description — practice with your teacher.")));
+  $("testsList").querySelectorAll("p.self").forEach(el => pairText(el, () => tr("這一項要看譜唱或口頭描述，App 不出題；請跟老師練習。", "Needs sight-singing or spoken description — practice with your teacher.")));
 }
 /* 測驗說明:中英文行數不一樣 → 保留比較高的那個高度(pairText),換語言時版面不動 */
 function pairTests(g){
@@ -224,7 +224,7 @@ function showMockText(){
     `<div><b>${d.test.id}</b><span>${drillName(d.drill.type)}</span><i class="${m.res[i] ? "ok" : "no"}">${m.res[i] ? "✓" : "✗"}</i></div>`).join("") + `</div>`;
   const fb = $("feedback");
   fb.className = "feedback " + (ok === m.queue.length ? "ok" : "");
-  setFb(() => ok === m.queue.length ? tr("全部答對!", "All correct!") : tr("錯的可以點下面再練", "Tap a missed one below to practice it"));
+  setFb(() => ok === m.queue.length ? tr("全部答對！", "All correct!") : tr("錯的可以點下面再練", "Tap a missed one below to practice it"));
 }
 /* 外框改了考試系統/級數(exam.auto = 還沒選考試,只是點進檢定分頁看看) */
 export function setExam(ex){
@@ -335,7 +335,7 @@ function renderAnswers(){
     syncKeys(); fitKeyboard();
   } else if (q.tap) {
     box.classList.remove("compact");
-    $("stepQ").textContent = q.tap.kind === "pulse" ? tr("播放時跟著拍子按", "Tap the beat while it plays") : tr(`聽完之後按出節奏(${q.tap.n} 下)`, `After listening, tap the rhythm (${q.tap.n} taps)`);
+    $("stepQ").textContent = q.tap.kind === "pulse" ? tr("播放時跟著拍子按", "Tap the beat while it plays") : tr(`聽完之後按出節奏（${q.tap.n} 下）`, `After listening, tap the rhythm (${q.tap.n} taps)`);
     box.innerHTML = `<div class="tap-wrap"><button class="tap-pad" id="e-tapPad">${T("tapBtn")}</button><span class="tap-info" id="e-tapInfo"></span>` +
       `<button class="btn small" id="e-tapDone">${T("tapDone")}</button></div>`;
     syncTap();
@@ -348,16 +348,16 @@ function idleText(){
   const first = INTRO[S.tab] && !S.intro[S.tab];
   if (cur && cur.ref != null) {
     const n = noteName(cur.ref % 12);
-    return tr(`先按「這是 ${n}」,再按 ▶ 聽題目`, `Tap “This is ${n}”, then ▶ to listen`);
+    return tr(`先按「這是 ${n}」，再按 ▶ 聽題目`, `Tap “This is ${n}”, then ▶ to listen`);
   }
   return first ? tr(...INTRO[S.tab]) : tr("先按 ▶ 聽題目", "Press ▶ to listen");
 }
 const refLabel = q => tr("這是 ", "This is ") + noteName(q.ref % 12);
 /* 第一次進來這個子項目(還沒答完一題):狀態那行寫在練什麼、怎麼作答(答完一題就換回「先按 ▶ 聽題目」) */
 const INTRO = {
-  note: ["聽一個音,點出是哪個鍵", "Hear a note, tap the key"],
-  interval: ["聽兩個音,選出它們差多遠", "Hear two notes, pick how far apart"],
-  chord: ["聽一個和弦,選出是哪一種", "Hear a chord, pick its type"]
+  note: ["聽一個音，點出是哪個鍵", "Hear a note, tap the key"],
+  interval: ["聽兩個音，選出它們差多遠", "Hear two notes, pick how far apart"],
+  chord: ["聽一個和弦，選出是哪一種", "Hear a chord, pick its type"]
 };
 
 /* ── 選擇題 ── */
@@ -543,7 +543,7 @@ function showResult(){
   setFb(() => {   // 標籤、答案名稱是 getter:pairText 用中文、英文各跑一次
     const ans = cur.steps ? cur.steps.map(s => s.choices.find(c => c.id === s.answer).label).join(" → ") : "";
     const extra = [A.tapRes && A.tapRes.msg, cur.reveal].filter(Boolean).join(" · ");
-    return (A.ok ? tr("✓ 對了", "✓ Right") : A.revealed ? tr("答案:", "Answer: ") + (ans || "") : tr("✗ 答案是 ", "✗ Answer: ") + (ans || ""))
+    return (A.ok ? tr("✓ 對了", "✓ Right") : A.revealed ? tr("答案：", "Answer: ") + (ans || "") : tr("✗ 答案是 ", "✗ Answer: ") + (ans || ""))
       + (extra ? (ans || A.ok ? " · " : "") + extra : "") + (A.done && cur.compare ? (S.tab === "note" ? tr("。點其他鍵聽聽看", ". Tap other keys to hear them") : tr("。點其他選項聽聽看", ". Tap other options to hear them")) : "");
   });
 }
@@ -668,7 +668,7 @@ function stopPlayback(natural){
     if (!natural && cur && A && !A.done) setFb(null);
     if (natural && cur && cur.tap && cur.tap.kind === "rhythm" && !A.done) {
       const n = cur.tap.n;
-      A.hint = () => tr(`現在按出節奏(${n} 下)`, `Now tap the rhythm (${n} taps)`);
+      A.hint = () => tr(`現在按出節奏（${n} 下）`, `Now tap the rhythm (${n} taps)`);
       setFb(A.hint);
     }
   }
@@ -704,7 +704,7 @@ function renderStats(){
   $("statsReset").hidden = !rows.length;
 }
 $("statsReset").onclick = () => {
-  if (!confirm(tr("清除這個分頁的正確率紀錄?", "Reset accuracy for this tab?"))) return;
+  if (!confirm(tr("清除這個分頁的正確率紀錄？", "Reset accuracy for this tab?"))) return;
   const pre = PRACTICE.includes(S.tab) ? S.tab + ":" : `exam|${S.exam.system}|${S.exam.grade}|`;
   for (const k of Object.keys(S.stats)) if (k.startsWith(pre)) delete S.stats[k];
   store.save(); renderStats(); if (S.tab === "exam") renderExam();

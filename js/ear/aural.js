@@ -18,7 +18,7 @@ export const DRILL_NAME = {
   pulse: ["跟著打拍子", "Clap the pulse"], meter: ["幾拍子", "Time"], rhythm: ["拍出節奏", "Clap the rhythm"],
   echo: ["聽完彈回來", "Echo / memory"], dyn: ["力度", "Dynamics"], artic: ["奏法", "Articulation"],
   tempo: ["速度變化", "Tempo"], tonality: ["大調/小調", "Major/minor"], change: ["找出改變", "Spot the change"],
-  highlow: ["最高/最低音", "Highest/lowest"], lastfirst: ["最後一個音:高還是低", "Last vs first"], interval: ["音程", "Interval"],
+  highlow: ["最高/最低音", "Highest/lowest"], lastfirst: ["最後一個音：高還是低", "Last vs first"], interval: ["音程", "Interval"],
   cadence: ["終止式", "Cadence"], chords: ["和弦", "Chords"], modulation: ["轉調", "Modulation"], tonchange: ["調性改變", "Tonality change"]
 };
 export const drillName = t => tr(...DRILL_NAME[t]);
@@ -78,7 +78,7 @@ const GEN = {
     const mel = melody({ minor: key.minor, meter, bars: meter === "5" ? 4 : 6, range: [-3, 7] });
     const r = render(mel, key, tonic, { acc: p.acc !== false, accent: true, vel: 66 });
     const choices = p.choices.map(m => p.ts ? { id: m, label: TS[m] } : ch(m, ...METER_CH[m]));
-    return { play: { ev: r.ev, dur: r.dur }, steps: [{ get q(){ return p.ts ? tr("拍號是?", "Time signature?") : tr("幾拍子?", "Which time?"); }, choices, answer: meter }] };
+    return { play: { ev: r.ev, dur: r.dur }, steps: [{ get q(){ return p.ts ? tr("拍號是？", "Time signature?") : tr("幾拍子？", "Which time?"); }, choices, answer: meter }] };
   },
   /* 拍出節奏:只有旋律;ABRSM 初級先數兩小節、聽完馬上接著拍(回聲);4 級以上彈兩次再拍 */
   rhythm(p){
@@ -129,9 +129,9 @@ const GEN = {
       gradual: chance(0.5) ? up : down, sudden: chance(0.5) ? sUp : sDown }[a];
     const mel = melody({ minor: key.minor, meter, bars: 4, range: [-2, 7] });
     const r = render(mel, key, tonic, { acc: true, dyn: g });
-    const L = { loud: ["大聲", "Loud"], quiet: ["小聲", "Quiet"], f: ["forte(大聲)", "Forte"], p: ["piano(小聲)", "Piano"], sudden: ["突然改變", "Sudden change"], gradual: ["漸漸改變", "Gradual change"],
+    const L = { loud: ["大聲", "Loud"], quiet: ["小聲", "Quiet"], f: ["forte（大聲）", "Forte"], p: ["piano（小聲）", "Piano"], sudden: ["突然改變", "Sudden change"], gradual: ["漸漸改變", "Gradual change"],
       cresc: ["漸強", "Crescendo"], dim: ["漸弱", "Diminuendo"], subLoud: ["突然變強", "Suddenly loud"], subQuiet: ["突然變弱", "Suddenly quiet"] };
-    return { play: { ev: r.ev, dur: r.dur }, steps: [{ get q(){ return tr("力度是?", "Dynamics?"); }, choices: opts.map(o => ch(o, ...L[o])), answer: a }] };
+    return { play: { ev: r.ev, dur: r.dur }, steps: [{ get q(){ return tr("力度是？", "Dynamics?"); }, choices: opts.map(o => ch(o, ...L[o])), answer: a }] };
   },
   artic(p){
     const { key, tonic, meter } = setup({ minor: true });
@@ -139,7 +139,7 @@ const GEN = {
     const mel = melody({ minor: key.minor, meter, bars: 4, range: [-2, 7] });
     const r = render(mel, key, tonic, { acc: false, artic: a, vel: 66 });
     const it = p.names === "it";
-    return { play: { ev: r.ev, dur: r.dur }, steps: [{ get q(){ return tr("奏法是?", "Articulation?"); }, choices: [ch("legato", it ? "圓滑(legato)" : "圓滑", it ? "Legato" : "Smooth"), ch("staccato", it ? "斷奏(staccato)" : "斷開", it ? "Staccato" : "Detached")], answer: a }] };
+    return { play: { ev: r.ev, dur: r.dur }, steps: [{ get q(){ return tr("奏法是？", "Articulation?"); }, choices: [ch("legato", it ? "圓滑(legato)" : "圓滑", it ? "Legato" : "Smooth"), ch("staccato", it ? "斷奏(staccato)" : "斷開", it ? "Staccato" : "Detached")], answer: a }] };
   },
   tempo(){
     const { key, tonic, meter } = setup({ minor: true });
@@ -147,7 +147,7 @@ const GEN = {
     const tf = { slower: x => x < 0.45 ? 1 : 1 - 0.75 * (x - 0.45), faster: x => x < 0.45 ? 1 : 1 + 0.9 * (x - 0.45), same: () => 1 }[a];
     const mel = melody({ minor: key.minor, meter, bars: 6, range: [-2, 7] });
     const r = render(mel, key, tonic, { acc: true, tempo: tf, bpm: a === "faster" ? 80 : 100 });
-    return { play: { ev: r.ev, dur: r.dur }, steps: [{ get q(){ return tr("速度怎麼變?", "Tempo?"); }, choices: [ch("slower", "越來越慢", "Slowing down"), ch("faster", "越來越快", "Getting faster"), ch("same", "不變", "Same")], answer: a }] };
+    return { play: { ev: r.ev, dur: r.dur }, steps: [{ get q(){ return tr("速度怎麼變？", "Tempo?"); }, choices: [ch("slower", "越來越慢", "Slowing down"), ch("faster", "越來越快", "Getting faster"), ch("same", "不變", "Same")], answer: a }] };
   },
   tonality(p){
     const minor = chance(0.5);
@@ -162,7 +162,7 @@ const GEN = {
     }
     mel ??= melody({ minor: key.minor, meter, bars: 4, range: [-3, 7], start: [2] });
     const r = render(mel, key, tonic, { acc: p.acc !== false, vel: 64 });
-    return { play: { ev: r.ev, dur: r.dur }, steps: [{ get q(){ return tr("大調還是小調?", "Major or minor?"); }, choices: [ch("major", "大調", "Major"), ch("minor", "小調", "Minor")], answer: minor ? "minor" : "major" }] };
+    return { play: { ev: r.ev, dur: r.dur }, steps: [{ get q(){ return tr("大調還是小調？", "Major or minor?"); }, choices: [ch("major", "大調", "Major"), ch("minor", "小調", "Minor")], answer: minor ? "minor" : "major" }] };
   },
   /* 調性改變:前半大調、後半同主音小調(或相反) */
   tonchange(){
@@ -171,7 +171,7 @@ const GEN = {
     const m1 = melody({ minor: startMinor, meter, bars: 4, range: [-2, 7] }), m2 = melody({ minor: !startMinor, meter, bars: 4, range: [-2, 7] });
     const r1 = render(m1, k1, tonic, { acc: true, vel: 64 }), r2 = render(m2, { minor: !startMinor }, tonic, { acc: true, vel: 64 });
     return { play: { ev: [...r1.ev, ...shift(r2.ev, r1.dur)], dur: r1.dur + r2.dur },
-      steps: [{ get q(){ return tr("調性怎麼改變?", "How does the tonality change?"); }, choices: [ch("M2m", "大調 → 小調", "Major → minor"), ch("m2M", "小調 → 大調", "Minor → major")], answer: startMinor ? "m2M" : "M2m" }] };
+      steps: [{ get q(){ return tr("調性怎麼改變？", "How does the tonality change?"); }, choices: [ch("M2m", "大調 → 小調", "Major → minor"), ch("m2M", "小調 → 大調", "Minor → major")], answer: startMinor ? "m2M" : "M2m" }] };
   },
   /* 前三個音:最高 / 最低(三個音不同音高) */
   highlow(){
@@ -180,7 +180,7 @@ const GEN = {
     const ask = pick(["high", "low"]);
     const ev = d.map((x, i) => ({ t: i * 0.6, midi: degMidi(key, tonic, x), dur: 0.58, vel: 68 }));
     const target = ask === "high" ? d.indexOf(Math.max(...d)) : d.indexOf(Math.min(...d));
-    return { play: { ev, dur: 1.8 }, steps: [{ get q(){ return ask === "high" ? tr("哪一個音最高?", "Which note is highest?") : tr("哪一個音最低?", "Which note is lowest?"); },
+    return { play: { ev, dur: 1.8 }, steps: [{ get q(){ return ask === "high" ? tr("哪一個音最高？", "Which note is highest?") : tr("哪一個音最低？", "Which note is lowest?"); },
       choices: [ch("0", "第一個", "1st"), ch("1", "第二個", "2nd"), ch("2", "第三個", "3rd")], answer: String(target) }] };
   },
   /* 最後一個音比第一個音高還是低(不會一樣) */
@@ -235,15 +235,15 @@ const GEN = {
     const typeCh = [ch("pitch", "音高", "Pitch"), ch("rhythm", "節奏", "Rhythm")];
     const ord = ["", "第一處", "第二處", "第三處"], ordEn = ["", "1st", "2nd", "3rd"];
     const steps = [];
-    if (p.ask === "half") steps.push({ get q(){ return tr("改變在哪裡?", "Where was the change?"); }, choices: [ch("begin", "開頭附近", "Near the beginning"), ch("end", "結尾附近", "Near the end")], answer: changes[0].bar < p.bars / 2 ? "begin" : "end" });
-    else if (p.ask === "type") steps.push({ get q(){ return tr("改了什麼?", "What changed?"); }, choices: typeCh, answer: changes[0].kind });
-    else if (p.ask === "bars") for (const k of ["rhythm", "pitch"]) steps.push({ get q(){ return k === "rhythm" ? tr("節奏改在第幾小節?", "Bar of the rhythm change?") : tr("音高改在第幾小節?", "Bar of the pitch change?"); }, choices: barCh, answer: String(changes.find(c => c.kind === k).bar + 1) });
+    if (p.ask === "half") steps.push({ get q(){ return tr("改變在哪裡？", "Where was the change?"); }, choices: [ch("begin", "開頭附近", "Near the beginning"), ch("end", "結尾附近", "Near the end")], answer: changes[0].bar < p.bars / 2 ? "begin" : "end" });
+    else if (p.ask === "type") steps.push({ get q(){ return tr("改了什麼？", "What changed?"); }, choices: typeCh, answer: changes[0].kind });
+    else if (p.ask === "bars") for (const k of ["rhythm", "pitch"]) steps.push({ get q(){ return k === "rhythm" ? tr("節奏改在第幾小節？", "Bar of the rhythm change?") : tr("音高改在第幾小節？", "Bar of the pitch change?"); }, choices: barCh, answer: String(changes.find(c => c.kind === k).bar + 1) });
     else changes.forEach((c, i) => {
       const pre = () => n > 1 ? tr(ord[i + 1] + ":", ordEn[i + 1] + " change: ") : "";
-      steps.push({ get q(){ return pre() + tr("在第幾小節?", "Which bar?"); }, choices: barCh, answer: String(c.bar + 1) });
-      if (p.ask === "bar+type") steps.push({ get q(){ return pre() + tr("音高還是節奏?", "Pitch or rhythm?"); }, choices: typeCh, answer: c.kind });
+      steps.push({ get q(){ return pre() + tr("在第幾小節？", "Which bar?"); }, choices: barCh, answer: String(c.bar + 1) });
+      if (p.ask === "bar+type") steps.push({ get q(){ return pre() + tr("音高還是節奏？", "Pitch or rhythm?"); }, choices: typeCh, answer: c.kind });
     });
-    return { play: { ev, clicks, dur: t }, steps, get tags(){ return [tr("彈兩次:第二次有改變", "Played twice — the 2nd time is changed")]; } };
+    return { play: { ev, clicks, dur: t }, steps, get tags(){ return [tr("彈兩次：第二次有改變", "Played twice — the 2nd time is changed")]; } };
   },
   /* 音程(旋律的頭兩個音、連續兩個音) */
   interval(p){
@@ -257,9 +257,9 @@ const GEN = {
     const numOf = x => ({ m2: 2, M2: 2, m3: 3, M3: 3, P4: 4, TT: 4, P5: 5, m6: 6, M6: 6, m7: 7, M7: 7, P8: 8 })[x.id];
     if (p.number) {
       const nums = [...new Set(set.map(numOf))];
-      return { play: { ev, dur: 1.5 }, steps: [{ get q(){ return tr("幾度?", "Which number?"); }, choices: nums.map(n => ({ id: String(n), get label(){ return tr(NUM[n], NUMEN[n]); } })), answer: String(numOf(it)) }] };
+      return { play: { ev, dur: 1.5 }, steps: [{ get q(){ return tr("幾度？", "Which number?"); }, choices: nums.map(n => ({ id: String(n), get label(){ return tr(NUM[n], NUMEN[n]); } })), answer: String(numOf(it)) }] };
     }
-    return { play: { ev, dur: 1.5 }, steps: [{ get q(){ return tr("什麼音程?", "Which interval?"); }, choices: set.map(x => ({ id: x.id, get label(){ return tr(x.zh, x.en); } })), answer: it.id }] };
+    return { play: { ev, dur: 1.5 }, steps: [{ get q(){ return tr("什麼音程？", "Which interval?"); }, choices: set.map(x => ({ id: x.id, get label(){ return tr(x.zh, x.en); } })), answer: it.id }] };
   },
   /* 終止式:和弦樂句,聽結尾 */
   cadence(p){
@@ -271,7 +271,7 @@ const GEN = {
     const c = chordEvents(vc, intro.dur, 0.95);
     let ev = [...intro.ev, ...c.ev], dur = intro.dur + c.dur;
     if (p.twice) { ev = ev.concat(shift(c.ev, dur + 1.2 - intro.dur)); dur += c.dur + 1.2; }
-    return { play: { ev, dur }, steps: [{ get q(){ return tr("結尾是什麼終止式?", "Which cadence?"); }, choices: p.set.map(s => ch(s, ...CAD[s])), answer: type }],
+    return { play: { ev, dur }, steps: [{ get q(){ return tr("結尾是什麼終止式？", "Which cadence?"); }, choices: p.set.map(s => ch(s, ...CAD[s])), answer: type }],
       reveal: names.join(" – ") };
   },
   /* 和弦辨認:ABRSM 7 級兩個(I IV V V7 vi 原位);8 級三個(含轉位) */
@@ -294,7 +294,7 @@ const GEN = {
     // 小調用小寫/大寫照和弦性質:i、iv、VI、ii°(和聲小調的 V 是大三和弦)
     const MINOR_LABEL = { I: "i", Ib: "ib", Ic: "ic", IV: "iv", vi: "VI", ii: "ii°", iib: "ii°b" };
     const lab = n => ({ id: n, label: (key.minor ? MINOR_LABEL[n] ?? n : n).replace("V7", "V⁷") });
-    return { play: { ev, dur }, steps: names.map((n, i) => ({ get q(){ return tr(`第 ${i + 1} 個和弦?`, `Chord ${i + 1}?`); }, choices: choices.map(lab), answer: n })),
+    return { play: { ev, dur }, steps: names.map((n, i) => ({ get q(){ return tr(`第 ${i + 1} 個和弦？`, `Chord ${i + 1}?`); }, choices: choices.map(lab), answer: n })),
       get tags(){ return [keyName(key)]; } };
   },
   /* 轉調:屬調、下屬調、關係調 */
@@ -307,7 +307,7 @@ const GEN = {
     for (const s of segs) { const c = chordEvents(voiceChords(s.key, s.tonic, s.names), t, 0.85); ev = ev.concat(c.ev); t += c.dur; }
     const rel = key.minor ? ["關係大調", "Relative major"] : ["關係小調", "Relative minor"];
     const L = { ...MOD, relative: rel };
-    return { play: { ev, dur: t }, steps: [{ get q(){ return tr("轉到哪裡?", "Modulates to?"); }, choices: p.targets.map(x => ch(x, ...L[x])), answer: target }],
+    return { play: { ev, dur: t }, steps: [{ get q(){ return tr("轉到哪裡？", "Modulates to?"); }, choices: p.targets.map(x => ch(x, ...L[x])), answer: target }],
       get tags(){ return [tr("從 ", "From ") + keyName(key)]; } };
   }
 };
@@ -325,7 +325,7 @@ export function judgeTaps(tap, times){
     return { ok, get msg(){ return ok ? tr(`穩定度 ${Math.round(steady * 100)}%`, `Steadiness ${Math.round(steady * 100)}%`)
       : !right ? tr("速度跟音樂不一致", "Tempo doesn't match the music") : tr(`不夠穩(${Math.round(steady * 100)}%)`, `Not steady enough (${Math.round(steady * 100)}%)`); } };
   }
-  if (times.length !== tap.n) return { ok: false, get msg(){ return tr(`按了 ${times.length} 下,應該是 ${tap.n} 下`, `${times.length} taps — expected ${tap.n}`); } };
+  if (times.length !== tap.n) return { ok: false, get msg(){ return tr(`按了 ${times.length} 下，應該是 ${tap.n} 下`, `${times.length} taps — expected ${tap.n}`); } };
   const iv = times.slice(1).map((x, i) => x - times[i]);
   const sc = iv.reduce((a, b) => a + b, 0) / tap.iois.reduce((a, b) => a + b, 0);
   const bad = iv.findIndex((x, i) => Math.abs(x / sc - tap.iois[i]) > Math.max(0.35 * tap.iois[i], 0.09));

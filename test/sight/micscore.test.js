@@ -84,7 +84,7 @@ test('no piano (mic hiss, bumps) is reported as silence, not scored', () => {
 });
 
 /* 今日練習「App 聽你彈」(scoreDaily):合成的琴聲(諧波 + 衰減)、拍點(很短的雜音);真的取樣在 tools/tech/listen-stress.mjs */
-test('daily listening: right notes pass, wrong / octave low / half / no piano / clicks only do not', async () => {
+test('daily listening: right notes pass, wrong / octave low / octave high / half / no piano / clicks only do not', async () => {
   const { scoreDaily } = await import('../../js/sight/micscore.js');
   const { listenExpected } = await import('../../js/tech/patterns.js');
   const fs = await import('node:fs');
@@ -122,4 +122,6 @@ test('daily listening: right notes pass, wrong / octave low / half / no piano / 
   assert.ok(['silent', 'notPiano'].includes(none.reason), none.reason);
   // 整段低一個八度(音名對、位置錯):有沒有拍點都要判出來
   for (const clicks of [true, false]) { const o = run({ shift: -12, clicks }); assert.equal(o.ok, false); assert.equal(o.reason, 'octaveLow', `clicks ${clicks}: ${o.reason}`); }
+  // 整段高一個八度:一樣要判出來
+  for (const clicks of [true, false]) { const o = run({ shift: 12, clicks }); assert.equal(o.ok, false); assert.equal(o.reason, 'octaveHigh', `clicks ${clicks}: ${o.reason}`); }
 });

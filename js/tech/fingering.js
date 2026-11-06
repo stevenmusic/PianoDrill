@@ -23,7 +23,7 @@ export function expandArp(s, n){
 function scaleEntry(FG, quality, form, tonicPc){
   const table = quality === "major" ? FG.scale.major : FG.scale[form === "natural" ? "melodic" : form];
   const e = table[sharpKey(tonicPc)];
-  if (!e) throw new Error("指法表缺:" + quality + "/" + form + "/" + sharpKey(tonicPc));
+  if (!e) throw new Error("指法表缺：" + quality + "/" + form + "/" + sharpKey(tonicPc));
   return e;
 }
 
@@ -41,7 +41,7 @@ export function scaleFingers(FG, tonic, quality, form, hand, n){
 
 export function triadFingers(FG, tonic, quality, hand, n){
   const e = FG.arpeggio[quality === "major" ? "major" : "minor"][sharpKey(pcOf(tonic))];
-  if (!e) throw new Error("琶音指法表缺:" + quality + "/" + sharpKey(pcOf(tonic)));
+  if (!e) throw new Error("琶音指法表缺：" + quality + "/" + sharpKey(pcOf(tonic)));
   const up = expandArp(e[hand], n);
   return { up, down: up.slice(0, -1).reverse() };
 }

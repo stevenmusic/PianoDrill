@@ -3,7 +3,8 @@
    混進 App 自己放的拍點(Naked Drums xstick:預備拍 2 小節 + 每一拍,手機喇叭離麥克風很近,琴聲小的時候拍點相對大聲)。
    必須過(過關率 ≥ 95%):準時、慢 30%、快 15%、小聲 −20 dB、放遠、手誤差 ±60 ms、踏板殘響、電扇底噪、漏 1 個音;
      八分音符的關加:從起始速度直接彈到目標速度、手誤差 ±40 ms、圓滑奏兩個音黏在一起(重疊 30 ms)、重音(每 4 個音一個 +6 dB)。
-   必須不過(誤過 0):靜音、只有電扇、有人講話、敲桌子、整輪錯音(差 1–2 個半音)、整段低一個八度、只彈一半、彈別的關。
+   必須不過(誤過 0):靜音、只有電扇、有人講話、敲桌子、整輪錯音(差 1–2 個半音)、整段低一個八度、整段高一個八度、只彈一半、彈別的關;
+     而且判出來的原因(decideDaily 的 reason)要對(每種情況的 why;App 的 lisWhy 照這個寫那一句)。
    每種情況跑兩次:有拍點(每一拍)/ 只有預備拍,報表寫出拍點讓過關率差多少。
    報表:每種情況的過關率 + 每關 × 每種情況。最後掃描門檻(decideDaily 的 DAILY;octKeep 在 analyseDaily,不掃):誤過 0 的前提下讓過關率最大,印出掃到的最好的一組跟現在的 DAILY 比。
      node tools/tech/listen-stress.mjs [--seeds 4] [--only ontime,silent] [--no-scan] */
@@ -78,6 +79,8 @@ async function renderClicks(page, clicks, seconds) {
 }
 
 /* ── 情況 ── pass = 必須過;fail = 必須不過 */
+const NOPIANO = ['silent', 'notPiano', 'missed'];   // 沒彈琴:「沒聽到琴聲」/「聽不出譜上的音」(電扇、講話偶爾有幾個音頭對得上 = 漏掉了)
+const WRONG = ['wrongPitch', 'notPiano', 'missed'];   // 彈錯音:音不對(對不上的時候也可能是聽不出 / 漏掉)
 const HAND = { jitter: 0.015, vel: [55, 85] };
 const SC = {
   ontime: { pass: true, ...HAND },
@@ -93,21 +96,22 @@ const SC = {
   jitter40: { pass: true, ...HAND, jitter: 0.04 },
   legato30: { pass: true, ...HAND, legato: 0.03 },        // 圓滑奏:前一個音放開前下一個音已經按下去(重疊 30 ms)
   accent6: { pass: true, ...HAND, accent: 2 },           // 重音:每 4 個音的第一個大 6 dB(振幅 × 2)
-  silent: { pass: false, none: true },
-  fanOnly: { pass: false, none: true, fan: 0.004 },
-  talk: { pass: false, none: true, talk: 0.01 },
-  loudTalk: { pass: false, none: true, talk: 0.05 },
-  knock: { pass: false, none: true, knock: 0.05 },
-  loudKnock: { pass: false, none: true, knock: 0.3 },
-  wrongUp1: { pass: false, ...HAND, shift: 1 }, wrongDn1: { pass: false, ...HAND, shift: -1 },
-  wrongUp2: { pass: false, ...HAND, shift: 2 }, wrongDn2: { pass: false, ...HAND, shift: -2 },
-  half: { pass: false, ...HAND, half: true },
-  otherP01: { pass: false, ...HAND, other: 'P01' },   // 彈成「手指號碼」(同樣的節奏,音的順序不一樣)
-  otherPD1: { pass: false, ...HAND, other: 'PD1', alt: 'PD3' },   // 彈成「右手 3、4 交替」(八分音符;本身就是 PD1 的關改彈 PD3)
-  octaveDn: { pass: false, ...HAND, shift: -12 },       // 整段低一個八度(五指位置一樣、手放錯八度:音名對、位置錯)
-  // 參考(不算進門檻與過關條件):拍點再大聲 10 dB、整段高一個八度
+  // why = 判出來的原因可以是哪幾種(decideDaily 的 reason)
+  silent: { pass: false, none: true, why: NOPIANO },
+  fanOnly: { pass: false, none: true, fan: 0.004, why: NOPIANO },
+  talk: { pass: false, none: true, talk: 0.01, why: NOPIANO },
+  loudTalk: { pass: false, none: true, talk: 0.05, why: NOPIANO },
+  knock: { pass: false, none: true, knock: 0.05, why: NOPIANO },
+  loudKnock: { pass: false, none: true, knock: 0.3, why: NOPIANO },
+  wrongUp1: { pass: false, ...HAND, shift: 1, why: WRONG }, wrongDn1: { pass: false, ...HAND, shift: -1, why: WRONG },
+  wrongUp2: { pass: false, ...HAND, shift: 2, why: WRONG }, wrongDn2: { pass: false, ...HAND, shift: -2, why: WRONG },
+  half: { pass: false, ...HAND, half: true, why: ['missed'] },
+  otherP01: { pass: false, ...HAND, other: 'P01', why: WRONG },   // 彈成「手指號碼」(同樣的節奏,音的順序不一樣)
+  otherPD1: { pass: false, ...HAND, other: 'PD1', alt: 'PD3', why: WRONG },   // 彈成「右手 3、4 交替」(八分音符;本身就是 PD1 的關改彈 PD3)
+  octaveDn: { pass: false, ...HAND, shift: -12, why: ['octaveLow'] },    // 整段低一個八度(五指位置一樣、手放錯八度:音名對、位置錯)
+  octaveUp: { pass: false, ...HAND, shift: 12, why: ['octaveHigh'] },    // 整段高一個八度
+  // 參考(不算進門檻與過關條件):拍點再大聲 10 dB
   clickLoud: { pass: true, info: true, ...HAND, click: 3 },
-  octaveUp: { pass: false, info: true, ...HAND, shift: 12 },
 };
 const MODES = { click: '有拍點', countIn: '只有預備拍' };
 
@@ -170,12 +174,13 @@ function rates(lim) {
   for (const c of cases) {
     const d = decideDaily(c.a, lim);
     const k = c.name;
-    const b = (out[k] ||= { pass: c.pass, info: c.info, n: {}, ok: {}, reasons: {} });
+    const b = (out[k] ||= { pass: c.pass, info: c.info, n: {}, ok: {}, reasons: {}, why: {}, badWhy: {} });
     const su = d.sure / d.total;
     b.sure = b.sure ? [Math.min(b.sure[0], su), Math.max(b.sure[1], su)] : [su, su];
     b.n[c.mode] = (b.n[c.mode] || 0) + 1;
     b.ok[c.mode] = (b.ok[c.mode] || 0) + (d.ok ? 1 : 0);
     if (c.mode === 'click' && d.ok !== c.pass) b.reasons[d.reason] = (b.reasons[d.reason] || 0) + 1;
+    if (!c.pass && !d.ok) { b.why[d.reason] = (b.why[d.reason] || 0) + 1; if (!SC[k].why.includes(d.reason)) b.badWhy[c.mode] = (b.badWhy[c.mode] || 0) + 1; }
   }
   return out;
 }
@@ -197,6 +202,7 @@ function table(lim, title) {
     要: (b.pass ? '過' : '不過') + (b.info ? '(參考)' : ''), 有拍點: pct(b.ok.click, b.n.click), 只有預備拍: pct(b.ok.countIn, b.n.countIn),
     拍點的影響: b.n.click && b.n.countIn ? `${(((b.ok.click / b.n.click) - (b.ok.countIn / b.n.countIn)) * 100).toFixed(0)} 點` : '-',
     有拍點判錯的原因: Object.entries(b.reasons).map(([r, n]) => `${r} ${n}`).join(' '),
+    不過的原因: Object.entries(b.why).map(([r, n]) => `${r} ${n}`).join(' '),
     譜上的音聽到: b.sure ? `${b.sure[0].toFixed(2)}–${b.sure[1].toFixed(2)}` : '-',
   }])));
   return { falsePass, minPass, meanPass };
@@ -247,6 +253,7 @@ for (const [k, b] of Object.entries(R)) for (const m of Object.keys(MODES)) {
   const r = b.ok[m] / b.n[m];
   if (b.pass && r < 0.95) problems.push(`${k}(${MODES[m]}):過關率 ${(r * 100).toFixed(0)}% < 95%`);
   if (!b.pass && b.ok[m]) problems.push(`${k}(${MODES[m]}):誤過 ${b.ok[m]} / ${b.n[m]}`);
+  if (!b.pass && b.badWhy[m]) problems.push(`${k}(${MODES[m]}):原因不對 ${b.badWhy[m]} / ${b.n[m]}(要 ${SC[k].why.join(' / ')})`);
 }
 if (problems.length) { console.error('\n✗', problems.length, '項問題:\n - ' + problems.join('\n - ')); process.exit(1); }
-console.log('\n✓ App 聽你彈:必須過的 ≥ 95%、必須不過的誤過 0');
+console.log('\n✓ App 聽你彈:必須過的 ≥ 95%、必須不過的誤過 0、原因都對');

@@ -108,7 +108,7 @@ if (want('ontime')) {
   ok(s0.lv === 'PA1' && s0.mode === 'play', `在 PA1、底部按鈕是 ▶(${s0.lv} ${s0.mode})`);
   ok(/你彈一輪/.test(s0.label), `底部按鈕寫「你彈一輪」(${s0.label})`);
   ok(/聽你彈/.test(s0.cap), `▶ 小字寫「拍點 + 聽你彈」(${s0.cap})`);
-  ok(/麥克風聽你彈:開/.test(s0.mic || ''), `面板有麥克風開關(${s0.mic})`);
+  ok(/麥克風聽你彈[:：]開/.test(s0.mic || ''), `面板有麥克風開關(${s0.mic})`);
   ok(!s0.againOn, '還沒彈:「還要練」不能按');
   const bpm = await h.page.evaluate(() => window.__tech.state.bpm);
   await writeWav(h.page, h.wav, { bpm });

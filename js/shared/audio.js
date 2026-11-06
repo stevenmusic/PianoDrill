@@ -34,7 +34,7 @@ class SSMasterLimiter extends AudioWorkletProcessor {
       return c;
     });
     this.T = T; this.H = H;
-    this.hist = [new Float64Array(2 * T), new Float64Array(2 * T)]; this.hp = 0;   // 兩倍長:寫在 hp 與 hp+T,讀取時連續
+    this.hist = [new Float64Array(2 * T), new Float64Array(2 * T)]; this.hp = 0;   // 兩倍長：寫在 hp 與 hp+T，讀取時連續
     this.W = this.L + T;
     this.D = this.L + 8;
     let sz = 1; while (sz < this.D + 1) sz <<= 1; this.dmask = sz - 1;
@@ -46,7 +46,7 @@ class SSMasterLimiter extends AudioWorkletProcessor {
     this.grMax = 0; this.grSamples = 0; this.total = 0;
     this.port.onmessage = e => {
       if (e.data === "stats") this.port.postMessage({ grMaxDb: -20 * Math.log10(Math.max(1e-9, 1 - this.grMax)), grPct: 100 * this.grSamples / Math.max(1, this.total) });
-      else if (e.data && e.data.release) {   // 匯出含鼓的曲子時改快放開(只削尖峰),匯出完再改回來
+      else if (e.data && e.data.release) {   // 匯出含鼓的曲子時改快放開（只削尖峰），匯出完再改回來
         this.relFast = Math.exp(-1 / (sampleRate * e.data.release));
         this.relSlow = Math.exp(-1 / (sampleRate * (e.data.releaseSlow || e.data.release)));
       }
@@ -59,7 +59,7 @@ class SSMasterLimiter extends AudioWorkletProcessor {
     const hl = this.hist[0], hr = this.hist[1], qv = this.qv, qt = this.qt, qmask = this.qmask, ma = this.ma;
     const d0 = this.dl[0], d1 = this.dl[1], dmask = this.dmask, D = this.D;
     const relFast = this.relFast, relSlow = this.relSlow, hold = this.hold, pressUp = this.pressUp;
-    const skip = ceil / 1.5;   // 取樣值都低於上限 −3.5dB 時,取樣之間的峰值不可能超過上限,省掉內插
+    const skip = ceil / 1.5;   // 取樣值都低於上限 −3.5dB 時，取樣之間的峰值不可能超過上限，省掉內插
     let hp = this.hp, qh = this.qh, qn = this.qn, maSum = this.maSum, mi = this.mi, env = this.env, press = this.press, n = this.n, di = this.di;
     let minEnv = 1, grS = 0;
     const oL = out[0], oR = out[1];
@@ -68,7 +68,7 @@ class SSMasterLimiter extends AudioWorkletProcessor {
       if (xl !== xl) xl = 0; if (xr !== xr) xr = 0;
       hl[hp] = xl; hl[hp + T] = xl; hr[hp] = xr; hr[hp + T] = xr;
       hp = (hp + 1) & (T - 1);
-      // 最舊的在 hp,連續讀 hl[hp .. hp+T-1];中心 m = hp+H
+      // 最舊的在 hp，連續讀 hl[hp .. hp+T-1]；中心 m = hp+H
       let raw = 0;
       for (let j = 0; j < T; j++) { const a = Math.abs(hl[hp + j]), b = Math.abs(hr[hp + j]); if (a > raw) raw = a; if (b > raw) raw = b; }
       let pk = Math.max(Math.abs(hl[hp + H]), Math.abs(hr[hp + H]));
@@ -78,16 +78,16 @@ class SSMasterLimiter extends AudioWorkletProcessor {
         pk = Math.max(pk, Math.abs(a0), Math.abs(a1), Math.abs(a2), Math.abs(b0), Math.abs(b1), Math.abs(b2));
       }
       const g = pk > ceil ? ceil / pk : 1;
-      // 滑動最小值(單調佇列),視窗 W
+      // 滑動最小值（單調佇列），視窗 W
       while (qn > 0 && qv[(qh + qn - 1) & qmask] >= g) qn--;
       const tail = (qh + qn) & qmask; qv[tail] = g; qt[tail] = n; qn++;
       while (qt[qh] <= n - W) { qh = (qh + 1) & qmask; qn--; }
       n++;
-      // 移動平均(長度 L)
+      // 移動平均（長度 L）
       const gmin = qv[qh];
       maSum += gmin - ma[mi]; ma[mi] = gmin; mi = mi + 1 === L ? 0 : mi + 1;
       const gs = Math.min(1, maSum / L);
-      // press:最近 0.3 秒有多少時間「需要」壓 0.25dB 以上(看目標增益,不看放開中的尾巴)
+      // press：最近 0.3 秒有多少時間「需要」壓 0.25dB 以上（看目標增益，不看放開中的尾巴）
       if (gs < 0.97) press += (1 - press) * pressUp; else { press *= hold; if (press < 1e-6) press = 0; }
       if (gs < env) env = gs;
       else { const r = relFast + (relSlow - relFast) * press; env = gs + (env - gs) * r; if (1 - env < 1e-7) env = 1; }
@@ -152,7 +152,7 @@ function buildMaster(){
       masterBus.disconnect(fbTrim); masterBus.connect(lim); lim.connect(masterOut);
       masterLimiterNode = lim;
       return true;
-    } catch (e) { console.warn("母帶限幅器載入失敗,使用備援:", e); return false; }
+    } catch (e) { console.warn("母帶限幅器載入失敗，使用備援：", e); return false; }
   })();
 }
 /* iPhone 側邊靜音開關打開時,網頁的 Web Audio 預設會被靜音(看起來像按播放沒反應);設成 playback 就照樣有聲音(Safari 17+)。

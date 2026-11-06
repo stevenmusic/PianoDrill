@@ -15,7 +15,7 @@ export const INTERVALS = {
 /* "F#" / "Bb" / "C" → { letter: 3, alter: 1 } */
 export function parseNote(s){
   const m = /^([A-G])(##|#|bb|b|x)?$/.exec(s.trim());
-  if (!m) throw new Error("音名格式錯誤:" + s);
+  if (!m) throw new Error("音名格式錯誤：" + s);
   const alter = { "#": 1, "##": 2, x: 2, b: -1, bb: -2 }[m[2]] || 0;
   return { letter: LETTERS.indexOf(m[1]), alter };
 }

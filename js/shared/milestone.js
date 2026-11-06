@@ -5,15 +5,15 @@
    - 同一類挑了比較大的門檻,比它小的一起算看過(also;例如第一次用就已經連續 30 天,不會隔天再說 14 天)
    - 句子:老師的口吻、具體說練了有什麼用;不形容聲音、不比較別人、不寫徽章;中文 ≤ 16 字、英文 ≤ 40 字(兩個 App 都通用:不寫琴、鼓) */
 export const MILESTONES = [
-  { id: "s3", k: "streak", n: 3, zh: "連續練 3 天了,習慣開始養成!", en: "3 days in a row: a habit is forming!" },
-  { id: "s7", k: "streak", n: 7, zh: "連續練 7 天了,手開始記住了!", en: "7 days in a row: your hands remember!" },
-  { id: "s14", k: "streak", n: 14, zh: "連續練 14 天,越練越順手!", en: "14 days in a row: it's getting easier!" },
-  { id: "s30", k: "streak", n: 30, zh: "連續練 30 天,練習成了習慣!", en: "30 days in a row: practice is a habit!" },
-  { id: "s100", k: "streak", n: 100, zh: "連續練 100 天,好有毅力!", en: "100 days in a row: real dedication!" },
-  { id: "p5", k: "passed", n: 5, zh: "累計 5 關,一步一步來!", en: "5 levels in all: step by step!" },
-  { id: "p10", k: "passed", n: 10, zh: "累計 10 關,基本功越來越穩!", en: "10 levels in all: solid basics!" },
-  { id: "p20", k: "passed", n: 20, zh: "累計 20 關,會的越來越多!", en: "20 levels in all: you know so much now!" },
-  { id: "p30", k: "passed", n: 30, zh: "累計 30 關,慢慢練真的有用!", en: "30 levels in all: slow practice works!" }
+  { id: "s3", k: "streak", n: 3, zh: "連續練 3 天了，習慣開始養成！", en: "3 days in a row: a habit is forming!" },
+  { id: "s7", k: "streak", n: 7, zh: "連續練 7 天了，手開始記住了！", en: "7 days in a row: your hands remember!" },
+  { id: "s14", k: "streak", n: 14, zh: "連續練 14 天，越練越順手！", en: "14 days in a row: it's getting easier!" },
+  { id: "s30", k: "streak", n: 30, zh: "連續練 30 天，練習成了習慣！", en: "30 days in a row: practice is a habit!" },
+  { id: "s100", k: "streak", n: 100, zh: "連續練 100 天，好有毅力！", en: "100 days in a row: real dedication!" },
+  { id: "p5", k: "passed", n: 5, zh: "累計 5 關，一步一步來！", en: "5 levels in all: step by step!" },
+  { id: "p10", k: "passed", n: 10, zh: "累計 10 關，基本功越來越穩！", en: "10 levels in all: solid basics!" },
+  { id: "p20", k: "passed", n: 20, zh: "累計 20 關，會的越來越多！", en: "20 levels in all: you know so much now!" },
+  { id: "p30", k: "passed", n: 30, zh: "累計 30 關，慢慢練真的有用！", en: "30 levels in all: slow practice works!" }
 ];
 export const MS_IDS = MILESTONES.map(m => m.id);
 const num = v => (typeof v === "number" && Number.isFinite(v) && v > 0 ? Math.floor(v) : 0);

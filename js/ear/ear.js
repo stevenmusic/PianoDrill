@@ -105,7 +105,7 @@ function build(tab, pick, it, items){
     const m = pickOne(cands), ref = pick.ref === "C" ? 60 : pick.ref === "A" ? 69 : null;
     return { tab, key: "note:" + it.id, sig: "n" + m, play: playOf([m], "single"), ref,
       keys: { target: [m], lo: 60, hi: 71, pcOnly: true, allowed: items.map(x => x.pc), mute: true },
-      get label(){ return tr("這是什麼音?", "What note?"); }, get tags(){ return [tr("不分八度", "Any octave")]; }   /* 參考音是琴鍵上方的「這是 C」鈕,標籤只留題目卡獨有的 */, get reveal(){ return noteName(m) + (Math.floor(m / 12) - 1); },
+      get label(){ return tr("這是什麼音？", "What note?"); }, get tags(){ return [tr("不分八度", "Any octave")]; }   /* 參考音是琴鍵上方的「這是 C」鈕,標籤只留題目卡獨有的 */, get reveal(){ return noteName(m) + (Math.floor(m / 12) - 1); },
       compare: id => playOf([Math.floor(m / 12) * 12 + Number(id)], "single", null) };
   }
   if (tab === "interval") {
@@ -115,8 +115,8 @@ function build(tab, pick, it, items){
     const ns = x => dir === "down" ? [root + x.st, root] : [root, root + x.st];
     const mode = dir === "harm" ? "block" : "melodic";
     return { tab, key: "interval:" + it.id, sig: dir + root + it.id, play: playOf(ns(it), mode),
-      steps: [{ get q(){ return tr("什麼音程?", "Which interval?"); }, choices: items.map(x => ({ id: x.id, get label(){ return intervalLabel(x); }, get sub(){ return tr(x.ex[0], x.ex[1]); } })), answer: it.id }],
-      get label(){ return tr("這是什麼音程?", "Which interval?"); }, get tags(){ return pick.dir === "mix" ? questionTags({ tab, dir }) : []; }   /* 方向跟設定列一樣就不寫;「混合」才寫這一題是哪一種 */, reveal: ns(it).map(midiName).join(" → "),
+      steps: [{ get q(){ return tr("什麼音程？", "Which interval?"); }, choices: items.map(x => ({ id: x.id, get label(){ return intervalLabel(x); }, get sub(){ return tr(x.ex[0], x.ex[1]); } })), answer: it.id }],
+      get label(){ return tr("這是什麼音程？", "Which interval?"); }, get tags(){ return pick.dir === "mix" ? questionTags({ tab, dir }) : []; }   /* 方向跟設定列一樣就不寫;「混合」才寫這一題是哪一種 */, reveal: ns(it).map(midiName).join(" → "),
       compare: id => playOf(ns(INTERVALS.find(x => x.id === id)), mode) };
   }
   const inv = pick.inv === "root" ? 0 : rnd(it.iv.length);
@@ -124,8 +124,8 @@ function build(tab, pick, it, items){
   const mode = pick.style === "mix" ? pickOne(["block", "arp"]) : pick.style;
   const vo = c => voice(root, c.iv, Math.min(inv, c.iv.length - 1));
   return { tab, key: "chord:" + it.id, sig: mode + root + inv + it.id, play: playOf(vo(it), mode),
-    steps: [{ get q(){ return tr("什麼和弦?", "Which chord?"); }, choices: items.map(x => ({ id: x.id, get label(){ return chordLabel(x); } })), answer: it.id }],
-    get label(){ return tr("這是什麼和弦?", "Which chord?"); }, get tags(){ return pick.style === "mix" ? questionTags({ tab, mode }) : []; },
+    steps: [{ get q(){ return tr("什麼和弦？", "Which chord?"); }, choices: items.map(x => ({ id: x.id, get label(){ return chordLabel(x); } })), answer: it.id }],
+    get label(){ return tr("這是什麼和弦？", "Which chord?"); }, get tags(){ return pick.style === "mix" ? questionTags({ tab, mode }) : []; },
     get reveal(){ return pcName(root) + " " + chordLabel(it) + (inv ? "(" + INV_NAME()[inv] + ")" : ""); },
     compare: id => playOf(vo(CHORDS.find(x => x.id === id)), mode) };
 }

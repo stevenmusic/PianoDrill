@@ -41,15 +41,15 @@ export function build({ app = "", days = [], mods = {}, daily = [], lang = "zh" 
   } else {
     lines.push(L(`練了 ${all.size} / 7 天 · 共 ${mins(total)}`, `Practiced ${all.size} of 7 days · ${mins(total)} in all`));
     const none = L("這週沒練", "not this week");
-    lines.push(L("技巧:", "Technique: ") + (t.tech.days.size ? mins(t.tech.sec) : none));
-    lines.push(L("視奏:", "Sight-reading: ") + (t.sight.days.size ? L(`${t.sight.n} 題 · `, plural(t.sight.n, "question", "questions") + " · ") + mins(t.sight.sec) : none));
+    lines.push(L("技巧：", "Technique: ") + (t.tech.days.size ? mins(t.tech.sec) : none));
+    lines.push(L("視奏：", "Sight-reading: ") + (t.sight.days.size ? L(`${t.sight.n} 題 · `, plural(t.sight.n, "question", "questions") + " · ") + mins(t.sight.sec) : none));
     const rate = t.ear.total ? L(` · 正確率 ${Math.round(100 * t.ear.hits / t.ear.total)}%`, ` · ${Math.round(100 * t.ear.hits / t.ear.total)}% right`) : "";
-    lines.push(L("聽力:", "Aural: ") + (t.ear.days.size ? L(`${t.ear.n} 題`, plural(t.ear.n, "question", "questions")) + rate : none));
+    lines.push(L("聽力：", "Aural: ") + (t.ear.days.size ? L(`${t.ear.n} 題`, plural(t.ear.n, "question", "questions")) + rate : none));
   }
   const names = (Array.isArray(daily) ? daily : []).map(x => (Array.isArray(x) ? x[en ? 1 : 0] : x)).filter(x => typeof x === "string" && x);
   if (names.length) {
     const shown = names.slice(0, MAX_LEVELS), more = names.length - shown.length;
-    lines.push(L(`今日練習過關:${shown.join("、")}${more ? ` 等 ${names.length} 關` : ""}`,
+    lines.push(L(`今日練習過關：${shown.join("、")}${more ? ` 等 ${names.length} 關` : ""}`,
       `Levels passed: ${shown.join(", ")}${more ? ` and ${more} more` : ""}`));
   }
   lines.push(L(`— ${app}`, `— ${app}`));

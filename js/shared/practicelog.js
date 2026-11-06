@@ -76,7 +76,7 @@ function paintEmpty($, log){
   box.classList.toggle("log-empty", empty);
   let p = box.querySelector(".log-first");
   if (empty && !p) { p = document.createElement("p"); p.className = "log-first"; const h = box.querySelector(".card-title"); h ? h.after(p) : box.prepend(p); }
-  if (p) pairText(p, () => tr("練完第一次,這裡會記下你的進步", "Your progress shows up here after your first practice"));
+  if (p) pairText(p, () => tr("練完第一次，這裡會記下你的進步", "Your progress shows up here after your first practice"));
 }
 /* 畫紀錄卡(第三格模組自己寫):連續天數、今天次數、每週目標、最近 7 天 */
 export function renderLog($, log, goal){
@@ -93,7 +93,7 @@ export function renderLog($, log, goal){
   const label = met ? tr(`✓ 本週達標 ${g} 分鐘`, `✓ Goal met · ${g} min`) : tr(`每週目標 ${min}/${g} 分鐘`, `Weekly ${min}/${g} min`);
   $("goalBtn").textContent = label;
   $("goalBtn").classList.toggle("done", met);
-  $("goalBtn").setAttribute("aria-label", label + tr("(點一下換目標)", " (tap to change)"));
+  $("goalBtn").setAttribute("aria-label", label + tr("（點一下換目標）", " (tap to change)"));
   const names = getLang() === "en" ? ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"] : ["日", "一", "二", "三", "四", "五", "六"];
   let html = "";
   for (let i = 6; i >= 0; i--) {

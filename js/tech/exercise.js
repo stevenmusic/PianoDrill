@@ -224,7 +224,7 @@ export function buildExercise(FG, q){
     chromatic: (FG, q) => buildChromatic(q), wholetone: (FG, q) => buildWholeTone(q),
     broken: (FG, q) => buildBroken(q), thirds: buildDouble, sixths: buildDouble
   }[q.type];
-  if (!b) throw new Error("未知題型:" + q.type);
+  if (!b) throw new Error("未知題型：" + q.type);
   const { rh, lh } = b(FG, q);
   const noKey = ["chromatic", "dim7", "wholetone"].includes(q.type);
   const fifths = noKey ? 0 : keyFifths(q.tonic, q.quality || "major");
@@ -250,7 +250,7 @@ const keyQ = q => q.quality === "minor" && q.form ? nm(q.tonic) + " " + pick(FOR
 export function keyName(q){
   switch (q.type) {
     case "chromatic":
-      if (q.lhStart && q.rhStart && q.lhStart !== q.rhStart) return tr(`半音階(左 ${nm(q.lhStart)}、右 ${nm(q.rhStart)})`, `Chromatic, left ${nm(q.lhStart)}, right ${nm(q.rhStart)}`);
+      if (q.lhStart && q.rhStart && q.lhStart !== q.rhStart) return tr(`半音階（左 ${nm(q.lhStart)}、右 ${nm(q.rhStart)}）`, `Chromatic, left ${nm(q.lhStart)}, right ${nm(q.rhStart)}`);
       return tr("從 " + nm(q.tonic) + " 開始的半音階", "Chromatic on " + nm(q.tonic));
     case "wholetone": return tr("從 " + nm(q.tonic) + " 開始的全音音階", "Whole-tone on " + nm(q.tonic));
     case "dim7": return tr(nm(q.tonic) + " 減七和弦琶音", "Dim. 7th on " + nm(q.tonic));
@@ -260,7 +260,7 @@ export function keyName(q){
     case "thirds": return keyQ(q) + tr("三度雙音音階", " in 3rds");
     case "sixths": return keyQ(q) + tr("六度雙音音階", " in 6ths");
   }
-  const apart = q.apart === 3 ? tr("(相隔三度)", "3rd apart") : q.apart === 6 ? tr("(相隔六度)", "6th apart") : "";
+  const apart = q.apart === 3 ? tr("（相隔三度）", "3rd apart") : q.apart === 6 ? tr("（相隔六度）", "6th apart") : "";
   if (q.motion === "contrary") return q.quality === "minor" && q.form ? nm(q.tonic) + tr(" " + FORM[q.form][0] + "反向音階", " " + FORM[q.form][2] + " contrary") : keyQ(q) + tr("反向音階", " contrary");
   if (apart) return getLang() === "en" ? nm(q.tonic) + (q.quality === "minor" && q.form ? " " + FORM[q.form][2] : " major") + ", " + apart : keyQ(q) + (q.quality === "minor" && q.form ? "" : "音階") + apart;
   return keyQ(q) + tr("音階", " scale");

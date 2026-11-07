@@ -481,7 +481,8 @@ main{padding-bottom:calc(84px + env(safe-area-inset-bottom))}
   background:url(../icons/icon-512.png) center/cover;box-shadow:0 12px 32px rgba(0,0,0,.35)}
 :root.light #onboard .modal-card::before{box-shadow:0 12px 32px rgba(90,72,30,.18)}
 #onboard .modal-card.ob-exam-on::before{width:64px;height:64px;border-radius:16px;margin:0 auto 12px}
-#onboard .modal-card h2{font-size:var(--fs-title);line-height:1.35;color:var(--ivory);min-height:calc(2em * 1.35)}   /* 一律留兩行:中英一個一行、一個兩行時版面一樣高 */
+#onboard .modal-card h2{font-size:var(--fs-title);line-height:1.35;color:var(--ivory);min-height:calc(2em * 1.35);text-wrap:balance}   /* 一律留兩行:中英一個一行、一個兩行時版面一樣高;換行時不留單獨一個字:中文 balance(折疊機「每天 10 分鐘，/ 跟著彈就會」)、英文 pretty(「10 minutes a day. / Play along.」;balance 會切在 a / day) */
+:lang(en) #onboard .modal-card h2{text-wrap:pretty}
 #onboard .modal-sub{font-size:var(--fs-body);margin-top:8px}
 #onboard .modal-actions{margin-top:auto;padding-top:24px}
 .subnav[inert]{display:none}   /* 歡迎打開時(main.js 的 openOnboard 把子項目列設成 inert)子項目列不顯示:直式頂欄只剩一行,上面讓出 64 就夠;主題 / 語言照舊能按 */

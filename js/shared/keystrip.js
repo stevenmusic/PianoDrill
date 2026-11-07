@@ -34,7 +34,7 @@ export function createKeystrip(el, { low = 48, high = 72, now = null } = {}){
     if (!W || !H) return;   // 看不到(hidden、寬度 0):等 ResizeObserver 再畫
     const whites = []; for (let m = lo; m <= hi; m++) if (!isBlackKey(m)) whites.push(m);
     const kw = W / whites.length, bw = kw * 0.62, bh = H * 0.6;
-    const fs = Math.max(10, Math.min(22, kw * 0.5, H * 0.3)), bfs = Math.max(9, Math.min(16, bw * 0.62));
+    const fs = Math.max(12, Math.min(22, kw * 0.5, H * 0.3)), bfs = Math.max(12, Math.min(16, bw * 0.62));   // 指法數字不小於 12(70 歲看得清)
     let wh = "", bl = "";
     const cls = m => (marks.has(m) ? " on" : soft.has(m) ? " soft" : "") + (lit.has(m) ? " lit" : "");
     whites.forEach((m, i) => {

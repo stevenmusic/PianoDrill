@@ -181,6 +181,11 @@
 .rd-beats.idle{opacity:.45;pointer-events:none}
 .rd-row > .rd-hint{grid-column:2;margin-top:-4px;font-size:var(--fs-xs);color:var(--muted-bright);line-height:1.4;overflow-wrap:anywhere}
 @media (max-width:380px){ .rd-row > .rd-hint{grid-column:1;margin-top:0} }
+/* 字級放大(根字級 2 倍)時設定卡容器查詢:標籤放在按鈕列上面、範圍快捷 2 × 2(不疊字、不截字;2026-11-07 大字健檢)。
+   em = 卡片字級(預設 16px:最窄的折疊機約 15em,不受影響;2 倍字時 390 約 10.7em) */
+#s-rdOpts{container-type:inline-size}
+@container (max-width:13em){ #s-rdOpts .rd-row{grid-template-columns:minmax(0,1fr);gap:4px} #s-rdOpts .rd-row > .rd-hint{grid-column:1;margin-top:0}
+  #s-rdOpts .rd-seg4{grid-template-columns:repeat(2,minmax(0,1fr))} }
 .rd-seg.rd-vals .opt{white-space:nowrap;padding:4px 2px}
 /* 檢定頁的本項卡(畫面設計 2026-10 版型 B;js/sight/app.js 的 showExamItem):最下面一列只留「練習一題」(靠右) */
 #s-quiz.hint-empty .q-foot > :not(#s-generate):not(span){display:none}
@@ -220,6 +225,7 @@
 @media (max-width:300px){ #s-setup #s-tempoBox{flex-basis:100%} }   /* 折疊機:速度自己一行(中文「拍 / 分鐘」比 BPM 長,擠在同一行會只有中文換行) */
 /* 手機直式:題目卡標籤(C 大調 · 3/4 · 4 小節 · ♩=76)跟標題同一行;英文「C major」比「C 大調」寬,內距與間距小一點兩種語言才都放得下 */
 @media (max-width:430px){ #mod-sight .q-ht .q-tags{gap:4px} #mod-sight .q-ht .q-tag{padding-left:6px;padding-right:6px} }
+#mod-sight .q-tags{flex-wrap:wrap;row-gap:4px}   /* 字級放大時一行放不下就換行(不切掉「♩=66」;預設字級放得下,一樣一行) */
 /* 狀態 / 下一步那一句 = 內文 17(跟今日練習的狀態句同一級;say() 把 class 換成 message 後原本掉回 16,第 7 輪健檢);手機橫式照 app.css 14 */
 #s-message{font-size:var(--fs-body)}
 @media (max-height:420px), (orientation:landscape) and (max-height:500px){ #s-message{font-size:var(--fs-sm)} }

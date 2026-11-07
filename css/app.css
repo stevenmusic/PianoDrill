@@ -951,6 +951,7 @@ details.exam-info .verify-note{margin-top:0}
 .lvl-row .lvl b{font-family:inherit;font-size:var(--fs-xl);color:var(--ivory);line-height:1.2;min-width:min(4.6em, 30vw);flex:0 1 auto;text-align:center;font-variant-numeric:tabular-nums}
 .lvl-row .btn.round{flex:none}
 .lvl-row .btn.round:disabled{opacity:.35}
+.lvl-row .btn.round svg{width:max(16px, min(calc(16rem / 17), 24px));height:auto}   /* ▼ ▲ 跟著字級放大(預設 16,2 倍字 24;線條跟著變粗,70 歲看得到) */
 .lvl-row .info{flex:1 1 150px;min-width:0;font-size:var(--fs-sm);color:var(--muted-bright);line-height:1.5;overflow-wrap:anywhere}
 .diff-msg{margin-top:8px;font-size:var(--fs-sm);color:var(--ivory);overflow-wrap:anywhere}
 .diff-fb{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-top:10px}
@@ -992,8 +993,13 @@ body.view-exam #t-dailyCard,body.view-exam #t-dailyStep{display:none !important}
 .daily-list li.locked .daily-t{font-size:var(--fs-sub);font-weight:500}
 .daily-list li.locked .daily-mark{border-style:dashed}
 @media (max-width:300px){ .daily-list li{padding:10px 12px;column-gap:10px} .daily-t{font-size:var(--fs-sub)} }   /* 折疊機:關卡名一行放得下(英文「Level 1 · Find middle C」),中英同高 */
+/* 字級放大又窄(SE 320 × 2 倍字:清單不到 9.5 個字寬;em = 卡片內文字級,預設 16px 最窄的折疊機約 15em 不受影響):跟折疊機一樣關卡名小一級、列的內距小一點,
+   「開始今天的練習」才在第一個畫面(2026-11-07 大字健檢) */
+@media (max-width:600px){ .daily-list{container-type:inline-size} }
+@container (max-width:9.5em){ .daily-list li{padding:6px 12px;column-gap:10px} .daily-t{font-size:var(--fs-sub)} }
 .daily-btn{width:100%;min-height:48px;height:auto;white-space:normal}
 .daily-note,.daily-sub{font-size:var(--fs-xs);color:var(--muted-bright);line-height:1.5;margin-top:8px}
+.daily-note{text-wrap:balance;word-break:keep-all;overflow-wrap:anywhere}   /* 換行時在「，」後面斷、兩行差不多長(不讓「分」單獨掉到下一行、不拆開「關係」;字級放大的 SE) */
 .daily-sum{font-size:var(--fs-md);color:var(--ivory);line-height:1.5}
 .daily-ms{margin-top:8px}   /* 里程碑稱讚(練完了卡最後一行;milestone.js) */
 .daily-more{width:100%;min-height:44px;height:auto;margin-top:12px;white-space:normal}
@@ -1038,15 +1044,18 @@ body.view-exam #t-dailyCard,body.view-exam #t-dailyStep{display:none !important}
 @media (prefers-reduced-motion:reduce){ .celebrate path{stroke-dashoffset:0} .daily-road-btn .road-chev,.road-gb .road-chev{transition:none} }
 /* 進行中:一行進度 */
 .daily.daily-run{padding-top:6px;padding-bottom:6px}
-.daily-bar{display:flex;align-items:center;gap:8px;min-height:44px;min-width:0}
+.daily-bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;min-height:44px;min-width:0}   /* 字級放大時放不下:按鈕換到第二行(不切掉、不撐出畫面) */
 .daily-bar b{flex:none;font-family:inherit;font-weight:700;font-size:var(--fs-sub);color:var(--ivory);white-space:nowrap;font-variant-numeric:tabular-nums}
 .daily-dots{display:flex;gap:4px;flex:none}
 .daily-dots i{width:10px;height:10px;border-radius:50%;border:1px solid var(--muted)}
 .daily-dots i.on{background:var(--ivory);border-color:var(--ivory)}
 .daily-dots i.cur{border:2px solid var(--ivory)}
 .daily-left{flex:1 1 0;min-width:0;font-size:var(--fs-xs);color:var(--muted-bright);line-height:1.25;word-break:keep-all;overflow-wrap:anywhere}   /* 放不下就在空白處換行(「剩約」/「6 分」),不切成「…」(折疊機 280) */
+.daily-left{min-width:2.6em}   /* 至少放得下「剩約」「12 分」:字級放大時不擠成一字一行,改讓按鈕換行 */
+:lang(en) .daily-left{min-width:4em}   /* 英文最短一段是「~12 min」(不斷開的空格);預設字級最窄的折疊機也有 6em,不受影響 */
 .daily-left.up{color:var(--ivory);font-weight:700}
 .daily-bar .daily-next{flex:none;min-height:44px;height:auto}
+@media (max-width:1099px){ .daily-bar .daily-next{margin-left:auto} }   /* 換到第二行時靠右(同一行時「剩約 n 分」已經撐滿,沒有差別) */
 @media (max-width:340px){ .daily-dots{display:none} }
 @media (max-width:300px){ .daily-bar{gap:4px} }   /* 折疊機:按鈕字 14 以後,「剩約 6 分」還放得下 */
 /* 段落面板(題目卡裡) */

@@ -238,30 +238,10 @@ function showView(view, sub){
   if (modName) MODS[modName].enter(tab);
   balanceSoon();
 }
-/* ══ 寬畫面(≥ 1100)兩欄高度接近(使用者:左欄下面不要空一大塊):練習紀錄卡(id 結尾 logCard)放在比較矮的那一欄最下面
-   (照其他卡片的高度決定,搬過去不會再來回);左欄沒有東西(例如今日練習進行中:選擇器、紀錄都藏起來)或只剩練習紀錄(今日練習還沒開始:紀錄搬到今日練習卡下面)= 一欄(.mod.one-col,app.css)。
-   窄畫面、檢定頁放回原處 */
+/* ══ 寬畫面(≥ 1100):一個框、一欄(docs/DESIGN.md 第 9 節丙;以前的 balanceCols 兩欄平衡拿掉了,練習紀錄卡不再搬家,照 app.css 的 order 排)。
+   版面變了(換寬度、卡片高度變了)只要重算一張練習卡的合併(syncJoin)與底部按鈕列(syncCta) */
 const WIDE = matchMedia("(min-width:1100px)");
-function balanceCols(){
-  for (const mod of document.querySelectorAll(".mod")) {
-    const side = mod.querySelector(":scope > .mod-side"), main = mod.querySelector(":scope > .mod-main");
-    if (!side || !main) continue;
-    const log = mod.querySelector('[id$="logCard"]');
-    if (log && !log._home) log._home = { parent: log.parentNode, next: log.nextElementSibling };
-    const home = () => { if (log && log.parentNode !== log._home.parent) log._home.parent.insertBefore(log, log._home.next && log._home.next.parentNode === log._home.parent ? log._home.next : null); };
-    if (mod.hidden || !WIDE.matches || document.body.classList.contains("view-exam")) { if (!mod.hidden) { home(); mod.classList.remove("one-col"); } continue; }
-    const shown = el => !el.hidden && getComputedStyle(el).display !== "none";
-    const h = col => [...col.children].filter(c => c !== log && shown(c)).reduce((a, c) => a + c.getBoundingClientRect().height + 16, 0);
-    const others = [...side.children].some(c => c !== log && shown(c));   // 左欄除了練習紀錄還有別的
-    if (log && shown(log)) {
-      const want = others && h(side) <= h(main) ? side : main;
-      if (log.parentNode !== want) { if (want === log._home.parent) home(); else want.appendChild(log); }
-    }
-    mod.classList.toggle("one-col", !others);
-  }
-}
-let balanceRaf = 0;
-const balanceSoon = () => { cancelAnimationFrame(balanceRaf); balanceRaf = requestAnimationFrame(balanceCols); ctaSoon(); };
+const balanceSoon = () => ctaSoon();
 /* ══ 題目卡最後一行固定在畫面底部(2026-11 使用者選定;跟今日練習的 .daily-cta 一樣,分頁列正上方、位置永遠不變):
    手機(直式 ≤ 600 寬、手機橫式)目前看得到的模組裡第一張看得到的題目卡(.quiz),它最後一個有按鈕的 .q-foot / .q-last 加 .cta-bar(app.css),
    body 加 has-cta、--cta-h = 這一列的高(main 的底部留白);今日練習段落進行中(body.daily-on)照舊用 .daily-cta,不要兩條。

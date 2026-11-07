@@ -1,4 +1,4 @@
-# 設計規格(方向 B「填色層次」;2026-11 使用者選定。**顏色以第 8 節為準**:2026-11-06 使用者選顏色規則乙 + 美觀方向 B「主角清楚」)
+# 設計規格(方向 B「填色層次」;2026-11 使用者選定。**顏色以第 8 節為準**:2026-11-06 使用者選顏色規則乙 + 美觀方向 B「主角清楚」;**寬畫面(≥ 1100)以第 9 節為準**)
 
 兩個 App(PianoDrill / DrumDrill)共用。`css/app.css` 是 sync.json 的 `same`:改完複製到另一個 repo,跑 `node tools/test/sync.mjs`。
 跟 CLAUDE.md「畫面設計」「系統化規則」衝突時以 CLAUDE.md 為準;這份只管「長什麼樣子」。
@@ -323,7 +323,7 @@ DrumDrill:共用的 app.css、main.js(syncJoin)、celebrate.js、dailycard.js、
    - **不改 `html` 的 font-size**(B.css 的 `html{font-size:125%!important}` 會蓋掉 iPad 的 `-apple-system-body` 動態字級,也會放大品牌名,品牌名要跟 ScrollScore 逐項相同)。改成字級代幣乘一個係數:
      `:root{--fs-k:1}`;五級寫成 `--fs-title:min(calc(26rem / 17 * var(--fs-k)), 34px)`(其他四級同理,上限不變);`body` 的預設字級 `min(calc(16rem / 17 * var(--fs-k)), 32px)`;
      `@media (min-width:900px) and (min-height:501px){ :root{--fs-k:1.176} }`(= 20 / 17;題目大標題 30.6、內文 20、標籤 16.5)。分頁列、品牌名、譜面字照舊不放大
-   - 寬度:同一個 media `main,footer{max-width:1040px}`(取代 ≥ 1100 的 1480);`≥ 1100` 一欄置中 `.mod.one-col > .mod-main` 1100 → **880**、今日還沒開始 760 → **880**、跟著它的 footer、`.subnav .sub-bar`、`.daily-cta` / `.cta-bar` 的置中公式 1100 → 880;檢定頁沒選考試的 760 照舊
+   - 寬度(**≥ 1100 的部分已被第 9 節取代**,這段只留紀錄):同一個 media `main,footer{max-width:1040px}`(取代 ≥ 1100 的 1480);`≥ 1100` 一欄置中 `.mod.one-col > .mod-main` 1100 → **880**、今日還沒開始 760 → **880**、跟著它的 footer、`.subnav .sub-bar`、`.daily-cta` / `.cta-bar` 的置中公式 1100 → 880;檢定頁沒選考試的 760 照舊
 9. **B 的其他項**:題目大標題、第一次的問題標題 = 象牙白(上面 8.3);每週目標鈕金字(照舊)
 
 ### 8.6 合成時我自己的取捨(B.css + yi.css 沒寫到或互相衝突的)
@@ -367,3 +367,116 @@ DrumDrill:共用的 app.css、main.js(syncJoin)、celebrate.js、dailycard.js、
 5. 聽力琴鍵、文字鈕、頁尾(8.5-5~7):測 tasks、layout fold-280、bilingual、human
 6. 寬畫面(8.5-8):測 layout(ipad 橫式、desktop、1080p)、bilingual、`playhead.mjs`(字變大不影響譜,確認一次)
 完成後叫審查員(共用檔、兩個 App = 大改)。
+
+## 9. 寬畫面丙「一個框、框裡並排」(2026-11-07 使用者選定;**取代第 8.5-8 的寬度與 app.css 現有的 ≥ 1100 兩欄排法**)
+
+使用者問題(BACKLOG PD 第 136、155、175–177、179 行,DD 第 71 行):今日卡 760 太小、按「開始」變 1100 版面跳、檢定頁左欄清單很長右欄空、進行中頂列字和暫停鈕離很遠、1080p 字小。
+比較圖與注入用 CSS(設計師暫存,不在 repo):`/tmp/claude-0/-home-user/57ddd9dc-2132-5999-a5a7-37258561f000/scratchpad/wide1/cmp-3-bing.png`(對照 `cmp-0-now.png`)、`bing.css`。
+**照這一節做,不要照 bing.css 逐字抄**(它用 `!important` 蓋掉現有規則;正式做是改掉現有規則,不疊上去)。兩個 App 一樣;app.css 是 `same`,main.js 共用部分要同步。
+
+### 9.1 一句話規則
+寬畫面**所有畫面(今日還沒開始 / 進行中 / 練完、視奏、聽力、檢定)用同一個框**,一欄、照手機的順序排(跟 iPad 直式一樣);
+框裡**小卡並排填滿**(今日的段落、紀錄的數字與 7 天點、檢定的考試卡與題目卡),**不再分左右兩欄**。按「開始」前後框的寬度不變。
+
+### 9.2 斷點(只在 ≥ 1100 寬;手機、手機橫式、iPad 直式 820 / 1024 完全不變)
+| 斷點 | 框(卡片外緣) | `--fs-k` | 包含 |
+|---|---|---|---|
+| W1 `(min-width:1100px)` | `--wide-w:1040px` | 照第 8 節 1.176 | iPad 橫 1180×820、筆電 1280×800、桌機 1400×900、iPad Pro 橫 1366×1024 |
+| W2 `(min-width:1600px) and (min-height:1000px)` | `--wide-w:1200px` | **1.3** | 1080p 1920×1080 以上 |
+
+- `--wide-w` 是新代幣(app.css 開頭 `:root` 預設 1040px,W2 改 1200px);`main` 的 `max-width:calc(var(--wide-w) + 28px)`(main 左右內距 14)。
+- W2 的 `--fs-k:1.3` 跟第 8 節相容:題目大標題 33.8(上限 34)、內文 22.1、標籤 18.2、小字 15.6;控制項的上限(app.css 388 的 1.3 倍:15.6 / 18.2 / 22.1 / 24.7)剛好等於 1.3 倍,不會卡住也不會超過;
+  8.1 的例外照舊:`.q-title` 行高 / 高度 1.5、`.qrow` 1.45 是用代幣算的,自動跟著變;窄格子(技巧「種類」4 欄、認音範圍 4 格、認音模式 3 格)寫死原本字級,W2 也不放大。手機橫式高度 ≤ 500 碰不到 W2。
+- 901–1099 的 `main{max-width:900px}`、視奏 1180(app.css 757)照舊(iPad 直式 1024)。
+
+### 9.3 逐條改法(app.css;行號是 2026-11-07 的)
+| 位置 | 現在 | 改成 |
+|---|---|---|
+| 824 `@media (max-width:1099px){ .setup-summary… }`(設定卡收成一行) | 只有一欄時 | **拿掉 media 外殼,所有寬度都收成一行**(寬畫面設定卡跟 iPad 直式一樣;視奏右手 / 左手 / 雙手的設定卡照舊一直展開,JS 不用改) |
+| 831–839 ≥ 1100 兩欄(`.mod` grid 300–360 + 1fr、`.mod-side,.mod-main{display:flex}`、`.mod-side .prow / .fields`、`#examSetup .exam-body` 兩欄) | 兩欄 | `main,footer{max-width:calc(var(--wide-w) + 28px)}`;`.mod`、`.mod-side`、`.mod-main` **不再有 ≥ 1100 規則**(維持 `display:contents`,卡片照 820 那行的 `order` 排,跟手機同順序);`.mod{--mod-gap:12px}`(1319)照舊 |
+| 841–846 ≥ 1100 `.mod-side .picker .opts` 固定寬格子 | 左欄窄用 | 刪掉(一欄夠寬,照手機 / iPad 的格子) |
+| 923 `.item-row` ≥ 1100 `grid-column:1 / -1;padding:0 17px` | — | 只留在檢定頁格子裡(見下面檢定頁),`padding:4px 0 0` |
+| 1084 `.daily-cta` 置中公式 `100% - 1100px` | 1100 | `100% - var(--wide-w)` |
+| 1161–1170 `.mod.one-col…`、今日還沒開始 760、footer 1100 / 760 | 一欄置中 | **全部刪掉**(沒有 one-col 了);footer 一律 `calc(var(--wide-w) + 28px)`、`padding:0 17px`(字切齊卡片內文)照舊 |
+| 1171–1177 檢定頁考試卡 360 / 沒選考試 760 置中 | — | 換成下面「檢定頁」;**沒選考試**的考試卡也是整個框寬(系統兩顆、級數一排伸滿;跟 iPad 直式一樣,不再 760) |
+| 1213 `.subnav .sub-bar` ≥ 1100 `min(1100px,100%)` | 字靠左、暫停靠右,中間 1000px 空 | `width:min(var(--wide-w),100%);justify-content:center;gap:14px`,`.subnav .daily-left{flex:0 1 auto;margin-right:12px}`(進度、剩約 n 分、暫停、下一段 › 靠在一起置中);`.daily-left` 照舊在空白處換行 |
+
+**今日卡(還沒開始 / 暫停 / 練完;`.daily-list` 在 ≥ 1100,兩個 App 同一個選擇器)**
+- `.daily-list{grid-auto-flow:column;grid-auto-columns:minmax(0,1fr)}`:段落橫排一排(暖身 → 路線 → 複習,順序不變;還沒開放那條也是一格)。
+  **4 格以上**(暖身 + 兩條路線 + 複習)改兩欄:`.daily-list:has(> li:nth-child(4)){grid-auto-flow:row;grid-template-columns:repeat(2,minmax(0,1fr))}`
+- **中英同高**:每格固定留兩行關卡名的高度 `.daily-list li{min-height:calc(var(--fs-cap) * 1.3 + var(--fs-body) * 1.35 * 2 + 20px);align-content:center}`(實測英文「Level 3 · Right: five fingers up and down」在 1180 寬三格時是兩行、中文一行;不留就中英差 12px)。
+  英文關卡名在 1180 寬三格超過兩行 → 照 CLAUDE.md「英文長就縮短文字」改字串,不讓格子變高
+- 開始鈕、「路線」鈕、「再練一下」照舊整個卡寬(跟底部按鈕列同寬,位置一樣)
+- 路線圖展開(`.daily-road`)照舊一欄清單,不橫排
+
+**練習紀錄(`[id$="logCard"]:not(.log-empty)`,三個模組;≥ 1100)**
+- `display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:32px;align-items:center`;
+  卡片標題、`.goal` `grid-column:1 / -1`;`.log-stats` 左(第 2 列)、`.log-week` 右(第 2 列,`margin-top:0`);`.goal` 第 3 列 `margin-top:10px`
+- `.log-empty`(一行淡字)照舊
+
+**視奏、聽力、技巧自由練習**:一欄,跟 iPad 直式同一個順序(設定卡 → 題目卡 → 譜 / 作答 → 麥克風 → 紀錄);`syncJoin` 會把設定卡、題目卡、譜卡合成一張(第 7 節「一張練習卡」,跟手機一樣)。聽力琴鍵最寬 900 置中照舊。
+
+**檢定頁(`body.view-exam`,≥ 1100)**:上面一列 = 考試卡(左半)+ 本項列與題目卡(右半),下面整列 = 譜、清單、設定卡、考試內容
+- `body.view-exam main{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:12px;align-items:start}`;`main > *{grid-column:1 / -1}`;footer `order:99`
+- `#examSetup{grid-column:1;grid-row:1 / span 2}`(`.exam-body` 一欄:系統一排、級數一排伸滿)
+- `main > .mod:not([hidden]){display:contents}`;`.item-row{grid-column:2;grid-row:1}`;**第一張 `.quiz`**(PD 題目卡 / `.hint-empty`;DD `.x-empty` 也有 `.quiz` class)`grid-column:2;grid-row:2;margin-top:8px`
+- 其他卡(`.mod-main > :not(.quiz)`、`.mod-side > *`)`grid-column:1 / -1;margin-top:12px`,照現有的 `order`(題目卡 → 譜 → 清單 → 抽考設定 → 考試內容,app.css 1217–1219)
+- 本級要求清單照現有 auto-fit 格子(1040 寬自動 4 欄;實測 PD 檢定技巧頁高 2809 → 1355)
+- 沒選考試(沒有模組):考試卡 `grid-column:1 / -1`(整個框)
+- 手機橫式的檢定並排(app.css 867–874)不動
+
+### 9.4 main.js 共用部分(兩個 App)
+- `balanceCols`(PD 245–262、DD 255–272)**整段拿掉**:沒有兩欄了,練習紀錄卡不再搬家(留在 index.html 原位,照 `order` 排);`.one-col` class 不再加。
+  `balanceSoon` 改成只呼叫 `ctaSoon()`(+ `syncJoin` 照舊);`WIDE` matchMedia 的 change 監聽改成呼叫同一個 `balanceSoon`(換寬度要重算 join 與 cta)。
+  舊版存過的狀態沒有影響(紀錄卡的位置不存檔)
+- 其他 JS 不用改(fitScore / fitWrap / score.js 照容器寬度算;9.6 例外)
+
+### 9.5 DrumDrill 自己的地方(drum.css)
+- 16 `≥ 1100 #mod-tech .picker .opts[data-k="no"]` 兩欄:刪掉(一欄照手機)
+- 404、413、414 `.rd-quick` 4 欄、`.rd-pieces` 4 / 5 欄的 `max-width:1099px` 上限拿掉(寬畫面也用)
+- 322–324 模擬考卡「≥ 1100 在左欄」的註解改「照 order」;`#t-mockCard{order:4}`、`#s-mockCard,#e-mockCard{order:2}` 照舊
+- 534 `#t-rStage{max-width:820px}` 照舊(滾奏等的單線譜不要拉太開)
+- 今日練習進行中:`#t-rScoreCard`(鼓譜 + 圖例)、`#t-rPadCard`(手機鼓墊模式)跟 PD 的 `#t-scoreCard` 一樣在題目卡下面一欄;9.6 的驗收 DD 也要過(鼓譜卡沒有琴鍵條,實測 1400×900 已經放得下)
+- CLAUDE.md「寬畫面(≥1100)鼓墊卡在左欄」→ 鼓墊卡在譜卡下面(照 order)
+
+### 9.6 譜照畫面高度縮(fitWrap;只有 PianoDrill 今日練習 / 技巧)
+**問題**:一欄 1040 寬時,今日練習進行中的譜放大到 `WRAP_FILL_H`(畫面高的 0.42),琴鍵條(≥ 700 寬 132 高)與「重點」掉到底部按鈕列下面(實測 1400×900:譜卡底 964 > 底部按鈕列頂 767;iPad 橫 1180×820 同)。
+**要達到**(深淺、中英;PA1「右手五指上下」與手指 0 組、伴奏 A 組各一關;不捲動、剛按「開始」與按 ▶ 後):
+| 尺寸 | 第一個畫面要完整看得到(底 ≤ 底部按鈕列頂 − 4) | 等級 |
+|---|---|---|
+| 桌機 1400×900 | 題目大標題 + ▶、標籤、狀態句、譜、琴鍵條、「重點」、底部按鈕 | 必須 |
+| iPad 橫 1180×820 | 同上 | 必須 |
+| 1080p 1920×1080(W2 字 1.3) | 同上 | 必須 |
+| 筆電 1280×800 | 同上;做不到時至少琴鍵條的手指號碼看得到 | 盡量(tasks.mjs `soft`) |
+**可以用的手段**(照順序,夠了就停;具體寫法由迭代員看 `js/tech/app.js` 的 `fitWrap` 決定):
+1. 放大上限改成照「剩下的高度」算:譜高 ≤ 底部按鈕列頂 − 譜卡在畫面上的頂 − 譜卡裡譜以外的高度(標題列、琴鍵條、重點、內距),取代寬畫面的固定 `WRAP_FILL_H`
+2. ≥ 1100 而且高度 < 1000:琴鍵條 `--ks-h` 132 → 88(css/app.css 1330 附近;手機 64、手機橫式 44 照舊)
+3. ≥ 1100:題目卡的「麥克風聽你彈:開」文字鈕(`acts.panel`)跟「為什麼 / 重點小字」那行同一列靠右,省一列
+4. ≥ 1100:譜卡標題列的 [音名] 開關放到譜紙右上角(絕對定位,點擊區 44),省一列
+**不能違反**:CLAUDE.md 的下限(換行時每行 3–4 小節 ≥ 正常大小的 85%、每行 2 小節 ≥ 0.55、一小節一行 ≥ 0.45);**短譜(一行放得下)縮到正常大小的 85% 就停**,再不夠就用上面 2–4,不再縮譜;
+不用 CSS zoom / transform(播放軸要對得準);`playhead.mjs` ≤ 2 px、`dailyfit.mjs` 照舊過。
+
+### 9.7 驗收
+每一步:`node tools/build/stamp.mjs` → app.css、main.js 共用部分同步到 DrumDrill → `DRUMDRILL=/home/user/drumdrill node tools/test/verify.mjs`。
+- **寬度不跳**:1180 / 1400 / 1920 三種寬,今日還沒開始的今日卡、進行中的題目卡、視奏題目卡、檢定題目卡上面那一列,**左緣與寬度一樣**(= 框;W2 1200);今日練習那一行的「暫停」離進度文字 ≤ 200px
+- **手機不變**:`layout.mjs ONLY=fold-280,se1-320,iphone-390,iphone-land,ipad`(ipad = 820 直式)截圖與改前逐像素相同(DD 可用 `shots.mjs --save / --compare`)
+- `layout.mjs` 全套(ipad 橫、desktop、1080p、字級 200%):**layout.mjs 90–91 行用 `innerWidth < 1100` 判斷「設定卡展開算不算」要改**(寬畫面設定卡也收起來了,條件拿掉 1100);
+  `bilingual.mjs` 加 1180 與 1920(今日三格中英同高、紀錄卡、檢定考試卡與題目卡那一列);`clip.mjs`(W2 字 1.3 的單行切字)
+- `tasks.mjs`(ipad 橫、desktop:設定卡收起來後,需要改設定的任務多一下「打開設定」,仍要 ≤ 3 下開始、不點到收起來的卡以外的東西;檢定頁第一個畫面看得到考試卡 + 題目卡 + 主要按鈕)
+- 9.6 的四種尺寸量:題目標題、▶、`.keystrip` 底、「重點」底、`.daily-cta` 頂(newbie.mjs 可以加一輪 desktop 1400×900);`playhead.mjs 1400`、`dailyfit.mjs`
+- DrumDrill 同一套:`layout.mjs`、`bilingual.mjs`、`tasks.mjs`、`a11y.mjs 1400`、`newbie.mjs`
+
+### 9.8 CLAUDE.md 要跟著改的句子(主代理改,兩個 repo)
+- 版面「每種裝置都要飽滿」:「寬度 ≥1100(平板橫式、筆電、桌機)兩欄、內容最寬 1480;以下一欄…設定卡收成一行(檢定頁的考試卡例外,一直展開)」→
+  「所有寬度一欄,卡片照 CSS order 排;≥ 1100 一個框 1040(≥ 1600 寬而且 ≥ 1000 高:1200、字級係數 1.3),框裡小卡並排(今日段落、紀錄、檢定考試卡 + 題目卡;docs/DESIGN.md 第 9 節);設定卡一律收成一行(檢定頁的考試卡例外)。`.mod-side` / `.mod-main` 只是分組,寬畫面不再分欄」
+- 架構「緊湊」:「寬畫面(≥ 1100)兩欄高度接近:練習紀錄卡放在比較矮的那一欄最下面…`balanceCols`、`.mod.one-col`;左欄只剩練習紀錄 = 一欄…今日還沒開始時一欄最寬 760(2026-11)」→ 刪掉,改「寬畫面見 docs/DESIGN.md 第 9 節(一個框,開始前後同寬)」
+- 第三輪審查「平板、桌機的今日練習那一行跟下面卡片的內容對齊」→ 加「(≥ 1100:進度與暫停、下一段靠在一起置中)」
+- 每週目標、手機的規則都不動;DD「鼓墊卡在左欄」見 9.5
+
+### 9.9 實作順序(一步一個 commit;大改:先叫規劃員,做完叫審查員)
+1. 一欄 + 框(9.2 W1、9.3 表格、9.4 拿掉 balanceCols):最大的一步;測 layout 全套(手機逐像素不變)、tasks、bilingual 1180 / 1400
+2. 今日卡橫排 + 紀錄卡一列 + 今日練習那一行置中(9.3 今日卡 / 紀錄):測 bilingual(中英同高)、newbie
+3. 檢定頁上面一列(9.3 檢定頁):測 tasks、layout、bilingual
+4. W2 1080p(框 1200 + `--fs-k:1.3`):測 clip、layout 1080p
+5. 譜照畫面高度縮(9.6,只有 PD 的 js/tech/app.js 與琴鍵條高度):測 dailyfit、playhead、newbie desktop
+6. DrumDrill drum.css(9.5)+ 兩邊 CLAUDE.md(9.8)

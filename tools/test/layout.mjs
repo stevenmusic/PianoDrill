@@ -86,10 +86,10 @@ async function audit(page, vp, state){
   // 飽滿(使用者要求):每種裝置的第一個畫面,題目卡要在畫面上半部(設定卡不能把題目擠到下面去)
   const quizTop = await page.evaluate(() => {
     const q = [...document.querySelectorAll(".mod:not([hidden]) .quiz")].find(e => !e.closest("[hidden]") && e.getBoundingClientRect().height > 0);
-    // 使用者自己打開的設定卡把題目往下推是正常的;只檢查設定卡都收著(或在兩欄的左欄)的時候
-    const opened = [...document.querySelectorAll(".setup.open, .picker.open")].some(e => !e.closest("[hidden]") && !e.closest(".mod-side, #examSetup") || (e.closest("#examSetup") && innerWidth < 1100));
-    const sideOpen = innerWidth < 1100 && [...document.querySelectorAll(".mod-side .setup.open, .mod-side .picker.open")].some(e => !e.closest("[hidden]"));
-    if (opened || sideOpen) return null;
+    // 使用者自己打開的設定卡把題目往下推是正常的;只檢查設定卡都收著的時候(所有寬度都是一欄、設定卡收成一行;docs/DESIGN.md 第 9 節)
+    // 檢定頁的考試卡:寬畫面(≥ 1100)在題目卡左邊同一列,不會把題目往下推
+    const opened = [...document.querySelectorAll(".setup.open, .picker.open")].some(e => !e.closest("[hidden]") && !e.closest("#examSetup") || (e.closest("#examSetup") && innerWidth < 1100));
+    if (opened) return null;
     return q ? { top: Math.round(q.getBoundingClientRect().top + scrollY), H: innerHeight } : null;
   });
   // 手機橫放(高度 ≤ 500):頂欄 + 兩條收起來的設定列就佔掉一半,放寬到 60%(題目標題仍在第一個畫面)

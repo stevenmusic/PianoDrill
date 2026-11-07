@@ -585,7 +585,7 @@ function syncHandAllowed(){
   $("handSeg").querySelectorAll("button").forEach(b => { b.disabled = !!row && !row[2].some(o => o[0] === HAND_OF[b.dataset.v]); });
 }
 let renderSeq = 0;
-// 兩欄(≥1100)時右欄很寬:譜放大一點,畫面才飽滿(比畫面長的照樣左右捲、播放軸停在 25%)
+// 寬畫面(≥1100)一個框 1040 / 1200 寬(docs/DESIGN.md 第 9 節):譜放大一點,畫面才飽滿(比畫面長的照樣左右捲、播放軸停在 25%)
 const scoreZoom = () => landZoom || (window.innerWidth < 600 ? 0.85 : window.innerWidth < 1000 ? 0.95 : window.innerWidth < 1100 ? 1.05 : 1.25);
 /* 手機橫放(平板不算):樂譜照畫面高度放大,讓「工具列 + 樂譜標題 + 樂譜」剛好一個畫面(播放時下方分頁列收起來) */
 const PHONE_LAND = "(orientation: landscape) and (max-height: 500px)";
@@ -640,6 +640,20 @@ const WRAP_MIN = 0.55, WRAP_MIN1 = 0.45;   // 0.55 = 視奏考卷排法的下限
 /* 短譜放大(docs/DESIGN.md 第 5、7 節;2026-11 使用者選「專心練習畫面」A:譜用滿寬度):最多正常大小的 WRAP_FILL 倍、譜高 ≤ 畫面高的 WRAP_FILL_H
    (第一個畫面還看得到題目卡、譜下面的琴鍵條與主要按鈕);平板、桌機(≥ 700 寬)畫面高,放得更大 */
 const WRAP_FILL = () => (innerWidth >= 700 ? 2.2 : 1.6), WRAP_FILL_H = () => (innerWidth >= 700 ? 0.42 : 0.34);
+/* 寬畫面(≥ 1100 寬、不是手機橫放;docs/DESIGN.md 9.6):譜高的上限不用畫面高的 WRAP_FILL_H,改照「譜到底部按鈕列(沒有就到分頁列)」剩下的高度,
+   扣掉譜卡裡譜下面的東西(琴鍵條、「重點」);題目、譜、琴鍵條、重點、主要按鈕在第一個畫面不捲動就看得到。短譜最小縮到正常大小的 85% */
+const wideFit = () => innerWidth >= 1100 && innerHeight > 500 && !isPhoneLand();
+function wideRoomH(){
+  const svg = $("osmd").querySelector("svg"); if (!svg) return Infinity;
+  const r = svg.getBoundingClientRect(); let low = r.bottom, after = false;
+  for (const el of $("scoreCard").children) {
+    if (el === $("stage")) { after = true; continue; }
+    if (after && el.getClientRects().length) low = Math.max(low, el.getBoundingClientRect().bottom);
+  }
+  const c = ctaEl(), bar = document.getElementById("tabbar"), bb = bar && bar.getClientRects().length ? bar.getBoundingClientRect() : null;
+  const floor = c ? c.getBoundingClientRect().top : bb && bb.top > innerHeight / 2 ? bb.top : innerHeight;
+  return floor - 4 - (r.top + scrollY) - (low - r.bottom);
+}
 const wrapMode = () => !!(cur && cur.daily && cur.type === "route" && ex && ex.exact);
 let wrapW = 0;
 function systemsOf(){ try { return osmd.GraphicSheet.MusicPages.flatMap(p => p.MusicSystems); } catch (e) { return []; } }
@@ -680,21 +694,34 @@ function fitWrap(){
   if (!pick) pick = { n: 1, z: WRAP_MIN1 };
   // 短譜(整份一行、原本的大小就放得下):放大到用滿寬度,最多 WRAP_FILL 倍、譜高不超過畫面的 WRAP_FILL_H(第一個畫面還看得到題目卡與主要按鈕);手機橫放照舊只縮不放
   if (!isPhoneLand() && pick.n === bars && pick.z >= base - 0.005) {
+    const wide = wideFit(), capH = wide ? (wrapRender(pick.n, pick.z), wideRoomH()) : innerHeight * WRAP_FILL_H();
+    // 寬畫面 [音名] 放在譜紙右上角(app.css;沒有和弦表時疊在譜紙上):放大時譜不伸到它下面
+    const nb = $("namesBtn"), over = wide && !nb.hidden && $("chordTable").hidden && getComputedStyle(nb.parentElement).position === "absolute";
+    const edgeX = over ? nb.getBoundingClientRect().left - 8 : Infinity;
     const fills = z => {
       wrapRender(pick.n, z);
       if (!wrapFits(pick.n, bars)) return false;
       const svg = $("osmd").querySelector("svg");
       if (!svg) return true;
-      if (svg.getBoundingClientRect().height > innerHeight * WRAP_FILL_H()) return false;
+      const sr = svg.getBoundingClientRect();
+      if (sr.height > capH) return false;
       // 指法、×N、和弦名(畫完譜才加上去的)也不能超出畫布(一小節一行放大時最右邊的 ×N 會被切掉)
       drawFingerings(); drawChordNames(svg);
       const vb = svg.viewBox && svg.viewBox.baseVal, bb = svg.getBBox();
+      if (edgeX < Infinity && vb && vb.width && sr.left + (bb.x + bb.width - vb.x) * sr.width / vb.width > edgeX) return false;
       return !(vb && vb.width) || (bb.x + bb.width <= vb.x + vb.width + 1 && bb.y >= vb.y - 1 && bb.y + bb.height <= vb.y + vb.height + 1);
     };
     const z0 = pick.z; let lo = z0, hi = base * WRAP_FILL();
     if (fills(hi)) lo = hi;
     else for (let k = 0; k < 6; k++) { const mid = (lo + hi) / 2; if (fills(mid)) lo = mid; else hi = mid; }
     pick.z = Math.max(z0, Math.floor(lo * 100) / 100);   // 取整不能比原本的大小還小
+    // 寬畫面:原本的大小就超過剩下的高度 → 縮,最小到正常大小的 85%(再不夠就讓它捲,不再縮譜)
+    const tall = z => { wrapRender(pick.n, z); const svg = $("osmd").querySelector("svg"); return !!svg && svg.getBoundingClientRect().height > capH; };
+    if (wide && pick.z === z0 && tall(z0)) {
+      const min = Math.ceil(base * 85) / 100; let lo2 = min, hi2 = z0;
+      if (!tall(min)) for (let k = 0; k < 6; k++) { const mid = (lo2 + hi2) / 2; if (tall(mid)) hi2 = mid; else lo2 = mid; }
+      pick.z = Math.max(min, Math.floor(lo2 * 100) / 100);
+    }
   }
   // 手機橫放:第一個畫面(或播放中貼頂欄時)放得下整份;只縮不放大,不小於這個排法的下限
   if (isPhoneLand()) {
@@ -707,6 +734,16 @@ function fitWrap(){
   }
   osmd.EngravingRules.RenderXMeasuresPerLineAkaSystem = pick.n; osmd.zoom = pick.z; lastZoom = pick.z;
   renderOsmd();
+  // 寬畫面的短譜:畫完才加上去的音名、和弦名、指法也算進高度;還是比剩下的高度高就照比例再縮(最小正常大小的 85%)
+  if (wideFit() && pick.n === bars) {
+    const min = Math.ceil(base * 85) / 100;
+    for (let k = 0; k < 3 && pick.z > min; k++) {
+      const svg = $("osmd").querySelector("svg"), H = svg ? svg.getBoundingClientRect().height : 0, room = wideRoomH();
+      if (!H || H <= room) break;
+      pick.z = Math.max(min, Math.floor(pick.z * room / H * 100) / 100);
+      osmd.zoom = pick.z; lastZoom = pick.z; renderOsmd();
+    }
+  }
   window.__wrap = { n: pick.n, zoom: pick.z, bars };
 }
 async function renderScore(){

@@ -1759,7 +1759,7 @@ const dcard = createDailyCard({ $, daily, routes: ROUTES,   // routes:今日卡�
   warmName, levelName, log: () => S.log,
   onStart: () => { dShow(daily.begin()); window.scrollTo({ top: 0 }); },
   onNext: () => dNext(), onPause: () => dExit(),
-  onMore: () => { const s = daily.addExtra(); if (s) dShow(s); },
+  onMore: () => { const s = daily.addExtra(); if (s) { dShow(s); window.scrollTo({ top: 0 }); } },   // 跟「開始」一樣從頂端開始(從捲下去的練完卡 / 路線按「再練一下」,手機橫放 ▶ 會被頂欄切掉)
   barHost: el => { if (ctx && ctx.subBar) ctx.subBar(el, "tech"); },   // 進行中:子項目列換成今日練習的那一行
   onOk: () => dTry("ok"), onAgain: () => dTry("again"),
   onPlay: () => { if (play || starting) stopPlayback(); else startPlayback(); },   // 底部按鈕的 ▶ / ■(跟題目卡的圓形 ▶ 同一個播放;準備中按 = 取消)

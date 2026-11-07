@@ -13,7 +13,7 @@
    路線圖(2026-11;第一版只看、不能跳關練):還沒開始 / 暫停 / 練完的卡片最下面一顆次要鈕「路線」(aria-expanded),點了在卡內往下展開(不跳視窗;進行中不顯示):
      每條路線一段、一列一組(組名 + 「3 / 6」+ 狀態圖示 過 / 目前 / 還沒到 / 還沒開放),預設只展開每條路線目前那一組;組裡一關一行,點一關在行內展開重點(check);
      還沒開放的路線一行淡字寫開放條件。資料 = js/shared/roadmap.js(純函式);App 要傳 routes 才有這顆鈕
-   過關慶祝:celebrate() = 狀態句上面一條短橫幅「過關 ✓」(疊在標籤列上,不推版面;狀態句不重複「過關 ✓」)+ 線稿星星 + 譜紙金色掃光 + 主要按鈕勾勾 + 關卡進度條補到新位置(js/shared/celebrate.js;App 在過關時呼叫,聲音 App 自己放)
+   過關慶祝:celebrate() = 標籤列換成一條橫幅「過關 ✓ 關名」(疊在標籤列上、拉滿整排,不推版面;狀態句不重複「過關 ✓」)+ 線稿星星 + 譜紙金色掃光 + 主要按鈕勾勾 + 關卡進度條補到新位置(js/shared/celebrate.js;App 在過關時呼叫,聲音 App 自己放)
    文字都用 i18n 的 daily.*(兩個 App 一樣)+ 模組傳進來的 labels(穩了 / 做到了…);段落文字用 pairText(中英一樣高) */
 import { tr, T, pairText } from "./i18n.js";
 import { streak } from "./practicelog.js";
@@ -28,9 +28,10 @@ const ICON_PLAY = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" s
 const ICON_PAUSE = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5v14M15 5v14"/></svg>';
 const ICON_OK = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>';
 const svg = (w, body) => `<svg width="${w}" height="${w}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${body}</svg>`;
-/* 路線圖的狀態圖示(線稿 24 格):過了 = 圈 + 勾、目前 = 圈 + 實心點、還沒到 = 空圈、還沒開放 = 鎖 */
-const ROAD_ICON = { pass: svg(20, '<circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.8 2.8L16.5 9.5"/>'), cur: svg(20, '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.5" fill="currentColor"/>'),
-  todo: svg(20, '<circle cx="12" cy="12" r="9"/>'), lock: svg(20, '<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>') };
+/* 路線圖的狀態圖示(線稿 24 格):過了 = 圈 + 勾、目前 = 實心點 ●、還沒到 = 小空圈 ○、還沒開放 = 鎖
+   (2026-11-07:原本目前 = 圈 + 點、還沒到 = 大空圈,像表單的單選鈕,小孩以為能點了跳關;目前那一組另外寫「現在」) */
+const ROAD_ICON = { pass: svg(20, '<circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.8 2.8L16.5 9.5"/>'), cur: svg(20, '<circle cx="12" cy="12" r="5.5" fill="currentColor"/>'),
+  todo: svg(20, '<circle cx="12" cy="12" r="4"/>'), lock: svg(20, '<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>') };
 const ICON_ROAD = svg(18, '<circle cx="6" cy="19" r="2"/><circle cx="18" cy="5" r="2"/><path d="M8 19h8.5a3.5 3.5 0 0 0 0-7h-9a3.5 3.5 0 0 1 0-7H16"/>');
 const ICON_CHEV = svg(18, '<path d="M6 9l6 6 6-6"/>');
 const ICON_STOP = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="1.5"/></svg>';
@@ -253,7 +254,7 @@ export function createDailyCard({ $, daily, routes = null, labels = {}, warmName
       return `<section class="road-r">${head}<ul class="road-gs">` + x.groups.map(G => {
         const gid = id(), on = roadGs.has(G.key);
         return `<li class="road-g st-${G.st}"><button class="road-gb" data-g="${esc(G.key)}" aria-expanded="${on}" aria-controls="${gid}">${roadMark(G.st)}` +
-          `<span class="road-t road-gn" data-r="${x.id}" data-g2="${esc(G.g)}"></span><span class="road-gc" aria-label="${esc(fmt("roadCount", { a: G.pass, n: G.total }))}">${G.pass} / ${G.total}</span><span class="road-chev">${ICON_CHEV}</span></button>` +
+          `<span class="road-t road-gn" data-r="${x.id}" data-g2="${esc(G.g)}"></span>${G.st === "cur" ? `<span class="road-now" aria-hidden="true">${esc(fmt("roadNow"))}</span>` : ""}<span class="road-gc" aria-label="${esc(fmt("roadCount", { a: G.pass, n: G.total }))}">${G.pass} / ${G.total}</span><span class="road-chev">${ICON_CHEV}</span></button>` +
           `<ol class="road-ls" id="${gid}"${on ? "" : " hidden"}>` + G.levels.map(l => {
             const lid = id(), lk = x.id + "/" + l.id, open = roadLvs.has(lk);
             return `<li class="road-l st-${l.st}"><button class="road-lb" data-l="${esc(lk)}" aria-expanded="${open}" aria-controls="${lid}">${roadMark(l.st)}<span class="road-t road-ln" data-r="${x.id}" data-lv="${esc(l.id)}"></span></button>` +
@@ -402,7 +403,11 @@ export function createDailyCard({ $, daily, routes = null, labels = {}, warmName
       const b = (step.closest(".quiz") || mod).querySelector(".q-tag .lv-bar > b"), L = lastSeg && lastSeg.level;
       let bar = null;
       if (b && L && L.of) { const cur = parseFloat(b.style.width) || 0, one = 100 / L.of; bar = lastOpts.passedDone ? { el: b, from: cur, to: cur + one } : { el: b, from: cur - one, to: cur }; }
-      return celebrateIn(step, fmt("cheer"), { before: step.querySelector(".daily-status"), sweep, btn, bar });
+      // 橫幅寫剛過的那一關(過關接下一關 = 畫面已經是下一關:往前一關;7 歲看到標題一換就不知道過了哪一關)
+      const R = L && L.route, P = L && (lastOpts.passedDone ? L : R && L.n > 1 ? daily.levelOf(R.id, R.levels[L.n - 2].id) : null);
+      const text = P ? fmt("cheerLv", { name: L2(levelName({ k: "route", level: P })) }) : fmt("cheer");
+      const over = [...(step.closest(".quiz") || mod).querySelectorAll(".q-tags")].find(t => !t.closest("[hidden]") && t.getClientRects().length) || null;
+      return celebrateIn(step, text, { before: step.querySelector(".daily-status"), sweep, btn, bar, over });
     },
     varyText: s => M(s, varyText(s)), segKind, levelName,
     defaultStatus: s => M(s, defaultStatus(s))

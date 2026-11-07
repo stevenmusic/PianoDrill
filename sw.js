@@ -12,7 +12,7 @@
 const APP = "pianodrill";
 // @app-end
 /*@precache-begin*/
-const CACHE = APP + "-app-b0a36d98";
+const CACHE = APP + "-app-ce400d15";
 const PRECACHE = [
   "./",
   "manifest.webmanifest",
@@ -24,7 +24,7 @@ const PRECACHE = [
   "licenses.html",
   "privacy.html",
   "support.html",
-  "css/app.css?v=292ca702cc",
+  "css/app.css?v=1074e4bff6",
   "css/tech.css?v=afd9bfb592",
   "css/sight.css?v=3148a292e2",
   "css/ear.css?v=e9b4e3672b",
@@ -38,12 +38,12 @@ const PRECACHE = [
   "js/main.js?v=e3ac4ac1bf",
   "js/shared/audio.js?v=d0a959c3ed",
   "js/shared/backup.js?v=620efafdf5",
-  "js/shared/celebrate.js?v=e5ee0328bb",
+  "js/shared/celebrate.js?v=2678b61e87",
   "js/shared/daily.js?v=f345ae5399",
-  "js/shared/dailycard.js?v=9f75ad8758",
+  "js/shared/dailycard.js?v=2fd710c217",
   "js/shared/digest.js?v=a0bde17c3e",
   "js/shared/drill.js?v=9f698a5f44",
-  "js/shared/i18n.js?v=de5e7761ba",
+  "js/shared/i18n.js?v=e4e7896155",
   "js/shared/keystrip.js?v=dd4d105375",
   "js/shared/mic.js?v=5450b68a2d",
   "js/shared/milestone.js?v=40a9ff0313",
@@ -73,7 +73,7 @@ const PRECACHE = [
   "js/sight/scoring.js?v=c1912c76a7",
   "js/sight/stage.js?v=bee4aca9a4",
   "js/sight/stages.js?v=1768d14127",
-  "js/tech/app.js?v=c893ba87f9",
+  "js/tech/app.js?v=075e1ad1c1",
   "js/tech/exercise.js?v=27317eacd2",
   "js/tech/fingering.js?v=be9e0f69a4",
   "js/tech/hanon.js?v=be2621dd7a",

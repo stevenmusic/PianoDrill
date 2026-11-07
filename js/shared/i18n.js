@@ -89,9 +89,9 @@ addStrings("daily", {
   more: ["再練一下", "Practice a bit more"],
   // 路線圖(今日卡的「路線」鈕,在卡內往下展開;js/shared/roadmap.js):組名沒有資料時寫 roadG;每一組「3 / 6」的讀法 roadCount;每一關、每一組的狀態 road_*(圖示的名稱)
   road: ["路線", "Route"], roadG: ["{g} 組", "Group {g}"], roadCount: ["過了 {a} / {n} 關", "{a} of {n} passed"],
-  road_pass: ["過了", "Passed"], road_cur: ["正在練", "Now"], road_todo: ["還沒練", "Not yet"], road_lock: ["還沒開放", "Locked"],
-  // 過關慶祝(js/shared/celebrate.js;題目卡狀態句上面一條短橫幅,約 1.5 秒)
-  cheer: ["過關 ✓", "Passed ✓"]
+  road_pass: ["過了", "Passed"], road_cur: ["正在練", "Now"], road_todo: ["還沒練", "Not yet"], road_lock: ["還沒開放", "Locked"], roadNow: ["現在", "Now"],
+  // 過關慶祝(js/shared/celebrate.js;題目卡標籤列換成一條橫幅「過關 ✓ 關名」,約 1.6 秒;cheer = 找不到關名時)
+  cheer: ["過關 ✓", "Passed ✓"], cheerLv: ["過關 ✓ {name}", "Passed ✓ {name}"]
 });
 /* 練習紀錄備份(頁尾「備份紀錄」;js/shared/backup.js + main.js 共用部分;兩個 App 一樣):{f} = 檔名;err_* = backup.js 的錯誤代碼 */
 addStrings("bak", {

@@ -16,7 +16,7 @@
 //   6 主要導覽(子項目分段鈕、今日練習那一行、底部按鈕列、分頁列)的按鈕 ≥ 44 × 44(含 ::before / ::after 伸出去的)
 //   7 沒有文字被截成「…」(text-overflow 生效:scrollWidth > clientWidth)
 //   另外每段流程自己的檢查(expect:例如「▶ 還沒彈過前藏起來」「狀態寫按 ▶ 對照」「出現自我檢查」)
-// 用法:node tools/test/newbie.mjs(中文 iphone-390、fold-280、iphone-land + 英文 iphone-390);ONLY=fold-280,en-390 只跑幾輪;FLOW=today,sight,ear,exam 只跑幾段;
+// 用法:node tools/test/newbie.mjs(中文 iphone-390、fold-280、iphone-land + 英文 iphone-390);ONLY=fold-280,en-390 只跑幾輪(rm-390 = 減少動態效果,預設不跑);FLOW=today,sight,ear,exam 只跑幾段;
 //   FAST=0 真的等播滿一輪(預設用測試掛鉤 dcard.ready(true) 代替「播過一輪」那幾秒,點擊照樣是真的點);SHOTS=資料夾 失敗截圖(預設 tools/test/out/newbie)
 // 改今日練習、版面、流程一定要跑
 import { open } from "./harness.mjs";
@@ -135,7 +135,9 @@ const RUNS = {
   "ipad-1024": { viewport: { width: 1024, height: 1366 }, lang: "zh", opt: true },
   // 筆電、桌機(≥ 1100 一個框、框裡小卡並排;docs/DESIGN.md 第 9 節):預設不跑,ONLY=laptop,desktop 才跑
   "laptop": { viewport: { width: 1366, height: 768 }, lang: "zh", opt: true },
-  "desktop": { viewport: { width: 1920, height: 1080 }, lang: "zh", opt: true }
+  "desktop": { viewport: { width: 1920, height: 1080 }, lang: "zh", opt: true },
+  // 減少動態效果(prefers-reduced-motion):過關橫幅要靜態、留 2.5 秒;預設不跑,ONLY=rm-390 才跑
+  "rm-390": { viewport: { width: 390, height: 844 }, lang: "zh", opt: true, rm: true }
 };
 // 今日練習的題目畫面:底部按鈕列的主要按鈕整段流程比(top、left、寬)
 const TODAY = { on: SEL.mod + ".daily-on", title: SEL.title, play: SEL.play, status: SEL.step + " :is(.daily-status, .q-status, [id$='-status'])", prim: SEL.step + " .daily-cta .daily-main", whole: true };
@@ -148,6 +150,31 @@ const runs = Object.entries(RUNS).filter(([n, c]) => (only.length ? only.include
 const flowPick = (process.env.FLOW || "").split(",").filter(Boolean);
 const flows = ["today", ...Object.keys(FLOWS)].filter(f => !flowPick.length || flowPick.includes(f));
 const wait = ms => new Promise(r => setTimeout(r, ms));
+const FINISH = /結束今天|Finish/;   // 最後一段的「結束今天 ›」(i18n.js 的 daily.finish)
+
+/* 頁面裡:過關橫幅(.celebrate)剛出現時量:不蓋狀態句與底部按鈕;跟題目卡的字只准完全蓋住或完全不碰(不切半個字);
+   減少動態效果:靜態(沒有動畫)、留 2.5 秒;主要按鈕的勾勾取代圖示(▷ 不跟勾勾並排) → { seen, errs } */
+function celMeasure([stepSel, rm]){
+  const c = document.querySelector(".celebrate"); if (!c) return { seen: false, errs: [] };
+  const errs = [], a = c.getBoundingClientRect();
+  const hit = b => b.width > 1 && b.height > 1 && b.left < a.right - 0.5 && b.right > a.left + 0.5 && b.top < a.bottom - 0.5 && b.bottom > a.top + 0.5;
+  const inside = b => b.left >= a.left - 0.5 && b.right <= a.right + 0.5 && b.top >= a.top - 0.5 && b.bottom <= a.bottom + 0.5;
+  const shown = e => { const cs = getComputedStyle(e); if (cs.visibility === "hidden") return false; for (let x = e; x; x = x.parentElement) if (+getComputedStyle(x).opacity < 0.05) return false; return true; };
+  const step = document.querySelector(stepSel), quiz = step && step.closest(".quiz");
+  for (const [nm, el] of [["狀態句", step && step.querySelector(".daily-status")], ["底部按鈕列", step && step.querySelector(".daily-cta")]])
+    if (el && el.getClientRects().length && hit(el.getBoundingClientRect())) errs.push(`過關橫幅蓋到${nm}`);
+  const half = [...(quiz || document).querySelectorAll("*")].filter(e => !c.contains(e) && !e.contains(c) && !e.classList.contains("sr") && [...e.childNodes].some(n => n.nodeType === 3 && n.textContent.trim()) && shown(e))
+    .filter(e => { const b = e.getBoundingClientRect(); return hit(b) && !inside(b); }).map(e => e.textContent.trim().slice(0, 12));
+  if (half.length) errs.push(`過關橫幅切到一半的字:${half.slice(0, 3).join("、")}`);
+  if (c.scrollWidth > c.clientWidth + 1) errs.push("過關橫幅的字被切掉");
+  const btn = step && step.querySelector(".daily-cta .daily-main"), tick = btn && btn.querySelector(".cel-tick");
+  if (tick) { const other = [...btn.children].filter(x => x.tagName.toLowerCase() === "svg" && x !== tick && getComputedStyle(x).visibility !== "hidden"); if (other.length) errs.push("主要按鈕的勾勾跟 ▷ 圖示並排"); }
+  if (rm) {
+    if (getComputedStyle(c).animationName !== "none") errs.push("減少動態效果:過關橫幅還在動");
+    if (c.style.getPropertyValue("--cel-ms") !== "2500ms") errs.push(`減少動態效果:過關橫幅不是 2.5 秒(${c.style.getPropertyValue("--cel-ms")})`);
+  }
+  return { seen: true, errs, text: c.textContent.trim() };
+}
 
 /* 頁面裡:量這一刻的畫面(給 7 條檢查用);F = 現在的題目畫面(VIEWS / TODAY;null = 還不在題目畫面) */
 function measure([F, NAV]){
@@ -253,6 +280,8 @@ const kinds = new Map();   // 斷點種類 → { n, first }:最後一起列出�
 for (const [rname, rc] of runs) {
   const h = await open({ viewport: rc.viewport, mobile: true, dpr: 1 });
   const { page } = h;
+  if (rc.rm) await page.emulateMedia({ reducedMotion: "reduce" });
+  let celSeen = 0, lastFinish = 0;   // 過關橫幅量到幾次;多段的那天最後一段寫「結束今天 ›」量到幾次
   let F = null, mainAt = null, n = 0, fails = 0, flow = "", scrolledTo = false;
   const m = () => page.evaluate(measure, [F, NAV]);
   /* 一步:點(或什麼都不點)→ 1.8 秒內一直量標題 / 狀態句的位置 → 檢查 7 條 + 這一步自己的 expect([頁面裡的函式, 不成立時的訊息]) */
@@ -331,7 +360,8 @@ for (const [rname, rc] of runs) {
     const t = (0, eval)("(" + hookSrc + ")")(), d = t && t.dseg, main = document.querySelector(step + " .daily-cta .daily-main");
     const on = !document.querySelector(step).hidden;
     const lv = d ? (d.level && d.level.id) || d.lv || null : null;   // 現在這一關(過關接下一關會換)
-    return { on, k: d && d.k, i: d ? d.i : null, lv,
+    const td = t && t.daily && t.daily.today(), n = td ? td.plan.length : 0;
+    return { on, k: d && d.k, i: d ? d.i : null, lv, n, last: !!td && td.i >= n - 1,
       mode: main && !main.hidden ? main.dataset.mode : null, ready: !!(t && t.dcard && t.dcard.isReady), label: main ? main.textContent.trim() : "" };
   }, [hook.toString(), SEL.step]);
 
@@ -343,6 +373,13 @@ for (const [rname, rc] of runs) {
       if (!s.on) return true;   // 練完卡
       if (s.i !== lastSeg) { lastSeg = s.i; lastLv = s.lv; passes = 0; }
       else if (s.lv !== lastLv) { passes++; lastLv = s.lv; }
+      // 最後一段寫「結束今天 ›」、其他段寫「下一段 ›」(底部按鈕與進度那一行;FINISH = dailycard 的 finish)
+      const nb = await page.evaluate(() => { const e = document.querySelector("#subnav .daily-next"); return e && e.getClientRects().length ? e.textContent.trim() : null; });
+      for (const [w, lbl] of [["底部按鈕", s.mode === "next" ? s.label : null], ["進度那一行", nb]]) {
+        if (lbl == null) continue;
+        if (FINISH.test(lbl) !== s.last) await report(`${tag}第 ${s.i + 1} / ${s.n} 段:${w}「${lbl}」`, [s.last ? "最後一段沒有寫「結束今天 ›」" : "還有下一段卻寫「結束今天 ›」"], []);
+        else if (s.last && s.n > 1 && w === "底部按鈕") lastFinish++;
+      }
       if (s.mode === "next") { await step(`${tag}第 ${s.i + 1} 段:按「${s.label}」`, () => tap(SEL.step + " .daily-cta .daily-main")); continue; }
       if (passes >= LEVELS_PER_SEG && s.mode !== "stop") { await step(`${tag}第 ${s.i + 1} 段:過了 ${passes} 關,按進度那一行的「下一段 ›」`, () => tap("#subnav .daily-next")); continue; }
       if (s.mode === "play") {
@@ -356,7 +393,12 @@ for (const [rname, rc] of runs) {
         await step(`${tag}第 ${s.i + 1} 段:播過一輪(「${OK_WORD[rc.lang === "en" ? 1 : 0]}」亮了)`, null);
         continue;
       }
-      if (s.mode === "ok") { await step(`${tag}第 ${s.i + 1} 段:按「${s.label}」`, () => tap(SEL.step + " .daily-cta .daily-main")); continue; }
+      if (s.mode === "ok") {
+        let cel = null;   // 過關橫幅:點了以後馬上量(橫幅只在 1.6 秒)
+        await step(`${tag}第 ${s.i + 1} 段:按「${s.label}」`, async () => { await tap(SEL.step + " .daily-cta .daily-main"); await wait(250); cel = await page.evaluate(celMeasure, [SEL.step, !!rc.rm]); });
+        if (cel && cel.seen) { celSeen++; if (cel.errs.length) await report(`${tag}第 ${s.i + 1} 段:過關橫幅「${cel.text}」`, cel.errs, []); }
+        continue;
+      }
       if (s.mode === "stop") { await page.evaluate(hookSrc => { const t = (0, eval)("(" + hookSrc + ")")(); t.dcard.ready(true); }, hook.toString()); await wait(800); continue; }
       await report(`${tag}段落:底部按鈕列不見了(${JSON.stringify(s)})`, ["沒有底部主要按鈕"], []); return false;
     }
@@ -380,8 +422,15 @@ for (const [rname, rc] of runs) {
         await step("再練完的練完卡(分鐘 = 紀錄卡)", null, sameMin);
         await step("打開「路線」", () => tap(SEL.card + " .daily-road-btn"));
         await step("點一關看重點", () => tap(SEL.card + " .road-ls:not([hidden]) .road-lb"));
+        // 多段的那天最後一段的底部按鈕要寫「結束今天 ›」:還沒量到就再練一次(這時已經有過關的關 = 加一題複習,複習完那一步是底部的「結束今天 ›」)
+        if (!lastFinish) {
+          await step("再按一次「再練一下」(有複習的多段)", () => tap(SEL.card + " .daily-more"));
+          if (await practise("再練 2:")) await step("再練完的練完卡(分鐘 = 紀錄卡)", null, sameMin);
+        }
       }
     }
+    if (!celSeen) await report("過關橫幅", ["整段流程沒有量到過關橫幅"], []);
+    if (!lastFinish) await report("結束今天 ›", ["沒有走到多段那天的最後一段(要量「結束今天 ›」)"], []);
   }
 
   const before = { fails: 0, n: 0 };

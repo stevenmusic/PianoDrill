@@ -12,7 +12,7 @@
 | `<BundleID>` | `io.github.stevenmusic.pianodrill` | `io.github.stevenmusic.drumdrill` |
 | `<repo>` | `stevenmusic/PianoDrill` | `stevenmusic/DrumDrill` |
 | 打包進 App 的取樣(`tools/build/app-samples.mjs`) | 鋼琴 30 個音 × 5 層力度(有 ffmpeg 就截成 6.5 秒)+ 拍點 xstick 3 個:153 個檔、約 35 MB | 小鼓 5 層 × 6 個 + 整組鼓 12 個鼓件(鼓皮每層 3 個、鈸每層 2 個)+ 拍點 + 鼓房殘響:104 個檔、約 10.9 MB |
-| 麥克風(`NSMicrophoneUsageDescription`、第 3b 節的 AudioSession 外掛) | **要加**(2026-10 開放:視奏「彈一遍」用麥克風自動打分,`js/sight/micscore.js`;2026-11 今日練習「App 聽你彈」(會聽的關按 ▶「你彈一輪」,`scoreDaily`);都預設開、可關,第一次真的要聽才問權限) | **目前版本未開放**(畫面藏起來,`js/shared/micrhythm.js` 的 `MIC_UI`);之後開放時要加(S15:視奏「正式打」、聽力「接著打」可選用麥克風評節奏) |
+| 麥克風(`NSMicrophoneUsageDescription`、第 3b 節的 AudioSession 外掛) | **要加**(2026-10 開放:視奏「彈一遍」用麥克風自動打分,`js/sight/micscore.js`;2026-11 今日練習「App 聽你彈」(會聽的關按 ▶「你彈一輪」,`scoreDaily`);都預設開、可關,第一次真的要聽才問權限) | **目前版本未開放**(畫面藏起來,`js/shared/micrhythm.js` 的 `MIC_UI`;隱私權頁也寫「目前版本未開放」):**1.0 不加** `NSMicrophoneUsageDescription`、不做第 3b 節的 AudioSession 外掛、不測第 8 節第 17–20 項;之後開放時再加(S15:視奏「正式打」、聽力「接著打」可選用麥克風評節奏) |
 | 記憶體要特別測的 | 鋼琴取樣(5 層 × 30 音) | 整組鼓(視奏 RSL 4–5、聽力 Groove、Trinity Playback 會載入 12 個鼓件) |
 
 ## 1. 準備(只做一次)
@@ -130,9 +130,10 @@ WebKit 把它對應到 `AVAudioSessionCategoryPlayback`(沒有 mixWithOthers),�
   做備案前先回報;改 `js/shared/audio.js` 要兩邊同步。
 - iOS 15、16 沒有 `navigator.audioSession`,本來就只有原生設定有效;靜音開關要在這兩版的實機上也測一次。
 
-## 3b. 開麥克風時切換 AVAudioSession(AudioSession 外掛;兩個 App 都要)
+## 3b. 開麥克風時切換 AVAudioSession(AudioSession 外掛;PianoDrill 要做,DrumDrill 1.0 不做)
 
-> PianoDrill 已開放麥克風(2026-10,視奏「彈一遍」自動打分):這一節、第 4 節的 `NSMicrophoneUsageDescription`、第 8 節第 17–20 項要做。DrumDrill 的麥克風評分目前藏起來,開放時再做。
+> - **PianoDrill**:已開放麥克風(2026-10 視奏「彈一遍」自動打分;2026-11 今日練習「App 聽你彈」):這一節、第 4 節的 `NSMicrophoneUsageDescription`、第 8 節第 17–20 項**都要做**。
+> - **DrumDrill 1.0**:麥克風評分目前版本未開放(第 0 節的表):**這一節不做**、第 4 節不加 `NSMicrophoneUsageDescription`、第 8 節第 17–20 項不測;之後開放麥克風的版本再照這一節做。
 
 麥克風收音(`js/shared/mic.js`,兩個 App 同一份):
 - **網頁版**(Safari 17+):開麥克風前 `navigator.audioSession.type = "play-and-record"`,錄完還原成原本的值。
@@ -217,7 +218,9 @@ iPad 要支援分割畫面與視窗縮放(網頁版面本來就跟著寬度變,`
 </array>
 ```
 
-**麥克風**(第 0 節的表):兩個 App 都要加(DrumDrill 從 S15 起)。Info.plist 放英文(開發語言 en),中文放 InfoPlist.strings:
+**麥克風**(第 0 節的表):
+- **PianoDrill:要加**。Info.plist 放英文(開發語言 en),中文放 InfoPlist.strings(下面)。
+- **DrumDrill 1.0:不加**(目前版本未開放;沒有用到麥克風卻宣告權限,審核會問)。下表 DrumDrill 那一列是之後開放時用的字串,1.0 不放。
 
 ```xml
 <key>NSMicrophoneUsageDescription</key>
@@ -245,7 +248,7 @@ iPad 要支援分割畫面與視窗縮放(網頁版面本來就跟著寬度變,`
 "NSMicrophoneUsageDescription" = "<App 的中文字串(上表)>";
 ```
 
-- 兩個 App 都放麥克風那一行(字串照上表,不要寫成另一個 App 的「彈」/「打」)。
+- **PianoDrill** 放麥克風那一行(字串照上表,不要寫成另一個 App 的「打」);**DrumDrill 1.0** 兩個檔案都只放 `CFBundleDisplayName`,麥克風那一行等開放時再加(用上表 DrumDrill 的字串)。
 
 ## 5. PrivacyInfo.xcprivacy(隱私清單)
 
@@ -306,7 +309,7 @@ npm run open                              # = npx cap open ios
 在 Xcode:
 1. **Signing & Capabilities**:Team 選自己的開發者帳號,Bundle Identifier = `<BundleID>`,勾 Automatically manage signing。
 2. **App 圖示**:Assets ▸ AppIcon 用單一尺寸 1024,Appearances 選 Any, Dark, Tinted,放 `icons/icon-1024.png`、`icon-1024-dark.png`、`icon-1024-tinted.png`(見 `docs/APPSTORE.md`)。
-3. 第一次:照第 3–5 節改 AppDelegate、Info.plist、InfoPlist.strings、PrivacyInfo.xcprivacy,commit `app/ios`。
+3. 第一次:照第 3–5 節改 AppDelegate、Info.plist、InfoPlist.strings、PrivacyInfo.xcprivacy,commit `app/ios`(PianoDrill 另做第 3b 節的 AudioSession 外掛與麥克風權限;DrumDrill 1.0 都不做)。
 4. 上方裝置選 **Any iOS Device (arm64)** ▸ Product ▸ **Archive**。
 5. Organizer ▸ **Distribute App** ▸ App Store Connect ▸ Upload(上傳後要等 App Store Connect 處理完,收到通知才能在 TestFlight 選這個 build)。
 6. **TestFlight**:內部測試員(自己的 Apple ID)裝起來,照第 8 節的實機清單測 iPhone SE、一般 iPhone、iPad,結果記在 `docs/APPSTORE.md`。
@@ -316,6 +319,8 @@ npm run open                              # = npx cap open ios
 ## 8. 實機檢查清單
 
 每一項在 **iPhone SE(第 2 或第 3 代,最小記憶體)**、**一般 iPhone**、**iPad** 上用 TestFlight 版測(模擬器測不出靜音開關、藍牙、記憶體上限)。
+- **PianoDrill**:第 1–20 項都測(第 17–20 項是麥克風:視奏「彈一遍」與今日練習「你彈一輪」)。
+- **DrumDrill 1.0**:只測第 1–16 項;第 17–20 項(麥克風)不測(目前版本未開放、沒有麥克風權限),表裡 DrumDrill 的寫法留給之後開放的版本。
 
 | # | 項目 | 怎麼測 | 預期 |
 |---|---|---|---|
@@ -335,10 +340,10 @@ npm run open                              # = npx cap open ios
 | 14 | 深色 / 淺色、動態字級 | 系統切淺色;設定 ▸ 輔助使用 ▸ 較大字體 | 主題按鈕照常;字級變大不破版(VoiceOver、動態字級的完整檢查在 S16 無障礙另做) |
 | 15 | 長時間播放 | 循環播放 10 分鐘 | 不爆音、不延遲變大、不發燙到降速 |
 | 16 | 頁尾連結 | 點「授權與出處」「隱私權政策」「支援」,再按返回 | 三頁都打得開、返回回到 App;支援頁的「在 GitHub 回報」會開 Safari。返回是回到上一頁(`history.back()`,沒有歷史才開 `index.html`),但 App 會**重新載入**(WebView 一般不保留上一頁的狀態):分頁與設定(存在 localStorage)還在,**正在做的題目狀態會重置**,這是預期行為 |
-| 17 | 麥克風權限 | DrumDrill:視奏「正式打」/ 聽力「回打」勾「用麥克風評分節奏」;PianoDrill:視奏「彈一遍」(麥克風自動打分預設開)→ 第一次按;再刪掉 App 重裝,這次按「不允許」 | 跳出系統的權限視窗,說明是第 4 節的字串、語言跟系統一樣;不允許 → 畫面說明原因(DrumDrill:這一次照觸控鼓墊評分),其他功能照常、不會一直問;到 設定 ▸ `<App>` ▸ 麥克風 打開後再試可以用 |
-| 18 | 錄音時的聲音路線(第 3b 節) | 開著 Apple Music 放歌,勾麥克風後正式打 / 回打一次;打完再按一般的播放;再把靜音開關打開按播放 | 預備拍從**喇叭**出來(不是聽筒)、音量正常,而且真的有開始(開麥克風時 AudioContext 被打斷也照樣開始);錄完後模擬考要能繼續(DrumDrill:檢定頁的聽力 RSL 模擬考勾麥克風回打 Fill,打完要能選譜、接著做 Groove,不會跳出「模擬考已中止」);錄音時音樂暫停是預期的;打完切回 `.playback` + `.mixWithOthers`:第 1、2 項(靜音開關有聲音、可以跟音樂混音)照樣成立;沒裝外掛(第 3b 節)時記下差在哪 |
-| 19 | 麥克風評分準不準 | iPhone 放在鼓 / 鋼琴旁 1–2 公尺,DrumDrill 用真的鼓或打擊板:照譜打一次、故意整段晚一點一次、亂打一次;小鼓(RSL 0–3)與整組鼓(RSL 4–5)各一題 | 準時分數高;整段晚只寫「整體慢約 … 毫秒(已先扣掉)」不扣分;亂打分數低;記下整體延遲幾毫秒、漏 / 多幾下(DrumDrill 整組鼓:crash 在響時輕的 hi-hat 可能漏,`js/shared/timing.js` 的門檻要用實機錄音再調);PianoDrill:iPhone 放在譜架上,照譜彈一次、整段慢一點一次、中途停 2 拍一次、彈錯 2 個音一次(初級–2 級):「你的速度」接近實際、停頓與錯音的小節標出來、慢但穩的準度不低;真鋼琴、電鋼琴(喇叭)各記一次,門檻(`js/sight/micscore.js` 開頭的常數)用實機錄音再調 |
-| 20 | 麥克風 + AirPods | 連著 AirPods 勾麥克風打一次 | 聲音從 AirPods 出來(`.allowBluetoothA2DP`)、麥克風用 iPhone 本身的;不當機;記下整體延遲(藍牙輸出延遲會讓「整體慢約」變大,已先扣掉、不扣分) |
+| 17 | 麥克風權限 | PianoDrill:視奏「彈一遍」(麥克風自動打分預設開)或今日練習會聽的關按 ▶「你彈一輪」(「麥克風聽你彈」預設開)→ 第一次按;再刪掉 App 重裝,這次按「不允許」。DrumDrill(1.0 不測,之後開放時):視奏「正式打」/ 聽力「接著打」勾「用麥克風評分節奏」 | 跳出系統的權限視窗,說明是第 4 節的字串、語言跟系統一樣;不允許 → 畫面說明原因(PianoDrill 今日練習改回自己按「做到了」;DrumDrill:這一次照觸控鼓墊評分),其他功能照常、不會一直問;到 設定 ▸ `<App>` ▸ 麥克風 打開後再試可以用 |
+| 18 | 錄音時的聲音路線(第 3b 節) | 開著 Apple Music 放歌,PianoDrill 今日練習「你彈一輪」一次(預備拍、拍點要聽得到)/ DrumDrill(之後開放時)勾麥克風後正式打 / 接著打一次;打完再按一般的播放;再把靜音開關打開按播放 | 預備拍從**喇叭**出來(不是聽筒)、音量正常,而且真的有開始(開麥克風時 AudioContext 被打斷也照樣開始);錄完後模擬考要能繼續(DrumDrill:檢定頁的聽力 RSL 模擬考勾麥克風打 Fill,打完要能選譜、接著做 Groove,不會跳出「模擬考已中止」);錄音時音樂暫停是預期的;打完切回 `.playback` + `.mixWithOthers`:第 1、2 項(靜音開關有聲音、可以跟音樂混音)照樣成立;沒裝外掛(第 3b 節)時記下差在哪 |
+| 19 | 麥克風評分準不準 | iPhone 放在鼓 / 鋼琴旁 1–2 公尺;PianoDrill 另外在今日練習會聽的關(手指 PA1)彈對一次、漏一個音一次,彈對要自動算「做到了」、漏彈要寫原因;DrumDrill(之後開放時)用真的鼓或打擊板:照譜打一次、故意整段晚一點一次、亂打一次;小鼓(RSL 0–3)與整組鼓(RSL 4–5)各一題 | 準時分數高;整段晚只寫「整體慢約 … 毫秒(已先扣掉)」不扣分;亂打分數低;記下整體延遲幾毫秒、漏 / 多幾下(DrumDrill 整組鼓:crash 在響時輕的 hi-hat 可能漏,`js/shared/timing.js` 的門檻要用實機錄音再調);PianoDrill:iPhone 放在譜架上,照譜彈一次、整段慢一點一次、中途停 2 拍一次、彈錯 2 個音一次(初級–2 級):「你的速度」接近實際、停頓與錯音的小節標出來、慢但穩的準度不低;真鋼琴、電鋼琴(喇叭)各記一次,門檻(`js/sight/micscore.js` 開頭的常數)用實機錄音再調 |
+| 20 | 麥克風 + AirPods | 連著 AirPods 用麥克風彈一次(PianoDrill)/ 打一次(DrumDrill,之後開放時) | 聲音從 AirPods 出來(`.allowBluetoothA2DP`)、麥克風用 iPhone 本身的;不當機;記下整體延遲(藍牙輸出延遲會讓「整體慢約」變大,已先扣掉、不扣分) |
 
 ## 9. Android:不做,用 PWA
 

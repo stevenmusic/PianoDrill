@@ -2,6 +2,7 @@
 
 > 這份是 **App Store Connect 要填的內容與送審準備**;iOS 原生步驟(Xcode、AppDelegate、Info.plist、隱私清單、TestFlight、實機檢查清單)在 `docs/IOS.md`。
 > DrumDrill 的 `docs/APPSTORE.md` 用同一個格式(章節一樣,內容各自的)。查證日期 2026-10-18。
+> **送審前對照 Apple 現行規格(截圖尺寸、年齡分級問卷)**:這兩項 Apple 常改,以 App Store Connect 當時的畫面為準。
 
 三個工具(FingerDrill 手指特訓、SightDrill 視奏、EarDrill 聽音特訓)合併成一個 App 上架。
 合併的好處之一:同一個開發者送三個外觀、架構幾乎一樣的 App,容易被審核當成 **4.3 重複 App(Spam)** 退件;合成一個就沒有這個問題,
@@ -19,8 +20,8 @@
 | 隱私權政策(中英) | `privacy.html` → `https://stevenmusic.github.io/PianoDrill/privacy.html` |
 | 支援頁(中英) | `support.html` → `https://stevenmusic.github.io/PianoDrill/support.html`(常見問題、GitHub 回報;支援信箱設好才顯示寄信) |
 | 授權與出處(中英) | `licenses.html`(Salamander CC BY 3.0、Naked Drums CC BY 4.0 + 修改說明、OSMD BSD-3 全文、檢定要求出處、商標聲明) |
-| 麥克風 | **已開放**(2026-10):視奏「彈一遍」用麥克風自動打分(預設開、可關;第一次按才問權限;只在裝置上分析,不存檔、不上傳);**要加** `NSMicrophoneUsageDescription` 與中英文 InfoPlist.strings(`docs/IOS.md` 第 4 節)、AudioSession 外掛(第 3b 節) |
-| 商店截圖(中英各五張) | `app/screenshots/{zh,en}/`:iPhone 1290×2796、iPad 13 吋 2064×2752;`node tools/test/appshots.mjs` 重新產生(固定亂數種子,中英同一題;2026-11-04 改版後重拍) |
+| 麥克風 | **已開放**:視奏「彈一遍」用麥克風自動打分(2026-10)、今日練習會聽的關按 ▶「你彈一輪」App 聽你彈(2026-11);都預設開、可關,第一次真的要聽才問權限,只在裝置上分析,不存檔、不上傳;**要加** `NSMicrophoneUsageDescription` 與中英文 InfoPlist.strings(`docs/IOS.md` 第 4 節)、AudioSession 外掛(第 3b 節) |
+| 商店截圖(中英各五張) | `app/screenshots/{zh,en}/`:iPhone 6.9 吋 1290×2796、iPad 13 吋 2064×2752(檔名見第 7 節);`node tools/test/appshots.mjs` 重新產生(固定亂數種子,中英同一題;2026-11-04 改版後重拍) |
 
 ### 圖示為什麼這樣設計
 - 三個工具合併後,原本的耳朵、手、眼睛都只代表一部分;硬把三個符號擠在一起,縮到 40px 就糊了。改畫三者的共同點:**鋼琴(三白兩黑鍵)+ 考試結果(勾 = 答對、通過)**,勾也跟 App 裡的自動批改同一個意思。
@@ -49,29 +50,38 @@
 
 ## 4. 描述
 
-**繁體中文**
-> 準備鋼琴檢定的學生、上課抽考的老師,或只想好好練琴的人,都可以用。
-> 技巧:音階、琶音、哈農 1–20 首都標指法(三度、六度照哈農原書),取樣鋼琴示範附預備拍,速度可以慢慢加。
-> 視奏:依官方視奏範例整理的規則隨機出題(1–8 級),30 秒準備、聽正確版本比對。
+**繁體中文**(字數見下面)
+> 每天 10 分鐘,跟著彈就會。剛開始學琴的人、準備鋼琴檢定的學生、上課抽考的老師都可以用。
+> 今日練習:App 每天排好約 10 分鐘(暖身、手指路線、左手伴奏路線、複習),從「找到中央 C」開始一關一關往上;速度從慢慢加到目標,彈穩了就過關,過關的會照日子拿出來複習。漏練幾天沒關係,不會扣分。
+> App 聽你彈:手指路線的部分關卡按 ▶「你彈一輪」,App 用麥克風聽你有沒有彈對,彈對了自動算「做到了」;不想用可以關掉,改成自己按。
+> 技巧:音階、琶音、哈農 1–20 首都標指法(三度、六度照哈農原書),鋼琴示範附預備拍,速度可以慢慢加。
+> 視奏:認音練習,右手、左手、雙手各 4 種難度隨機出題;按「彈一遍」用麥克風自動打分(節奏、穩定、連貫),再聽正確版本對照。
 > 聽力:單音、音程、和弦聽音練習,鍵盤作答、自動批改,錯得多的項目多練。
-> 檢定:選好考試(ABRSM / Trinity)和級數一次,音階琶音、視奏、聽力測驗都照這一級出題,還有模擬考(ABRSM、Trinity 為各自的商標,本 App 與其無關;僅供練習,實際要求以官方大綱為準)。
-> 鋼琴音色內建在 App 裡,不用網路也能用;不需要登入、沒有廣告、不收集任何資料。
+> 檢定:選好考試(ABRSM / Trinity)和級數一次,音階琶音、視奏、聽力都照這一級出題,ABRSM 視奏照考試看譜 30 秒(初級–8 級),還有模擬考(ABRSM、Trinity 為各自的商標,本 App 與其無關;僅供練習,實際要求以官方大綱為準)。
+> 練習紀錄:連續天數、每週目標、最近 7 天練了幾天。
+> 鋼琴聲音內建在 App 裡,不用網路也能用;不需要登入、沒有廣告、不收集任何資料;麥克風的聲音只在裝置上分析,不存檔、不上傳。
 
 **English**
-> For piano students preparing for a grade exam, teachers giving spot checks, and anyone who simply wants to practise well.
-> Technique: scales, arpeggios and Hanon 1–20 with fingering on every note (thirds and sixths as in Hanon's original), sampled piano demos with a count-in and a tempo you can raise step by step.
-> Sight-reading: random tests generated from rules modelled on the official specimen tests (Grades 1–8), 30 seconds' preparation, compare with the correct version.
+> 10 minutes a day. Play along. For beginners, students preparing for a piano grade exam, and teachers giving spot checks.
+> Today: the app plans about 10 minutes each day (warm-up, a finger route, a left-hand accompaniment route and review), starting from "Find middle C" and moving up level by level. The tempo climbs slowly to the target; play it steadily to pass, and passed levels come back for review. Missed days are never penalised.
+> The app listens: on some finger levels, press ▶ "Your turn" and the app listens through the microphone; play it right and it counts as "Did it". You can switch it off and mark it yourself.
+> Technique: scales, arpeggios and Hanon 1–20 with fingering on every note (thirds and sixths as in Hanon's original), piano demos with a count-in and a tempo you can raise step by step.
+> Sight-reading: note reading, plus right-hand, left-hand and hands-together pieces at 4 levels each; tap "Play it" and the microphone scores your rhythm, steadiness and flow, then compare with the correct version.
 > Ear training: notes, intervals and chords answered on a keyboard with instant marking; your weak spots come up more often.
-> Exams: set your board (ABRSM / Trinity) and grade once and scales, sight-reading and aural tests all follow it, plus a mock exam (ABRSM and Trinity are trademarks of their owners; this app is not affiliated with them. Practice only — the official syllabus is final).
-> Sampled piano built in and works offline. No sign-in, no ads, no data collected.
+> Exams: set your board (ABRSM / Trinity) and grade once and scales, sight-reading and aural tests all follow it; ABRSM sight-reading uses the exam's 30 seconds' preparation (Initial–Grade 8), plus a mock exam (ABRSM and Trinity are trademarks of their owners; this app is not affiliated with them. Practice only — the official syllabus is final).
+> Practice log: day streak, weekly goal and the last 7 days.
+> Piano sounds are built in and work offline. No sign-in, no ads, no data collected; microphone audio is analysed on the device only, never recorded or uploaded.
 
+- 字數(Apple 上限 4000 字元):繁體中文 592 字、English 1711 字元(2026-11-07 量;改描述要重量)。
 - **描述只寫 App 裡真的有的功能**(審核 2.3.1)。
 - 宣傳文字(Promotional Text,170 字,可以隨時改不用送審):先留空,有新功能時再寫。
 
-## 5. 關鍵字(100 字元,逗號分隔、不重複名稱裡的字)
+## 5. 關鍵字(上限 100 bytes,逗號分隔、不重複名稱裡的字)
 
-- **繁體中文**:`音階,琶音,哈農,視奏,聽音,聽力,練耳,音程,和弦,指法,考級,樂理,練琴,節拍器,scales,sight reading`(63 字)
-- **English**:`scales,arpeggios,hanon,sight reading,ear training,aural,intervals,chords,fingering,grade,theory`(95 字)
+- 上限算的是 **UTF-8 位元組**:中文一個字 3 bytes、英文與逗號 1 byte(2026-11-07 量的數字寫在後面;改了要重量)。
+
+- **繁體中文**:`音階,琶音,哈農,視奏,聽音,聽力,練耳,音程,和弦,指法,考級,練琴,節拍器,scales`(46 字、100 bytes;舊版 121 bytes 超過上限,拿掉「樂理」「sight reading」)
+- **English**:`scales,arpeggios,hanon,sight reading,ear training,aural,intervals,chords,fingering,grade,theory`(95 bytes)
 - **不放考試機構與其他組織的名稱**:ABRSM、Trinity、英國皇家、RSL、Rockschool(審核 2.3.7:關鍵字不能放別人的商標;本 App 與它們無關,放了容易被當成冒用而退件)。舊版關鍵字有 ABRSM、Trinity、英國皇家,已經拿掉。
 
 ## 6. 審核備註(App Review Information ▸ Notes,貼英文)
@@ -80,10 +90,10 @@
 - No sign-in, no account, no network needed: the piano samples, notation engine, syllabus data and test rules are inside the app. It works fully offline from the first launch.
 - Exam board names (ABRSM, Trinity College London) are used only to describe which syllabus the practice follows. This app is not affiliated with, endorsed by, or sponsored by them; it uses none of their logos, colours or copyrighted test material. Scale and aural requirements cite the public syllabus, and screens say the official syllabus is final.
 - Sight-reading tests are generated on the device from rules modelled on the boards' public specimen tests; scale questions and aural tests (melodies, cadences, modulations) are generated and marked by the app. They are not official test pieces.
-- Microphone: used only in sight-reading "Play it" to score the performance (note timing, steadiness, flow; Initial–Grade 2 also checks the expected notes are present). Permission is requested the first time the user taps "Play it"; it can be switched off in the app. Audio is analysed on the device only and never recorded or uploaded; declining permission leaves every other feature working.
+- Microphone: used in two places, both on by default and both can be switched off in the app. (1) Sight-reading "Play it" scores the performance (note timing, steadiness, flow; Initial–Grade 2 also checks the expected notes are present). (2) Today (daily practice): on some finger levels, pressing ▶ "Your turn" listens while the student plays along with the click and checks the notes; a correct play counts as "Did it" ("Mic listens" button in the panel turns it off). Permission is requested the first time the app actually needs to listen. Audio is analysed on the device only and never recorded or uploaded; declining permission leaves every other feature working (Today falls back to self-marking).
 - Native functionality beyond a web page: native audio session (plays with the silent switch on), bundled multi-velocity piano samples, instant marking, mock exam, practice statistics, offline use.
 - No data is collected; no tracking; no analytics or advertising SDKs. Practice settings stay on the device.
-- How to test: open the Technique tab and press play; open Exams, choose a board and grade, then try Sight-reading and Aural.
+- How to test: on first launch tap "Start practicing"; the Technique tab opens on Today — tap "Start today's practice" and press ▶. Then open Exams, choose a board and grade, and try Sight-reading and Aural.
 ```
 
 - 聯絡資訊填自己的姓名、電話、Email(只給審核員看,不公開)。
@@ -95,14 +105,20 @@
 
 | 尺寸 | 像素(直式) | 狀態 |
 |---|---|---|
-| iPhone 6.9 吋 | 1320×2868(或 1290×2796、1260×2736) | 中英都有(`app/screenshots/{zh,en}/iphone-*.png`,1290×2796) |
-| iPhone 6.5 吋 | 1284×2778(或 1242×2688) | 要做(沒有 6.9 吋時才是必填,一起準備比較保險) |
-| iPad 13 吋 | 2064×2752(或 2048×2732) | 中英都有(`app/screenshots/{zh,en}/ipad13-*.png`) |
+| iPhone 6.9 吋 | 1320×2868(或 1290×2796、1260×2736) | **做好了**:1290×2796(430×932 × 3) |
+| iPhone 6.5 吋 | 1284×2778(或 1242×2688) | 不另外做(有 6.9 吋就不另做;Apple 會縮給較小的裝置) |
+| iPad 13 吋 | 2064×2752(或 2048×2732) | **做好了**:2064×2752(1032×1376 × 2) |
 
-- 每個尺寸 1–10 張,PNG / JPEG,**不能有透明通道**。Apple 會把最大尺寸縮給較小的裝置用。
+- 每個尺寸 1–10 張,PNG / JPEG,**不能有透明通道**(Playwright 存的 PNG 是 RGB)。Apple 會把最大尺寸縮給較小的裝置用。
 - Apple 的規格頁(2026-10)同時寫了「iPhone 至少一張 Dynamic Island(中尺寸,6.3 吋 1206×2622)」;上傳時看 App Store Connect 實際要求哪一格,要的話用同一組畫面輸出 1206×2622。
 - 一定要是 App 的真實畫面(審核 2.3.3),不要放考試機構的標誌;可以加簡短的說明文字,但不要寫「官方」。
-- 現有 5 張:檢定、音階、視奏、聽音、聽力測驗(`appshots.mjs`)。英文版用同一支程式切英文產生。
+- 5 張(中英同一組畫面、同一題;檔名 `app/screenshots/{zh,en}/{iphone,ipad13}-n-名稱.png`;今日練習放第一張):
+  1. `1-today` 今日練習:按「開始今天的練習」後的第一段(題目卡 + 樂譜)
+  2. `2-scale` 技巧:D 大調音階(樂譜與指法)
+  3. `3-sight` 視奏:右手難度 1(音名開著)
+  4. `4-ear` 聽力:單音(琴鍵作答)
+  5. `5-exam` 檢定:ABRSM 5 級,抽一題音階
+- 產生方式:`node tools/test/appshots.mjs`(Playwright;固定亂數種子讓中英、iPhone / iPad 同一題;練習紀錄塞幾天假資料)。改了畫面就重跑一次,上傳前每張看過:載入完、沒有「載入中」、沒被切掉。
 
 ## 8. 年齡分級
 
@@ -166,5 +182,5 @@
 2. 在 Mac 上照 `docs/IOS.md` 做:`cap add ios`、AppDelegate、AudioSession 外掛(第 3b 節)、Info.plist(含麥克風)、InfoPlist.strings、PrivacyInfo.xcprivacy、圖示、Archive、TestFlight。
 3. 實機測試(第 14 節),特別是「邊放音樂邊練」(`docs/IOS.md` 第 3 節還沒解決的那一點)。
 4. 支援信箱:要不要公開一個 Email?要的話填在 `support.html` 的 `APP.EMAIL`(空白時只顯示 GitHub 回報)。
-5. 英文截圖(第 7 節)、英文名稱是否被用掉(第 3 節)、中國大陸是否上架(第 12 節)。
+5. 上傳截圖(第 7 節;已產生,上傳前看過一次)、英文名稱是否被用掉(第 3 節)、中國大陸是否上架(第 12 節)。
 6. 寄信給 ABRSM、Trinity(第 13 節)。

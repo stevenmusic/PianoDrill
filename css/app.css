@@ -757,8 +757,8 @@ body.land-play #t-stage{flex:1;display:flex;flex-direction:column;justify-conten
 .subnav .sub-bar{width:min(560px, 100%);padding:0 2px}
 .subnav.has-bar{min-width:0}   /* 那一行放不下時「剩約 n 分」換行(不撐出畫面;折疊機 280) */
 .daily-bar .daily-pause{flex:none;min-width:44px;min-height:44px;height:auto;padding:0;display:inline-flex;align-items:center;justify-content:center}
-/* 內容寬度:技巧、聽音窄一點(按鈕、鍵盤不會又寬又扁);視奏的樂譜要寬 */
-@media (min-width:901px){ main,footer{max-width:900px} body.view-sight main,body.view-sight footer{max-width:1180px} }
+/* 內容寬度:按鈕、鍵盤不會又寬又扁;視奏也一樣寬(2026-11-07:iPad Pro 直式 1024 切分頁時卡片左右邊不跳) */
+@media (min-width:901px){ main,footer{max-width:900px} }
 /* 檢定頁的考試卡(不收起來,手機也一直展開;使用者:以前要展開、選系統、再拉下拉選單,很難用):
    摘要一行 → 系統兩顆大鈕 → 級數一排(9 格,跟子項目的分段鈕同一個樣式;js/main.js 的 fillGradeSeg)。第一次的問題的級數列同一個樣式 */
 .exam-sum{display:flex;align-items:center;gap:8px;min-height:24px;font-size:var(--fs-sm);color:var(--ivory)}

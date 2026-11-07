@@ -1167,7 +1167,7 @@ body.daily-on footer{display:none}
 /* 檢定頁(版型 B):上面一列 = 考試卡(左)+ 本項列與題目卡(右);下面整列 = 譜、清單、設定卡、考試內容(照 order)
    矮的寬視窗(高 ≤ 500)不用:那是手機橫式的並排規則 */
 @media (min-width:1100px) and (min-height:501px){
-  body.view-exam main{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:12px;row-gap:0;align-items:start}
+  body.view-exam main{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:12px;row-gap:0;align-items:start;align-content:start}   /* 內容比 main 矮(視奏、聽力空狀態)時列不撐高,題目卡不往下掉 */
   body.view-exam main > *{grid-column:1 / -1}
   body.view-exam footer{order:99;margin-top:12px}
   body.view-exam main > #examSetup{grid-column:1;grid-row:1 / span 2}

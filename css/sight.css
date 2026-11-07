@@ -223,3 +223,9 @@
 /* 狀態 / 下一步那一句 = 內文 17(跟今日練習的狀態句同一級;say() 把 class 換成 message 後原本掉回 16,第 7 輪健檢);手機橫式照 app.css 14 */
 #s-message{font-size:var(--fs-body)}
 @media (max-height:420px), (orientation:landscape) and (max-height:500px){ #s-message{font-size:var(--fs-sm)} }
+/* 平板直式 / 橫式(601–1099 寬;題目卡最後一行不固定在底部、留在卡裡):檢定頁出了題目以後,狀態句沒字也留一行高、自我檢查排在按鈕下面(結果在主要動作之後),
+   每一步(看譜 30 秒 → 倒數 → 彈一遍 → 自我檢查)主要按鈕位置不跳(newbie.mjs ipad-768 / ipad-1024);手機底部固定、≥ 1100 照舊 */
+@media (min-width:601px) and (max-width:1099px) and (min-height:501px){
+  body.view-exam #s-quiz:not(.hint-empty) #s-message:empty::before{content:"\200b"}
+  body.view-exam #s-quiz #s-selfCheck{order:1;margin-top:0}
+}

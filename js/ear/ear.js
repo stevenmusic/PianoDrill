@@ -116,7 +116,7 @@ function build(tab, pick, it, items){
     const mode = dir === "harm" ? "block" : "melodic";
     return { tab, key: "interval:" + it.id, sig: dir + root + it.id, play: playOf(ns(it), mode),
       steps: [{ get q(){ return tr("什麼音程？", "Which interval?"); }, choices: items.map(x => ({ id: x.id, get label(){ return intervalLabel(x); }, get sub(){ return tr(x.ex[0], x.ex[1]); } })), answer: it.id }],
-      get label(){ return tr("這是什麼音程？", "Which interval?"); }, get tags(){ return pick.dir === "mix" ? questionTags({ tab, dir }) : []; }   /* 方向跟設定列一樣就不寫;「混合」才寫這一題是哪一種 */, reveal: ns(it).map(midiName).join(" → "),
+      get label(){ return tr("這是什麼音程？", "Which interval?"); }, get tags(){ return pick.dir === "mix" ? questionTags({ tab, dir }) : []; }   /* 方向跟設定列一樣就不寫;「混合」才寫這一題是哪一種 */, get reveal(){ return tr(it.ex[0], it.ex[1]); },   /* 答案的例子照作答鈕的寫法(Do–Sol),不寫實際的 F4 → C5(2026-11-07 健檢) */
       compare: id => playOf(ns(INTERVALS.find(x => x.id === id)), mode) };
   }
   const inv = pick.inv === "root" ? 0 : rnd(it.iv.length);
@@ -126,7 +126,7 @@ function build(tab, pick, it, items){
   return { tab, key: "chord:" + it.id, sig: mode + root + inv + it.id, play: playOf(vo(it), mode),
     steps: [{ get q(){ return tr("什麼和弦？", "Which chord?"); }, choices: items.map(x => ({ id: x.id, get label(){ return chordLabel(x); } })), answer: it.id }],
     get label(){ return tr("這是什麼和弦？", "Which chord?"); }, get tags(){ return pick.style === "mix" ? questionTags({ tab, mode }) : []; },
-    get reveal(){ return pcName(root) + " " + chordLabel(it) + (inv ? "(" + INV_NAME()[inv] + ")" : ""); },
+    get reveal(){ return inv ? INV_NAME()[inv] : ""; },   /* 答案只寫和弦名(作答鈕的字)+ 轉位;不寫根音(G♯/A♭ 小孩看不懂、和弦名寫兩次) */
     compare: id => playOf(vo(CHORDS.find(x => x.id === id)), mode) };
 }
 

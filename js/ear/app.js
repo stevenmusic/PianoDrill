@@ -36,14 +36,25 @@ export function relang(){
     else if ($("quizCard").classList.contains("hint-empty")) emptyText();
     $("playLabel").textContent = play ? T("stop") : starting ? tr("準備中…", "Preparing…") : cur && A && A.played ? T("replay") : T("play");
     renderStats();
+    syncInfoRow();   // 「題目 / Question」小字寬度跟語言走:連對 n 重新對齊
   }
   renderLog();
 }
 /* 暫時訊息(載入中、載入失敗):記住產生文字的函式,換語言時重寫 */
 const msgs = {};
 function setMsg(id, fn){ msgs[id] = fn || null; $(id).textContent = fn ? fn() : ""; syncInfoRow(); }
-/* 題目卡標題下那一列(連對):空的就整列收掉(標籤在標題同一行);鋼琴聲音載入中 / 失敗在自己那一行(.q-load) */
-function syncInfoRow(){ const row = $("infoRow"); if (row) row.hidden = !$("scoreLine").textContent; }
+/* 連對 n:在 ▶ 下面小字(題目)那一行、小字的左邊(2026-11-07 健檢:原本在標題下多一列,連對 2 出現時作答鈕整排往下推 25px);
+   絕對定位在 .q-head 裡,出現 / 消失都不推版面;位置照 ▶ 與小字實際的大小算(小字寬度跟語言、字級走) */
+function syncInfoRow(){
+  const row = $("infoRow"); if (!row) return;
+  row.hidden = !$("scoreLine").textContent;
+  const btn = $("playBtn"), head = row.parentElement;
+  if (row.hidden || !btn.offsetWidth) return;
+  const cap = parseFloat(getComputedStyle(btn, "::after").width) || 0;
+  const b = btn.getBoundingClientRect(), h = head.getBoundingClientRect();
+  row.style.right = Math.round(h.right - b.right + Math.max(b.width, cap) + 10) + "px";
+  row.style.top = Math.round(b.bottom - h.top + 7) + "px";
+}
 function remsg(){ for (const id in msgs) if (msgs[id]) $(id).textContent = msgs[id](); }
 
 function segBind(el, get, set){
@@ -85,8 +96,8 @@ const PICKERS = {
   chord: p => [
     ["preset", tr("常用", "Common"), Object.keys(PRESETS.chord).map(k => [k, PRESET_NAME()[k]])],
     ["set", tr("出哪些和弦", "Chords"), ALL_ITEMS.chord.map(it => [it.id, itemLabel("chord", it)]), true],
-    ["inv", tr("轉位", "Inversions"), [["root", tr("原位", "Root only")], ["all", tr("含轉位", "Include")]]],
-    ["style", tr("彈法", "Style"), [["block", tr("同時", "Block")], ["arp", tr("分解", "Broken")], ["both", tr("分解再同時", "Both")], ["mix", tr("混合", "Mixed")]]],
+    ["inv", tr("轉位", "Inversions"), [["root", tr("原位", "Root position")], ["all", tr("含轉位", "Include")]]],
+    ["style", tr("彈法", "Style"), [["block", tr("同時", "Together")], ["arp", tr("分解", "Broken")], ["both", tr("分解再同時", "Both")], ["mix", tr("混合", "Mixed")]]],
     ["root", tr("根音", "Root"), [["rand", tr("隨機", "Random")], ["C", tr("固定 C", "Always C")]]],
     OPTS()
   ]
@@ -94,13 +105,14 @@ const PICKERS = {
 const paneOf = tab => $({ note: "paneNote", interval: "paneInterval", chord: "paneChord" }[tab]);
 function pickSummary(tab){
   const p = S.pick[tab], items = ALL_ITEMS[tab].filter(it => p.set.includes(it.id));
-  const names = items.length > 4 ? tr(`${items.length} 項`, `${items.length} items`) : items.map(it => itemLabel(tab, it)).join("、");
+  // 單音寫「7 個音」(不寫音域:標籤「不分八度」,寫「1 個八度」像矛盾;2026-11-07 健檢)
+  const names = items.length > 4 ? (tab === "note" ? tr(`${items.length} 個音`, `${items.length} notes`) : tr(`${items.length} 項`, `${items.length} items`)) : items.map(it => itemLabel(tab, it)).join("、");
   const row = k => {
     if (k === "ref") return p.ref === "none" ? tr("沒有參考音", "No ref.") : tr(`參考音 ${p.ref}`, `Ref. ${p.ref}`);   // 選項只寫 C / A,摘要要說是參考音
     const r = PICKERS[tab](p).find(x => x[0] === k); const o = r && r[2].find(x => x[0] === p[k]); return o ? o[1] : "";
   };
   // 和弦:作答鈕已經寫了和弦名,設定列只寫「原位 · 同時」
-  return [tab === "chord" ? null : names, ...({ note: ["range", "ref"], interval: ["dir"], chord: ["inv", "style"] }[tab]).map(row)].filter(Boolean).join(" · ");
+  return [tab === "chord" ? null : names, ...({ note: ["ref"], interval: ["dir"], chord: ["inv", "style"] }[tab]).map(row)].filter(Boolean).join(" · ");
 }
 function renderPicker(tab){
   const pane = paneOf(tab), p = S.pick[tab];
@@ -364,6 +376,13 @@ function idleText(){
   return first ? tr(...INTRO[S.tab]) : tr("先按 ▶ 聽題目", "Press ▶ to listen");
 }
 const refLabel = q => tr("這是 ", "This is ") + noteName(q.ref % 12);
+/* 聽過題目、還沒作答:狀態句寫作答的下一步(狀態句永遠寫現在要按什麼;2026-11-07 健檢:聽完原本是空白);檢定頁的題目在 stepQ 已經寫了 */
+const ANSWER_HINT = {
+  note: ["點下面的琴鍵，選出剛才的音", "Tap the key you just heard"],
+  interval: ["點一個，選出差多遠", "Tap how far apart they are"],
+  chord: ["點一個，選出和弦的種類", "Tap the chord type"]
+};
+const answerHint = () => cur && cur.tab && ANSWER_HINT[cur.tab] ? () => tr(...ANSWER_HINT[cur.tab]) : null;
 /* 第一次進來這個子項目(還沒答完一題):狀態那行寫在練什麼、怎麼作答(答完一題就換回「先按 ▶ 聽題目」) */
 const INTRO = {
   note: ["聽一個音，點出是哪個鍵", "Hear a note, tap the key"],
@@ -426,7 +445,7 @@ function landReveal(){
   const kb = $("kbd"); if (!LAND.matches || !kb || !active) return;
   if (kb.getBoundingClientRect().bottom > innerHeight - LAND_CTA) window.scrollTo({ top: Math.max(0, scrollY + $("quizCard").getBoundingClientRect().top - headBottom() - 8) });
 }
-addEventListener("resize", fitKeyboard);
+addEventListener("resize", () => { fitKeyboard(); syncInfoRow(); });   // ▶ 大小跟寬度走(手機 46、其他 52):連對 n 重新對齊
 function syncKeys(){
   const k = cur.keys, dots = $("kbdDots");
   if (dots) dots.innerHTML = k.target.map((_, i) => {
@@ -559,6 +578,11 @@ function showResult(){
   fb.className = "feedback " + (A.ok ? "ok" : "no");
   setFb(() => {   // 標籤、答案名稱是 getter:pairText 用中文、英文各跑一次
     const ans = cur.steps ? cur.steps.map(s => s.choices.find(c => c.id === s.answer).label).join(" → ") : "";
+    if (cur.tab) {   // 單音 / 音程 / 和弦:「✓ 對了 · 大三和弦」「✗ 答案是 完全五度（Do–Sol）」;答對而且會自動下一題(1.1 秒就換)不叫人點其他選項
+      const name = cur.steps ? ans + (cur.reveal ? tr(`（${cur.reveal}）`, ` (${cur.reveal})`) : "") : cur.reveal;
+      const more = cur.compare && !(A.ok && S.auto) ? (S.tab === "note" ? tr("。點其他鍵聽聽看", ". Tap other keys to hear them") : tr("。點其他選項聽聽看", ". Tap others to hear them")) : "";
+      return (A.ok ? tr("✓ 對了 · ", "✓ Right · ") : A.revealed ? tr("答案：", "Answer: ") : tr("✗ 答案是 ", "✗ Answer: ")) + name + more;
+    }
     const extra = [A.tapRes && A.tapRes.msg, cur.reveal].filter(Boolean).join(" · ");
     return (A.ok ? tr("✓ 對了", "✓ Right") : A.revealed ? tr("答案：", "Answer: ") + (ans || "") : tr("✗ 答案是 ", "✗ Answer: ") + (ans || ""))
       + (extra ? (ans || A.ok ? " · " : "") + extra : "") + (A.done && cur.compare ? (S.tab === "note" ? tr("。點其他鍵聽聽看", ". Tap other keys to hear them") : tr("。點其他選項聽聽看", ". Tap other options to hear them")) : "");
@@ -662,7 +686,7 @@ async function startPlayback(){
   $("revealBtn").hidden = A.done;
   if (cur.tap) { A.taps = []; syncTap(); A.tapStart = t0; A.tapEnd = t0 + cur.play.dur; }
   // 作答提示記成函式(A.hint),換語言、切走再回來時 renderAnswers 照目前的語言重寫
-  A.hint = cur.tap && cur.tap.kind === "pulse" ? () => tr("跟著拍子按「拍」", "Tap along") : null;
+  A.hint = cur.tap && cur.tap.kind === "pulse" ? () => tr("跟著拍子按「拍」", "Tap along") : answerHint();
   if (!A.done) setFb(A.hint);
   $("playIcon").innerHTML = '<rect x="6" y="6" width="12" height="12" rx="1.5"/>';
   $("playLabel").textContent = T("stop");
@@ -681,8 +705,8 @@ function stopPlayback(natural){
     if (!natural) audio.stopAll();
     // 跟著打拍子:播完就批改
     if (natural && cur && cur.tap && cur.tap.kind === "pulse" && !A.done) judgeTapNow();
-    if (A) A.hint = null;   // 「跟著拍子按」只在播放中(手動停止就拿掉,不然留著過時的提示)
-    if (!natural && cur && A && !A.done) setFb(null);
+    if (A) A.hint = A.played ? answerHint() : null;   // 「跟著拍子按」只在播放中(手動停止就拿掉,不然留著過時的提示);單音 / 音程 / 和弦留著作答的下一步
+    if (!natural && cur && A && !A.done) setFb(A.hint);
     if (natural && cur && cur.tap && cur.tap.kind === "rhythm" && !A.done) {
       const n = cur.tap.n;
       A.hint = () => tr(`現在按出節奏（${n} 下）`, `Now tap the rhythm (${n} taps)`);
@@ -706,14 +730,17 @@ export function onKey(e){
   else if (/^[1-9]$/.test(e.key)) { const b = $("answers").querySelectorAll(".ans")[Number(e.key) - 1]; if (b) b.click(); }
 }
 
-/* ══ 各項正確率 ══ */
+/* ══ 各項正確率 ══(放在練習紀錄下面:css/ear.css) */
+const STATS_MIN = 5;
 function renderStats(){
   let rows = [];
   if (PRACTICE.includes(S.tab)) rows = ALL_ITEMS[S.tab].map(it => [itemLabel(S.tab, it), S.stats[S.tab + ":" + it.id]]);
   else if (S.exam && SY) rows = allDrills().map(d => [`${d.test.id} ${drillName(d.drill.type)}`, S.stats[examKey(d.test, d.drill)]]);
   rows = rows.filter(r => r[1] && r[1].n);
   // 沒有資料:整張藏起來(不放一張空卡);檢定頁本來就不放(app.css body.view-exam)
-  $("statsCard").hidden = !rows.length;
+  // 單音 / 音程 / 和弦:這個子項目累計答滿 5 題才出現(2026-11-07 健檢:答第一題就跳出「D 0% · 1 題」,沒有意義、畫面還跳一下)
+  const few = PRACTICE.includes(S.tab) && rows.reduce((n, r) => n + r[1].n, 0) < STATS_MIN;
+  $("statsCard").hidden = !rows.length || few;
   $("statsList").innerHTML = rows.map(([name, s]) => {
     const p = Math.round(100 * s.ok / s.n);
     return `<div class="srow"><span>${name}</span><div class="bar"><i class="${p < 70 ? "low" : ""}" style="width:${p}%"></i></div><small>${p}% · ${tr(`${s.n} 題`, `${s.n} q`)}</small></div>`;

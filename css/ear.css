@@ -5,3 +5,15 @@
 #mod-ear .ref-row{flex-wrap:wrap;column-gap:12px;row-gap:4px}
 #mod-ear .ref-hint{flex:1 1 12em;min-width:0;font-size:var(--fs-md);color:var(--muted-bright)}
 @media (max-width:360px){ #mod-ear .ref-hint{flex-basis:100%} }   /* SE 320、折疊機:按鈕旁邊放不下,提示自己一行 */
+
+/* 連對 n:▶ 下面小字那一行、小字的左邊(不推琴鍵 / 選項;right / top 由 ear/app.js 的 syncInfoRow 照實際大小寫);字級、行高跟小字一樣,兩個對齊 */
+#mod-ear .q-head{position:relative;padding-bottom:4px}   /* 小字(與連對 n)比 ▶ 的 margin-bottom 18 高約 3px:留 4px,兩個都不伸出 .q-head(固定的,出現 / 消失不推版面) */
+#mod-ear #e-infoRow{position:absolute;margin:0;pointer-events:none}
+#mod-ear #e-infoRow .count{font-size:min(var(--fs-cap), 15px);line-height:1.2;font-weight:500}
+
+/* 各項正確率放在練習紀錄下面(版型 A:練習紀錄在題目卡下面;統計是附屬的,2026-11-07 健檢 ★;app.css 的 order 是 4 / 5) */
+#mod-ear #e-statsCard{order:6}
+
+/* 手機(題目卡最後一行固定在底部,跟 app.css 的 .cta-bar 同一個條件):狀態句空的時候不佔一行(單音題還沒聽:提示在「這是 C」旁邊;
+   2026-11-07 健檢:琴鍵下面留 ~40px 空白);聽過題目就寫作答的下一步。平板、寬畫面按鈕留在卡裡,照舊留一行高(按 ▶ 後下一題 / 顯示答案不跳) */
+@media (max-width:600px), (orientation:landscape) and (max-height:500px){ #mod-ear #e-feedback:empty{min-height:0} }

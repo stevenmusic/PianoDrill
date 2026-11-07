@@ -328,8 +328,9 @@ function renderAnswers(){
   } else if (q.keys) {
     box.classList.remove("compact");
     $("stepQ").textContent = q.keys.target.length > 1 ? tr(`在鍵盤上彈出 ${q.keys.target.length} 個音`, `Play the ${q.keys.target.length} notes`) : "";   // 單音:題目已經寫「這是什麼音?」,標籤有「不分八度」
-    // 單音題的參考音:琴鍵正上方左邊一顆次要按鈕「這是 C」(不是圓形、不是實心;按了播 C4 / A4、那個鍵亮 1 秒,不算作答)
-    const refBtn = q.ref != null ? `<div class="kbd-row"><button class="btn ghost" id="e-refBtn" style="min-height:44px;height:auto">${refLabel(q)}</button></div>` : "";
+    // 單音題的參考音:琴鍵正上方左邊一顆次要按鈕「這是 C」(不是圓形、不是實心;按了播 C4 / A4、那個鍵亮 1 秒,不算作答);
+    // 還沒聽題目的提示「先按「這是 C」，再按 ▶ 聽題目」在同一行右邊(2026-11-07 使用者;狀態句那行不再寫;放不下換到下一行,css/ear.css)
+    const refBtn = q.ref != null ? `<div class="kbd-row ref-row"><button class="btn ghost" id="e-refBtn" style="min-height:44px;height:auto">${refLabel(q)}</button><span class="ref-hint" id="e-refHint"></span></div>` : "";
     box.innerHTML = `<div class="kbd-wrap">${refBtn}<div class="kbd" id="e-kbd">${keyboardHTML(q.keys)}</div>` +
       (q.keys.target.length > 1 ? `<div class="kbd-row"><div class="kbd-dots" id="e-kbdDots"></div><button class="btn ghost small" id="e-kbdClear">${T("clearKeys")}</button></div>` : "") + `</div>`;
     syncKeys(); fitKeyboard();
@@ -341,8 +342,17 @@ function renderAnswers(){
       `<button class="btn small" id="e-tapDone">${T("tapDone")}</button></div>`;
     syncTap();
   }
+  syncRefHint();
   if (A.done) showResult();
-  else setFb(!A.played ? idleText : A.hint);
+  else setFb(!A.played ? (cur.ref != null ? null : idleText) : A.hint);   // 有「這是 C」鈕:提示在那顆鈕右邊(syncRefHint),這裡不重複
+}
+/* 「這是 C」右邊的提示:聽過題目就藏起來(visibility,保留位置:琴鍵不跳);中英一樣高(pairText) */
+function syncRefHint(){
+  const el = $("refHint"); if (!el) return;
+  if (!el._pair) pairText(el, idleText);
+  const off = !!(A.played || A.done);
+  el.style.visibility = off ? "hidden" : "";
+  el.setAttribute("aria-hidden", String(off));
 }
 /* 還沒聽題目時的狀態:第一次進來寫說明(INTRO),之後寫「先按 ▶ 聽題目」;單音題有參考音時兩句都先提「這是 C」 */
 function idleText(){
@@ -648,7 +658,7 @@ async function startPlayback(){
   if (!ok) { $("playLabel").textContent = T("play"); return; }
   const t0 = playSeq(cur.play);
   play = { t0, dur: cur.play.dur, raf: 0 };
-  A.played = true; if (!A.t0) A.t0 = Date.now();
+  A.played = true; if (!A.t0) A.t0 = Date.now(); syncRefHint();
   $("revealBtn").hidden = A.done;
   if (cur.tap) { A.taps = []; syncTap(); A.tapStart = t0; A.tapEnd = t0 + cur.play.dur; }
   // 作答提示記成函式(A.hint),換語言、切走再回來時 renderAnswers 照目前的語言重寫

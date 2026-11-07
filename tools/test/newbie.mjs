@@ -44,7 +44,7 @@ const VIEWS = {
   sight: { on: "#s-quiz", title: "#s-title", play: "#s-play", status: "#s-message, #s-hint", prim: "#s-quiz .q-foot .btn.primary",
     busy: "/停止|Stop/.test(document.getElementById('s-playAlongTop').textContent) || document.getElementById('s-playAlongTop').classList.contains('counting') || document.getElementById('s-playAlongTop').disabled || document.getElementById('s-play').classList.contains('is-active')" },
   read: { on: "#s-rdCard", title: "#s-rdSet", status: "#s-rdMsg", next: "#s-rdKbd" },
-  ear: { on: "#e-quizCard", title: "#e-qTitle", play: "#e-playBtn", status: "#e-feedback, #e-hint", prim: "#e-quizCard .q-foot .btn.primary", next: "#e-nextBtn, #e-kbd" },
+  ear: { on: "#e-quizCard", title: "#e-qTitle", play: "#e-playBtn", status: "#e-refHint, #e-feedback, #e-hint", prim: "#e-quizCard .q-foot .btn.primary", next: "#e-nextBtn, #e-kbd" },
   ob: { next: "#obSystem, #obGradeSeg" }   // 第一次打開「我在準備檢定」:下一步 = 選系統、級數(「開始準備考試」選好才能按)
 };
 const SIGHT_MSG = () => document.getElementById("s-message").textContent;
@@ -82,7 +82,7 @@ const FLOWS = {
     await T.step("按「開始練習」", () => T.tap("#obNo"));
     T.view(VIEWS.ear);
     await T.step("點分頁列「聽力」", () => T.tap('#tabbar [data-view="ear"]'));
-    await T.step("點「單音」", () => T.tap('#subSeg [data-v="note"]'), [() => /這是 C|This is C/.test(document.getElementById("e-feedback").textContent), "狀態要先提「這是 C」"]);
+    await T.step("點「單音」", () => T.tap('#subSeg [data-v="note"]'), [() => /這是 C|This is C/.test(document.getElementById("e-refHint").textContent) && !document.getElementById("e-feedback").textContent, "「這是 C」右邊要先提「這是 C」(狀態句不重複)"]);
     await T.step("按「這是 C」", () => T.tap("#e-refBtn"));
     await T.step("按 ▶ 聽題目", () => T.tap("#e-playBtn"));
     await T.until(() => !window.__ear.play, null, 15000, "題目播不完");

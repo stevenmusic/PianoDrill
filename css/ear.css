@@ -1,0 +1,7 @@
+/* 聽力模組專用的樣式(共用的設計代幣、按鈕、卡片、琴鍵在 css/app.css;這裡只放聽力的,一律限定在 #mod-ear 裡) */
+
+/* 單音題「這是 C」那一行:按鈕在左、還沒聽題目的提示在右(2026-11-07 使用者);
+   提示的寬度基準固定(12em),換不換行不看中英文字長,兩種語言一樣;放不下整句換到按鈕下一行(不切成「…」) */
+#mod-ear .ref-row{flex-wrap:wrap;column-gap:12px;row-gap:4px}
+#mod-ear .ref-hint{flex:1 1 12em;min-width:0;font-size:var(--fs-md);color:var(--muted-bright)}
+@media (max-width:360px){ #mod-ear .ref-hint{flex-basis:100%} }   /* SE 320、折疊機:按鈕旁邊放不下,提示自己一行 */

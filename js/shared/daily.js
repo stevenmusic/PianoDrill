@@ -374,7 +374,16 @@ export function createDaily({ routes, load = () => null, save = () => {}, now = 
     }
     return out;
   }
+  /* 練完卡的里程碑稱讚(一天最多一句):今天有新路線開放 = 那一句就是今天的稱讚,里程碑不說、也不記成看過(留到下一次練完才說);
+     今天已經說過 → 同一句的 { id };還沒有 → pick(milestone.js 的 pick,由呼叫的人傳進來:這個檔不 import)挑一句、記成看過 */
+  function praise(pick, streak = 0){
+    const id = msToday(); if (id) return { id };   // 今天已經說過的照舊顯示
+    if (opened().length) return null;
+    const m = pick({ streak, passed: passedAll(), passedToday: ensure().passed.length, seen: d.ms });
+    if (m) markMs(m.id, m.also);
+    return m;
+  }
   return { get data(){ return d; }, plan: () => ensure().plan, today: ensure, state, seg, begin, attempt, back, canBack, addSec, segLeft, next, addExtra,
-    levelOf, bpmFor, reviewBpm, locked, summary, minutes, isOpen: R => isOpen(R, d, routes), whySeen, markWhy, passedAll, msToday, markMs, opened,
+    levelOf, bpmFor, reviewBpm, locked, summary, minutes, isOpen: R => isOpen(R, d, routes), whySeen, markWhy, passedAll, msToday, markMs, opened, praise,
     reset(raw){ d = cleanDaily(raw, routes); put(); } };
 }

@@ -1001,7 +1001,8 @@ body.view-exam #t-dailyCard,body.view-exam #t-dailyStep{display:none !important}
 .daily-note,.daily-sub{font-size:var(--fs-xs);color:var(--muted-bright);line-height:1.5;margin-top:8px}
 .daily-note{text-wrap:balance;word-break:keep-all;overflow-wrap:anywhere}   /* 換行時在「，」後面斷、兩行差不多長(不讓「分」單獨掉到下一行、不拆開「關係」;字級放大的 SE) */
 .daily-sum{font-size:var(--fs-md);color:var(--ivory);line-height:1.5}
-.daily-ms{margin-top:8px}   /* 里程碑稱讚(練完了卡最後一行;milestone.js) */
+.daily-ms,.daily-tom{margin-top:8px}   /* 里程碑稱讚(練完了卡最後一行;milestone.js)、明天練什麼(練完卡最重要的下一步:跟第一行一樣 --fs-md) */
+.daily-hi{font-size:var(--fs-md);color:var(--muted-bright);line-height:1.5;margin:0 0 6px}   /* 隔 7 天以上回來:今日卡標題下一行「歡迎回來!…」 */
 .daily-more{width:100%;min-height:44px;height:auto;margin-top:12px;white-space:normal}
 /* 路線圖(今日卡最下面的「路線」鈕,點了在卡內往下展開;dailycard.js 的 fillRoad、js/shared/roadmap.js;2026-11)。
    一列一組:狀態圖示 + 組名 + 「3 / 6」+ ⌄;組裡一關一行(關名放不下換行、不截字),點一關展開重點(凹進去的方塊)。

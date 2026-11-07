@@ -1,10 +1,10 @@
 /* 今日練習的卡片與段落面板(PianoDrill / DrumDrill 共用,兩邊逐位元組相同;tools/test/sync.json same)。引擎在 js/shared/daily.js。
    不寫死前綴:用模組自己的 $ —— $("dailyCard")(卡片,放在 .mod-main 最上面)、$("dailyStep")(段落面板,放在題目卡裡)。
    卡片三種狀態:
-   - 還沒開始 / 暫停:標題「今日練習 · 約 n 分鐘」、一段一行(<ol>,做完的打勾)、還沒開放的路線一行淡字、大按鈕「開始 / 繼續今天的練習」;
+   - 還沒開始 / 暫停:標題「今日練習 · 約 n 分鐘」、隔 7 天以上回來的那天標題下一行「歡迎回來!先從慢一點的速度開始」、一段一行(<ol>,做完的打勾)、還沒開放的路線一行淡字、大按鈕「開始 / 繼續今天的練習」;
      第一次才有一行「漏練幾天沒關係,不會扣分」
    - 進行中(模組正在顯示這一段):縮成一行「今日練習 2/4 ●●○○ 剩約 7 分 [暫停] [下一段 ›]」;有 barHost(外框的 ctx.subBar)時這一行放在子項目列的位置(子項目列藏起來、卡片藏起來)
-   - 練完了:今天練了幾段、幾分鐘、過了幾關(0 關不寫;沒過關但速度有升 = 一句「今天速度 60 → 72,離目標 100 再加油」,升最多的那一關)、最近 7 天練了幾天、新路線開放了(開放那一天)、明天練什麼、里程碑稱讚(milestone.js;一天最多一句,有練到才算)+ 次要按鈕「再練一下」(可以一直按)
+   - 練完了:今天練了幾段、幾分鐘、過了幾關(0 關不寫;沒過關但速度有升 = 一句「今天速度 60 → 72,離目標 100 再加油」,升最多的那一關)、最近 7 天練了幾天、新路線開放了(開放那一天)、明天練什麼(「明天:手指「兩手輪流」· 複習「找到中央 C」」)、里程碑稱讚(milestone.js;一天最多一句,有練到才算;新路線開放那天不說)+ 次要按鈕「再練一下」(可以一直按)
    段落面板:狀態 / 下一步一句、為什麼練這個(路線的 why[組]:這一組第一關第一次出現時一句,看過的組記在 daily 的 why)、這次的變化(複習)、重點(關卡的 check;過關、複習完藏起來)、[回上一關](文字鈕,只在同一速度連續不穩 = seg().suggest 時)…[再練][穩了 ✓](各 App 的字)或 [下一段 ›];
    「穩了 / 做到了」要先用現在的速度播過一輪才能按(App 呼叫 ready(true);沒播之前不出現,不算嘗試)
    按鈕列 = 固定在畫面底部的一條(.daily-cta;2026-11 使用者選定,像 Duolingo):位置永遠不變、每一步只換字 ——
@@ -167,10 +167,12 @@ export function createDailyCard({ $, daily, routes = null, labels = {}, warmName
     const locks = !daily.passedAll() ? "" : daily.locked().map(x => `<li class="locked"><span class="daily-mark" aria-hidden="true"></span><span class="daily-k">${esc(L2(x.route.name))}</span>` +
       `<span class="daily-t">${esc(fmt("locked", { r: L2(x.after.route.name), n: x.after.n }))}</span></li>`).join("");
     card.innerHTML = `<div class="card-title"><b id="${tid}">${esc(fmt("title"))}</b><span class="sub">${esc(fmt("about", { n: daily.minutes() }))}</span></div>` +
+      (t.welcome ? `<p class="daily-hi"></p>` : "") +   // 隔 7 天以上回來(daily.js 的 welcome:今天從起始速度開始;第一次用的人沒有)
       `<ol class="daily-list">${items}${locks}</ol>` +
       `<button class="btn primary daily-btn">${ICON_PLAY}<span class="btn-label">${esc(fmt(st === "run" ? "resume" : "start"))}</span></button>` +
       (daily.data.seen ? "" : `<p class="daily-note"></p>`) + roadHTML();
     const note = card.querySelector(".daily-note"); if (note) pairText(note, () => fmt("note"));
+    const hi = card.querySelector(".daily-hi"); if (hi) pairText(hi, () => fmt("welcomeCard"));
     card.querySelector(".daily-btn").onclick = () => onStart && onStart();
     paintRoad();
   }
@@ -195,22 +197,25 @@ export function createDailyCard({ $, daily, routes = null, labels = {}, warmName
   /* 練完了 */
   function renderDone(){
     const s = daily.summary(log() || {});
-    const tom = s.tomorrow.map(l => `${L2(l.route.name)} ${fmt("level", { n: l.n })}`).concat(s.review ? [fmt("review")] : []);
-    const ms = s.segs ? milestone(log() || {}, s) : null;
+    // 明天:每條路線「手指「兩手輪流」」+ 複習「找到中央 C」(寫關名,不只寫關號;名字照 App 的 levelName)
+    const tomList = () => s.tomorrow.map(l => fmt("tomLv", { r: L2(l.route.name), name: L2(levelName({ k: "route", level: l })) }))
+      .concat(s.review ? [fmt("tomRev", { name: L2(levelName({ k: "route", level: s.review })) })] : []).join(" · ");
+    const tom = s.tomorrow.length || s.review;
     const news = s.segs ? daily.opened() : [];   // 今天開放的路線(開放那一天一次;daily.js 的 opened)
+    const ms = s.segs ? milestone(log() || {}) : null;   // 新路線開放那天不說(那一句就是今天的稱讚;daily.js 的 praise)
     const up = s.segs && !s.passed ? s.climb : null;   // 沒過關但速度有升:進步句(有過關已經寫「過了 n 關」)
     card.innerHTML = `<div class="card-title"><b id="${tid}">${esc(fmt("title"))}${s.segs ? " ✓" : ""}</b></div>` +   // 一段都沒練:不打勾
       `<p class="daily-sum"></p>` + (up ? `<p class="daily-sum daily-ms daily-up"></p>` : "") + `<p class="daily-sub"></p>` + (news.length ? `<p class="daily-sum daily-ms daily-new"></p>` : "") +
-      (tom.length ? `<p class="daily-sub daily-tom"></p>` : "") + (ms ? `<p class="daily-sum daily-ms"></p>` : "") +
+      (tom ? `<p class="daily-sum daily-tom"></p>` : "") + (ms ? `<p class="daily-sum daily-ms"></p>` : "") +
       `<button class="btn primary daily-more">${esc(fmt("more"))}</button>` + roadHTML();   // 練完卡的主要按鈕(2026-11 使用者:練完不知道該點什麼);下面只有次要的「路線」
     // 一段都沒練(全部按「下一段」跳過):只寫「今天還沒練到」;不到 1 分鐘寫秒;最近 7 天 0 天不寫那一行
-    const time = () => (s.sec < 60 ? fmt("sec", { n: Math.round(s.sec) }) : fmt("min", { n: Math.round(s.sec / 60) }));
+    const time = () => (s.sec < 60 ? fmt("sec", { n: Math.floor(s.sec) }) : fmt("min", { n: Math.floor(s.sec / 60) }));   // 分鐘捨去:跟練習紀錄卡的「今天分鐘」一樣(newbie.mjs 比對)
     const enough = s.sec >= daily.today().plan.reduce((a, p) => a + (p.sec || 0), 0) * 0.6;   // 練了預計時間的 6 成以上才說「今天到這裡就好」(19 秒不說)
     pairText(card.querySelector(".daily-sum"), () => (s.segs ? fmt(enough ? "done" : "doneShort", { s: fmt(s.segs === 1 ? "part1" : "parts", { n: s.segs }), t: time(), p: s.passed ? fmt("passedN", { n: s.passed }) : "" }) : fmt("none")));
     const wk = card.querySelector(".daily-sub:not(.daily-tom)");
     if (s.week > 0) pairText(wk, () => fmt("week", { d: s.week })); else wk.remove();
     const tm = card.querySelector(".daily-tom");
-    if (tm) pairText(tm, () => fmt("tomorrow", { list: s.tomorrow.map(l => `${L2(l.route.name)} ${fmt("level", { n: l.n })}`).concat(s.review ? [fmt("review")] : []).join(" · ") }));
+    if (tm) pairText(tm, () => fmt("tomorrow", { list: tomList() }));
     if (news.length) pairText(card.querySelector(".daily-new"), () => news.map(R => fmt("opened", { r: L2(R.name) })).join(" "));
     if (up) pairText(card.querySelector(".daily-up"), () => fmt(up.to >= up.target ? "climbTop" : "climb", { a: up.from, b: up.to, t: up.target }));
     if (ms) pairText(card.querySelector(".daily-ms:not(.daily-new):not(.daily-up)"), () => tr(ms.zh, ms.en));
@@ -288,13 +293,10 @@ export function createDailyCard({ $, daily, routes = null, labels = {}, warmName
       };
     });
   }
-  /* 里程碑稱讚:今天已經有一句 → 同一句(重畫、換語言);還沒有 → 挑一句,當下記成看過(milestone.js;連續天數照練習紀錄卡) */
-  function milestone(lg, s){
-    const id = daily.msToday();
-    if (id) return msById(id);
-    const m = pickMs({ streak: streak(lg), passed: daily.passedAll(), passedToday: s.passed, seen: daily.data.ms });
-    if (m) daily.markMs(m.id, m.also);
-    return m;
+  /* 里程碑稱讚:今天已經有一句 → 同一句(重畫、換語言);還沒有 → 挑一句,當下記成看過;新路線開放那天不說(daily.js 的 praise;milestone.js;連續天數照練習紀錄卡) */
+  function milestone(lg){
+    const m = daily.praise(pickMs, streak(lg));
+    return m ? msById(m.id) : null;
   }
 
   /* ── 段落面板(題目卡裡)── status = () => 一句話(換語言重算);result = attempt 的結果(有就顯示結果) ── */

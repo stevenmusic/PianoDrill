@@ -69,6 +69,7 @@ addStrings("daily", {
   ctaPlay: ["跟著{v}一輪", "Play along"], ctaSolo: ["自己{v}一輪", "Play it alone"], ctaStop: ["停止", "Stop"],
   back: ["回上一關", "Easier level"], suggest: ["要不要先回上一關暖身？", "Try the level before?"],
   welcome: ["歡迎回來，先從速度 {b} 開始。", "Welcome back. Start at tempo {b}."],
+  welcomeCard: ["歡迎回來！先從慢一點的速度開始", "Welcome back! Starting slower."],   // 今日卡開始前 / 暫停(隔 7 天以上回來那天)
   streakTag: ["穩 {d}", "Steady {d}"],
   warmHint: ["跟著{v} 1–2 分鐘就換下一段", "Play along 1–2 min, then next part"],
   revOk: ["複習穩了 ✓ 下次間隔更久", "Review steady ✓ Next one later"], revBack: ["明天再複習一次", "Review again tomorrow"],
@@ -83,6 +84,7 @@ addStrings("daily", {
   // 沒過關但速度有升(升最多的那一關;{a} 今天第一次、{b} 今天最快、{t} 目標):不寫「還差幾格」
   climb: ["今天速度 {a} → {b}，離目標 {t} 再加油", "Tempo today {a} → {b} — keep going toward {t}"], climbTop: ["今天速度 {a} → {b}，到目標速度了！", "Tempo today {a} → {b} — target tempo reached!"],
   week: ["最近 7 天練了 {d} 天", "Practiced {d} of the last 7 days"], tomorrow: ["明天：{list}", "Tomorrow: {list}"],
+  tomLv: ["{r}「{name}」", "{r} “{name}”"], tomRev: ["複習「{name}」", "Review “{name}”"],   // 明天那一行的每一項(路線 + 關名;複習哪一關)
   opened: ["新路線開放了：{r}！", "New route unlocked: {r}!"],
   more: ["再練一下", "Practice a bit more"],
   // 路線圖(今日卡的「路線」鈕,在卡內往下展開;js/shared/roadmap.js):組名沒有資料時寫 roadG;每一組「3 / 6」的讀法 roadCount;每一關、每一組的狀態 road_*(圖示的名稱)

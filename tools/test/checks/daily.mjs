@@ -1,6 +1,6 @@
 // 今日練習引擎(js/shared/daily.js)的檢查;兩個 App 同一份(sync.json same),verify.mjs 會呼叫;也可以單獨跑:node tools/test/checks/daily.mjs
 //   菜單(暖身第一、順序固定、還沒開放的路線、到期複習一天一題)、慢練優先、速度階梯、連續 N 次穩才過關、失手重算、退速度、建議回上一關、
-//   快速通道(開 / 關)、回上一關、歡迎回來(≥ 7 天)、複習盒與變化(穩 → 下一盒、不穩 → 上一盒隔天)、拍點模式、跨午夜換日、消毒、沒練不扣分、新路線開放那一天
+//   快速通道(開 / 關)、回上一關、歡迎回來(≥ 7 天)、複習盒與變化(穩 → 下一盒、不穩 → 上一盒隔天)、拍點模式、跨午夜換日、消毒、沒練不扣分、新路線開放那一天(那天不說里程碑)
 import { pick as pickMs, byId as msById, MILESTONES } from "../../../js/shared/milestone.js";
 import { createDaily, cleanDaily, buildPlan, clickPlays, gapBars, verdictOf, addDays, dayNum, DEFAULT_VARY, REVIEW_GAPS, SEG_SEC, METRO, tempoUp, tempoDown } from "../../../js/shared/daily.js";
 
@@ -83,6 +83,17 @@ export default function check(ok){
   ok(cleanDaily({ open: { b: "2026-10-19", a: "2026-10-19", zz: "2026-10-19" } }, ROUTES).open.b === "2026-10-19" && Object.keys(cleanDaily({ open: { b: "2026-10-19", a: "2026-10-19", zz: "2026-10-19" } }, ROUTES).open).join() === "b"
     && Object.keys(cleanDaily({ open: { b: "x" } }, ROUTES).open).length === 0 && Object.keys(cleanDaily({ open: [1] }, ROUTES).open).length === 0, "新路線開放:消毒(只留有 unlock 的路線、日期)");
   ok(mk({ lv: { "a/A1": { passed: "2026-10-01" } } }).d.opened().length === 0, "新路線開放:以前就開放的不補說");
+  // 練完卡的里程碑(praise):新路線開放那天不說(那一句就是今天的稱讚)、不記成看過,留到下一次練完才說;一天最多一句
+  {
+    const c0 = clock, x = mk({ lv: { "a/A1": { passed: "2026-10-19" } } });
+    ok(x.d.opened().length === 1 && x.d.praise(pickMs, 3) === null && x.d.data.ms.length === 0 && x.d.msToday() === null, "里程碑:新路線開放那天不說、不記成看過");
+    clock = new Date(2026, 9, 20, 9, 0);
+    const p = x.d.praise(pickMs, 4);
+    ok(x.d.opened().length === 0 && p && p.id === "s3" && x.d.msToday() === "s3" && x.d.praise(pickMs, 4).id === "s3" && eq(x.store.ms, ["s3"]), "里程碑:隔天練完才說(同一天重畫同一句):" + JSON.stringify(p));
+    const y = mk();
+    ok(y.d.praise(pickMs, 3).id === "s3" && y.d.praise(pickMs, 7).id === "s3", "里程碑:沒有新路線照常說、一天最多一句");
+    clock = c0;
+  }
   // 再練一下:約 5 分鐘 = 還沒過的那一關(進度比較慢的路線:b 剛開放)+ 一題沒到期的複習(不改排程)
   s = d.addExtra();
   ok(s && s.r === "b" && s.lv === "B1" && d.state() === "run" && d.plan().length === 4 && d.plan()[3].k === "review" && d.plan()[3].extra && d.plan()[3].lv === "A1",

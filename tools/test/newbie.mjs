@@ -1,7 +1,7 @@
 // 新手從頭走到尾(兩個 App 同一份,@app-begin … @app-end 放各自的選擇器、用語與流程;tools/test/sync.json markers):
 // 2026-11 使用者:「每個步驟的銜接性是最重要的」。每段流程都清空 localStorage、照真人點擊走一遍(FLOW= 選幾段,預設全部):
 //   today:第一次打開 → 開始練習 → 技巧今日卡 → 開始今天的練習 → 每一段(底部主要按鈕 ▶ 跟著…一輪 → 播過一輪 → 做到了 / 穩了 → 到過關;
-//     過關接下一關 / 下一段)→ 結束今天 → 練完卡 → 再練一下 → 結束 → 路線 → 點一關。
+//     過關接下一關 / 下一段)→ 結束今天 → 練完卡(分鐘 = 紀錄卡)→ 再練一下 → 結束 → 路線 → 點一關。
 //   sight:視奏分頁 → 彈一遍 / 打一遍 → 彈完 → ▶ 對照 / 結果 → 下一題 → 認音 / 認譜答題(@app 的 FLOWS)
 //   ear:聽力分頁 → ▶ 聽題目 → 作答 → 下一題(@app 的 FLOWS)
 //   exam:第一次打開選「我在準備檢定」+ 系統 + 級數 → 檢定頁三個子項目各一題(@app 的 FLOWS)
@@ -362,14 +362,22 @@ for (const [rname, rc] of runs) {
     }
     await report(`${tag}練不完(80 步)`, ["一直沒有練完"], []); return false;
   }
+  // 練完卡的「n 分鐘 / n 秒」= 練習紀錄卡的「今天分鐘」(兩邊都捨去到分鐘;不到 1 分鐘寫秒 = 0 分鐘)
+  const sameMin = [() => {
+    const s = document.querySelector("#t-dailyCard .daily-sum"), lm = document.getElementById("t-logMin"); if (!s || !lm) return false;
+    const t = s.textContent, mm = t.match(/(\d+)\s*(分鐘|min)/), ss = t.match(/(\d+)\s*(秒|s\b)/);
+    const n = mm ? +mm[1] : ss ? Math.floor(+ss[1] / 60) : null;
+    return n != null && n === +lm.textContent;
+  }, "練完卡的分鐘跟練習紀錄卡「今天分鐘」對不上"];
   async function today(){
     T.view(TODAY);
     await step("按「開始練習」→ 技巧的今日卡", () => tap(SEL.start));
     await step("按「開始今天的練習」", () => tap(SEL.card + " .daily-btn"));
     if (await practise("")) {
-      await step("練完卡(主要 = 再練一下)", null);
+      await step("練完卡(主要 = 再練一下;分鐘 = 紀錄卡)", null, sameMin);
       await step("按「再練一下」", () => tap(SEL.card + " .daily-more"));
       if (await practise("再練:")) {
+        await step("再練完的練完卡(分鐘 = 紀錄卡)", null, sameMin);
         await step("打開「路線」", () => tap(SEL.card + " .daily-road-btn"));
         await step("點一關看重點", () => tap(SEL.card + " .road-ls:not([hidden]) .road-lb"));
       }

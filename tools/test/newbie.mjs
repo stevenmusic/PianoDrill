@@ -132,7 +132,10 @@ const RUNS = {
   "en-390": { viewport: { width: 390, height: 844 }, lang: "en" },
   // 平板直式(今日練習的按鈕列不固定、在題目卡裡;app.css):預設不跑,ONLY=ipad-768,ipad-1024 才跑
   "ipad-768": { viewport: { width: 768, height: 1024 }, lang: "zh", opt: true },
-  "ipad-1024": { viewport: { width: 1024, height: 1366 }, lang: "zh", opt: true }
+  "ipad-1024": { viewport: { width: 1024, height: 1366 }, lang: "zh", opt: true },
+  // 筆電、桌機(≥ 1100 一個框、框裡小卡並排;docs/DESIGN.md 第 9 節):預設不跑,ONLY=laptop,desktop 才跑
+  "laptop": { viewport: { width: 1366, height: 768 }, lang: "zh", opt: true },
+  "desktop": { viewport: { width: 1920, height: 1080 }, lang: "zh", opt: true }
 };
 // 今日練習的題目畫面:底部按鈕列的主要按鈕整段流程比(top、left、寬)
 const TODAY = { on: SEL.mod + ".daily-on", title: SEL.title, play: SEL.play, status: SEL.step + " :is(.daily-status, .q-status, [id$='-status'])", prim: SEL.step + " .daily-cta .daily-main", whole: true };

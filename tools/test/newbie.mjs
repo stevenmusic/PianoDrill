@@ -129,7 +129,10 @@ const RUNS = {
   "iphone-390": { viewport: { width: 390, height: 844 }, lang: "zh" },
   "fold-280": { viewport: { width: 280, height: 653 }, lang: "zh" },
   "iphone-land": { viewport: { width: 844, height: 390 }, lang: "zh" },
-  "en-390": { viewport: { width: 390, height: 844 }, lang: "en" }
+  "en-390": { viewport: { width: 390, height: 844 }, lang: "en" },
+  // 平板直式(今日練習的按鈕列不固定、在題目卡裡;app.css):預設不跑,ONLY=ipad-768,ipad-1024 才跑
+  "ipad-768": { viewport: { width: 768, height: 1024 }, lang: "zh", opt: true },
+  "ipad-1024": { viewport: { width: 1024, height: 1366 }, lang: "zh", opt: true }
 };
 // 今日練習的題目畫面:底部按鈕列的主要按鈕整段流程比(top、left、寬)
 const TODAY = { on: SEL.mod + ".daily-on", title: SEL.title, play: SEL.play, status: SEL.step + " :is(.daily-status, .q-status, [id$='-status'])", prim: SEL.step + " .daily-cta .daily-main", whole: true };
@@ -138,7 +141,7 @@ const LEVELS_PER_SEG = 2;   // 一段最多過幾關就按「下一段 ›」(�
 const OUT = path.resolve(process.env.SHOTS || new URL("./out/newbie", import.meta.url).pathname);
 fs.mkdirSync(OUT, { recursive: true });
 const only = (process.env.ONLY || process.argv[2] || "").split(",").filter(Boolean);
-const runs = Object.entries(RUNS).filter(([n]) => !only.length || only.includes(n));
+const runs = Object.entries(RUNS).filter(([n, c]) => (only.length ? only.includes(n) : !c.opt));
 const flowPick = (process.env.FLOW || "").split(",").filter(Boolean);
 const flows = ["today", ...Object.keys(FLOWS)].filter(f => !flowPick.length || flowPick.includes(f));
 const wait = ms => new Promise(r => setTimeout(r, ms));
@@ -185,7 +188,7 @@ function measure([F, NAV]){
   if (main) {
     let fx = false; for (let p = main; p && p !== document.body; p = p.parentElement) if (getComputedStyle(p).position === "fixed") { fx = true; break; }
     const r = R(main), dy = fx ? 0 : scrollY;
-    mainR = { top: r.top + dy, left: r.left, width: r.width, right: r.right, name: name(main) };
+    mainR = { top: r.top + dy, left: r.left, width: r.width, right: r.right, name: name(main), fixed: fx };
   }
   let busy = false; try { busy = !!(F.busy && (0, eval)(F.busy)); } catch (e) { /* 元素還沒有 */ }
   // 3、4 題目卡標題與 ▶
@@ -272,14 +275,14 @@ for (const [rname, rc] of runs) {
     if (!after.next) (/看重點|look/i.test(say) || after.busy ? warns : errs).push("看不到下一步(沒有能按的主要按鈕,狀態句也沒寫「按 …」)" + (after.primHidden.length ? `;主要按鈕被蓋住或在畫面外:${after.primHidden.join("、")}` : ""));
     if (after.on && after.playAsk && !after.playSeen && !after.busy && !after.landPlay) errs.push("狀態句寫「按 ▶」,▶ 不在畫面裡");
     if (after.on && after.main) {
-      // 跟上一步比(每換一次位置記一次);今日練習整段流程比 top、left、寬,題目卡同一題比 top、右邊界
-      const key = F.whole ? "" : after.titleText, ks = F.whole ? ["top", "left", "width"] : ["top", "right"];
+      // 跟上一步比(每換一次位置記一次);今日練習整段流程比 top、left、寬(平板直式按鈕列不固定、在題目卡裡:同一關比,換關跟著題目走),題目卡同一題比 top、右邊界
+      const key = F.whole && after.main.fixed ? "" : after.titleText, ks = F.whole ? ["top", "left", "width"] : ["top", "right"];
       if (mainAt && mainAt.key === key) {
         const d = ks.map(k => Math.abs(after.main[k] - mainAt.r[k]));
         if (Math.max(...d) > 1) errs.push(`${F.whole ? "底部" : "題目卡"}主要按鈕位置跳了(${ks.map(k => `${k} ${Math.round(mainAt.r[k])}→${Math.round(after.main[k])}`).join("、")};${mainAt.r.name}→${after.main.name};狀態「${mainAt.say.slice(0, 16)}」→「${after.statusText.slice(0, 16)}」)`);
       }
       mainAt = { key, r: after.main, say: after.statusText };
-    }
+    } else if (!after.on && mainAt && !mainAt.r.fixed) mainAt = null;   // 在卡裡的按鈕:離開題目畫面(練完卡)再回來 = 新的一段,重新比
     if (after.on && !after.landPlay && !after.busy) {
       // 切一半一定算;整個不在畫面裡:這一步讓它離開畫面(App 自己捲走;使用者自己捲下去點東西不算)才算
       const lost = k => after[k + "Cut"] || (!after[k + "Ok"] && !scrolledTo && before[k + "Ok"]);

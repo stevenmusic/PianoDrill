@@ -305,7 +305,8 @@ export function createDailyCard({ $, daily, routes = null, labels = {}, warmName
     step.hidden = false;
     // 重點:關卡的 check(前面加關卡的 handsLine,例如「右手 Hi-hat、左手小鼓」);暖身 = 項目自己的 check
     const warm = s.k === "warm", list = warm ? (s.item && s.item.check) || [] : [...(s.level.handsLine ? [s.level.handsLine] : []), ...(s.level.check || [])];
-    const check = list.length && !passedDone ? list : null;   // 過關、複習完:重點是剛練完那一關的,藏起來(狀態寫「下一關:…」,下一段 / 下一關才出現新的重點)
+    const check = list.length ? list : null;   // 過關、複習完:重點是剛練完那一關的,藏起來(狀態寫「下一關:…」,下一段 / 下一關才出現新的重點)
+    const gone = !!check && passedDone;   // 藏起來 = .daily-gone(app.css:手機、寬畫面不佔位置;平板直式按鈕列在題目卡裡,留著位置、按鈕不跳)
     const tip = !warm && !daily.data.tip && s.bpm;   // 第一次:速度的小字說明「速度 56 = 每分鐘 56 拍」(試過一次就不再出現)
     // 小字一次只放一行:第一次的速度說明在的時候「為什麼練這個」等試過一次再出現(whyOf 那時才記成看過;第 7 輪健檢:狀態句下面疊三行字,長輩不知道讀哪句)
     const vary = varyText(s), why = tip ? null : whyOf(s);
@@ -329,7 +330,7 @@ export function createDailyCard({ $, daily, routes = null, labels = {}, warmName
     cta.querySelector(".daily-again").textContent = L2(labels.again);
     // 重點:每項一行的清單(系統化規則:主要資訊字級 ≥ --fs-md);「回上一關」是面板裡的文字鈕(底部那一列只放主要 + 一顆次要)
     cta.insertAdjacentHTML("beforebegin", `<p class="daily-status" id="${step.id}-status"></p>` + (tip ? `<p class="daily-tip"></p>` : "") + (why ? `<p class="daily-why"></p>` : "") + (vary ? `<p class="daily-vary"></p>` : "") +
-      (check ? `<div class="daily-check"><b>${esc(fmt("checkTitle"))}</b><ul>${check.map(() => "<li></li>").join("")}</ul></div>` : "") +
+      (check ? `<div class="daily-check${gone ? " daily-gone" : ""}"${gone ? ' aria-hidden="true"' : ""}><b>${esc(fmt("checkTitle"))}</b><ul>${check.map(() => "<li></li>").join("")}</ul></div>` : "") +
       (back ? `<p class="daily-backrow"><button class="text-btn daily-back">${esc(fmt("back"))}</button></p>` : ""));
     paintStatus(s);
     if (tip) pairText(step.querySelector(".daily-tip"), () => fmt("tempoTip", { b: s.bpm }));

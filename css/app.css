@@ -486,6 +486,11 @@ main{padding-bottom:calc(84px + env(safe-area-inset-bottom))}
 #onboard .modal-sub{font-size:var(--fs-body);margin-top:8px}
 #onboard .modal-actions{margin-top:auto;padding-top:24px}
 .subnav[inert]{display:none}   /* 歡迎打開時(main.js 的 openOnboard 把子項目列設成 inert)子項目列不顯示:直式頂欄只剩一行,上面讓出 64 就夠;主題 / 語言照舊能按 */
+/* 平板直式(601–1099 寬、高 > 500;2026-11-07 使用者選):按鈕貼底離標題 250–300px,長輩要往下找 → 圖示、標題、說明、按鈕整組在畫面中間,
+   按鈕緊接在說明下面、寬 360(上下的 auto 邊距置中:內容比畫面高時照常從上面捲,不會切掉;展開系統 + 級數時圖示的上邊距是 0 = 從上面排) */
+@media (min-width:601px) and (max-width:1099px) and (min-height:501px){
+  #onboard .modal-actions{margin-top:0;margin-bottom:auto;padding-top:32px;width:min(360px,100%);align-self:center}
+}
 @media (max-width:360px){ #onboard .modal-card{padding-left:12px;padding-right:12px} }   /* 折疊機、SE:級數 9 格 ≥ 28 寬(跟原本的對話框內距一樣) */
 @media (max-height:500px){
   #onboard .modal-card{padding-top:calc(52px + env(safe-area-inset-top))}
@@ -1056,6 +1061,7 @@ body.view-exam #t-dailyCard,body.view-exam #t-dailyStep{display:none !important}
 .daily-vary{font-size:var(--fs-sm);color:var(--ivory);font-weight:700;line-height:1.5}
 /* 重點:一行(2026-11 使用者選「專心練習畫面」A):小標「重點」+ 每項用「 · 」接起來,放不下在項目之間換行(不切成「…」) */
 .daily-check{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 10px;font-size:var(--fs-sub);color:var(--ivory);line-height:1.45}
+.daily-check.daily-gone{display:none}
 .daily-check b{flex:none;font-size:var(--fs-cap);font-weight:700;letter-spacing:.06em;color:var(--muted-bright)}
 .daily-check ul{flex:1 1 12em;min-width:0;display:flex;flex-wrap:wrap;margin:0;padding:0;list-style:none}
 .daily-check li:not(:last-child)::after{content:"·";margin:0 .5em;color:var(--muted)}   /* 點跟在前一項後面:換行時行首不會是孤零零的「·」 */
@@ -1088,6 +1094,14 @@ body.daily-on main{padding-bottom:calc(84px + 68px + env(safe-area-inset-bottom)
   #mod-tech .quiz .daily-step{grid-column:1 / -1}
   .daily-list{margin-bottom:8px}   /* 一段一行(兩欄讀起來順序會亂) */
   .daily-btn{min-height:44px}
+}
+/* 平板直式(601–1099 寬、高 > 500;手機橫式不算;2026-11-07 使用者選):畫面高,固定在底部離題目太遠(1024×1366 中間約 300–800 空白)→
+   按鈕列不固定,放在題目卡最下面、緊接在題目後面(跟其他練習畫面「平板留在卡裡」一樣);每一步位置、寬度照舊不變,主要按鈕高 52;
+   不固定 = 不用多留它的高度(main 底部留白照分頁列),各模組扣掉按鈕列高度的計算只算 position:fixed 的 */
+@media (min-width:601px) and (max-width:1099px) and (min-height:501px){
+  .daily-cta,:root.light .daily-cta{position:static;margin-top:10px;padding:0;background:none;box-shadow:none}
+  .daily-check.daily-gone{display:flex;visibility:hidden}   /* 過關、複習完藏起來的重點留著位置 */
+  body.daily-on main{padding-bottom:calc(84px + env(safe-area-inset-bottom))}
 }
 /* 所有練習畫面的題目卡最後一行(視奏、聽力的 .q-foot,技巧的 .q-last,檢定頁空狀態那一行;DrumDrill 的 .x-empty 也一樣)固定在底部
    (2026-11 使用者選定;外觀照上面的 .daily-cta):手機(直式 ≤ 600 寬、手機橫式)才固定;main.js 共用部分的 syncCta 只給目前看得到的那一張題目卡加 .cta-bar、

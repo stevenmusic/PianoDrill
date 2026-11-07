@@ -607,10 +607,11 @@ function fitLandZoom(){
   landZoom = z; return refit();
 }
 // 上方展開的設定卡不算(照收合時的位置算):不然展開/收合設定、切語言時樂譜大小跟著變
-/* 今日練習的底部按鈕列(dailycard 的 .daily-cta,position:fixed 貼在畫面底部)佔掉的高度:手機橫放貼底;直式在分頁列上面 */
+/* 今日練習的底部按鈕列(dailycard 的 .daily-cta,position:fixed 貼在畫面底部)佔掉的高度:手機橫放貼底;直式在分頁列上面;
+   平板直式(app.css:601–1099 寬、高 > 500)不固定、在題目卡裡 = 不擋東西,不算 */
 function ctaEl(){
   const c = $("dailyStep") && !$("dailyStep").hidden ? $("dailyStep").querySelector(".daily-cta") : null;
-  if (c && c.offsetHeight) return c;
+  if (c && c.offsetHeight) return getComputedStyle(c).position === "fixed" ? c : null;
   // 自由練習、檢定頁:題目卡最後一行固定在底部(main.js 的 syncCta、app.css 的 .cta-bar;手機)
   const b = $("quizCard").querySelector(":scope > .cta-bar");
   return b && b.offsetHeight && getComputedStyle(b).position === "fixed" ? b : null;

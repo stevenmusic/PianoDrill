@@ -669,7 +669,7 @@ function wrapFits(n, bars){
 function wrapRender(n, z){
   const R = osmd.EngravingRules;
   R.RenderSingleHorizontalStaffline = false; R.RenderXMeasuresPerLineAkaSystem = n;
-  osmd.zoom = z; nameSpace(namesOn() ? namesLines : 0); osmd.render();   // 只量寬度:多留的音名空間不影響每行幾小節
+  osmd.zoom = z; nameSpace(namesOn() ? namesLines : 0); uncenter(); osmd.render();   // 只量寬度:多留的音名空間不影響每行幾小節
 }
 function wrapCands(bars){
   const big = [4, 3].filter(n => n < bars);
@@ -744,7 +744,24 @@ function fitWrap(){
       osmd.zoom = pick.z; lastZoom = pick.z; renderOsmd();
     }
   }
+  centerWrap();
   window.__wrap = { n: pick.n, zoom: pick.z, bars };
+}
+/* 換行排法只有一行的短譜:裁掉 SVG 右邊的空白、在譜紙裡水平置中(docs/DESIGN.md 9.10 丙「置中不放大」;大小照 fitWrap)。
+   播放軸照符頭的實際位置量(measureNotes 相對 #t-osmd),跟著移過去;指法、和弦名、音名畫在 SVG 裡,一起移 */
+// 重畫前清掉 centerWrap 留下的寬度(OSMD 沿用同一個 svg 時,舊的 style.width 會讓 fitWrap 量到裁過的窄寬度)
+function uncenter(){ const s = $("osmd").querySelector("svg"); if (s) { s.style.width = s.style.display = s.style.margin = ""; } }
+function centerWrap(){
+  const svg = $("osmd").querySelector("svg");
+  if (!svg || systemsOf().length !== 1) return;
+  const vb = svg.viewBox && svg.viewBox.baseVal, W = svg.getBoundingClientRect().width;
+  if (!vb || !vb.width || !W) return;
+  const s = W / vb.width, bb = svg.getBBox(), right = Math.min(vb.x + vb.width, bb.x + bb.width + 6 / s);
+  const w = right - vb.x;
+  if (w >= vb.width - 1 / s) return;
+  svg.setAttribute("viewBox", `${vb.x} ${vb.y} ${w} ${vb.height}`);
+  svg.setAttribute("width", w * s);
+  svg.style.width = w * s + "px"; svg.style.display = "block"; svg.style.margin = "0 auto";
 }
 async function renderScore(){
   if (!cur) return;
@@ -790,7 +807,7 @@ function renderOsmd(){
   const on = namesOn() && !(ex && ex.exact && barChords(ex) && !["rh", "lh"].some(h => (ex[h] || []).some(n => !n.rest && !n.chord)));
   for (let pass = 0; pass < 3; pass++) {
     nameSpace(on ? namesLines : 0);
-    osmd.render();
+    uncenter(); osmd.render();
     drawFingerings();
     const svg = $("osmd").querySelector("svg");
     if (!svg) return;

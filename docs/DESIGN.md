@@ -480,3 +480,9 @@ DrumDrill:共用的 app.css、main.js(syncJoin)、celebrate.js、dailycard.js、
 4. W2 1080p(框 1200 + `--fs-k:1.3`):測 clip、layout 1080p
 5. 譜照畫面高度縮(9.6,只有 PD 的 js/tech/app.js 與琴鍵條高度):測 dailyfit、playhead、newbie desktop
 6. DrumDrill drum.css(9.5)+ 兩邊 CLAUDE.md(9.8)
+
+### 9.10 寬框裡的短譜與第一天(2026-11-07 使用者看過比較圖後選定)
+- **短譜 = 丙「置中不放大」**:今日練習 / 技巧的譜照 fitWrap 原本的大小(9.6 的高度規則照舊),只在譜紙裡**水平置中**(PianoDrill 原本靠左;DrumDrill 本來就置中,兩個 App 一致)。
+  譜紙照舊貼齊卡片左右(第 7 節);不採用「譜紙跟著譜縮」(換關版面會跳)與「放大用滿寬度」(琴鍵條被底部按鈕列蓋住、鼓譜音符比標題大 3 倍)。改完跑 playhead.mjs、dailyfit.mjs
+- **今日卡只有 1–2 段 = 段落放大**(≥ 1100):格子高 ≥ 96(留兩行關卡名的高度,中英同高)、關卡名 `--fs-xl` 700、圓號 40;寬度照舊滿框、位置照舊靠上
+  (不垂直置中:按「開始」後框會往上跳)。app.css `.daily-list:not(:has(> li:nth-child(3)))`

@@ -333,6 +333,7 @@ function renderAnswers(){
     box.innerHTML = `<div class="kbd-wrap">${refBtn}<div class="kbd" id="e-kbd">${keyboardHTML(q.keys)}</div>` +
       (q.keys.target.length > 1 ? `<div class="kbd-row"><div class="kbd-dots" id="e-kbdDots"></div><button class="btn ghost small" id="e-kbdClear">${T("clearKeys")}</button></div>` : "") + `</div>`;
     syncKeys(); fitKeyboard();
+    if (innerWidth >= 1100 && !LAND.matches) requestAnimationFrame(fitKeyboard);   // 寬畫面照題目卡排好以後(狀態句、按鈕列)再量一次
   } else if (q.tap) {
     box.classList.remove("compact");
     $("stepQ").textContent = q.tap.kind === "pulse" ? tr("播放時跟著拍子按", "Tap the beat while it plays") : tr(`聽完之後按出節奏（${q.tap.n} 下）`, `After listening, tap the rhythm (${q.tap.n} taps)`);
@@ -401,6 +402,12 @@ function fitKeyboard(){
   if (LAND.matches && kb.clientWidth) {
     const above = kb.getBoundingClientRect().top - $("quizCard").getBoundingClientRect().top;
     h = Math.max(60, Math.min(h, innerHeight - headBottom() - 8 - above - LAND_CTA - 4));
+  } else if (innerWidth >= 1100 && kb.clientWidth) {
+    // 寬但矮的視窗(1280×600;BACKLOG 第 9 節之後健檢):題目卡底(琴鍵下面的狀態句)不超過分頁列,第一個畫面看得到整排琴鍵;高的視窗照舊 170
+    const bar = document.getElementById("tabbar"), bb = bar && bar.getClientRects().length ? bar.getBoundingClientRect() : null;
+    const floor = bb && bb.top > innerHeight / 2 ? bb.top : innerHeight;
+    const kr = kb.getBoundingClientRect(), below = $("quizCard").getBoundingClientRect().bottom - kr.bottom;
+    h = Math.max(110, Math.min(h, floor - 8 - (kr.top + scrollY) - below));
   }
   kb.style.height = Math.round(h) + "px";
 }

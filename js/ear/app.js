@@ -166,7 +166,9 @@ function renderExam(){
     const chips = t.drills.map((d, i) => {
       const s = S.stats[examKey(t, d)], pct = s && s.n ? Math.round(100 * s.ok / s.n) + "%" : "";
       const on = examDrill && examDrill.test.id === t.id && examDrill.idx === i;
-      return `<button class="chip${on ? " cur" : ""}" data-t="${t.id}" data-i="${i}" aria-pressed="${on}">${drillName(d.type)}${pct ? ` <span class="pct">${pct}</span>` : ""}</button>`;
+      // 一項 = 一列可以點的列(金色淡底 + 右邊 ›,跟技巧清單 .qrow 一樣),不像題目卡的作答鈕(2026-11-08 第 25 輪)
+      return `<button class="chip${on ? " cur" : ""}" data-t="${t.id}" data-i="${i}" aria-pressed="${on}"><span class="nm">${drillName(d.type)}</span>${pct ? `<span class="pct">${pct}</span>` : ""}` +
+        `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></button>`;
     }).join("");
     return `<div class="test"><h3><b>${t.id}</b><span data-t="${t.id}">${getLang() === "en" ? t.en : t.zh}</span></h3>` +
       (chips ? `<div class="chips">${chips}</div>` : `<p class="self"></p>`) + `</div>`;
@@ -189,8 +191,8 @@ function loadDrill(d){
   examDrill = d;
   const q = makeDrill(d.drill, { system: S.exam.system, key: examKey(d.test, d.drill) });
   q.examRef = d;
-  // 標題跟著語言(模擬考加「模擬考 i/n · 」;mockI、mockN 由 loadMock 設)
-  lazy(q, "label", () => (q.mockI != null ? tr(`模擬考 ${q.mockI + 1}/${q.mockN} · `, `Mock ${q.mockI + 1}/${q.mockN} · `) : "") + `${d.test.id} · ${drillName(d.drill.type)}`);
+  // 標題跟著語言(模擬考加「模擬考 i/n · 」;mockI、mockN 由 loadMock 設);不寫官方題號字母(A / B…,7 歲看不懂;字母留在清單,2026-11-08)
+  lazy(q, "label", () => (q.mockI != null ? tr(`模擬考 ${q.mockI + 1}/${q.mockN} · `, `Mock ${q.mockI + 1}/${q.mockN} · `) : "") + drillName(d.drill.type));
   setQuestion(q, "exam");
   renderExam(); renderStats();
 }

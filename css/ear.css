@@ -17,3 +17,15 @@
 /* 手機(題目卡最後一行固定在底部,跟 app.css 的 .cta-bar 同一個條件):狀態句空的時候不佔一行(單音題還沒聽:提示在「這是 C」旁邊;
    2026-11-07 健檢:琴鍵下面留 ~40px 空白);聽過題目就寫作答的下一步。平板、寬畫面按鈕留在卡裡,照舊留一行高(按 ▶ 後下一題 / 顯示答案不跳) */
 @media (max-width:600px), (orientation:landscape) and (max-height:500px){ #mod-ear #e-feedback:empty{min-height:0} }
+
+/* 檢定頁「本級聽力」清單(2026-11-08 第 25 輪):每一項是一列可以點的列 —— 金色淡底、字靠左、右邊 ›(跟技巧檢定清單的 .qrow 一樣),
+   不像題目卡的作答鈕(.ans:凹進去的底 + 細框、字置中);正在練的那一項 = 內圈 2px(app.css 的 .test .chip.cur),不反白 */
+#mod-ear .test .chip{justify-content:flex-start;gap:6px;padding:0 8px 0 12px;text-align:left;background:var(--fill-btn);color:var(--ivory)}
+#mod-ear .test .chip[aria-pressed="true"]{background:var(--fill-btn);color:var(--ivory);font-weight:700}
+#mod-ear .test .chip .nm{flex:1 1 auto;min-width:0}
+#mod-ear .test .chip .pct{flex:none;color:var(--muted-bright)}   /* 金色淡底上 --muted 對比不夠(同 .qrow small) */
+#mod-ear .test .chip svg{flex:none;color:var(--gold)}
+#mod-ear .test .chip:active{background:var(--acc-tint)}
+/* 說明一行、按鈕緊接(間距 = .chips 的 margin-top 8):中英高度一樣(pairText 的 min-height)多出來的空白放在說明上面,不夾在說明和按鈕中間 */
+#mod-ear .test h3 span{display:flex;flex-direction:column;justify-content:flex-end}
+#mod-ear .test .chips{margin-top:5px}   /* 說明的行高留了約 3px,加起來最後一行字到按鈕 8 */

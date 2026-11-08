@@ -62,6 +62,7 @@ function clampCheck(el){
 /* 拍點模式的名稱(daily.js 的 CLICK_MODES) */
 export const clickName = mode => (mode && mode !== "every" ? fmt("click_" + mode.replace("-", "_")) : "");
 /* 這一段的名稱:暖身 / 路線名 / 複習 */
+const full = R => L2(R.full || R.name);   // 路線全名(句子用;沒有 full = name)
 export const segKind = s => (s.k === "warm" ? fmt("warm") : s.k === "review" ? fmt("review") : L2(s.level.route.name));
 /* 複習的變化:「拍點只響 2、4 拍」「斷奏」「最快 ♩=88」… */
 export function varyText(s){
@@ -225,8 +226,9 @@ export function createDailyCard({ $, daily, routes = null, labels = {}, warmName
   function renderDone(){
     const s = daily.summary(log() || {});
     // 明天:每條路線「手指「兩手輪流」」+ 複習「找到中央 C」(寫關名,不只寫關號;名字照 App 的 levelName)
-    const tomList = () => s.tomorrow.map(l => fmt("tomLv", { r: L2(l.route.name), name: L2(levelName({ k: "route", level: l })) }))
-      .concat(s.review ? [fmt("tomRev", { name: L2(levelName({ k: "route", level: s.review })) })] : []).join(" · ");
+    // 句子裡寫路線的全名(routes.js 的 full;標籤上的縮寫 Accomp. 不放進句子);每項一行(.daily-tom 是 pre-line;不在關名中間、「複習」後面斷)
+    const tomList = () => s.tomorrow.map(l => fmt("tomLv", { r: full(l.route), name: L2(levelName({ k: "route", level: l })) }))
+      .concat(s.review ? [fmt("tomRev", { name: L2(levelName({ k: "route", level: s.review })) })] : []).join("\n");
     const tom = s.tomorrow.length || s.review;
     const news = s.segs ? daily.opened() : [];   // 今天開放的路線(開放那一天一次;daily.js 的 opened)
     const ms = s.segs ? milestone(log() || {}) : null;   // 新路線開放那天不說(那一句就是今天的稱讚;daily.js 的 praise)
@@ -240,10 +242,11 @@ export function createDailyCard({ $, daily, routes = null, labels = {}, warmName
     const enough = s.sec >= daily.today().plan.reduce((a, p) => a + (p.sec || 0), 0) * 0.6;   // 練了預計時間的 6 成以上才說「今天到這裡就好」(19 秒不說)
     pairText(card.querySelector(".daily-sum"), () => (s.segs ? fmt(enough ? "done" : "doneShort", { s: fmt(s.segs === 1 ? "part1" : "parts", { n: s.segs }), t: time(), p: s.passed ? fmt("passedN", { n: s.passed }) : "" }) : fmt("none")));
     const wk = card.querySelector(".daily-sub:not(.daily-tom)");
-    if (s.week > 0) pairText(wk, () => fmt("week", { d: s.week })); else wk.remove();
+    // 今天的稱讚是「連續練 n 天」:不再寫「最近 7 天練了 n 天」(同一件事一個畫面只說一次)
+    if (s.week > 0 && !(ms && ms.id[0] === "s")) pairText(wk, () => fmt("week", { d: s.week })); else wk.remove();
     const tm = card.querySelector(".daily-tom");
     if (tm) pairText(tm, () => fmt("tomorrow", { list: tomList() }));
-    if (news.length) pairText(card.querySelector(".daily-new"), () => news.map(R => fmt("opened", { r: L2(R.name) })).join(" "));
+    if (news.length) pairText(card.querySelector(".daily-new"), () => news.map(R => fmt("opened", { r: full(R) })).join(" "));
     if (up) pairText(card.querySelector(".daily-up"), () => fmt(up.to >= up.target ? "climbTop" : "climb", { a: up.from, b: up.to, t: up.target }));
     if (ms) pairText(card.querySelector(".daily-ms:not(.daily-new):not(.daily-up)"), () => tr(ms.zh, ms.en));
     card.querySelector(".daily-more").onclick = () => onMore && onMore();

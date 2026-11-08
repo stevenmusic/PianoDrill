@@ -1,6 +1,6 @@
 /* 過關慶祝(PianoDrill / DrumDrill 共用,兩邊逐位元組相同;tools/test/sync.json same)。
    今日練習過關時,題目卡標籤那一列換成一條橫幅「過關 ✓ 關名」+ 一顆線稿星星畫出來(約 1.6 秒後自己消失);只在過關,複習升盒、穩了 / 做到了不放。
-   不推版面、不跳視窗、不彩帶:over = 標籤列(疊在它上面、拉滿整排;那段時間標籤整排淡出 .cel-under,不留半顆);不蓋住狀態句、題目與底部固定按鈕;
+   不推版面、不跳視窗、不彩帶:over = 標籤列(疊在它上面、拉滿整排;那段時間標籤整排淡出 .cel-under,不留半顆;標籤列不在畫面上 = 疊在譜紙 sweep 看得到的上緣);不蓋住狀態句、題目與底部固定按鈕;
    狀態句不再寫「過關 ✓」(只寫接著練 / 下一關),所以橫幅的字讀得到(星星 aria-hidden)。字級 --fs-body;放不下先縮成 --fs-sub,再放不下換行(不切成「…」;往上長)。
    2026-11 使用者選「專心練習畫面」A,一起加(都不佔位置、不彩帶、不跳視窗):
    - sweep:譜紙上一道金色掃光 0.4 秒(app.css 的 .cel-sweep)
@@ -15,6 +15,24 @@ const STAR = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke
 const TICK = '<svg class="cel-tick" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path pathLength="1" d="M20 6 9 17l-5-5"/></svg>';
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const still = () => typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
+/* r(標籤列)在畫面上看得到:在視窗裡、正中間那一點沒被頂欄之類的蓋住 */
+function shown(r, over, el){
+  if (r.top < 0 || r.bottom > innerHeight || r.width <= 0) return false;
+  const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);   // 標籤淡出(visibility:hidden)時點到的是外面的卡片
+  return !!hit && (over.contains(hit) || hit.contains(over) || el.contains(hit));
+}
+/* 譜紙看得到的最上面(扣掉疊在上面的頂欄);整個看不到 = null */
+function paperTop(paper){
+  const p = paper.getBoundingClientRect(), x = p.left + p.width / 2;
+  let y = Math.max(p.top, 0);
+  for (let i = 0; i < 6 && y < Math.min(p.bottom, innerHeight) - 36; i++) {
+    const hit = document.elementFromPoint(x, y + 1);
+    if (!hit) return null;
+    if (paper.contains(hit)) return Math.round(y);
+    y = Math.max(y + 1, hit.getBoundingClientRect().bottom);
+  }
+  return null;
+}
 /* 重新觸發一次 CSS 動畫:拿掉 class、讓瀏覽器量一次、再加回去 */
 function replay(el, cls, ms){
   el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls);
@@ -29,19 +47,39 @@ export function celebrate(host, text, { before = null, ms = CELEBRATE_MS, sweep 
   const el = document.createElement("div");
   el.className = "celebrate";
   el.style.setProperty("--cel-ms", ms + "ms");
+  el.style.pointerEvents = "none";   // 只是給人看的;量位置時(elementFromPoint)也不要點到自己
   el.innerHTML = STAR + `<span>${esc(text)}</span>`;
   host.insertBefore(el, before && before.parentNode === host ? before : host.firstChild);
   // 疊在標籤列上、拉滿整排;標籤整排淡出。量的是 host 的頂(狀態句之後才重畫、面板變高也不會跑掉)
-  let o = null, h = null;
-  if (over && over.getClientRects().length) {
-    h = host.getBoundingClientRect(); o = over.getBoundingClientRect();
-    Object.assign(el.style, { left: (o.left - h.left - host.clientLeft) + "px", width: o.width + "px", right: "auto", bottom: "auto", minHeight: o.height + "px" });
+  // 標籤列不在畫面上(手機橫式播放時譜卡捲到頂欄下,標籤列在上面看不到):橫幅改疊在譜紙看得到的上緣(固定在畫面上、同寬;不推版面)。
+  // 橫幅還在的時候畫面捲動了(App 換關後捲回來):重新放一次
+  const sp = el.lastElementChild, tight = () => sp.scrollWidth > sp.clientWidth + 1 || el.scrollWidth > el.clientWidth + 1;
+  const fit = () => {   // 放不下:先縮字,再換行(不切成「…」)。量的是字(span 被 flex 擠窄、字溢出到右邊內距時,外框的 scrollWidth 量不到)
+    el.classList.remove("cel-s", "cel-wrap");
+    if (tight()) { el.classList.add("cel-s"); if (tight()) el.classList.add("cel-wrap"); }
+  };
+  const live = !!(over && over.getClientRects().length);
+  const place = () => {
+    if (!live || !over.isConnected) { fit(); return; }
+    const h = host.getBoundingClientRect(), o = over.getBoundingClientRect();
+    const top = sweep && !shown(o, over, el) ? paperTop(sweep) : null;
+    if (top != null) {
+      const p = sweep.getBoundingClientRect();
+      Object.assign(el.style, { position: "fixed", left: p.left + "px", width: p.width + "px", top: top + "px", right: "auto", bottom: "auto", minHeight: o.height + "px", zIndex: 15 });
+      fit(); return;
+    }
+    Object.assign(el.style, { position: "", zIndex: "", left: (o.left - h.left - host.clientLeft) + "px", width: o.width + "px", right: "auto", bottom: "auto", minHeight: o.height + "px" });
+    fit();
+    el.style.top = (o.bottom - h.top - host.clientTop - el.offsetHeight) + "px";   // 底對齊標籤列底(換行時往上長,不碰狀態句)
+  };
+  place();
+  if (live) {
     over.classList.add("cel-under"); undo.push(() => over.classList.remove("cel-under"));
+    let raf = 0;
+    const again = () => { if (!raf) raf = requestAnimationFrame(() => { raf = 0; place(); }); };
+    addEventListener("scroll", again, { capture: true, passive: true }); addEventListener("resize", again);
+    undo.push(() => { cancelAnimationFrame(raf); removeEventListener("scroll", again, { capture: true }); removeEventListener("resize", again); });
   }
-  // 放不下:先縮字,再換行(不切成「…」)
-  if (el.scrollWidth > el.clientWidth + 1) { el.classList.add("cel-s"); if (el.scrollWidth > el.clientWidth + 1) el.classList.add("cel-wrap"); }
-  // 底對齊標籤列底(換行時往上長,不碰狀態句)
-  if (o) el.style.top = (o.bottom - h.top - host.clientTop - el.offsetHeight) + "px";
   if (sweep && !calm) replay(sweep, "cel-sweep", 500);
   if (btn) {
     if (!calm) replay(btn, "cel-pop", 400);

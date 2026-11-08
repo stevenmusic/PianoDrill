@@ -229,7 +229,7 @@ const GROUPS_FINGER = {
 const GROUPS_ACCOMP = { A: C("柱式和弦", "Block chords"), B: C("分解和弦", "Broken chords"), C: C("華爾茲", "Waltz"), D: C("流行伴奏", "Pop accompaniment") };
 export const ROUTES = [
   { id: "finger", name: ["手指", "Fingers"], why: WHY_FINGER, groups: GROUPS_FINGER, levels: finish("finger", FINGER) },
-  { id: "accomp", name: ["伴奏", "Accomp."], unlock: { route: "finger", passed: "PA5" }, why: WHY_ACCOMP, groups: GROUPS_ACCOMP, levels: finish("accomp", ACCOMP) }
+  { id: "accomp", name: ["伴奏", "Accomp."], full: ["伴奏", "Accompaniment"], unlock: { route: "finger", passed: "PA5" }, why: WHY_ACCOMP, groups: GROUPS_ACCOMP, levels: finish("accomp", ACCOMP) }
 ];
 
 /* ══ 複習的變化只用學過的(系統化規則;daily.js 的 extras.vary)══

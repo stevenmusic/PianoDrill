@@ -1005,6 +1005,7 @@ body.view-exam #t-dailyCard,body.view-exam #t-dailyStep{display:none !important}
 .daily-note{text-wrap:balance;word-break:keep-all;overflow-wrap:anywhere}   /* 換行時在「，」後面斷、兩行差不多長(不讓「分」單獨掉到下一行、不拆開「關係」;字級放大的 SE) */
 .daily-sum{font-size:var(--fs-md);color:var(--ivory);line-height:1.5}
 .daily-ms,.daily-tom{margin-top:8px}   /* 里程碑稱讚(練完了卡最後一行;milestone.js)、明天練什麼(練完卡最重要的下一步:跟第一行一樣 --fs-md) */
+.daily-tom{white-space:pre-line;word-break:keep-all;overflow-wrap:anywhere}   /* 明天:每項一行(dailycard 用換行接);中文不在關名中間斷,放不下才斷 */
 .daily-hi{font-size:var(--fs-md);color:var(--muted-bright);line-height:1.5;margin:0 0 6px}   /* 隔 7 天以上回來:今日卡標題下一行「歡迎回來!…」 */
 .daily-more{width:100%;min-height:44px;height:auto;margin-top:12px;white-space:normal}
 /* 路線圖(今日卡最下面的「路線」鈕,點了在卡內往下展開;dailycard.js 的 fillRoad、js/shared/roadmap.js;2026-11)。
@@ -1071,7 +1072,7 @@ body.view-exam #t-dailyCard,body.view-exam #t-dailyStep{display:none !important}
 @media (max-width:300px){ .daily-left:not(.up){flex:0 1 2.6em;max-width:2.6em} :lang(en) .daily-left:not(.up){flex-basis:4em;max-width:4em} }   /* 折疊機:「剩約 / n 分」每一段都固定兩行(右邊「下一段 ›」「結束今天 ›」寬度不同,有的段一行有的兩行;BACKLOG 第 26 輪 4) */
 /* 段落面板(題目卡裡) */
 .daily-step{display:flex;flex-direction:column;gap:8px;padding-top:2px}   /* 不畫上框線(卡片已經分層) */
-.daily-status{font-size:var(--fs-body);font-weight:500;color:var(--ivory);line-height:1.5}
+.daily-status{font-size:var(--fs-body);font-weight:500;color:var(--ivory);line-height:1.5;text-wrap:balance}   /* 兩行時差不多長:折疊機「接著練下一關。/ 按 ▶ 跟著彈一輪」不讓「輪」單獨掉到下一行 */
 .daily-tip{font-size:var(--fs-sub);color:var(--muted-bright);line-height:1.5}
 .daily-why{font-size:var(--fs-sub);color:var(--muted-bright);line-height:1.5}   /* 為什麼練這個(每組一句,這一組第一次出現時) */
 /* 今日練習的關卡標籤「律動 3 / 28」下面一條細進度條 */

@@ -4,18 +4,22 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PianoDrill 鋼琴檢定特訓 · 授權與出處 Licenses</title>
+<script>/* 跟 App 的主題走(index.html 同一個寫法:pianodrill.v1 的 theme);沒設定照系統 */try{var t=JSON.parse(localStorage.getItem('pianodrill.v1')||'{}').theme;if(t==='light'||t==='dark')document.documentElement.classList.add(t)}catch(e){}</script>
 <style>
-body{margin:0;background:#0C0A07;color:#EDE6D6;font:16px/1.7 "Noto Sans TC",system-ui,sans-serif}
+/* 顏色、字型照 App 的代幣(css/app.css 開頭;深色預設,.light = App 選了淺色,沒選照系統) */
+:root{--bg:#0A0805;--panel:#1A150C;--gold:#F2B94B;--ivory:#F4ECDA;--muted:#938566;--fill-btn:rgba(242,185,75,.14);color-scheme:dark}
+:root.light{--bg:#ECE6D8;--panel:#FFFDF8;--gold:#745714;--ivory:#241E12;--muted:#6F6450;--fill-btn:rgba(122,92,22,.10);color-scheme:light}
+@media (prefers-color-scheme:light){:root:not(.dark){--bg:#ECE6D8;--panel:#FFFDF8;--gold:#745714;--ivory:#241E12;--muted:#6F6450;--fill-btn:rgba(122,92,22,.10);color-scheme:light}}
+body{margin:0;background:var(--bg);color:var(--ivory);font:16px/1.7 "Noto Sans TC",sans-serif}
 main{max-width:720px;margin:0 auto;padding:32px 20px 60px}
-h1{color:#F2B94B;font-size:24px;margin:0 0 4px}h2{color:#F2B94B;font-size:18px;margin:28px 0 6px}
-p,li{color:#CFC6B4;overflow-wrap:anywhere}small{color:#8F8573}a{color:#F2B94B}
-pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:13px;line-height:1.55;color:#CFC6B4;background:#17130D;border:1px solid #2E271C;border-radius:8px;padding:12px}
-.back{display:inline-flex;align-items:center;min-height:44px;margin-bottom:12px}
-@media (prefers-color-scheme:light){body{background:#FBF7EE;color:#2B2418}p,li,pre{color:#4A4030}pre{background:#F2EBDC;border-color:#DCCFB4}h1,h2,a{color:#856418}}
+h1{color:var(--ivory);font-size:24px;margin:0 0 4px}h2{color:var(--ivory);font-size:18px;margin:28px 0 6px}
+p,li{color:var(--ivory);overflow-wrap:anywhere}small{color:var(--muted)}a{color:var(--gold)}
+.back{display:inline-flex;align-items:center;min-height:44px;margin-bottom:12px;text-decoration:none;font-weight:500}
+pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:13px;line-height:1.55;color:var(--ivory);background:var(--panel);border-radius:8px;padding:12px}
 </style>
 </head>
 <body><main>
-<a class="back" href="index.html" onclick="try{var w=window,r=new w.URL(w.document.referrer);if(w.history.length&gt;1&amp;&amp;r.protocol===w.location.protocol&amp;&amp;r.host===w.location.host){w.history.back();return false}}catch(e){}">← 返回 Back</a><!-- 從 App 內點進來(同網域、有上一頁)→ history.back() 回到原本的畫面;直接打開(沒有上一頁或從別的網站來)→ index.html。一律寫 window.…:inline handler 的作用域先找 document,URL 會變成 document.URL(字串) -->
+<a class="back" id="back" href="index.html" onclick="try{var w=window,r=new w.URL(w.document.referrer);if(w.history.length&gt;1&amp;&amp;r.protocol===w.location.protocol&amp;&amp;r.host===w.location.host){w.history.back();return false}}catch(e){}">← Back</a><script>/* 返回鈕照 App 的語言(js/shared/i18n.js 的讀法:pianodrill-lang,再看舊工具的;預設英文) */try{for(var k of ['pianodrill-lang','fingerdrill-lang','eardrill-lang']){var v=localStorage.getItem(k);if(v==='en'||v==='zh'){if(v==='zh')document.getElementById('back').textContent='← 返回';break}}}catch(e){}</script><!-- 從 App 內點進來(同網域、有上一頁)→ history.back() 回到原本的畫面;直接打開(沒有上一頁或從別的網站來)→ index.html。一律寫 window.…:inline handler 的作用域先找 document,URL 會變成 document.URL(字串) -->
 <h1>授權與出處</h1><small>PianoDrill 鋼琴檢定特訓</small>
 <h2>鋼琴音色</h2>
 <p>Accurate-Salamander Grand Piano V6.2,改編自 Alexander Holm 的 Salamander Grand Piano V3,以 <a href="https://creativecommons.org/licenses/by/3.0/">創用 CC 姓名標示 3.0(CC BY 3.0)</a>授權。</p>

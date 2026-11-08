@@ -6,21 +6,27 @@
 <title>PianoDrill 鋼琴檢定特訓 · 支援 Support</title>
 <!-- 支援頁(App Store Connect 的「支援網址」):常見問題 + 回報問題。PianoDrill / DrumDrill 同一個版型(照 privacy.html),只有 APP 設定與文字不同。
      回報問題只在使用者自己按的時候才送出;預填的內容(App 版本、裝置、語言)先顯示在頁面上,不含練習紀錄 -->
+<script>/* 跟 App 的主題走(index.html 同一個寫法:pianodrill.v1 的 theme);沒設定照系統 */try{var t=JSON.parse(localStorage.getItem('pianodrill.v1')||'{}').theme;if(t==='light'||t==='dark')document.documentElement.classList.add(t)}catch(e){}</script>
 <style>
-body{margin:0;background:#0C0A07;color:#EDE6D6;font:16px/1.7 "Noto Sans TC",system-ui,sans-serif}
+/* 顏色、字型照 App 的代幣(css/app.css 開頭;深色預設,.light = App 選了淺色,沒選照系統) */
+:root{--bg:#0A0805;--panel:#1A150C;--gold:#F2B94B;--ivory:#F4ECDA;--muted:#938566;--fill-btn:rgba(242,185,75,.14);color-scheme:dark}
+:root.light{--bg:#ECE6D8;--panel:#FFFDF8;--gold:#745714;--ivory:#241E12;--muted:#6F6450;--fill-btn:rgba(122,92,22,.10);color-scheme:light}
+@media (prefers-color-scheme:light){:root:not(.dark){--bg:#ECE6D8;--panel:#FFFDF8;--gold:#745714;--ivory:#241E12;--muted:#6F6450;--fill-btn:rgba(122,92,22,.10);color-scheme:light}}
+body{margin:0;background:var(--bg);color:var(--ivory);font:16px/1.7 "Noto Sans TC",sans-serif}
 main{max-width:720px;margin:0 auto;padding:32px 20px 60px}
-h1{color:#F2B94B;font-size:24px;margin:0 0 4px}h2{color:#F2B94B;font-size:18px;margin:28px 0 6px}
-h3{color:#EDE6D6;font-size:16px;margin:18px 0 2px}
-p,li{color:#CFC6B4;overflow-wrap:anywhere}small{color:#8F8573}
-a{color:#F2B94B}.back{display:inline-flex;align-items:center;min-height:44px;margin-bottom:12px}
+h1{color:var(--ivory);font-size:24px;margin:0 0 4px}h2{color:var(--ivory);font-size:18px;margin:28px 0 6px}
+p,li{color:var(--ivory);overflow-wrap:anywhere}small{color:var(--muted)}a{color:var(--gold)}
+.back{display:inline-flex;align-items:center;min-height:44px;margin-bottom:12px;text-decoration:none;font-weight:500}
+pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:13px;line-height:1.55;color:var(--ivory);background:var(--panel);border-radius:8px;padding:12px}
+h3{color:var(--ivory);font-size:16px;margin:18px 0 2px}
 .actions{display:flex;flex-wrap:wrap;gap:10px;margin:12px 0}
-.btn{display:inline-flex;align-items:center;min-height:44px;padding:0 16px;border:1px solid #F2B94B;border-radius:22px;text-decoration:none;font-weight:500}
-pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:13px;line-height:1.55;color:#CFC6B4;background:#17130D;border:1px solid #2E271C;border-radius:8px;padding:12px;margin:6px 0}
-@media (prefers-color-scheme:light){body{background:#FBF7EE;color:#2B2418}p,li,pre{color:#4A4030}h3{color:#2B2418}pre{background:#F2EBDC;border-color:#DCCFB4}h1,h2,a{color:#856418}.btn{border-color:#856418}}
+.btn{display:inline-flex;align-items:center;min-height:44px;padding:0 16px;border-radius:12px;background:var(--fill-btn);text-decoration:none;font-weight:500}
+pre{margin:6px 0}
+[hidden]{display:none!important}   /* .btn 的 display 不能蓋過 hidden(沒設定寄信地址時「寄信」鈕不顯示) */
 </style>
 </head>
 <body><main>
-<a class="back" href="index.html" onclick="try{var w=window,r=new w.URL(w.document.referrer);if(w.history.length&gt;1&amp;&amp;r.protocol===w.location.protocol&amp;&amp;r.host===w.location.host){w.history.back();return false}}catch(e){}">← 返回 Back</a><!-- 從 App 內點進來(同網域、有上一頁)→ history.back() 回到原本的畫面;直接打開(沒有上一頁或從別的網站來)→ index.html。一律寫 window.…:inline handler 的作用域先找 document,URL 會變成 document.URL(字串) -->
+<a class="back" id="back" href="index.html" onclick="try{var w=window,r=new w.URL(w.document.referrer);if(w.history.length&gt;1&amp;&amp;r.protocol===w.location.protocol&amp;&amp;r.host===w.location.host){w.history.back();return false}}catch(e){}">← Back</a><script>/* 返回鈕照 App 的語言(js/shared/i18n.js 的讀法:pianodrill-lang,再看舊工具的;預設英文) */try{for(var k of ['pianodrill-lang','fingerdrill-lang','eardrill-lang']){var v=localStorage.getItem(k);if(v==='en'||v==='zh'){if(v==='zh')document.getElementById('back').textContent='← 返回';break}}}catch(e){}</script><!-- 從 App 內點進來(同網域、有上一頁)→ history.back() 回到原本的畫面;直接打開(沒有上一頁或從別的網站來)→ index.html。一律寫 window.…:inline handler 的作用域先找 document,URL 會變成 document.URL(字串) -->
 <h1>支援</h1><small>PianoDrill 鋼琴檢定特訓 · 最後更新 2026-10-18</small>
 <h2>回報問題、建議</h2>
 <p>到 GitHub 開一個 issue(需要 GitHub 帳號;內容是公開的)<span data-mail hidden>,或寄信給我們</span>。按下按鈕後會先打開表單或郵件,你可以先看過、修改,再自己決定要不要送出。</p>

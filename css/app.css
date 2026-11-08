@@ -377,6 +377,8 @@ footer a,footer .foot-link{text-decoration:none;color:var(--muted)}   /* 頁尾�
 footer p{margin:0}
 footer .foot-links a{display:inline-flex;align-items:center;min-height:44px}   /* 授權、隱私、支援連結:點擊區域 44 高(跟備份紀錄、分享摘要的按鈕一樣) */
 footer .foot-links .fl{white-space:nowrap}   /* 連結 + 後面的「·」不拆開:換行只在「·」後面(折疊機行尾不留孤零零的點) */
+footer .foot-links{font-size:var(--fs-sm)}   /* 連結字 14(長輩看得到、點得到;第 25 輪) */
+footer.no-digest .dg{display:none}   /* 從來沒練過:「分享本週摘要」與它前面的「·」不顯示(main.js 共用部分的 syncDigest) */
 .btn.primary{box-shadow:var(--shadow-primary)}
 .btn,.seg button,.chip,.mbtn{transition-property:background,color,border-color,box-shadow,transform;transition-duration:.15s,.15s,.15s,.2s,.09s}
 .btn:active,.seg button:active,.chip:active,.mbtn:active{transform:scale(.95)}

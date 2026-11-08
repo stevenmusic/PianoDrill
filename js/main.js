@@ -12,7 +12,7 @@ import { tr, T, applyStatic, setLang, getLang, onLang } from "./shared/i18n.js";
 import * as audio from "./shared/audio.js";
 import { exportAll, validate, importAll, MAX_BYTES } from "./shared/backup.js";
 import { build as buildDigest } from "./shared/digest.js";
-import { dayKey } from "./shared/practicelog.js";
+import { dayKey, neverPracticed } from "./shared/practicelog.js";
 import * as tech from "./tech/app.js";
 import * as sight from "./sight/app.js";
 import * as ear from "./ear/app.js";
@@ -237,6 +237,7 @@ function showView(view, sub){
   window.scrollTo({ top: 0 });
   if (modName) MODS[modName].enter(tab);
   balanceSoon();
+  syncDigest();
 }
 /* ══ 寬畫面(≥ 1100):一個框、一欄(docs/DESIGN.md 第 9 節丙;以前的 balanceCols 兩欄平衡拿掉了,練習紀錄卡不再搬家,照 app.css 的 order 排)。
    版面變了(換寬度、卡片高度變了)只要重算一張練習卡的合併(syncJoin)與底部按鈕列(syncCta) */
@@ -563,6 +564,13 @@ $("digestLink").onclick = async () => {
   try { await navigator.clipboard.writeText(text); digestMsg(T("digest.copied")); }
   catch (e) { digestMsg(T("digest.fail")); }
 };
+/* 從來沒練過(三個分頁的練習紀錄都是空的,practicelog 的 neverPracticed):「分享本週摘要」與它前面的「·」不顯示(沒東西可分享),練過一次才出現(index.html 的 .dg)。
+   練習紀錄是各模組自己寫的:換分頁、頁尾捲進畫面時再看一次 */
+function syncDigest(){
+  const f = document.querySelector("footer");
+  if (f) f.classList.toggle("no-digest", Object.values(digestData([]).mods).every(neverPracticed));
+}
+if (window.IntersectionObserver && document.querySelector("footer")) new IntersectionObserver(es => { if (es.some(e => e.isIntersecting)) syncDigest(); }).observe(document.querySelector("footer"));
 
 /* ── 啟動 ── */
 async function init(){

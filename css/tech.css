@@ -17,3 +17,22 @@
 @media (min-width:1100px) and (min-height:501px) and (max-height:799px){
   #mod-tech #t-keys{--ks-h:44px}
 }
+/* 拍點燈號只在播放時看得到(BACKLOG 第 25 輪 9:沒字的四個灰點像頁碼點);visibility 保留位置,開始 / 停止時版面不跳(app.js 的 showBeat 加 .live) */
+#t-beats:not(.live){visibility:hidden}
+/* 自由練習的主要按鈕「彈一遍 / 停止」(app.js 的 syncPlayMain):手機也寫字(app.css 在 ≤ 600 只留圖示),字寬固定,換字時按鈕不變寬 */
+#t-playMain .btn-label{display:inline-block;min-width:3em;text-align:center}
+/* 選題目的摘要列:折疊機放不下「 · 拍點:…」→ 只寫「選題目」,不切成「…」(BACKLOG 第 25 輪 2;app.js 的 renderPicker) */
+#mod-tech .picker:not(.open) .sum{display:flex}   /* 字很大時拍點那段自己縮成「…」,不超出畫面(layout.mjs 字級 200%) */
+#mod-tech .picker .sum-x{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:pre}
+@media (max-width:300px){ #mod-tech .picker .sum-x{display:none} }
+/* 手機橫式的自由練習(BACKLOG 第 25 輪 10):第一個畫面要露出譜 → ▶(含下面小字)跨大標題、標籤兩行(不另佔一行高);
+   選題目那一列上下不留內距(只剩 44 高的摘要列);第一次的說明跟標籤同一行 */
+@media (max-height:420px), (orientation:landscape) and (max-height:500px){
+  #mod-tech:not(.daily-on) .quiz .play-round{grid-row:1 / span 2;align-self:start}
+  #mod-tech .picker{padding-top:0;padding-bottom:0} #mod-tech .picker.open .setup-body{padding-bottom:10px}
+  /* 第一次的一行說明(#t-intro)放在標籤同一行右邊(還是在大標題下面),不另佔一行 */
+  #mod-tech:not(.daily-on) .quiz:has(#t-intro:not([hidden])) .q-tags{grid-column:1;width:max-content;padding-right:4px}   /* app.js 的 fitTitle 量最後一個標籤要留 2px */
+  #mod-tech:not(.daily-on) .quiz #t-intro{grid-column:2 / 4;grid-row:2;align-self:center}
+}
+/* 折疊機(≤ 300 寬)自由練習的底部固定列:會了 / 再練 +「彈一遍」排一行(app.css 在 ≤ 300 讓主要按鈕整條掉到下一行,固定列變兩排會蓋住譜;兩種語言都放得下) */
+@media (max-width:300px){ #t-quizCard > .q-last.cta-bar > .q-actions:has(> #t-playMain:not([hidden])){flex:1 1 0} #t-quizCard > .q-last.cta-bar #t-playMain{padding-left:10px;padding-right:10px} }

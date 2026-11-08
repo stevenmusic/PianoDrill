@@ -102,7 +102,8 @@ const PICKERS = {
       return [
         ["kind", tr("種類", "Type"), [["major", tr("大調", "Major")], ["minor", tr("小調", "Minor")], ["chromatic", tr("半音階", "Chromatic")], ["wholetone", tr("全音音階", "Whole-tone")]]],
         p.kind === "minor" && ["form", tr("小調", "Minor"), [["harmonic", tr("和聲", "Harmonic")], ["melodic", tr("旋律", "Melodic")], ["natural", tr("自然", "Natural")]]],
-        ["motion", tr("進行", "Motion"), motions],
+        // 列名寫白話(BACKLOG 第 25 輪 12;「進行」是行話):只有同向 / 反向 = 「方向」,有相隔、雙音 = 「走法」
+        ["motion", motions.length > 2 ? tr("走法", "Pattern") : tr("方向", "Direction"), motions],
         ["key", tonal ? tr("調", "Key") : tr("起音", "Start"), keyOpts(p.kind === "major" ? MAJ_KEYS : p.kind === "minor" ? MIN_KEYS : STARTS)],
         ["octaves", tr("範圍", "Range"), OCTS(maxOct)],
         ["hands", tr("手", "Hands"), hands],
@@ -175,7 +176,9 @@ function renderPicker(tab){
     opts.map(([v, t]) => `<button class="opt" data-v="${v}" aria-pressed="${String(v) === String(p[k])}">${t}</button>`).join("") + `</div></div>`).join("");
   // 收起來的一行只寫題目卡(標題、標籤)沒有的:題目名稱、手、範圍、奏法都已經在題目卡上 → 只寫「換題目」+ 拍點
   const pr = cfg.rows(p).find(r => r && r[0] === "pulse"), pv = pr && pr[2].find(o => o[0] === p.pulse);
-  pane.querySelector(".sum").textContent = [tr("選題目", "Choose"), pv ? tr("拍點：", "Click ") + (getLang() === "en" ? pv[1].toLowerCase() : pv[1]) : ""].filter(Boolean).join(" · ");
+  // 拍點那段包成 .sum-x:折疊機(≤ 300 寬)放不下,只寫「選題目」(css/tech.css;不切成「…」,拍點在展開的選單裡有)
+  const sum = pane.querySelector(".sum"); sum.textContent = tr("選題目", "Choose");
+  if (pv) { const x = document.createElement("span"); x.className = "sum-x"; x.textContent = " · " + tr("拍點：", "Click ") + (getLang() === "en" ? pv[1].toLowerCase() : pv[1]); sum.append(x); }
   renderQuick(tab);
   syncHandAllowed();
 }
@@ -188,8 +191,13 @@ for (const tab of ["scale", "arp", "hanon"]) {
       S.pick[tab].moreKeys = more; if (!more) S.pick[tab].key = "C";
       store.save(); renderPicker(tab); if (!more) loadFree(tab); return;
     }
+    const rowsBefore = paneOf(tab).querySelectorAll(".opts").length;
     S.pick[tab][k] = ["octaves", "inv", "no"].includes(k) ? Number(b.dataset.v) : b.dataset.v;
     store.save(); renderPicker(tab); loadFree(tab);
+    // 選好一項就收起來(BACKLOG 第 25 輪 12):▶ 與譜回到第一個畫面;焦點回到摘要列(鍵盤使用者再按一次就展開)。
+    // 選了以後多出 / 少了一列(例:選「小調」才出現「小調形式」)= 還有要選的,不收
+    const pane = paneOf(tab), sumBtn = pane.querySelector(".setup-summary");
+    if (pane.classList.contains("open") && pane.querySelectorAll(".opts").length === rowsBefore) { pane.classList.remove("open"); sumBtn.setAttribute("aria-expanded", "false"); sumBtn.focus({ preventScroll: true }); }
   };
 }
 function freeQuestion(tab){
@@ -409,6 +417,7 @@ function syncQuizTop(){
   // 檢定頁還沒抽題:▶ 與「會了 / 再練」藏起來(沒有東西可以播、可以標)
   $("playBtn").hidden = S.tab === "exam" && !cur;
   ROOT.querySelector(".mastery").hidden = (S.tab === "exam" && !cur) || !!dseg;   // 今日練習每一段(含暖身)都不標熟練度(段落用「做到了 / 還要練」)   // 檢定頁還沒選題目:藏起譜卡與速度卡,本級要求放在題目卡正下方
+  syncPlayMain();
   const top = ROOT.querySelector(".quiz-top");
   const empty = ROOT.querySelector(".mastery").hidden && !$("poolCount").textContent.trim() && [...top.querySelectorAll(".q-actions button")].every(b => b.hidden);
   top.classList.toggle("blank", empty);
@@ -1544,6 +1553,7 @@ function showBeat(click){
   const dots = $("beats").children, n = dots.length;
   const k = click == null || click < -n * COUNT_IN_BARS ? -1 : ((Math.floor(click + 1e-6) % n) + n) % n;
   for (let i = 0; i < dots.length; i++) dots[i].classList.toggle("on", i === k);
+  $("beats").classList.toggle("live", click != null);   // 沒在播放時藏起來(css/tech.css;visibility 保留位置,版面不跳)
 }
 
 /* ══ 播放選項 ══(今日練習的段落不用:速度卡藏起來,播放照段落的設定) */
@@ -1770,7 +1780,18 @@ let heardAt = null;
 const heardKey = () => (dseg ? `${dseg.i}/${dseg.lv || ""}/${bpm}` : null);
 function syncReady(){ dcard.ready(!!dseg && heardAt === heardKey()); }
 /* 底部按鈕「■ 停止」:正在播(或正在準備播放) */
-function syncPlaying(){ dcard.playing(!!(dseg && (play || starting))); }
+function syncPlaying(){ dcard.playing(!!(dseg && (play || starting))); syncPlayMain(); }
+/* 自由練習(音階 / 琶音 / 哈農)題目卡最後一行右邊的主要按鈕「彈一遍」= 圓形 ▶ 同一個動作,播放中寫「停止」(BACKLOG 第 25 輪 11,選項 B;
+   熟練度「會了 / 再練」留在左邊)。檢定頁右邊已經有隨機抽考 / 下一題、今日練習用底部按鈕列 → 不放 */
+function syncPlayMain(){
+  const b = $("playMain"); if (!b) return;
+  b.hidden = !cur || !!dseg || !["scale", "arp", "hanon"].includes(S.tab);
+  b.disabled = $("playBtn").disabled;
+  const on = play || starting;   // 載入取樣中再按 = 取消,也寫「停止」
+  $("playMainLabel").textContent = on ? T("stop") : tr("彈一遍", "Play");
+  $("playMainIcon").innerHTML = on ? '<rect x="6" y="6" width="12" height="12" rx="1.5"/>' : '<path d="M7 4v16l13-8z"/>';
+}
+$("playMain").onclick = () => $("playBtn").click();
 /* 這一段的播放:4 小節(中途消失 = 8 小節);拍點模式不是每拍 = 只有拍點 */
 function dailyPlay(){
   if (!dseg || !cur || !cur.daily) return null;
@@ -1808,6 +1829,7 @@ function dExit(){
   stopPlayback();
   dseg = null; dcard.showing = false; syncNamesBtn();
   ROOT.classList.remove("daily-on");
+  syncPlayMain();
   if (ctx && ctx.setSubActive) ctx.setSubActive(true, "tech");
   dcard.renderStep(null);
   if (S.tab !== "exam") dcard.render();

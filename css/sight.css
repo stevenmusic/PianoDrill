@@ -243,3 +243,5 @@
 }
 /* ≥ 1100 檢定頁題目卡只有半個框寬(app.css 並排):「彈奏中——播放軸照速度自己走…」中英都要兩行,狀態句一律留兩行高,彈一遍 → 停止 → 彈一遍按鈕不跳(newbie.mjs laptop) */
 @media (min-width:1100px) and (min-height:501px){ body.view-exam #s-quiz:not(.hint-empty) #s-message{min-height:2.8em} }
+/* 檢定頁:這一級還沒有視奏題目 → 說明下面一顆次要「到視奏分頁練讀譜」(不是死路;BACKLOG 第 25 輪 7) */
+#s-toSight{margin-top:8px;height:auto;min-height:44px}

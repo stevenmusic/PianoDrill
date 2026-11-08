@@ -606,6 +606,8 @@ export async function start(c) {
   exam = { ...c.exam };
   elements.generate.disabled = true;
   applySightStatic();
+  // 這一級還沒有視奏題目:到視奏分頁練讀譜(不讓說明那一句變成死路)
+  $('toSight').addEventListener('click', () => ctx.showView('sight'));
 
   if (typeof opensheetmusicdisplay === 'undefined') {
     fail('loadingOSMD');
@@ -817,7 +819,7 @@ export function onKey(e) {
     e.preventDefault();
     // 視奏分頁還沒彈過(▶ 還沒出現)或正在彈:空白鍵 = 彈一遍 / 停止
     if (freeAlong() && current && (!played || alongStart !== null)) togglePlayAlong();
-    else if (!elements.play.disabled) elements.play.click();
+    else if (!elements.play.disabled && elements.play.style.visibility !== 'hidden') elements.play.click();
   }
   else if ((e.key === 'n' || e.key === 'N') && !elements.generate.disabled && mk.state !== 'run') elements.generate.click();
 }
@@ -867,7 +869,7 @@ function syncMode(changed) {
 }
 /* 本項列(檢定頁最上面一行;畫面設計 2026-10 版型 B):視奏 [已練 n 題] … 模擬考(這一級還沒有題目時不寫標籤、沒有模擬考) */
 function paintItemRow() {
-  $('itemRow').hidden = mode !== 'exam' || readOn();
+  $('itemRow').hidden = mode !== 'exam' || readOn() || !examSupported();   // 還沒有題目的級數:本項列是空的,不留位置
   if (mode !== 'exam') paintSelfCheck();   // 自我檢查只在檢定頁
   if (mode !== 'exam') return;
   $('irName').textContent = '';   // 子項目列已經寫「視奏」,同一個畫面不重複
@@ -1620,7 +1622,7 @@ let alongBeat = null;
 // 檢定頁這一題走到哪一步:before(還沒看譜)| pitch(給音)| count(看譜倒數,xLeft = 剩幾秒)| done(時間到,可以彈)
 let xPrep = 'before';
 let xLeft = 0;
-// 視奏分頁:這一題彈過(彈完或停止)了沒有。還沒彈之前不顯示 ▶(先自己讀、彈完再對照);新題目又藏起來
+// 這一題彈過(彈完或停止)了沒有(視奏分頁與檢定頁出了題目都一樣)。還沒彈之前不顯示 ▶(先自己讀、彈完再對照);新題目又藏起來
 let played = false;
 
 /* 視奏分頁(自由練習)的題目卡只有兩顆:左邊小的「新題目」、右邊大的「彈一遍」(進行中變停止);
@@ -1646,7 +1648,7 @@ function setAlongLabel() {
   elements.generate.classList.toggle('primary', !(free || x) && mode === 'exam');
   elements.generate.classList.toggle('ghost', free || x || mode !== 'exam');
   // ▶ 藏起來時保留位置(大標題那一行高度不跳)
-  elements.play.style.visibility = (free && !played) || mk.state === 'run' ? 'hidden' : '';
+  elements.play.style.visibility = ((free || x) && !played) || mk.state === 'run' ? 'hidden' : '';
   setPlayState(player.playing);
 }
 
@@ -1654,7 +1656,7 @@ function stopPlayAlong(message) {
   if (listen) { stopListening(); if (message) say(message); return; }
   recorder.cancel();
   if (alongClicks) { alongClicks = false; audio.stopAll(); }
-  if (alongStart !== null && freeAlong()) played = true;
+  if (alongStart !== null) played = true;
   alongStart = null;
   alongBeat = null;
   stopFollowing();
@@ -1767,8 +1769,8 @@ function stopListening() {
   addPracticeSec((performance.now() - listen.t0) / 1000);
   listen = null;
   recorder.cancel();
+  if (alongStart !== null) played = true;   // 出新題(newTest 先清 alongStart)停下的不算彈過
   alongStart = null;
-  if (freeAlong()) played = true;
   setAlongLabel();
 }
 /** 彈完:停麥克風、在裝置上分析、顯示結果 */
@@ -1781,7 +1783,7 @@ function finishListening() {
   const take = recorder.finish();
   alongStart = null;
   const free = freeAlong();
-  if (free) played = true;
+  played = true;
   setAlongLabel();
   if (free) { recordPractice(); if (!SS.intro[hand]) { SS.intro[hand] = true; saveSS(); } }
   if (!take || !heard) { lastRhythmResult = { silent: true }; renderRhythmResult(true); say(free ? 'freeDone' : 'alongDone'); return; }

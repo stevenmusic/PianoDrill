@@ -12,7 +12,7 @@
 const APP = "pianodrill";
 // @app-end
 /*@precache-begin*/
-const CACHE = APP + "-app-5c4a1d22";
+const CACHE = APP + "-app-5d8b28ab";
 const PRECACHE = [
   "./",
   "manifest.webmanifest",
@@ -26,7 +26,7 @@ const PRECACHE = [
   "support.html",
   "css/app.css?v=e6c0802354",
   "css/tech.css?v=afd9bfb592",
-  "css/sight.css?v=ae519e3b0a",
+  "css/sight.css?v=ba7f004c71",
   "css/ear.css?v=b59123dcb1",
   "vendor/opensheetmusicdisplay.min.js?v=4bfeb3d01c",
   "js/ear/app.js?v=659b0dcdcd",
@@ -54,7 +54,7 @@ const PRECACHE = [
   "js/shared/staffframe.js?v=7d869b31d1",
   "js/shared/tempo.js?v=1e38af7d3f",
   "js/shared/values.js?v=e240ea1b65",
-  "js/sight/app.js?v=b842ace1af",
+  "js/sight/app.js?v=1364652d0e",
   "js/sight/generator/fingerprint.js?v=9c9903e4f3",
   "js/sight/generator/generate.js?v=2bf5f28eae",
   "js/sight/generator/harmony.js?v=153a66fd1f",
@@ -65,7 +65,7 @@ const PRECACHE = [
   "js/sight/generator/random.js?v=3b9b511386",
   "js/sight/generator/rhythm.js?v=8c72082fc4",
   "js/sight/generator/theory.js?v=bca3da5ea8",
-  "js/sight/i18n.js?v=1905442103",
+  "js/sight/i18n.js?v=08d46302a0",
   "js/sight/miclisten.js?v=03ef2602b8",
   "js/sight/micscore.js?v=56b9d62915",
   "js/sight/playback.js?v=206fa6f436",

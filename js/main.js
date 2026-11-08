@@ -571,8 +571,8 @@ function syncDigest(){
   if (f) f.classList.toggle("no-digest", Object.values(digestData([]).mods).every(neverPracticed));
 }
 if (window.IntersectionObserver && document.querySelector("footer")) new IntersectionObserver(es => { if (es.some(e => e.isIntersecting)) syncDigest(); }).observe(document.querySelector("footer"));
-/* 寬畫面頁尾一直在畫面裡(上面那個不會再觸發):練完第一次以後,下一次點任何地方就再看一次 */
-document.addEventListener("pointerup", () => setTimeout(syncDigest, 0), { passive: true });
+/* 寬畫面頁尾一直在畫面裡(上面那個不會再觸發):練習紀錄寫進去的時候(practicelog 的 addLog 發 "practicelog")再看一次 */
+document.addEventListener("practicelog", () => setTimeout(syncDigest, 50));
 
 /* ── 啟動 ── */
 async function init(){

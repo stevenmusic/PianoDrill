@@ -46,6 +46,8 @@ export function addLog(log, { sec = 0, n = 0, hits = 0, total = 0 } = {}){
   if (total) { e.total = (e.total || 0) + total; e.hits = (e.hits || 0) + hits; }
   const keys = Object.keys(log).sort();
   while (keys.length > KEEP_DAYS) delete log[keys.shift()];
+  // 外框聽這個事件:第一次練完「分享本週摘要」馬上出現(main.js 的 syncDigest;模組存檔在這之後,所以外框延後一下才讀)
+  if (typeof document !== "undefined") document.dispatchEvent(new Event("practicelog"));
   return e;
 }
 export const today = log => log[dayKey(new Date())] || { n: 0, sec: 0 };

@@ -1704,8 +1704,8 @@ let lis = null;                   // 正在聽的這一輪 { exp, clicks, t0, q,
 let micBroken = null;             // 拿不到麥克風的原因(denied / none / unsupported);開關關掉再打開 = 再試
 let lisFails = 0, lisFailKey = null, lisMemo = null, dDone = false;
 /* 這一次要聽的音(null = 這一段不聽:暖身、拍點模式、換調、伴奏…;過關 / 複習完那一步也不聽) */
-function lisExp(){
-  if (!dseg || dseg.k === "warm" || dDone || !cur || !cur.daily || !FG) return null;
+function lisExp(any = false){   // any = 不管過關 / 複習完(面板的開關要知道這一關會不會聽)
+  if (!dseg || dseg.k === "warm" || (dDone && !any) || !cur || !cur.daily || !FG) return null;
   const click = dseg.click || null;
   if (!lisMemo || lisMemo.q !== cur || lisMemo.bpm !== bpm || lisMemo.click !== click) {
     let e = null; try { e = listenExpected(FG, cur, { bpm, click, bars: 4 }); } catch (err) { e = null; }
@@ -1812,7 +1812,8 @@ const dcard = createDailyCard({ $, daily, routes: ROUTES,   // routes:今日卡�
   onOk: () => dTry("ok"), onAgain: () => dTry("again"),
   onPlay: () => { if (play || starting) stopPlayback(); else startPlayback(); },   // 底部按鈕的 ▶ / ■(跟題目卡的圓形 ▶ 同一個播放;準備中按 = 取消)
   onBack: () => { stopPlayback(); if (daily.back()) dShow(daily.seg()); },
-  acts: { panel: s => (s && s.k !== "warm" && lisExp() ? [paintMicBtn()] : []) } });   // 會聽的關:面板裡一行「麥克風聽你彈:開 / 關」
+  // 會聽的關:面板裡一行「麥克風聽你彈:開 / 關」;過關沒接下一關、複習完不聽 → 加 .mic-gone:平板直式(按鈕列在題目卡裡、不固定)藏起來但留位置、其他尺寸不放(css/tech.css;主要按鈕才不會往上跳,第 30 輪回歸;DrumDrill 的 .r-gone 同一種做法)
+  acts: { panel: (s, o) => { const gone = !!(o && o.passedDone); micBtn.classList.toggle("mic-gone", gone); return s && s.k !== "warm" && lisExp(gone) ? [paintMicBtn()] : []; } } });
 /* 「做到了」要先用現在的速度播過一輪(預備拍之後 2 小節)才能按:同一段、同一關、同一個速度 */
 let heardAt = null;
 const heardKey = () => (dseg ? `${dseg.i}/${dseg.lv || ""}/${bpm}` : null);

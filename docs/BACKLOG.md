@@ -403,7 +403,7 @@
 
 ## 2026-11-08 第 30 輪回歸測試(第 25–29 輪之後全套;舊版對照 ff4f388)
 全部通過:verify(含 sync)、ear-verify、node --test test/sight(82)、smoke(初級–8 級)、engraving-exam --runs 4(必須 0、擦到 5.6%)、listen-stress(分組 --no-scan,全部 ≥ 95% / 誤過 0)、micscore-check、layout 19 尺寸、bilingual 5 尺寸、clip 8 尺寸、human 150 3、playback、playhead、notation 443 題、tasks、newbie(iphone-390 / fold-280 / iphone-land / en-390 / rm-390)。下面都是**舊版就有**(不是這幾輪造成的):
-- [ ] [小] newbie `ONLY=ipad-768` 今日練習「再練 2:第 4 段」複習按「做到了」→ 複習完:底部主要按鈕往上跳 52px(349→297)。原因:平板直式按鈕列在題目卡裡、不固定,會聽的關面板那一行「麥克風聽你彈」(`acts.panel` 的 `lisExp()`;複習完那一步不聽 → 回傳空)整列拿掉。修法照 DrumDrill 第 30 輪:panel 照樣回傳按鈕、複習完 / 過關沒接下一關時加 class,平板直式 `visibility:hidden` 留位置、其他尺寸 `display:none`
+- [x] [小] newbie `ONLY=ipad-768` 今日練習「再練 2:第 4 段」複習按「做到了」→ 複習完:底部主要按鈕往上跳 52px(349→297)。原因:平板直式按鈕列在題目卡裡、不固定,會聽的關面板那一行「麥克風聽你彈」(`acts.panel` 的 `lisExp()`;複習完那一步不聽 → 回傳空)整列拿掉。修法照 DrumDrill 第 30 輪:panel 照樣回傳按鈕、複習完 / 過關沒接下一關時加 class,平板直式 `visibility:hidden` 留位置、其他尺寸 `display:none`
 - [ ] [小] newbie `ONLY=ipad-768 FLOW=sight` 約 2/5 次:右手題「按 ▶ 對照 → 再按 ▶ 停止」後題目卡標題、▶ 被子項目列蓋住 4–8px(播放時捲到譜卡,停了沒捲回;時間不巧才會;舊版一樣)
 - [ ] [小] newbie en-390 檢定 → 聽力「隨機抽一題」:警告「同一句話重複:Dynamics ×2」(舊版一樣;只有英文)
 - 看譜 30 秒倒數中「看不到下一步」的警告:設計如此(倒數中按鈕寫剩幾秒、不能按),不改

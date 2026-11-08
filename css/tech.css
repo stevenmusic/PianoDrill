@@ -43,3 +43,8 @@
 @media (max-width:300px){ #t-quizCard > .q-last.cta-bar > .q-actions:has(> #t-playMain:not([hidden])){flex:1 1 0} #t-quizCard > .q-last.cta-bar #t-playMain{padding-left:10px;padding-right:10px} }
 /* 檢定頁模擬考進行中最後一行的「模擬考 1 / 8」:進度是備考的人的主要資訊,不用 --fs-xs 灰色小字(畫面設計「操作」:主要資訊 ≥ --fs-md;2026-11-08 第 29 輪) */
 #t-poolCount{font-size:var(--fs-md);color:var(--muted-bright);font-variant-numeric:tabular-nums}
+/* 今日練習:過關沒接下一關、複習完不聽 →「麥克風聽你彈」那一列不放;平板直式按鈕列在題目卡裡、不固定,留著位置、主要按鈕不跳(app.js 的 acts.panel 加 .mic-gone;第 30 輪回歸) */
+#mod-tech .daily-approw:has(> #t-micBtn.mic-gone){display:none}
+@media (min-width:601px) and (max-width:1099px) and (min-height:501px){
+  #mod-tech .daily-approw:has(> #t-micBtn.mic-gone){display:block;visibility:hidden}
+}

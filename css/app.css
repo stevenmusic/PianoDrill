@@ -16,8 +16,8 @@
   --teal:#3FBFAE;
   --teal-bright:#8FFFF0;
   --ivory:#F4ECDA;
-  --muted:#938566;         /* 小字對比 ≥ 4.5:1(卡片頂端的淡色漸層上也是;原本 #8A7D5F 只有 4.3) */
-  --muted-bright:#B6A576;
+  --muted:#958C7B;         /* 淡字 = 中性灰(第 30 輪去黃;小字對比 ≥ 4.5:1) */
+  --muted-bright:#B5AC98;
   --line:#2A2415;
   --shadow-sm:0 4px 14px rgba(0,0,0,.35);
   --shadow-md:0 10px 26px rgba(0,0,0,.5);
@@ -53,9 +53,9 @@
   --surface-inset:rgba(22,18,9,.55);
   --seg-track:rgba(255,255,255,.07);--seg-sep:rgba(244,236,218,.22);   /* 分段鈕的軌道、沒選的格子之間的分隔線 */
   /* 顏色規則乙(2026-11-06 使用者選定,docs/DESIGN.md 第 8 節):有彩度的只有 金 = 動作、青綠 = 對 / 過關 / 達標、紅 = 錯;選中一律中性。
-     分段鈕(.seg):--acc-*(名字沿用,已經不分分頁);chip / opt / .btn[aria-pressed] 選中:--sel-*(反白);底部分頁列選中:金字 + --tab-tint */
+     分段鈕(.seg):--acc-*(名字沿用,已經不分分頁);chip / opt / .btn[aria-pressed] / .mbtn 再練 選中:--sel-*(第 30 輪:跟分段鈕一樣灰塊 + 陰影,淺色白塊);底部分頁列選中:金字 + --tab-tint */
   --acc-text:var(--ivory);--acc-fill:#5A5242;--acc-on:#F4ECDA;--acc-tint:rgba(244,236,218,.10);--acc-sep:var(--seg-sep);
-  --sel-fill:#F4ECDA;--sel-on:#16110A;--sel-ring:var(--ivory);
+  --sel-fill:#5A5242;--sel-on:#F4ECDA;--sel-ring:var(--ivory);--sel-shadow:0 1px 3px rgba(0,0,0,.35),0 0 0 .5px rgba(0,0,0,.08);
   --tab-tint:rgba(242,185,75,.12);
   --red:#E07A5F;--red-fill:#BF4A33;--red-tint:rgba(191,74,51,.16);
   --card-tint:rgba(255,255,255,.035);
@@ -76,8 +76,8 @@
   --teal:#0F5F56;
   --teal-bright:#0B463F;
   --ivory:#241E12;
-  --muted:#6F6450;
-  --muted-bright:#544B3B;
+  --muted:#6B6558;
+  --muted-bright:#4F4A40;
   --line:#D8CDB2;
   --shadow-sm:0 4px 14px rgba(90,72,30,.10);
   --shadow-md:0 10px 26px rgba(90,72,30,.14);
@@ -86,7 +86,7 @@
   --surface-inset:rgba(255,255,255,.7);
   --seg-track:rgba(60,45,10,.08);--seg-sep:rgba(36,30,18,.22);
   --acc-text:#241E12;--acc-fill:#FFFFFF;--acc-on:#241E12;--acc-tint:rgba(36,30,18,.07);
-  --sel-fill:#2F2817;--sel-on:#FFFDF8;
+  --sel-fill:#FFFFFF;--sel-on:#241E12;--sel-shadow:0 1px 3px rgba(60,45,10,.22),0 0 0 .5px rgba(60,45,10,.18);
   --tab-tint:rgba(133,100,24,.10);
   --red:#A33A22;--red-tint:rgba(163,58,34,.10);
   --card-tint:rgba(133,100,24,.05);
@@ -150,8 +150,8 @@ header h1 span{color:var(--ivory);font-weight:600}
 .btn.primary{background:var(--gold-fill);color:var(--on-fill);font-weight:700}
 .btn.ghost{color:var(--gold)}   /* ghost 也能按:跟次要按鈕一樣 */
 .btn.small{height:32px;padding:0 12px;font-size:var(--fs-sm)}
-.btn[aria-pressed="true"]{background:var(--sel-fill);color:var(--sel-on);font-weight:700}   /* 選中 = 中性反白(金色只給動作;docs/DESIGN.md 第 8 節) */
-#themeToggle,#langToggle,#themeToggle[aria-pressed],#langToggle[aria-pressed]{background:var(--fill-tag);color:var(--muted-bright);font-weight:500}   /* 兩顆一律中性底(金色只給主要動作;按下去的狀態不換色,第 7 輪健檢) */
+.btn[aria-pressed="true"]{background:var(--sel-fill);color:var(--sel-on);font-weight:700;box-shadow:var(--sel-shadow)}   /* 選中 = 中性灰塊 + 陰影(金色只給動作;docs/DESIGN.md 第 8 節) */
+#themeToggle,#langToggle,#themeToggle[aria-pressed],#langToggle[aria-pressed]{background:var(--fill-tag);color:var(--muted-bright);font-weight:500;box-shadow:none}   /* 兩顆一律中性底(金色只給主要動作;按下去的狀態不換色,第 7 輪健檢) */
 #langToggle{aspect-ratio:1;padding:0}
 @media (max-width:600px){
   header{padding:8px clamp(6px, 2.2vw, 10px);gap:clamp(4px, 1.4vw, 6px);flex-wrap:nowrap}
@@ -210,7 +210,7 @@ main{
 #t-catChips{display:grid;grid-template-columns:repeat(auto-fit, minmax(124px, 1fr))}   /* 固定格子:中英文排法一樣 */
 .chip{height:32px;padding:0 12px;border-radius:var(--radius-btn);border:1px solid transparent;background:var(--fill-tag);
   color:var(--ivory);font-family:inherit;font-size:var(--fs-sm);cursor:pointer;display:inline-flex;align-items:center;gap:6px}
-.chip[aria-pressed="true"]{border-color:transparent;color:var(--sel-on);background:var(--sel-fill);font-weight:700}   /* 選擇 = 中性:沒選灰塊、選中反白(第 8 節) */
+.chip[aria-pressed="true"]{border-color:transparent;color:var(--sel-on);background:var(--sel-fill);font-weight:700;box-shadow:var(--sel-shadow)}   /* 選擇 = 中性:沒選淡灰塊、選中浮起來的灰塊(淺色白塊;第 8 節) */
 .setup-summary{display:none;width:100%;align-items:center;gap:8px;border:0;background:transparent;color:var(--ivory);
   font-family:inherit;font-size:var(--fs-sm);text-align:left;cursor:pointer;padding:2px 0;min-height:44px}   /* 會用到的點擊區域 ≥ 44 */
 .setup-summary span{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -240,11 +240,12 @@ main{
 .q-title:not(.empty){white-space:nowrap;overflow:hidden;text-overflow:ellipsis;overflow-wrap:normal;
   height:calc(var(--fs-title) * 1.35);display:flex;align-items:center}
 .q-title.empty{color:var(--muted);font-size:var(--fs-head);font-family:inherit;font-weight:500}
-.q-tags{display:flex;flex-wrap:nowrap;gap:6px;overflow:hidden;align-items:center;min-height:calc(var(--fs-sub) * 1.4 + 8px)}
-/* 題目標籤(拍號、小節數、速度、播放方式…):只是說明、不能點 → 中性膠囊(灰底、淡字、沒有金色),跟金色淡底的按鈕分得開(設計規格 B) */
-.q-tag{flex:none;font-size:calc(var(--fs-sub) * var(--tag-scale, 1));font-weight:500;color:var(--muted-bright);background:var(--fill-tag);border:0;
-  border-radius:999px;padding:4px 11px;white-space:nowrap}
-.q-tag.dyn,.q-tag.best{color:var(--teal);background:rgba(63,191,174,.14)}   /* 青綠 = 達成(跟「本週達標」同一個意思) */
+.q-tags{display:flex;flex-wrap:nowrap;gap:14px;overflow:hidden;align-items:center;min-height:calc(var(--fs-sub) * 1.4 + 8px)}
+/* 題目標籤(拍號、小節數、速度、播放方式…):只是說明、不能點 → 標題下一行資訊字(沒有底色、左右不留內距,左緣對齊標題;第 30 輪),跟有底色的按鈕分得開 */
+.q-tag{flex:none;font-size:calc(var(--fs-sub) * var(--tag-scale, 1));font-weight:500;color:var(--muted-bright);background:transparent;border:0;
+  border-radius:999px;padding:4px 0;white-space:nowrap}
+@media (max-width:600px), (orientation:landscape) and (max-height:500px){ .q-tags{gap:10px} }
+.q-tag.dyn,.q-tag.best{color:var(--teal);background:rgba(63,191,174,.14);padding-left:11px;padding-right:11px}   /* 青綠 = 達成(跟「本週達標」同一個意思) */
 :root.light .q-tag.dyn,:root.light .q-tag.best{background:rgba(15,95,86,.10)}
 /* 練習紀錄:三格數字 + 最近 7 天(固定格子,中英文一樣) */
 .log-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center}
@@ -280,7 +281,7 @@ main{
 #mod-tech .play-round{grid-column:2;grid-row:1}
 #mod-tech .q-tags{grid-column:1 / -1;grid-row:2;max-width:none}
 #mod-tech .q-tags:empty{display:none}
-#mod-tech .q-tag{padding-left:calc(11px * var(--tag-scale, 1));padding-right:calc(11px * var(--tag-scale, 1))}   /* 標籤縮字時左右內距一起縮 */
+#mod-tech .q-tag:is(.dyn,.best){padding-left:calc(11px * var(--tag-scale, 1));padding-right:calc(11px * var(--tag-scale, 1))}   /* 青綠膠囊:標籤縮字時左右內距一起縮 */
 .play-round{flex:none;width:52px;height:52px;border-radius:50%;border:0;font-size:var(--fs-cap);background:var(--gold-fill);color:var(--on-fill);box-shadow:var(--shadow-play);
   display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
 .play-round:disabled{opacity:.35}
@@ -308,11 +309,11 @@ main{
 #t-drawBtn,#e-drawBtn{height:36px}
 .mastery{display:flex;gap:6px;flex:none}
 /* 熟練度:圖示 + 小字(會了 / 待加強),新手才看得懂兩顆在做什麼 */
-.mbtn{min-width:40px;height:40px;padding:0 10px 0 8px;justify-content:center;border-radius:var(--radius-btn);border:1px solid transparent;background:var(--fill-tag);color:var(--muted-bright);
+.mbtn{min-width:40px;height:40px;padding:0 10px 0 8px;justify-content:center;border-radius:var(--radius-btn);border:1px solid transparent;background:var(--fill-tag);color:var(--ivory);
   font-family:inherit;font-size:var(--fs-xs);cursor:pointer;display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
 .mbtn svg{flex:none}
 .mbtn[data-m="good"][aria-pressed="true"]{background:var(--teal-fill);border-color:var(--teal-fill);color:var(--on-fill);font-weight:700}
-.mbtn[data-m="weak"][aria-pressed="true"]{background:var(--sel-fill);border-color:var(--sel-fill);color:var(--sel-on);font-weight:700}   /* 再練不是錯:中性(第 8 節) */
+.mbtn[data-m="weak"][aria-pressed="true"]{background:var(--sel-fill);border-color:var(--sel-fill);color:var(--sel-on);font-weight:700;box-shadow:var(--sel-shadow)}   /* 再練不是錯:中性(第 8 節) */
 .quiz{position:relative}
 /* 載入取樣的提示浮在卡片右上角,不佔版面 */
 .loading{position:absolute;top:6px;right:16px;font-size:var(--fs-2xs);color:var(--muted);pointer-events:none}
@@ -439,7 +440,7 @@ main{padding-bottom:calc(84px + env(safe-area-inset-bottom))}
 .opts::-webkit-scrollbar{display:none}
 .opt{flex:none;height:34px;min-width:40px;padding:0 12px;border-radius:var(--radius-btn);border:1px solid transparent;background:var(--fill-tag);
   color:var(--ivory);font-family:inherit;font-size:var(--fs-md);cursor:pointer;white-space:nowrap}
-.opt[aria-pressed="true"]{background:var(--sel-fill);border-color:transparent;color:var(--sel-on);font-weight:700}
+.opt[aria-pressed="true"]{background:var(--sel-fill);border-color:transparent;color:var(--sel-on);font-weight:700;box-shadow:var(--sel-shadow)}
 .opt:disabled{opacity:.35}
 .quick{margin-bottom:12px;padding-bottom:12px;border-bottom:1px dashed var(--line)}
 .quick .qhead{display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:var(--fs-xs);color:var(--muted-bright)}
@@ -531,9 +532,9 @@ header{z-index:60}
   .q-last .q-actions .btn{padding-left:10px;padding-right:10px}   /* SE 320:英文「Needs work」比「再練」寬,熟練度 + 主要按鈕還要排得下一行 */
   .mastery{gap:4px;margin-left:auto}
   .q-row{gap:6px}
-  .q-tags{gap:4px}
-  .q-tag{padding:4px 7px}
-  #mod-tech .q-tag{padding-left:calc(7px * var(--tag-scale, 1));padding-right:calc(7px * var(--tag-scale, 1))}
+  .q-tags{gap:10px}
+  .q-tag:is(.dyn,.best){padding:4px 7px}
+  #mod-tech .q-tag:is(.dyn,.best){padding-left:calc(7px * var(--tag-scale, 1));padding-right:calc(7px * var(--tag-scale, 1))}
   .play-round{width:46px;height:46px}
   .quiz-top .count{display:none}
 }
@@ -606,7 +607,8 @@ header{z-index:60}
   #mod-tech .q-hint,#mod-sight .q-hint,#mod-ear .q-hint{grid-column:1 / -1}
   #mod-tech .q-title{grid-column:1;grid-row:1;font-size:calc(var(--fs-title) * .85);max-width:46vw;line-height:32px;height:32px;align-self:center;margin-top:0}   /* 字級會依長度縮小:行高固定,中英文高度才一樣 */
   #mod-tech .q-tags{grid-column:1 / 3;grid-row:2;min-height:0;height:30px;max-width:none}   /* 標籤一律在標題下面一行(用滿寬度):英文打法名長,跟標題擠同一行會被擠成 0 寬或只有英文掉行;高度固定,中英文才一樣 */
-  #mod-tech .q-tag{font-size:calc(var(--fs-sub) * var(--tag-scale, 1));padding:0 7px;line-height:26px}
+  #mod-tech .q-tag{font-size:calc(var(--fs-sub) * var(--tag-scale, 1));padding:0;line-height:26px}
+  #mod-tech .q-tag:is(.dyn,.best){padding:0 7px}
   #mod-tech .mastery{grid-column:3;grid-row:1}
   #mod-tech .mbtn{height:34px}
   /* 第二行有主要按鈕(檢定頁:隨機抽考 / 下一題):會了 / 再練 放第二行左邊(版型 A 最後一行 左次要 右主要),第一行留給標題與標籤(英文標題長時標籤不被擠到 0 寬、壓到按鈕) */
@@ -842,6 +844,11 @@ body.land-play #t-stage{flex:1;display:flex;flex-direction:column;justify-conten
   main,footer,body.view-sight main,body.view-sight footer{max-width:calc(var(--wide-w) + 28px)}
   footer{padding-left:17px;padding-right:17px}   /* 頁尾的字切齊卡片內文(卡片框 1 + 內距 16) */
 }
+/* 寬畫面:品牌名、子項目列、卡片同一條左線(頂欄左右內距 = 框外的留白;第 30 輪) */
+@media (min-width:1100px) and (min-height:501px){
+  header{padding-left:max(14px, calc((100% - var(--wide-w)) / 2));padding-right:max(14px, calc((100% - var(--wide-w)) / 2))}
+  .subnav{justify-content:flex-start}
+}
 
 /* ══ 手機橫放(高度 ≤ 500):使用者反映比例怪、底部四個分頁卡住內容 ══
    - 四個分頁改成左邊的直欄(橫放時寬度多、高度少;左邊本來就是瀏海/動態島的區域),下面什麼都不蓋
@@ -879,7 +886,7 @@ body.land-play #t-stage{flex:1;display:flex;flex-direction:column;justify-conten
   #s-message{grid-column:1 / -1;grid-row:2;font-size:var(--fs-sm);min-height:0}
   #s-checklist{grid-column:1 / -1}
   #mod-sight .q-foot{grid-column:1 / -1}
-  #mod-sight .q-tag{font-size:var(--fs-sub);padding:0 8px;line-height:26px}
+  #mod-sight .q-tag{font-size:var(--fs-sub);padding:0;line-height:26px}
 }
 /* PianoDrill 技巧(精簡 2026-10):選單的選項固定格子平分(調 6 欄 × 2 行、進行 3 欄、種類 4 欄;折疊機種類 2 欄),每格一行;
    檢定頁還沒選題目:藏起譜卡與速度卡,本級要求展開放在題目卡正下方(js/tech/app.js 的 exam-empty) */
@@ -948,7 +955,7 @@ details.exam-info .verify-note{margin-top:0}
 /* 折疊機 280:對話框標題字小一級,英文才不會換行(中英文版面一樣) */
 @media (max-width:300px){ .modal-card h2{font-size:var(--fs-lg)} }
 /* ══ 自動難度(DrumDrill 的 js/shared/level.js;app.css 兩個 App 同一份):設定卡「難度 3」+ ▼ ▲ 與小字;結果下面「太簡單 / 剛好 / 太難」一排三格 ══ */
-.lvl-row{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;margin-bottom:12px}
+.lvl-row{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;margin-bottom:8px}
 .lvl-row .lvl{display:flex;align-items:center;gap:10px;flex:0 1 auto;min-width:0;max-width:100%}   /* 字級放大時「難度 n / m」可以換行,▲ 不超出畫面 */
 .lvl-row .lvl b{font-family:inherit;font-size:var(--fs-xl);color:var(--ivory);line-height:1.2;min-width:min(4.6em, 30vw);flex:0 1 auto;text-align:center;font-variant-numeric:tabular-nums}
 .lvl-row .btn.round{flex:none}
@@ -961,7 +968,7 @@ details.exam-info .verify-note{margin-top:0}
 
 /* ══ 選項(可以點的)與標籤(只是說明)分清楚(使用者要求,所有頁面)══
    選項一排平分整個寬度(上面的格子用 auto-fit,少的時候不會只靠左、右邊空一塊);
-   選項、答案、分段鈕都有淡淡的框線,按下去縮一下並變色(iOS 靠 main.js 的 touchstart 才有 :active);題目標籤 .q-tag 是有色底、沒有框線 */
+   選項、答案、分段鈕都有淡淡的框線,按下去縮一下並變色(iOS 靠 main.js 的 touchstart 才有 :active);題目標籤 .q-tag 是一行資訊字(沒有底色、沒有框線) */
 :root{--line-opt:#4A3F27}
 :root.light{--line-opt:#BFAE86}
 .ans{border-color:var(--line-opt)}
@@ -1077,7 +1084,7 @@ body.view-exam #t-dailyCard,body.view-exam #t-dailyStep{display:none !important}
 .daily-why{font-size:var(--fs-sub);color:var(--muted-bright);line-height:1.5}   /* 為什麼練這個(每組一句,這一組第一次出現時) */
 /* 今日練習的關卡標籤「律動 3 / 28」下面一條細進度條 */
 .q-tag:has(> .lv-bar){position:relative}
-.q-tag .lv-bar{position:absolute;left:11px;right:11px;bottom:1px;height:2px;border-radius:2px;background:var(--line);overflow:hidden}
+.q-tag .lv-bar{position:absolute;left:0;right:0;bottom:1px;height:2px;border-radius:2px;background:var(--line);overflow:hidden}
 .q-tag .lv-bar b{display:block;height:100%;min-width:3px;background:var(--ivory)}
 .daily-vary{font-size:var(--fs-sm);color:var(--ivory);font-weight:700;line-height:1.5}
 /* 重點:一行(2026-11 使用者選「專心練習畫面」A):小標「重點」+ 每項用「 · 」接起來,放不下在項目之間換行(不切成「…」) */
@@ -1365,6 +1372,8 @@ input,textarea,footer,.exam-info{-webkit-user-select:text;user-select:text;-webk
 .card.j-mid,.card.j-bot{border-top-left-radius:0;border-top-right-radius:0;margin-top:calc(-1 * var(--mod-gap));box-shadow:inset 0 1px 0 var(--line)}   /* 內距不變:模組量「卡片頂到琴鍵 / 樂譜」的距離時跟合不合無關 */
 /* 譜紙貼齊卡片左右(卡片的 1px 透明框也蓋過去) */
 :is(.j-top,.j-mid,.j-bot) > .paper{margin-left:calc(-1 * var(--card-px) - 1px);margin-right:calc(-1 * var(--card-px) - 1px);border-radius:0}
+/* 合起來的練習卡裡的區段標題(樂譜、速度)= 小標:不跟題目卡的大標題、狀態句搶(第 30 輪) */
+.j-mid .card-title b,.j-bot .card-title b{font-size:var(--fs-sub);color:var(--muted-bright);letter-spacing:.06em}
 #t-scoreCard > .daily-check{margin-top:10px}
 
 /* 琴鍵條(js/shared/keystrip.js;今日練習的關卡譜下面):用到的鍵淡金 + 手指號碼,示範時跟著音亮(金色;放開淡出 .3 秒,減少動態效果時直接熄);只顯示、不能點。

@@ -736,6 +736,10 @@ export async function start(c) {
   $('alongMicNote').hidden = !MIC_UI;   // 說明一行一直在開關下面
   elements.alongMic.addEventListener('change', () => {
     try { localStorage.setItem('pianodrill.sight.mic', elements.alongMic.checked ? '1' : '0'); } catch { /* 不影響使用 */ }
+    // 切回打開 = 下一次「彈一遍」再試麥克風:先回到原本說明、清掉上一次「沒有取得麥克風」的原因
+    if (elements.alongMic.checked) micDenied = false;
+    if (lastRhythmResult && lastRhythmResult.denied) { lastRhythmResult = null; renderRhythmResult(); }
+    paintMicNote();
   });
   setAlongLabel();
   elements.key.addEventListener('click', (e) => {
@@ -1666,6 +1670,14 @@ function syncAlongCard() {
 const recorder = createListener();
 let alongStarting = false;
 let lastRhythmResult = null;
+/* 這次打開 App 拿不到麥克風(拒絕、沒有、不支援):原因只在第一次那題的結果區寫一次;
+   之後開關下面那行改寫「這次沒有麥克風」(開關不自己關掉,到設定允許後下一次按「彈一遍」照樣再試) */
+let micDenied = false;
+function paintMicNote() {
+  const note = $('alongMicNote');
+  note.setAttribute('data-si18n', micDenied && elements.alongMic.checked ? 'alongMicOff' : 'alongMicNote');
+  note.textContent = t(note.getAttribute('data-si18n'));
+}
 
 async function togglePlayAlong() {
   if (!current || alongStarting) return;
@@ -1691,9 +1703,10 @@ async function togglePlayAlong() {
     const token = ++listenToken;
     let ok = false;
     try { await recorder.start((n) => onHeard(token, n)); ok = true; } catch {
-      lastRhythmResult = { denied: true };
-      renderRhythmResult(true);
+      if (!micDenied) { lastRhythmResult = { denied: true }; renderRhythmResult(true); }
+      micDenied = true; paintMicNote();
     }
+    if (ok && micDenied) { micDenied = false; paintMicNote(); }
     alongStarting = false;
     if (!current || token !== listenToken) { recorder.cancel(); return; }
     if (ok) { startListening(token); return; }

@@ -133,7 +133,7 @@ export function createReading({ $, store, save, onAnswered = () => {} }) {
 
   /* ── 出題 / 作答 ── */
   function next() {
-    clearTimeout(nextTimer); lock = false;
+    clearTimeout(nextTimer); lock = false; waitKeys(false);
     if (valOn()) {
       const id = drill.pick(setOf(R.vset)[2], setting(), Math.random, last);
       last = id; q = { id, value: true, name: valueName(id) }; t0 = performance.now();
@@ -159,7 +159,7 @@ export function createReading({ $, store, save, onAnswered = () => {} }) {
     if (!R.seenVal) { R.seenVal = true; save(); }
     onAnswered((performance.now() - t0) / 1000);
     paintBeats(b, ok);
-    lock = true;
+    lock = true; waitKeys(!ok);
     wrongName = ok ? null : q.id;
     if (ok) say(() => tr('對了', 'Right'), 'ok');
     else { const id = q.id; say(() => tr(`答案是 ${beatText(VALUES[id].beat)}(${valueName(id)})`, `It's ${beatText(VALUES[id].beat)} (${valueName(id)})`), 'no'); }
@@ -192,7 +192,7 @@ export function createReading({ $, store, save, onAnswered = () => {} }) {
     if (!R.seen) { R.seen = true; save(); }
     onAnswered((performance.now() - t0) / 1000);
     paintKeys(pc, ok);
-    lock = true;
+    lock = true; waitKeys(!ok);
     wrongName = ok ? null : q.name;
     if (ok) { say(() => tr('對了', 'Right'), 'ok'); }
     else { const nm = q.name; say(() => tr(`答案是 ${nm}`, `It was ${nm}`), 'no'); play(q.m); }
@@ -202,6 +202,8 @@ export function createReading({ $, store, save, onAnswered = () => {} }) {
     if (R.mode !== 'practice' && !drill.running) return;
     nextTimer = setTimeout(() => { if (active) next(); }, ok ? 450 : 1500);
   }
+  /* 答錯後約 1.5 秒換下一題:這段時間答案以外的鍵變淡(看得出在等,不是壞了;css/sight.css 的 .wait) */
+  function waitKeys(on) { $('rdKbd').classList.toggle('wait', on); $('rdBeats').classList.toggle('wait', on); }
   async function play(m) {
     try {
       const ctx = audio.ensureAudio();
@@ -280,7 +282,7 @@ export function createReading({ $, store, save, onAnswered = () => {} }) {
     pairText($('rdSet'), setText);
     const run = drill.running, k = R.mode;
     let s = '';
-    if (k === 'practice') s = session.n ? tr(`答對 ${session.ok} / ${session.n}`, `${session.ok} / ${session.n} right`) : '';
+    if (k === 'practice') s = session.n ? tr(`答對 ${session.ok} / ${session.n}`, `Correct ${session.ok} / ${session.n}`) : '';
     else if (run) s = k === 'time' ? tr(`${drill.score} 題 · 剩 ${drill.left()} 秒`, `${drill.score} · ${drill.left()} s left`) : tr(`連對 ${drill.score}`, `Streak ${drill.score}`);
     else s = tr(`最高 ${drill.best(setting(), k)}`, `Best ${drill.best(setting(), k)}`);
     $('rdScoreTxt').textContent = s;
@@ -298,7 +300,7 @@ export function createReading({ $, store, save, onAnswered = () => {} }) {
   let wrongName = null;
   function showEnd(res) {
     endRes = res;
-    clearTimeout(nextTimer); lock = true;
+    clearTimeout(nextTimer); lock = true; waitKeys(false);   // 結束畫面:整排照 .idle 淡掉(不留答錯那一刻的 .wait)
     const wn = res.reason === 'wrong' ? wrongName : null;
     if (res.reason === 'stop' || res.reason === 'restart') { paintTop(); return; }
     say(() => (wn ? (valOn() ? tr(`答案是 ${beatText(VALUES[wn].beat)}(${valueName(wn)})。`, `It's ${beatText(VALUES[wn].beat)} (${valueName(wn)}). `) : tr(`答案是 ${wn}。`, `It was ${wn}. `)) : '') + (res.kind === 'time' ? tr(`時間到：答對 ${res.score} 題`, `Time's up: ${res.score} right`) : tr(`連對 ${res.score} 題`, `Streak: ${res.score}`))
@@ -382,7 +384,7 @@ export function createReading({ $, store, save, onAnswered = () => {} }) {
       paintOpts(); paintTop(); paintMiss();
       if (!q || !!q.value !== valOn()) next(); else { paintBeats(); draw(); }
     },
-    leave() { active = false; clearTimeout(nextTimer); if (drill.running) drill.stop(); },
+    leave() { active = false; if (lock && !endRes) q = null; clearTimeout(nextTimer); if (drill.running) drill.stop(); },   // 答完、還沒換題就離開:回來出新題(不留在鎖住的那一題)
     relang() { paintOpts(); paintTop(); paintMiss(); nameKeys(); if (msgFn) say(msgFn); },
     onKey(e) {
       if (valOn()) { const d = '1234'.indexOf(e.key); if (d >= 0) { answerBeat(String(d + 1)); return true; } return false; }

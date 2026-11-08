@@ -88,6 +88,7 @@
 .s-stage-foot{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;margin-top:8px}
 .s-stage-foot .chip{flex:none}
 .s-stage-foot .info{flex:1 1 160px;min-width:0;font-size:var(--fs-xs);color:var(--muted-bright);line-height:1.5;overflow-wrap:anywhere}
+#s-stageNote{font-size:var(--fs-md);color:var(--ivory);line-height:1.4}   /* 雙手的「難度 1:右手 … · 左手 …」= 1–4 按鈕的意思(主要資訊 ≥ --fs-md,不用淡灰) */
 #s-score .s-name{font-family:"Noto Sans TC",sans-serif;font-weight:500;fill:#5a4a2a;pointer-events:none}
 /* ══ 認音(js/sight/reading.js)與認譜(DrumDrill)同一套樣式:題目卡(設定一行 + 譜 + 作答)、設定卡(一直看得到的按鈕列)══ */
 #s-rdCard{order:3} #s-rdOpts{order:4}
@@ -99,7 +100,8 @@
 .rd-paper:has(.rd-score-box:empty){min-height:96px}
 .rd-score-box{width:100%;color:#16130D}
 .rd-score-box svg{display:block}
-.rd-start{position:absolute;inset:auto;padding:0 26px}
+.rd-ans{position:relative}
+.rd-start{position:absolute;top:calc(50% - 24px);left:0;right:0;margin:0 auto;width:fit-content;max-width:calc(100% - 16px);padding:0 26px}   /* 置中不用 transform(.btn:active 的 scale 會蓋掉) */
 .rd-start[hidden]{display:none}
 .rd-msg{min-height:1.5em;line-height:1.5;margin-top:4px;text-align:center;font-size:var(--fs-md);color:var(--muted-bright)}
 .rd-msg.ok{color:var(--teal)} .rd-msg.no{color:var(--red)}
@@ -107,6 +109,9 @@
 .rd-kbd .wk{align-items:flex-end;padding-bottom:10px}
 .rd-kbd .wk b{font-size:var(--fs-lg);color:#5A4E37}
 .rd-kbd.idle{opacity:.45;pointer-events:none}
+/* 答錯後等下一題(約 1.5 秒):答案以外的鍵變淡、不能按 */
+.rd-kbd.wait,.rd-beats.wait{pointer-events:none}
+.rd-kbd.wait .k:not(.wrong):not(.right),.rd-beats.wait .opt:not(.wrong):not(.right){opacity:.4}
 .rd-miss{margin-top:8px;font-size:var(--fs-xs);color:var(--muted-bright);line-height:1.5;overflow-wrap:anywhere}
 .rd-miss:empty{display:none}
 .rd-row{display:grid;grid-template-columns:4.6em minmax(0,1fr);align-items:center;gap:8px;min-width:0}
@@ -149,7 +154,8 @@
   .rd-card .rd-head,.rd-card .rd-miss{grid-column:1 / -1}
   .rd-card .rd-paper{grid-column:1;grid-row:2 / span 2;min-height:120px;margin-top:2px}
   .rd-card .rd-msg{grid-column:2;grid-row:2;margin-top:0;min-height:1.4em}
-  .rd-card .rd-kbd{grid-column:2;grid-row:3;margin-top:0;height:120px}
+  .rd-card .rd-ans{grid-column:2;grid-row:3}
+  .rd-card .rd-kbd{margin-top:0;height:120px}
 }
 /* 檢定頁的調性:一排按鈕(會換行;不用下拉選單) */
 #s-key.key-chips{display:flex;flex-wrap:wrap;gap:6px;min-width:0}

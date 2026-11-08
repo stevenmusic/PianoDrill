@@ -233,6 +233,8 @@ function measure([F, NAV]){
   for (const e of document.querySelectorAll("main *, #subnav *, .modal *")) {
     if (!vis(e) || e.closest("#srLive, .sr-only, svg, script, style, button, [role='button'], #tabbar")) continue;   // 按鈕上的字不是句子(狀態句寫「按「穩了」」本來就會跟按鈕同字)
     if (![...e.childNodes].some(n => n.nodeType === 3 && n.textContent.trim())) continue;
+    // 句子裡的行內元素(.nw 不斷行的「按 ▶ …」)已經算在外面那一句裡,不另算一次
+    if (getComputedStyle(e).display.startsWith("inline") && e.parentElement && [...e.parentElement.childNodes].some(n => n.nodeType === 3 && n.textContent.trim())) continue;
     const b = e.getBoundingClientRect(); if (b.bottom < 0 || b.top > innerHeight) continue;   // 只算畫面裡的
     const own = [...e.childNodes].map(n => (n.nodeType === 3 ? n.textContent : n.nodeType === 1 && getComputedStyle(n).display.startsWith("inline") ? n.textContent : "\n")).join("");
     const parts = new Set(own.split(/[\n。!?!?;]|\.\s/).map(s => s.replace(/\s+/g, " ").trim()).filter(s => s.length >= 3 && /[\p{L}]/u.test(s)));

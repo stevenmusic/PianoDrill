@@ -1085,6 +1085,10 @@ body.view-exam #t-dailyCard,body.view-exam #t-dailyStep{display:none !important}
 .daily-check b{flex:none;font-size:var(--fs-cap);font-weight:700;letter-spacing:.06em;color:var(--muted-bright)}
 .daily-check ul{flex:1 1 12em;min-width:0;display:flex;flex-wrap:wrap;margin:0;padding:0;list-style:none}
 .daily-check li:not(:last-child)::after{content:"·";margin:0 .5em;color:var(--muted)}   /* 點跟在前一項後面:換行時行首不會是孤零零的「·」 */
+/* 折疊機重點最多兩行(dailycard 的 clampCheck):第二行最後「還有 n 項」文字鈕,點一下全部展開;字高不變(兩行照舊),點擊區上下伸到 44 */
+.daily-check li[hidden]{display:none}
+.daily-check .daily-ckmore button{position:relative;padding:0;border:0;background:none;font:inherit;font-weight:600;color:var(--gold);white-space:nowrap;cursor:pointer}
+.daily-check .daily-ckmore button::after{content:"";position:absolute;inset:-12px -8px}
 .daily-acts{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:2px}
 .daily-acts .daily-sp{flex:1 1 0}
 .daily-acts .text-btn{margin-top:0;min-height:44px}

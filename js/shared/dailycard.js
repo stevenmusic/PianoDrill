@@ -36,6 +36,29 @@ const ICON_ROAD = svg(18, '<circle cx="6" cy="19" r="2"/><circle cx="18" cy="5" 
 const ICON_CHEV = svg(18, '<path d="M6 9l6 6 6-6"/>');
 const ICON_STOP = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="1.5"/></svg>';
 
+/* 折疊機(≤ 300 寬):題目卡裡的「重點」最多兩行,放不下的項目整項收起來,第二行最後一顆「還有 n 項」點一下全部展開
+   (不切成「…」;DrumDrill 第 26 輪 2:重點 3–5 行把鼓譜擠到底部按鈕列下面)。PianoDrill 的重點搬到譜卡琴鍵條下面(不在 .daily-step 裡)= 不收 */
+const NARROW = "(max-width:300px)";
+function clampCheck(el){
+  if (!el || typeof requestAnimationFrame === "undefined") return;
+  requestAnimationFrame(() => {
+    const ul = el.querySelector("ul"); if (!ul) return;
+    const lis = [...ul.children].filter(li => !li.classList.contains("daily-ckmore"));
+    const old = ul.querySelector(".daily-ckmore"); if (old) old.remove();
+    lis.forEach(li => { li.hidden = false; });
+    if (!el.isConnected || !el.closest(".daily-step") || el.classList.contains("open") || !matchMedia(NARROW).matches || !lis.length) return;
+    const lh = parseFloat(getComputedStyle(ul).lineHeight) || 20, max = lis[0].getBoundingClientRect().top + lh * 2 + 2;
+    if (ul.getBoundingClientRect().bottom <= max) return;
+    const li = document.createElement("li"); li.className = "daily-ckmore";
+    const b = document.createElement("button"); b.type = "button"; b.setAttribute("aria-expanded", "false");
+    b.onclick = () => { el.classList.add("open"); li.remove(); lis.forEach(x => { x.hidden = false; }); };
+    li.appendChild(b); ul.appendChild(li);
+    let n = 0;
+    const paint = () => { b.textContent = fmt("checkMore", { n }); };
+    for (let i = lis.length - 1; i > 0; i--) { lis[i].hidden = true; n++; paint(); if (li.getBoundingClientRect().bottom <= max) break; }
+    if (!n) li.remove();
+  });
+}
 /* 拍點模式的名稱(daily.js 的 CLICK_MODES) */
 export const clickName = mode => (mode && mode !== "every" ? fmt("click_" + mode.replace("-", "_")) : "");
 /* 這一段的名稱:暖身 / 路線名 / 複習 */
@@ -45,7 +68,8 @@ export function varyText(s){
   if (!s || s.k !== "review" || !s.vary) return "";
   const parts = [];
   if (s.vary.name) parts.push(L2(s.vary.name));
-  if (s.vary.click) parts.push(clickName(s.vary.click));
+  // 拍點不是每拍響:接一句「其他拍自己數」(中途消失 =「沒拍點時自己數」;只寫「自己打一輪」7 歲不知道沒響的拍要數)
+  if (s.vary.click) parts.push(clickName(s.vary.click) + (s.vary.click === "every" ? "" : tr("，", ", ") + fmt(s.vary.click === "gap" ? "selfGap" : "selfCount")));
   if (s.vary.fast) parts.push(fmt("fast", { b: s.bpm }));
   return parts.filter(Boolean).join(" · ");
 }
@@ -90,6 +114,8 @@ export function resultText(res, s, next = null, good = "很穩！"){
 export function createDailyCard({ $, daily, routes = null, labels = {}, warmName = () => "", levelName = s => s.level.name, log = () => ({}), onStart, onNext, onPause, onMore, onOk, onAgain, onBack, onPlay = null, announce = () => {}, acts = {}, mark = () => "♩=", barHost = null }){
   const M = (s, t) => { const m = s ? mark(s) : "♩="; return m === "♩=" || !t ? t : String(t).replace(/♩=/g, m); };
   const card = $("dailyCard"), step = $("dailyStep");
+  // 折疊機展開 / 收起(跨過 300 寬):重點重新收(展開過的照舊全部顯示)
+  if (typeof window !== "undefined") { let wasN = null; window.addEventListener("resize", () => { const n = matchMedia(NARROW).matches; if (n === wasN) return; wasN = n; clampCheck(step.querySelector(":scope > .daily-check")); }); }
   const park = document.createElement("div"); park.className = "daily-park"; park.hidden = true;
   /* 底部按鈕列(.daily-cta,固定在畫面底部):[App 的 left][還要練][主要按鈕][App 的 right]。
      按鈕元素一段裡一直是同一顆(只換字、換樣子):鍵盤焦點不會掉;App 的按鈕先全部收進 park,再把這一次要的放進來 */
@@ -340,6 +366,7 @@ export function createDailyCard({ $, daily, routes = null, labels = {}, warmName
     if (why) pairText(step.querySelector(".daily-why"), () => L2(why));
     if (vary) pairText(step.querySelector(".daily-vary"), () => fmt("vary", { v: varyText(s) }));
     if (check) step.querySelectorAll(".daily-check li").forEach((li, i) => { li.textContent = L2(check[i]); });   // 每項一行(不用 pairText:英文比較長時中文會多出空行;換語言時 relang 重畫)
+    if (check && !gone) clampCheck(step.querySelector(".daily-check"));
     const b = step.querySelector(".daily-back"); if (b) b.onclick = () => onBack && onBack();
     step.appendChild(park);
     paintActs();
@@ -383,8 +410,9 @@ export function createDailyCard({ $, daily, routes = null, labels = {}, warmName
     resultText: (res, s) => {
       const nl = res && res.passed && res.nextLevel && s.level ? daily.levelOf(s.r || s.level.route.id, res.nextLevel) : null;
       const v = L2(labels.verb || ["彈", "play"]);
-      // 過關、這一段還有時間 = 直接換到下一關(res.cont):寫「接著練:名稱」+ 下一步「按 ▶ 跟著彈一輪」(畫面已經是下一關,不要讓人以為還在同一關)
-      if (res && res.passed && res.cont && nl) return M(s, fmt("passedCont", { name: L2(levelName({ k: "route", level: nl })) }) + tr("。", ". ") + fmt("start1", { v }));
+      // 過關、這一段還有時間 = 直接換到下一關(res.cont):寫「接著練下一關」+ 下一步「按 ▶ 跟著彈一輪」(畫面已經是下一關,不要讓人以為還在同一關;
+      // 關名在大標題,狀態句不重複:長關名會把「按 ▶ …」擠到第三行,DrumDrill 第 26 輪 4)
+      if (res && res.passed && res.cont && nl) return M(s, fmt("passedCont") + tr("。", ". ") + fmt("start1", { v }));
       const t = resultText(res, s, nl ? levelName({ k: "route", level: nl }) : null, L2(labels.good || ["很穩！", "Steady!"]));
       // 還沒過關:每一句都接下一步「按 ▶ 再彈 / 打一次」(自評後要再播一輪才能再按)
       if (!t || !res || res.passed || s.k === "review") return M(s, t);

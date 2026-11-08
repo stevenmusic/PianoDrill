@@ -1781,9 +1781,9 @@ const micBtn = document.createElement("button");
 micBtn.type = "button"; micBtn.className = "text-btn"; micBtn.id = "t-micBtn";
 function paintMicBtn(){
   const on = S.listen !== false;
-  // 開著但這次打開 App 拿不到麥克風:寫實際狀態(不寫「開」);點一下 = 再試(BACKLOG 第 26 輪 2)
-  micBtn.textContent = on && micBroken ? tr("麥克風：無法使用", "Mic: unavailable") : on ? tr("麥克風聽你彈：開", "Mic listens: on") : tr("麥克風聽你彈：關", "Mic listens: off");
-  micBtn.setAttribute("aria-pressed", String(on && !micBroken));
+  // 開著但這次打開 App 拿不到麥克風:寫實際狀態(不寫「開」)+「再試」(點一下 = 再試;BACKLOG 第 26 輪 2);aria-pressed 照開關(S.listen)
+  micBtn.textContent = on && micBroken ? tr("麥克風：無法使用 · 再試", "Mic: unavailable · Retry") : on ? tr("麥克風聽你彈：開", "Mic listens: on") : tr("麥克風聽你彈：關", "Mic listens: off");
+  micBtn.setAttribute("aria-pressed", String(on));
   return micBtn;
 }
 micBtn.onclick = () => {

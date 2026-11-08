@@ -64,7 +64,7 @@ addStrings("daily", {
   note: ["漏練幾天沒關係，不會扣分", "Missed days don't count against you"],
   steady: ["{w}下一次速度 {b}", "{w} Next: tempo {b}"], streak: ["{w}再連續 {k} 次就過關", "{w} {k} more in a row to pass"],
   near: ["差一點，速度不變", "Close. Same tempo"], go: ["按 ▶ 再{v}一次", "Tap ▶ again"], down: ["先慢一點：速度 {b}", "Slow down: tempo {b}"],
-  passed: ["下一關：{name}", "Next level: {name}"], passedLast: ["這條路線練完了", "Route complete"], passedCont: ["接著練：{name}", "Now: {name}"], start1: ["按 ▶ 跟著{v}一輪", "Tap ▶ and play along"],
+  passed: ["下一關：{name}", "Next level: {name}"], passedLast: ["這條路線練完了", "Route complete"], passedCont: ["接著練下一關", "Next level"], start1: ["按 ▶ 跟著{v}一輪", "Tap ▶ and play along"],
   // 底部固定的主要按鈕(dailycard 的 .daily-cta):還沒播 =「▶ 跟著彈 / 打一輪」(拍點模式「自己…一輪」)、播放中還沒播滿一輪 =「■ 停止」;英文在 390 一行
   ctaPlay: ["跟著{v}一輪", "Play along"], ctaSolo: ["自己{v}一輪", "Play it alone"], ctaStop: ["停止", "Stop"],
   back: ["回上一關", "Easier level"], suggest: ["要不要先回上一關暖身？", "Try the level before?"],
@@ -74,7 +74,7 @@ addStrings("daily", {
   warmHint: ["跟著{v} 1–2 分鐘就換下一段", "Play along 1–2 min, then next part"],
   revOk: ["複習穩了 ✓ 下次間隔更久", "Review steady ✓ Next one later"], revBack: ["明天再複習一次", "Review again tomorrow"],
   revExtra: ["加練（不改複習日期）", "Extra (reviews unchanged)"],
-  vary: ["這次：{v}", "This time: {v}"], fast: ["最快：速度 {b}", "fastest: tempo {b}"], check: ["重點：{list}", "Check: {list}"], checkTitle: ["重點", "Check"],
+  vary: ["這次：{v}", "This time: {v}"], fast: ["比目標快一點：速度 {b}", "a bit above goal: tempo {b}"], selfCount: ["其他拍自己數", "count the other beats"], selfGap: ["沒拍點時自己數", "keep counting in the gap"], checkMore: ["還有 {n} 項", "+{n} more"], check: ["重點：{list}", "Check: {list}"], checkTitle: ["重點", "Check"],
   click_two_four: ["拍點只在第 2、4 拍響", "click on beats 2 & 4 only"], click_one_three: ["拍點只在第 1、3 拍響", "click on beats 1 & 3 only"],
   click_one: ["拍點只在第 1 拍響", "click on beat 1 only"], click_gap: ["拍點中途消失 2 小節", "click drops out for 2 bars"],
   // 練完了那一行:{s} = parts / part1(英文單複數)、{t} = 分鐘或秒(不到 1 分鐘寫秒,不進位成 1 分鐘)、{p} = passedN(0 關不寫);一段都沒練 = none

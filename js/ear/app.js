@@ -274,6 +274,7 @@ function onExamChange(){ examDrill = null; tabCur.exam = null; mock = null; mock
 /* ══ 分頁切換 ══ */
 function switchTab(tab, keepQuestion){
   stopPlayback();
+  if (tab !== "exam") mockGone = false;   // 中止說明只在回到檢定頁那一次寫;換到練習的子項目就收掉
   S.tab = tab; store.save();
   ROOT.querySelectorAll(".pane").forEach(p => p.hidden = p.dataset.pane !== tab);
   mock = null;

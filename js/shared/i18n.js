@@ -100,6 +100,7 @@ addStrings("bak", {
   save: ["存成檔案", "Save to file"], load: ["從檔案還原", "Restore from file"],
   file: ["紀錄", "backup"],
   saved: ["存好了：{f}", "Saved: {f}"],
+  restored: ["已還原紀錄", "Backup restored"],
   confirm: ["會用檔案裡的紀錄取代這台裝置現在的紀錄，確定嗎？", "This will replace the practice history on this device with the one in the file. Continue?"],
   err_notfile: ["這不是備份檔，請選「存成檔案」存下來的那個檔", "That isn't a backup file. Pick the file you saved with “Save to file”."],
   err_otherapp: ["這是別的 App 的備份檔，不能還原到這裡", "That backup is from a different app."],

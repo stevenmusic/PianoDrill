@@ -6,12 +6,11 @@
 <title>PianoDrill 鋼琴檢定特訓 · 支援 Support</title>
 <!-- 支援頁(App Store Connect 的「支援網址」):常見問題 + 回報問題。PianoDrill / DrumDrill 同一個版型(照 privacy.html),只有 APP 設定與文字不同。
      回報問題只在使用者自己按的時候才送出;預填的內容(App 版本、裝置、語言)先顯示在頁面上,不含練習紀錄 -->
-<script>/* 跟 App 的主題走(index.html 同一個寫法:pianodrill.v1 的 theme);沒設定照系統 */try{var t=JSON.parse(localStorage.getItem('pianodrill.v1')||'{}').theme;if(t==='light'||t==='dark')document.documentElement.classList.add(t)}catch(e){}</script>
+<script>/* 跟 App 的主題走(index.html 同一個寫法:pianodrill.v1 的 theme);沒設定 = 深色,跟 App 一樣 */try{var t=JSON.parse(localStorage.getItem('pianodrill.v1')||'{}').theme;if(t==='light'||t==='dark')document.documentElement.classList.add(t)}catch(e){}</script>
 <style>
-/* 顏色、字型照 App 的代幣(css/app.css 開頭;深色預設,.light = App 選了淺色,沒選照系統) */
+/* 顏色、字型照 App 的代幣(css/app.css 開頭;深色預設,.light = App 選了淺色;沒選 = 深色,跟 App 一樣) */
 :root{--bg:#0A0805;--panel:#1A150C;--gold:#F2B94B;--ivory:#F4ECDA;--muted:#938566;--fill-btn:rgba(242,185,75,.14);color-scheme:dark}
 :root.light{--bg:#ECE6D8;--panel:#FFFDF8;--gold:#745714;--ivory:#241E12;--muted:#6F6450;--fill-btn:rgba(122,92,22,.10);color-scheme:light}
-@media (prefers-color-scheme:light){:root:not(.dark){--bg:#ECE6D8;--panel:#FFFDF8;--gold:#745714;--ivory:#241E12;--muted:#6F6450;--fill-btn:rgba(122,92,22,.10);color-scheme:light}}
 body{margin:0;background:var(--bg);color:var(--ivory);font:16px/1.7 "Noto Sans TC",sans-serif}
 main{max-width:720px;margin:0 auto;padding:32px 20px 60px}
 h1{color:var(--ivory);font-size:24px;margin:0 0 4px}h2{color:var(--ivory);font-size:18px;margin:28px 0 6px}
@@ -44,6 +43,8 @@ pre{margin:6px 0}
 <p>視奏的「跟著彈」可以選用麥克風評節奏:只有你勾選並允許之後才會用,聲音只在這台裝置上分析起音時間,不錄音、不上傳。不勾選就完全不會用到麥克風。</p>
 <h3>練習紀錄存在哪裡?會上傳嗎?</h3>
 <p>只存在這台裝置上,不會上傳;刪除 App 或清除網站資料就會一起刪除。詳見<a href="privacy.html">隱私權政策</a>。</p>
+<h3>換手機怎麼帶走練習紀錄?</h3>
+<p>在舊手機打開 App,捲到畫面最下面按「備份紀錄」→「存成檔案」,把檔案存到「檔案」或傳給自己。新手機打開 App、按「開始練習」,一樣捲到最下面按「備份紀錄」→「從檔案還原」,選那個檔案就好。</p>
 <h3>怎麼換考試、級數,或不考了?</h3>
 <p>打開「檢定」分頁,在上面的考試設定選考試系統與級數,或選「不考試」。</p>
 <h3>怎麼切換中英文、淺色/深色?</h3>
@@ -66,6 +67,8 @@ pre{margin:6px 0}
 <p>Sight-reading's play-along can optionally score your rhythm with the microphone. It is used only after you tick it and allow access; the sound is analysed on this device for note start times only, never recorded or uploaded. If you don't tick it, the microphone is never used.</p>
 <h3>Where is my practice history kept? Is it uploaded?</h3>
 <p>Only on this device, never uploaded; it is removed when you delete the app or clear site data. See the <a href="privacy.html">privacy policy</a>.</p>
+<h3>How do I move my practice history to a new phone?</h3>
+<p>On the old phone, open the app, scroll to the very bottom and tap “Backup” → “Save to file”, then save the file to Files or send it to yourself. On the new phone, open the app, tap “Start practicing”, scroll to the bottom and tap “Backup” → “Restore from file”, and pick that file.</p>
 <h3>How do I change exam or grade, or stop exam prep?</h3>
 <p>Open the Exams tab and pick a board and grade at the top, or choose "No exam".</p>
 <h3>How do I switch language or light/dark theme?</h3>

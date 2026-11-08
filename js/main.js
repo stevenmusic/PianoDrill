@@ -544,8 +544,27 @@ $("bakFile").onchange = async () => {
   if (!confirm(T("bak.confirm"))) return;
   toBackground();   // 目前的模組停止播放與計時、存好現在的;之後切到背景 / 重新整理不會再存一次(inBackground)
   if (importAll(localStorage, obj, BAK_OPT)) { toForeground(); bakMsg(T("bak.err_write")); return; }
+  try { sessionStorage.setItem(RESTORED, "1"); } catch (e) {}
   location.reload();
 };
+/* 還原成功、重新整理以後(sessionStorage 的旗標,只說一次):展開備份那一塊、寫「已還原紀錄」並捲到頁尾(還原是在頁尾按的,接回原處;
+   練習紀錄卡就在頁尾上面);8 秒後或下一次點按 / 按鍵就收掉那句(面板留著,跟按「備份紀錄」一樣)。不跳視窗 */
+const RESTORED = BACKUP.prefix + "restored";
+function showRestored(){
+  let on = false;
+  try { on = sessionStorage.getItem(RESTORED) === "1"; sessionStorage.removeItem(RESTORED); } catch (e) {}
+  if (!on) return;
+  const msg = T("bak.restored");
+  $("bakPanel").hidden = false; $("bakLink").setAttribute("aria-expanded", "true"); bakMsg(msg);
+  if ($("onboard").hidden) requestAnimationFrame(() => window.scrollTo({ top: document.documentElement.scrollHeight }));
+  let t = 0;
+  const done = () => {
+    clearTimeout(t); removeEventListener("pointerdown", done, true); removeEventListener("keydown", done, true);
+    if ($("bakMsg").textContent === msg) $("bakMsg").textContent = "";
+  };
+  t = setTimeout(done, 8000);
+  addEventListener("pointerdown", done, true); addEventListener("keydown", done, true);
+}
 
 /* ══ 頁尾:分享本週摘要(兩個 App 一樣;js/shared/digest.js)══
    給家長 / 老師的幾行純文字(最近 7 天):App 版用 Capacitor 的 Share 外掛、網頁版 navigator.share;都不能用就複製,旁邊寫「已複製」2 秒 */
@@ -595,6 +614,7 @@ async function init(){
   window.__shell = { S, showView, setExam, MODS };
   if (!S.onboarded) { showView("tech"); showOnboard(); }
   else showView(S.view || (S.exam ? "exam" : "tech"));
+  showRestored();
   window.__stageReady = 1;
 }
 /* 離線使用:註冊 Service Worker(sw.js);本機開發(localhost)也註冊,方便測試 */

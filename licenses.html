@@ -4,12 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PianoDrill 鋼琴檢定特訓 · 授權與出處 Licenses</title>
-<script>/* 跟 App 的主題走(index.html 同一個寫法:pianodrill.v1 的 theme);沒設定照系統 */try{var t=JSON.parse(localStorage.getItem('pianodrill.v1')||'{}').theme;if(t==='light'||t==='dark')document.documentElement.classList.add(t)}catch(e){}</script>
+<script>/* 跟 App 的主題走(index.html 同一個寫法:pianodrill.v1 的 theme);沒設定 = 深色,跟 App 一樣 */try{var t=JSON.parse(localStorage.getItem('pianodrill.v1')||'{}').theme;if(t==='light'||t==='dark')document.documentElement.classList.add(t)}catch(e){}</script>
 <style>
-/* 顏色、字型照 App 的代幣(css/app.css 開頭;深色預設,.light = App 選了淺色,沒選照系統) */
+/* 顏色、字型照 App 的代幣(css/app.css 開頭;深色預設,.light = App 選了淺色;沒選 = 深色,跟 App 一樣) */
 :root{--bg:#0A0805;--panel:#1A150C;--gold:#F2B94B;--ivory:#F4ECDA;--muted:#938566;--fill-btn:rgba(242,185,75,.14);color-scheme:dark}
 :root.light{--bg:#ECE6D8;--panel:#FFFDF8;--gold:#745714;--ivory:#241E12;--muted:#6F6450;--fill-btn:rgba(122,92,22,.10);color-scheme:light}
-@media (prefers-color-scheme:light){:root:not(.dark){--bg:#ECE6D8;--panel:#FFFDF8;--gold:#745714;--ivory:#241E12;--muted:#6F6450;--fill-btn:rgba(122,92,22,.10);color-scheme:light}}
 body{margin:0;background:var(--bg);color:var(--ivory);font:16px/1.7 "Noto Sans TC",sans-serif}
 main{max-width:720px;margin:0 auto;padding:32px 20px 60px}
 h1{color:var(--ivory);font-size:24px;margin:0 0 4px}h2{color:var(--ivory);font-size:18px;margin:28px 0 6px}

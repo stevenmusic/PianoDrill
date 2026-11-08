@@ -159,7 +159,9 @@ function renderExam(){
   // 考試系統、級數在外框的檢定設定卡;這裡只寫本級有幾項測驗、答對要不要自動下一題
   $("examSummary").textContent = S.auto ? tr("答對自動下一題", "Auto next") : tr("手動下一題", "Manual next");   // 幾項在本項列的標籤
   paintItemRow(g);
-  pairText($("examNote"), () => tr(`依據：${sys.syllabus} ${g.source}`, `Source: ${sys.syllabus}, ${g.source}`));
+  // 短出處(= 技巧的「ABRSM 2025–2028 p.29」寫法;完整書名在 licenses.html;2026-11-08 第 29 輪):聽力那本只寫 2025 & 2026,年份照它寫
+  const short = S.exam.system === "abrsm" ? "ABRSM 2025–2026" : "Trinity 2023";
+  pairText($("examNote"), () => tr(`${short} · 聽力 ${g.source}`, `${short} · Aural ${g.source}`));
   $("testsSub").textContent = (getLang() === "en" ? g.paramsEn : g.params) || "";
   // 整份聽力共通的說明(Trinity:都根據考官彈的一段音樂)放在清單最上面一行
   $("testsList").innerHTML = (sys.listNote ? `<p class="exam-hint tests-note"></p>` : "") + g.tests.map(t => {
@@ -192,7 +194,7 @@ function loadDrill(d){
   const q = makeDrill(d.drill, { system: S.exam.system, key: examKey(d.test, d.drill) });
   q.examRef = d;
   // 標題跟著語言(模擬考加「模擬考 i/n · 」;mockI、mockN 由 loadMock 設);不寫官方題號字母(A / B…,7 歲看不懂;字母留在清單,2026-11-08)
-  lazy(q, "label", () => (q.mockI != null ? tr(`模擬考 ${q.mockI + 1}/${q.mockN} · `, `Mock ${q.mockI + 1}/${q.mockN} · `) : "") + drillName(d.drill.type));
+  lazy(q, "label", () => (q.mockI != null && mock ? tr(`模擬考 ${q.mockI + 1}/${q.mockN} · `, `Mock ${q.mockI + 1}/${q.mockN} · `) : "") + drillName(d.drill.type));
   setQuestion(q, "exam");
   renderExam(); renderStats();
 }
@@ -206,11 +208,17 @@ $("drawBtn").onclick = () => { mock = null; drawExam(); };
 /* ══ 模擬考:每一項測驗抽一個題型,依序做完,最後看結果(跟 FingerDrill 的模擬考同一個概念) ══ */
 let mock = null;
 $("mockBtn").onclick = () => {
+  // 進行中再按 = 停止(本項列的鈕寫「停止」,跟技巧一樣;2026-11-08 第 29 輪):不算、回到空狀態
+  if (mock) { stopMock(false); return; }
+  mockGone = false;
   const g = gradeOf(S.exam.system, S.exam.grade);
   const queue = g.tests.filter(t => t.drills.length).map(t => { const idx = Math.floor(Math.random() * t.drills.length); return { test: t, drill: t.drills[idx], idx }; });
   if (!queue.length) return;
   mock = { queue, i: 0, res: [] };
   loadMock();
+  // 開始時題目卡不在畫面裡就捲過去(= 技巧的模擬考;2026-11-08 第 29 輪)
+  const r = $("quizCard").getBoundingClientRect();
+  if (r.top < 0 || r.bottom > innerHeight) $("quizCard").scrollIntoView({ behavior: "smooth", block: "start" });
 };
 function loadMock(){
   const d = mock.queue[mock.i], m = mock;
@@ -219,10 +227,24 @@ function loadMock(){
   renderQuestion();
 }
 let lastMock = null;   // 模擬考結果畫面(換語言時重寫)
+let mockGone = false;  // 模擬考中途離開了這個模組(切分頁、切到背景)= 已中止:空狀態那一句說明一次
+/* 停止 / 中止模擬考:不算、題目收掉(回來不會停在「模擬考 2/4」那一題);gone = 中途離開(空狀態寫已中止) */
+function stopMock(gone){
+  stopPlayback();
+  mock = null; examDrill = null; tabCur.exam = null; mockGone = gone;
+  if (active && S.tab === "exam") { showEmpty(); renderExam(); }
+  else syncMockBtn();
+}
+/* 本項列的模擬考鈕:進行中寫「停止」(= 技巧的 t-mockBtn) */
+function syncMockBtn(){
+  $("mockLabel").textContent = mock ? tr("停止", "Stop") : tr("模擬考", "Mock exam");
+  $("mockBtn").title = $("mockBtn").ariaLabel = mock ? tr("停止模擬考", "Stop mock exam") : tr("模擬考", "Mock exam");
+}
 function showMockResult(){
   stopPlayback();
   const m = mock; mock = null; cur = null; A = null;
   lastMock = m;
+  syncMockBtn();
   $("quizCard").classList.remove("hint-empty");
   showMockText();
   $("playBtn").disabled = true; $("revealBtn").hidden = true; $("nextBtn").disabled = false; $("nextBtn").hidden = false;   // 下一題 = 再考一次
@@ -247,7 +269,7 @@ export function setExam(ex){
   store.save();
   if (SY) onExamChange();
 }
-function onExamChange(){ examDrill = null; tabCur.exam = null; mock = null; renderExam(); if (active && S.tab === "exam") showEmpty(); renderStats(); }
+function onExamChange(){ examDrill = null; tabCur.exam = null; mock = null; mockGone = false; renderExam(); if (active && S.tab === "exam") showEmpty(); renderStats(); }
 
 /* ══ 分頁切換 ══ */
 function switchTab(tab, keepQuestion){
@@ -262,8 +284,9 @@ function switchTab(tab, keepQuestion){
 }
 /* 外框:顯示 / 離開這個模組 */
 /* 回到同一個子項目(切到背景再回來、從別的分頁回來):題目與作答照原樣(setQuestion restore),進行中的模擬考也保留 */
-export function enter(tab){ active = true; const m = tab === S.tab ? mock : null; switchTab(tab); if (m) mock = m; }
-export function leave(){ active = false; stopPlayback(); }
+/* 進行中的模擬考離開這個模組(切分頁、切到背景)= 中止(leave 的 stopMock),回來是空狀態 + 一句「模擬考已中止」 */
+export function enter(tab){ active = true; switchTab(tab); }
+export function leave(){ active = false; stopPlayback(); if (mock) stopMock(true); }
 
 /* ══ 題目卡 ══ */
 function showEmpty(){
@@ -279,7 +302,8 @@ function showEmpty(){
 /* 題目卡的空狀態(畫面設計 2026-10 版型 B):一句怎麼開始 + 右下「隨機抽一題」;項目名與進度在本項列 */
 function emptyText(){
   unpair($("qTitle")); $("qTitle").textContent = "";
-  pairText($("hint"), () => tr("點下面一項開始練", "Or pick one below"));
+  if (mockGone) pairText($("hint"), () => tr("模擬考已中止：中途離開了這一頁（這一次不算）。", "Mock exam stopped: you left the page (not counted)."));
+  else pairText($("hint"), () => tr("點下面一項開始練", "Or pick one below"));
 }
 /* 題目卡最後一行右邊(檢定頁):還沒有題目、還沒作答 = 「隨機抽一題」,作答後換成「下一題」(同一個位置);模擬考裡只有下一題 */
 function syncFoot(){
@@ -294,6 +318,7 @@ function syncFoot(){
 }
 /* 本項列(檢定頁最上面一行):聽力 [這一級幾項] + 模擬考 */
 function paintItemRow(g){
+  syncMockBtn();
   $("irName").textContent = "";   // 子項目列已經寫項目名,本項列只留進度標籤 + 模擬考(同一個畫面不重複)
   $("irTag").textContent = g ? tr(`${g.tests.length} 項`, `${g.tests.length} tests`) : "";
 }
@@ -308,7 +333,7 @@ function syncScoreLine(){
 function setQuestion(q, tab, restore){
   stopPlayback();
   if (!q) { showEmpty(); return; }
-  cur = q; tabCur[tab] = q; lastMock = null;
+  cur = q; tabCur[tab] = q; lastMock = null; mockGone = false;
   $("quizCard").classList.remove("hint-empty");
   if (!restore || !q._A) q._A = { step: 0, results: [], done: false, keys: [], taps: [], played: false };
   A = q._A;

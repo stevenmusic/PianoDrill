@@ -890,7 +890,7 @@ function showExamItem() {
     const why = abortText(mk.reason);
     pairText($('hint'), why);   // 下一步:本項列的「模擬考」與右下「練習一題」都看得到,不再寫一次
     if (SS.mockRun) { delete SS.mockRun; saveSS(); }
-  } else pairText($('hint'), () => tr(`出題 → 看譜 ${sec} 秒 → 彈一遍`, `New piece → ${sec}s to look → Play it`));
+  } else pairText($('hint'), () => tr(`出題 → 看譜 ${sec} 秒 → 彈一遍`, `New piece → Look ${sec} s → Play`));
   lastMessage = null;
 }
 function setExamItem(on) {

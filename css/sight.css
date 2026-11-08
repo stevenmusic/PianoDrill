@@ -195,6 +195,9 @@
 .rd-seg.rd-vals .opt{white-space:nowrap;padding:4px 2px}
 /* 檢定頁的本項卡(畫面設計 2026-10 版型 B;js/sight/app.js 的 showExamItem):最下面一列只留「練習一題」(靠右) */
 #s-quiz.hint-empty .q-foot > :not(#s-generate):not(span){display:none}
+/* 提示與「練習一題」同一行放不放得下照固定寬度判斷、不照字的長度(英文比中文長很多(原本「New piece → 30s to look → Play it」;改成「New piece → Look 30 s → Play」),
+   筆電半框寬英文按鈕掉到下一行、中英不一樣高;第 29 輪,= DrumDrill drum.css 的 #s-xEmpty);高度靠 pairText 等高;手機按鈕列固定在底部,不受影響 */
+@media (min-width:601px){ #s-quiz.hint-empty .q-hint{flex-basis:12em} }
 
 /* 檢定頁的調性設定卡:不寫「調性」標籤(按鈕本身就是調);展開時摘要列只留圖示與箭頭(不重複「隨機」) */
 #s-keyLbl{display:none}

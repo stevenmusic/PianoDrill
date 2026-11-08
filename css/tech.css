@@ -41,3 +41,5 @@
 }
 /* 折疊機(≤ 300 寬)自由練習的底部固定列:會了 / 再練 +「彈一遍」排一行(app.css 在 ≤ 300 讓主要按鈕整條掉到下一行,固定列變兩排會蓋住譜;兩種語言都放得下) */
 @media (max-width:300px){ #t-quizCard > .q-last.cta-bar > .q-actions:has(> #t-playMain:not([hidden])){flex:1 1 0} #t-quizCard > .q-last.cta-bar #t-playMain{padding-left:10px;padding-right:10px} }
+/* 檢定頁模擬考進行中最後一行的「模擬考 1 / 8」:進度是備考的人的主要資訊,不用 --fs-xs 灰色小字(畫面設計「操作」:主要資訊 ≥ --fs-md;2026-11-08 第 29 輪) */
+#t-poolCount{font-size:var(--fs-md);color:var(--muted-bright);font-variant-numeric:tabular-nums}

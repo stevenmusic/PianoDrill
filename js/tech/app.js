@@ -336,6 +336,9 @@ $("mockBtn").onclick = () => {
   if (!list.length) return;
   mock = { list, i: 0 };
   setQuestion(list[0], "exam"); syncExamButtons();
+  // 開始時題目卡不在畫面裡(捲到下面才按的、矮的筆電)就捲過去:備考的人一按就看到第 1 題(2026-11-08 第 29 輪)
+  const r = $("quizCard").getBoundingClientRect();
+  if (r.top < 0 || r.bottom > innerHeight) $("quizCard").scrollIntoView({ behavior: "smooth", block: "start" });
 };
 function finishMock(){
   const list = mock.list; mock = null;
@@ -358,7 +361,7 @@ $("nextBtn").onclick = () => {
 function renderList(){
   const sys = SY.systems[S.exam.system], qs = examQuestions();
   const good = qs.filter(q => S.mastery[q.key] === "good").length;
-  $("listTitle").textContent = sys.mode === "sets" ? tr("本級要求（依序）", "This grade (in order)") : T("listTitle");   // 哪一組:組別鈕亮著
+  $("listTitle").textContent = sys.mode === "sets" ? tr("本級要求（照考試順序）", "This grade (exam order)") : T("listTitle");   // 哪一組:組別鈕亮著
   $("listSub").textContent = "";   // 「會了 n/m」在本項列(不重複)
   $("progressBar").style.width = (qs.length ? 100 * good / qs.length : 0) + "%";
   paintItemTag();

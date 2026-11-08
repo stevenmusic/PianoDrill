@@ -66,7 +66,11 @@ export function celebrate(host, text, { before = null, ms = CELEBRATE_MS, sweep 
     if (top != null) {
       const p = sweep.getBoundingClientRect();
       Object.assign(el.style, { position: "fixed", left: p.left + "px", width: p.width + "px", top: top + "px", right: "auto", bottom: "auto", minHeight: o.height + "px", zIndex: 15 });
-      fit(); return;
+      fit();
+      // 不蓋底部固定的按鈕列(.daily-cta / .cta-bar):放不下就往上移到按鈕列上面
+      const bar = [...document.querySelectorAll(".daily-cta, .cta-bar")].find(b => b.offsetHeight && getComputedStyle(b).position === "fixed");
+      if (bar) { const lim = bar.getBoundingClientRect().top - el.offsetHeight - 4; if (top > lim) el.style.top = Math.max(0, lim) + "px"; }
+      return;
     }
     Object.assign(el.style, { position: "", zIndex: "", left: (o.left - h.left - host.clientLeft) + "px", width: o.width + "px", right: "auto", bottom: "auto", minHeight: o.height + "px" });
     fit();

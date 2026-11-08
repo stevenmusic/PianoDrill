@@ -1675,8 +1675,9 @@ let lastRhythmResult = null;
 let micDenied = false;
 function paintMicNote() {
   const note = $('alongMicNote');
-  note.setAttribute('data-si18n', micDenied && elements.alongMic.checked ? 'alongMicOff' : 'alongMicNote');
-  note.textContent = t(note.getAttribute('data-si18n'));
+  const key = micDenied && elements.alongMic.checked ? 'alongMicOff' : 'alongMicNote';
+  note.setAttribute('data-si18n', key);
+  pairText(note, () => t(key));   // 中英同高(英文「No microphone this time…」在 fold-280 比中文多一行)
 }
 
 async function togglePlayAlong() {

@@ -446,6 +446,8 @@ function landReveal(){
   if (kb.getBoundingClientRect().bottom > innerHeight - LAND_CTA) window.scrollTo({ top: Math.max(0, scrollY + $("quizCard").getBoundingClientRect().top - headBottom() - 8) });
 }
 addEventListener("resize", () => { fitKeyboard(); syncInfoRow(); });   // ▶ 大小跟寬度走(手機 46、其他 52):連對 n 重新對齊
+/* 寬畫面的琴鍵高度照第一個畫面算(上面的設定卡展開 / 收起會改變琴鍵的位置):展開收起後再量一次,不然換語言重畫時才變高度 */
+document.addEventListener("click", e => { if (e.target.closest("#mod-ear .setup-summary")) requestAnimationFrame(fitKeyboard); });
 function syncKeys(){
   const k = cur.keys, dots = $("kbdDots");
   if (dots) dots.innerHTML = k.target.map((_, i) => {

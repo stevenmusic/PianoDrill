@@ -385,7 +385,7 @@
 優先順序 1 最重要。
 
 ### 可以直接做
-- [ ] [小] 1.(優先 1)檢定頁視奏空狀態 笔電 1366 英文 — 題目卡中文 78 高、英文 116 高(量 `#s-quiz` rect):英文「New piece → 30s to look → Play it」在半框寬的卡裡放不下,「Practice one」整顆掉到下一行,中英不一樣高(mE.png);→ 英文縮短成「Look 30 s → Play」或讓這句 nowrap + 縮字,兩種語言同一排
+- [ ] [小] 1.(優先 1)檢定頁視奏空狀態 筆電 1366 英文 — 題目卡中文 78 高、英文 116 高(量 `#s-quiz` rect):英文「New piece → 30s to look → Play it」在半框寬的卡裡放不下,「Practice one」整顆掉到下一行,中英不一樣高(mE.png);→ 英文縮短成「Look 30 s → Play」或讓這句 nowrap + 縮字,兩種語言同一排
 - [ ] [小] 2.(優先 2)聽力模擬考 — 進行中本項列的鈕還寫「模擬考」(技巧寫「停止」),上方標題「模擬考 1/4 · 幾拍子」;切到別的分頁再回檢定聽力,模擬考還在跑、沒有任何「停止」或「已中止」(mC.png 右);備考的人不知道怎麼結束 → 進行中本項列的鈕寫「停止」,跟技巧一樣;離開再回來要不是中止並說明,就要看得到「停止模擬考」
 - [ ] [小] 3.(優先 3)考試內容的出處寫法不一致 — 技巧「ABRSM 2025–2028 p.29」、聽力「依據：Piano Practical Grades Qualification Specification 2025 & 2026 p.47」、Trinity 聽力「Piano Syllabus — Qualification specifications for graded exams from 2023 (Supporting tests: Aural) p.99」(整串英文書名,家長看不懂、一行很長)→ 統一「ABRSM 2025–2028 · 聽力 p.47」「Trinity 2023 · 聽力 p.99」,完整書名放 licenses.html
 - [ ] [小] 4.(優先 4)檢定頁技巧模擬考進行中(laptop 768 高)— 第一個畫面看得到題目卡與譜,但「模擬考 1 / 8」只是題目卡左下 11px 小字(量約 11px 灰色),進度對備考的人是主要資訊 → 字級 ≥ `--fs-md`,或放到「停止」旁

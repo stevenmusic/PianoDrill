@@ -31,7 +31,7 @@ const KEY_NAME = { C: ["C 大調", "C major"], G: ["G 大調", "G major"], F: ["
 const VNAME = {
   rhythm: { dotted: ["附點節奏", "Dotted rhythm"], reverse: ["反附點", "Reverse dotted"] },
   touch: { stacc: ["斷奏", "Staccato"], legato: ["圓滑奏", "Legato"] },
-  dyn: { p: ["小聲(p)", "Soft (p)"], f: ["大聲(f)", "Loud (f)"], cresc: ["愈彈愈大聲", "Louder and louder"], balance: ["右手大聲、左手小聲", "Right louder than left"] }
+  dyn: { p: ["小聲彈", "Play softly"], f: ["大聲彈", "Play loudly"], cresc: ["愈彈愈大聲", "Louder and louder"], balance: ["右手大聲、左手小聲", "Right louder than left"] }
 };
 export function varyName(q){
   const parts = [];

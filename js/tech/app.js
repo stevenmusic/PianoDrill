@@ -755,6 +755,7 @@ function fitWrap(){
     }
   }
   centerWrap();
+  ROOT.classList.toggle("wrap-rows", systemsOf().length > 1);   // 譜排成兩行以上:手機直式琴鍵條收成 44 高(css/tech.css)
   window.__wrap = { n: pick.n, zoom: pick.z, bars };
 }
 /* 換行排法只有一行的短譜:裁掉 SVG 右邊的空白、在譜紙裡水平置中(docs/DESIGN.md 9.10 丙「置中不放大」;大小照 fitWrap)。
@@ -773,6 +774,35 @@ function centerWrap(){
   svg.setAttribute("width", w * s);
   svg.style.width = w * s + "px"; svg.style.display = "block"; svg.style.margin = "0 auto";
 }
+/* 按住的音(第二聲部的全音符,C 組):跟另一聲部差二度時 VexFlow 把它往右推一個符頭寬,卻不留位置,緊接的下一個音貼在它旁邊
+   (PC5 第一拍的 D、按住的 C G、下一個 E 擠成一團;BACKLOG 第 26 輪 3)。排好這一小節以後:被推開的音右邊留一點空,後面的音照比例往右挪(最後一個不動)。
+   只改這個模組的 OSMD(視奏也用同一個 OSMD 類別)、只在有按住的音的譜 */
+let holdPatched = false;
+function holdSpacing(){
+  const VM = opensheetmusicdisplay.VexFlowMeasure && opensheetmusicdisplay.VexFlowMeasure.prototype;
+  if (holdPatched || !VM || typeof VM.format !== "function") return;
+  holdPatched = true;
+  const orig = VM.format;
+  VM.format = function(){
+    orig.call(this);
+    if (!osmd || this.rules !== osmd.EngravingRules || !(ex && ex.hold && ((ex.hold.rh || []).length || (ex.hold.lh || []).length))) return;
+    try {
+      const tcs = [];
+      for (const se of this.staffEntries || []) for (const g of se.graphicalVoiceEntries || []) {
+        const tc = g.vfStaveNote && g.vfStaveNote.getTickContext && g.vfStaveNote.getTickContext();
+        if (tc && !tcs.includes(tc)) tcs.push(tc);
+      }
+      tcs.sort((a, b) => a.getX() - b.getX());
+      for (let i = 0; i < tcs.length - 2; i++) {
+        const sh = Math.max(0, ...tcs[i].getTickables().map(n => (n.x_shift > 0 && n.getGlyphWidth ? n.x_shift + n.getGlyphWidth() : 0)));
+        const need = sh ? tcs[i].getX() + sh + 3 - tcs[i + 1].getX() : 0;
+        const x1 = tcs[i + 1].getX(), xn = tcs[tcs.length - 1].getX();
+        if (need <= 0 || xn - x1 <= need * 2) continue;
+        for (let j = i + 1; j < tcs.length; j++) { const xj = tcs[j].getX(); tcs[j].setX(xj + need * (xn - xj) / (xn - x1)); }
+      }
+    } catch (e) { /* 排不了就照 OSMD 原本的位置 */ }
+  };
+}
 async function renderScore(){
   if (!cur) return;
   const seq = ++renderSeq;
@@ -783,6 +813,7 @@ async function renderScore(){
       drawMeasureNumbers: false, drawingParameters: "compacttight", renderSingleHorizontalStaffline: true,
       cursorsOptions: [{ type: 0, color: "#F2B94B", alpha: 0, follow: false }]
     });
+    holdSpacing();
   }
   setMsg("paperMsg", null);
   try {
@@ -872,8 +903,9 @@ function renderMarksUI(){
   ct.hidden = !tbl || !tbl.length;
   if (tbl && tbl.length) {
     const on = namesOn();
-    // 「C = C E G(5-3-1)· G7 = B F G(5-2-1)」;音名關掉:「C(5-3-1)· G7(5-2-1)」
-    ct.innerHTML = tbl.map(c => `<span><b>${c.name}</b>${on ? " = " + c.notes.map(NOTE_ZH).join(" ") : ""}<small>(${c.fingers.join("-")})</small></span>`).join("<i aria-hidden=\"true\"> · </i>");
+    // 「C = C E G(指 5-3-1)· G7 = B F G(5-2-1)」;音名關掉:「C(指 5-3-1)· G7(5-2-1)」(第一個寫「指」:只有數字看起來像分數 / 電話,BACKLOG 第 26 輪 5;
+    // 英文寫「LH / RH」:「fingers」在 390 寬三個和弦放不下一行,英文比中文多一行)
+    ct.innerHTML = tbl.map((c, i) => `<span><b>${c.name}</b>${on ? " = " + c.notes.map(NOTE_ZH).join(" ") : ""}<small>(${i ? "" : tr("指 ", c.hand === "rh" ? "RH " : "LH ")}${c.fingers.join("-")})</small></span>`).join("<i aria-hidden=\"true\"> · </i>");
     ct.setAttribute("aria-label", tr("這一關的和弦：", "Chords here: ") + tbl.map(c => `${c.name} ${c.notes.join(" ")} ${tr("指法", "fingers")} ${c.fingers.join(" ")}`).join(";"));
   }
   syncKeys(route, hp);
@@ -1739,21 +1771,24 @@ function lisResult(r, noisy, take = null){
 function micFail(err){
   const n = err && err.name;
   micBroken = n === "NotAllowedError" || n === "SecurityError" ? "denied" : n === "NotFoundError" || n === "OverconstrainedError" || n === "NotReadableError" ? "none" : "unsupported";
-  const why = { denied: ["沒有取得麥克風", "No microphone access"], none: ["找不到麥克風", "No microphone found"], unsupported: ["這台裝置不能用麥克風", "Can't use the microphone here"] }[micBroken];
+  // 一行放得下(390 寬;BACKLOG 第 26 輪 2:兩行會把題目卡推高)
+  const why = { denied: ["沒有取得麥克風", "No mic access"], none: ["找不到麥克風", "No mic found"], unsupported: ["不能用麥克風", "Mic not available"] }[micBroken];
   syncPlayCap();
-  if (dseg) dcard.renderStep(dseg, { status: () => tr(why[0] + "，改成跟著示範彈、自己按「做到了」", why[1] + ". Play along and tap Did it yourself") });
+  if (dseg) dcard.renderStep(dseg, { status: () => tr(why[0] + "，改成自己按「做到了」", why[1] + ". Tap Did it yourself") });
 }
 /* 面板裡一行的開關(文字鈕;按了換開 / 關,存 S.listen) */
 const micBtn = document.createElement("button");
 micBtn.type = "button"; micBtn.className = "text-btn"; micBtn.id = "t-micBtn";
 function paintMicBtn(){
   const on = S.listen !== false;
-  micBtn.textContent = on ? tr("麥克風聽你彈：開", "Mic listens: on") : tr("麥克風聽你彈：關", "Mic listens: off");
-  micBtn.setAttribute("aria-pressed", String(on));
+  // 開著但這次打開 App 拿不到麥克風:寫實際狀態(不寫「開」);點一下 = 再試(BACKLOG 第 26 輪 2)
+  micBtn.textContent = on && micBroken ? tr("麥克風：無法使用", "Mic: unavailable") : on ? tr("麥克風聽你彈：開", "Mic listens: on") : tr("麥克風聽你彈：關", "Mic listens: off");
+  micBtn.setAttribute("aria-pressed", String(on && !micBroken));
   return micBtn;
 }
 micBtn.onclick = () => {
-  S.listen = S.listen === false; if (S.listen) micBroken = null;
+  if (S.listen !== false && micBroken) micBroken = null;   // 拿不到麥克風時按 = 再試一次(開關照舊開著)
+  else { S.listen = S.listen === false; if (S.listen) micBroken = null; }
   store.save(); stopPlayback();
   lisFails = 0; heardAt = null; syncReady(); dcard.againOk(false); syncPlayCap();
   if (dseg) dcard.renderStep(dseg, { status: null });
@@ -1824,6 +1859,18 @@ function dShow(s, status = null){
   syncReady();
   dcard.render(); dcard.renderStep(s, { status });
 }
+/* 手機橫放:題目卡 + 譜卡放不下一個畫面,換到下一段時譜被底部按鈕列蓋住(BACKLOG 第 26 輪 1)→ 把譜卡捲到頂欄下
+   (跟播放時 revealScore 同一個位置;底部按鈕是「▶ 跟著彈一輪」,▶ 看得到)。
+   暖身不捲(底部是「下一段 ›」,▶ 只在題目卡);剛按「開始」的第一個畫面照舊看得到標題與 ▶(tasks.mjs) */
+function landReveal(){
+  if (!isPhoneLand()) return;
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    const c = ctaEl(); if (!dseg || dseg.k === "warm" || !c) return;
+    if ($("stage").getBoundingClientRect().bottom <= c.getBoundingClientRect().top - 4) return;
+    const d = $("scoreCard").getBoundingClientRect().top - document.querySelector("header").getBoundingClientRect().bottom - 6;
+    if (d > 2) window.scrollBy({ top: d });
+  }));
+}
 /* 離開段落(暫停或今天練完):回到一般畫面 */
 function dExit(){
   stopPlayback();
@@ -1873,7 +1920,7 @@ function dNext(){
   const t = daily.today(), i = t.i, worked = t.sec[i] > 0 || t.tries[i] > 0;
   const s = daily.next();
   if (worked) { S.log = S.log || {}; addLog(S.log, { n: 1 }); store.save(); renderLog(); }
-  if (s) { dShow(s); return; }
+  if (s) { dShow(s); landReveal(); return; }
   dExit(); switchTab(S.tab);
 }
 

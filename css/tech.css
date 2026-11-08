@@ -12,6 +12,11 @@
   #mod-tech.zero-lv #t-dailyStep .daily-tip{display:none}
   #mod-tech.zero-lv #t-keys{--ks-h:44px}
 }
+/* 今日練習的譜排成兩行以上(js/tech/app.js 的 fitWrap 加 #mod-tech.wrap-rows;伴奏 Alberti、低中高中等 4 小節的關):手機直式琴鍵條 44 高(跟第 0 組一樣),
+   和弦表 + 兩行譜 + 琴鍵條之後「重點」才在底部按鈕列上面(BACKLOG 第 26 輪 7) */
+@media (orientation:portrait) and (max-width:600px){
+  #mod-tech.wrap-rows #t-keys{--ks-h:44px}
+}
 /* 寬但矮的視窗(≥ 1100 寬、501–799 高,例如筆電 1366×768、1280×600;BACKLOG 第 9 節之後健檢):琴鍵條 88 會把「重點」推到底部按鈕列下面 →
    44 高(跟手機橫式一樣);fitWrap 照剩下的高度放大譜(wideRoomH),1366×768 第一個畫面看得到題目、譜、琴鍵條、重點、主要按鈕 */
 @media (min-width:1100px) and (min-height:501px) and (max-height:799px){

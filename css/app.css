@@ -1068,6 +1068,7 @@ body.view-exam #t-dailyCard,body.view-exam #t-dailyStep{display:none !important}
 @media (max-width:1099px){ .daily-bar .daily-next{margin-left:auto} }   /* 換到第二行時靠右(同一行時「剩約 n 分」已經撐滿,沒有差別) */
 @media (max-width:340px){ .daily-dots{display:none} }
 @media (max-width:300px){ .daily-bar{gap:4px} }   /* 折疊機:按鈕字 14 以後,「剩約 6 分」還放得下 */
+@media (max-width:300px){ .daily-left:not(.up){flex:0 1 2.6em;max-width:2.6em} :lang(en) .daily-left:not(.up){flex-basis:4em;max-width:4em} }   /* 折疊機:「剩約 / n 分」每一段都固定兩行(右邊「下一段 ›」「結束今天 ›」寬度不同,有的段一行有的兩行;BACKLOG 第 26 輪 4) */
 /* 段落面板(題目卡裡) */
 .daily-step{display:flex;flex-direction:column;gap:8px;padding-top:2px}   /* 不畫上框線(卡片已經分層) */
 .daily-status{font-size:var(--fs-body);font-weight:500;color:var(--ivory);line-height:1.5}

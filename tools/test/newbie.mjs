@@ -306,7 +306,8 @@ for (const [rname, rc] of runs) {
     const jump = range(sameT);
     const sjump = range(samples.filter(x => x.statusTop != null && x.statusText === after.statusText && x.titleText === after.titleText).map(x => x.statusTop - (x.title ? x.title.top : 0)));   // 狀態句相對標題(捲動不算)
     const errs = [], warns = [];
-    if (!after.next) (/看重點|look/i.test(say) || after.busy ? warns : errs).push("看不到下一步(沒有能按的主要按鈕,狀態句也沒寫「按 …」)" + (after.primHidden.length ? `;主要按鈕被蓋住或在畫面外:${after.primHidden.join("、")}` : ""));
+    // 看重點(路線圖點一關):要點的那一關在畫面外、使用者自己捲下去看的,主要按鈕(再練一下)在上面看不到是正常的,不記警告
+    if (!after.next && !(scrolledTo && /看重點|look/i.test(say))) (/看重點|look/i.test(say) || after.busy ? warns : errs).push("看不到下一步(沒有能按的主要按鈕,狀態句也沒寫「按 …」)" + (after.primHidden.length ? `;主要按鈕被蓋住或在畫面外:${after.primHidden.join("、")}` : ""));
     if (after.on && after.playAsk && !after.playSeen && !after.busy && !after.landPlay) errs.push("狀態句寫「按 ▶」,▶ 不在畫面裡");
     if (after.on && after.main) {
       // 跟上一步比(每換一次位置記一次);今日練習整段流程比 top、left、寬(平板直式按鈕列不固定、在題目卡裡:同一關比,換關跟著題目走),題目卡同一題比 top、右邊界
@@ -453,5 +454,5 @@ for (const [rname, rc] of runs) {
   await h.close();
 }
 if (kinds.size) { console.log("斷點種類:"); for (const [k, o] of kinds) console.log(`  ${k}:${o.n} 次(第一次:${o.first})`); }
-console.log(bad ? `✗ ${bad} 處斷點(${APP};截圖在 ${path.relative(process.cwd(), OUT)})` + (warn ? `;⚠ ${warn} 步有重複的句子` : "") : `✓ 新手從頭到尾每一步都接得上(${APP})` + (warn ? `;⚠ ${warn} 步有重複的句子` : ""));
+console.log(bad ? `✗ ${bad} 處斷點(${APP};截圖在 ${path.relative(process.cwd(), OUT)})` + (warn ? `;⚠ ${warn} 步有警告(上面 ⚠ 那幾行)` : "") : `✓ 新手從頭到尾每一步都接得上(${APP})` + (warn ? `;⚠ ${warn} 步有警告(上面 ⚠ 那幾行)` : ""));
 process.exit(bad ? 1 : 0);

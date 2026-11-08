@@ -415,7 +415,8 @@ export function createDailyCard({ $, daily, routes = null, labels = {}, warmName
       const v = L2(labels.verb || ["彈", "play"]);
       // 過關、這一段還有時間 = 直接換到下一關(res.cont):寫「接著練下一關」+ 下一步「按 ▶ 跟著彈一輪」(畫面已經是下一關,不要讓人以為還在同一關;
       // 關名在大標題,狀態句不重複:長關名會把「按 ▶ …」擠到第三行,DrumDrill 第 26 輪 4)
-      if (res && res.passed && res.cont && nl) return M(s, fmt("passedCont") + tr("。", ". ") + fmt("start1", { v }));
+      // labels.first = App 換這一步的說法(DrumDrill 手機鼓墊:「按「打一遍」打一輪」;主要按鈕是「打一遍」不是 ▶)
+      if (res && res.passed && res.cont && nl) return M(s, fmt("passedCont") + tr("。", ". ") + (labels.first ? L2(labels.first) : fmt("start1", { v })));
       const t = resultText(res, s, nl ? levelName({ k: "route", level: nl }) : null, L2(labels.good || ["很穩！", "Steady!"]));
       // 還沒過關:每一句都接下一步「按 ▶ 再彈 / 打一次」(自評後要再播一輪才能再按)
       if (!t || !res || res.passed || s.k === "review") return M(s, t);
